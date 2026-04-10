@@ -5,13 +5,20 @@ import React, {
 import { dateToX, getTimeRange, getTickMarks, assignLanes, getMsPerPx } from '../../utils/timeline'
 import { relativeLabel, formatDateDisplay } from '../../utils/dates'
 
-// Card dimensions (px, in SVG user-units at 1rem base)
-const CARD_W    = 160   // card width
-const CARD_H    = 58    // card height (3 lines of text)
-const CONN_LEN  = 18    // gap between axis and nearest card edge
-const CARD_STEP = CARD_H + 10  // vertical distance between stacked lanes
+// Map text-size labels → root px value (must match TimelineView TEXT_SIZES)
+const REM_PX = { small: 19, normal: 22, big: 26, bigger: 30 }
 
-const Timeline = forwardRef(function Timeline({ milestones, zoom, onMilestoneClick }, ref) {
+const Timeline = forwardRef(function Timeline({ milestones, zoom, textSize = 'normal', onMilestoneClick }, ref) {
+  // All card geometry derived from the current rem size so cards scale with text
+  const remPx    = REM_PX[textSize] || 22
+  const CARD_W   = Math.round(remPx * 7.8)   // wide enough for ~17 monospace chars at 0.6em
+  const CARD_H   = Math.round(remPx * 3.2)   // tall enough for 3 lines
+  const CONN_LEN = Math.round(remPx * 0.9)   // connector gap from axis to card edge
+  const CARD_STEP = CARD_H + Math.round(remPx * 0.55)  // lane-to-lane distance
+  // Text baselines as fractions of card height
+  const LINE1 = Math.round(CARD_H * 0.33)
+  const LINE2 = Math.round(CARD_H * 0.61)
+  const LINE3 = Math.round(CARD_H * 0.87)
   const wrapRef = useRef(null)
   const [size, setSize] = useState({ w: 800, h: 340 })
   const [panMs, setPanMs] = useState(0)
@@ -213,7 +220,7 @@ const Timeline = forwardRef(function Timeline({ milestones, zoom, onMilestoneCli
 
               {/* Title */}
               <text
-                x={cardX + 10} y={cardY + 18}
+                x={cardX + 10} y={cardY + LINE1}
                 fill="rgba(232,224,208,0.95)"
                 fontSize="0.6em"
                 fontFamily="'Courier Prime', monospace"
@@ -224,7 +231,7 @@ const Timeline = forwardRef(function Timeline({ milestones, zoom, onMilestoneCli
 
               {/* Date */}
               <text
-                x={cardX + 10} y={cardY + 34}
+                x={cardX + 10} y={cardY + LINE2}
                 fill="rgba(232,224,208,0.45)"
                 fontSize="0.52em"
                 fontFamily="'Courier Prime', monospace"
@@ -234,7 +241,7 @@ const Timeline = forwardRef(function Timeline({ milestones, zoom, onMilestoneCli
 
               {/* Relative time */}
               <text
-                x={cardX + 10} y={cardY + 50}
+                x={cardX + 10} y={cardY + LINE3}
                 fill="#C8A96E"
                 fontSize="0.52em"
                 fontFamily="'Courier Prime', monospace"

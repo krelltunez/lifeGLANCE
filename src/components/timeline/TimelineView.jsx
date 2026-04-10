@@ -121,6 +121,7 @@ export default function TimelineView({ milestones, setMilestones }) {
             ref={timelineRef}
             milestones={milestones}
             zoom={zoom}
+            textSize={textSize}
             onMilestoneClick={setDetail}
           />
         </div>
