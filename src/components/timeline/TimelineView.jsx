@@ -3,9 +3,10 @@ import Timeline          from './Timeline'
 import StatsPanel        from '../stats/StatsPanel'
 import AddMilestoneSheet from '../milestone/AddMilestoneSheet'
 import MilestoneDetail   from '../milestone/MilestoneDetail'
+import SettingsModal     from '../settings/SettingsModal'
 import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS }   from '../../utils/timeline'
-import { CATEGORIES }    from '../../utils/colors'
+import { loadCategories } from '../../utils/colors'
 import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones } from '../../data/milestones'
 
 const ZOOM_RANK = { decades: 5, '30yr': 4, years: 3, months: 2, weeks: 1, custom: 3.5 }
@@ -30,16 +31,17 @@ export default function TimelineView({ milestones, setMilestones }) {
     () => localStorage.getItem('lifeglance-text-size') || 'normal'
   )
   const [customYears, setCustomYears] = useState(15)
-  const [pastIdx,        setPastIdx]       = useState(0)
-  const [futureIdx,      setFutureIdx]     = useState(0)
-  const [selectedId,     setSelectedId]    = useState(null)
+  const [pastIdx,        setPastIdx]         = useState(0)
+  const [futureIdx,      setFutureIdx]       = useState(0)
+  const [selectedId,     setSelectedId]      = useState(null)
   const [highlightsActive, setHighlightsActive] = useState(true)
+  const [settingsOpen,   setSettingsOpen]    = useState(false)
+  const [categories,     setCategories]      = useState(loadCategories)
 
   const timelineRef = useRef(null)
   const zoomWrapRef = useRef(null)
   const zoomRef     = useRef('years')
   const zoomLocked  = useRef(false)
-  const restoreRef  = useRef(null)
 
   // Apply font size globally
   useEffect(() => {
@@ -78,7 +80,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   }, [])
 
   // ── Filter ───────────────────────────────────────────────────────────────────
-  const presentCategories = CATEGORIES.filter(cat =>
+  const presentCategories = categories.filter(cat =>
     milestones.some(m => m.category === cat.id)
   )
   const filteredMilestones = filter === 'all'
@@ -195,15 +197,6 @@ export default function TimelineView({ milestones, setMilestones }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            {/* Text size */}
-            <div className="zoom-tabs">
-              {Object.keys(TEXT_SIZES).map(s => (
-                <button key={s}
-                  className={`zoom-tab ${textSize === s ? 'active' : ''}`}
-                  onClick={() => setTextSize(s)}>{s}</button>
-              ))}
-            </div>
-
             {/* Zoom level */}
             <div className="zoom-tabs">
               {ZOOM_LEVELS.map(z => (
@@ -215,6 +208,8 @@ export default function TimelineView({ milestones, setMilestones }) {
                 className={`zoom-tab ${zoom === 'custom' ? 'active' : ''}`}
                 onClick={() => handleZoom('custom')}>custom</button>
             </div>
+
+            <button className="action-link" onClick={() => setSettingsOpen(true)}>settings</button>
           </div>
 
           {/* Zoom indicator / custom input */}
@@ -234,15 +229,6 @@ export default function TimelineView({ milestones, setMilestones }) {
               <TypewriterText key={zoom} text={`viewing: ${zoom}`}
                 options={{ delay: 38, jitter: 18 }} showCursor={false} hideCursorWhenDone />
             )}
-          </div>
-
-          {/* Backup links */}
-          <div className="header-actions">
-            <button className="action-link" onClick={handleSaveBackup}>save backup</button>
-            <span className="action-sep">·</span>
-            <button className="action-link" onClick={() => restoreRef.current?.click()}>restore</button>
-            <input ref={restoreRef} type="file" accept=".json"
-              style={{ display: 'none' }} onChange={handleRestoreFile} />
           </div>
         </div>
       </div>
@@ -326,7 +312,10 @@ export default function TimelineView({ milestones, setMilestones }) {
 
       {/* ── Sheets ─────────────────────────────────────────────────────────── */}
       {addOpen && (
-        <AddMilestoneSheet onSave={handleSave} onClose={closeSheet} existing={editTarget} />
+        <AddMilestoneSheet
+          onSave={handleSave} onClose={closeSheet} existing={editTarget}
+          categories={categories}
+        />
       )}
       {detail && (
         <MilestoneDetail
@@ -334,6 +323,16 @@ export default function TimelineView({ milestones, setMilestones }) {
           onClose={() => setDetail(null)}
           onEdit={openEdit}
           onDelete={handleDelete}
+        />
+      )}
+      {settingsOpen && (
+        <SettingsModal
+          textSize={textSize}         onTextSizeChange={setTextSize}
+          categories={categories}     onCategoriesChange={setCategories}
+          milestones={milestones}
+          onSaveBackup={handleSaveBackup}
+          onRestoreFile={handleRestoreFile}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
     </div>

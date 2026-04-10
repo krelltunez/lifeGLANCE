@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { CATEGORIES } from '../../utils/colors'
+import { DEFAULT_CATEGORIES } from '../../utils/colors'
 import { buildDateFromParts } from '../../utils/dates'
 
 const MONTHS = [
@@ -9,7 +9,7 @@ const MONTHS = [
   { v: '10', l: 'Oct' }, { v: '11', l: 'Nov' }, { v: '12', l: 'Dec' },
 ]
 
-export default function AddMilestoneSheet({ onSave, onClose, existing }) {
+export default function AddMilestoneSheet({ onSave, onClose, existing, categories = DEFAULT_CATEGORIES }) {
   const isEdit = !!existing
 
   const [title,     setTitle]     = useState(existing?.title     ?? '')
@@ -39,11 +39,13 @@ export default function AddMilestoneSheet({ onSave, onClose, existing }) {
     setBusy(true)
     try {
       const date = buildDateFromParts(month, year, precision, day)
+      const selectedCat = categories.find(c => c.id === category)
       await onSave({
         title: title.trim(),
         date,
         date_precision: precision,
         category,
+        color: selectedCat?.color,
         note: note.trim(),
       }, existing)
       onClose()
@@ -142,7 +144,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing }) {
         <div className="sheet-field">
           <label className="field-label">category</label>
           <div className="category-grid">
-            {CATEGORIES.map(cat => (
+            {categories.map(cat => (
               <div
                 key={cat.id}
                 className={`category-chip ${category === cat.id ? 'selected' : ''}`}
