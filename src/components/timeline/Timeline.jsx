@@ -224,7 +224,7 @@ const Timeline = forwardRef(function Timeline({ milestones, zoom, textSize = 'no
           // Absolute text baseline y positions within the card
           const yT1   = cardY + TOP_PAD                                      // title line 1
           const yT2   = yT1 + TITLE_LH                                       // title line 2 (if any)
-          const yMeta = (twoLines ? yT2 : yT1) + SEC_GAP + META_LH          // date
+          const yMeta = (titleLines.length > 1 ? yT2 : yT1) + SEC_GAP + META_LH  // date
           const yRel  = yMeta + META_LH                                       // relative time
 
           return (
