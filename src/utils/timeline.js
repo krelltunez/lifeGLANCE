@@ -1,19 +1,18 @@
-export const ZOOM_LEVELS = ['decades', 'years', 'months', 'weeks']
+export const ZOOM_LEVELS = ['decades', '30yr', 'years', 'months', 'weeks']
 
-// Half-range in milliseconds for each zoom level (total range = 2×)
+// Half-range in milliseconds for each named zoom level (total range = 2×)
 const HALF_RANGE_MS = {
   decades: 50  * 365.25 * 24 * 3600 * 1000,
+  '30yr':  30  * 365.25 * 24 * 3600 * 1000,
   years:   10  * 365.25 * 24 * 3600 * 1000,
   months:  18  *  30.44 * 24 * 3600 * 1000,
   weeks:   13  *   7    * 24 * 3600 * 1000,
 }
 
-export function getTimeRange(zoom, centerMs) {
-  const half = HALF_RANGE_MS[zoom]
-  return {
-    startMs: centerMs - half,
-    endMs:   centerMs + half,
-  }
+// customHalfMs is only used when zoom === 'custom'
+export function getTimeRange(zoom, centerMs, customHalfMs = 0) {
+  const half = zoom === 'custom' ? customHalfMs : HALF_RANGE_MS[zoom]
+  return { startMs: centerMs - half, endMs: centerMs + half }
 }
 
 export function dateToX(dateMs, startMs, endMs, width) {
@@ -26,17 +25,32 @@ export function xToMs(x, startMs, endMs, width) {
   return startMs + (x / width) * (endMs - startMs)
 }
 
-export function getMsPerPx(zoom, width) {
-  return (HALF_RANGE_MS[zoom] * 2) / width
+export function getMsPerPx(zoom, width, customHalfMs = 0) {
+  const half = zoom === 'custom' ? customHalfMs : HALF_RANGE_MS[zoom]
+  return (half * 2) / width
+}
+
+// Pick the best tick-mark visual style for a given span
+function autoStyle(startMs, endMs) {
+  const spanYears = (endMs - startMs) / (365.25 * 24 * 3600 * 1000)
+  if (spanYears > 15)  return 'decades'
+  if (spanYears > 2)   return 'years'
+  if (spanYears > 0.4) return 'months'
+  return 'weeks'
 }
 
 // Generate tick marks for the current view
 export function getTickMarks(zoom, startMs, endMs, width) {
-  const ticks = []
+  // 'custom' auto-selects its visual style; '30yr' uses the same style as 'decades'
+  const style = zoom === 'custom' ? autoStyle(startMs, endMs)
+              : zoom === '30yr'   ? 'decades'
+              : zoom
+
+  const ticks     = []
   const startDate = new Date(startMs)
   const endDate   = new Date(endMs)
 
-  if (zoom === 'decades') {
+  if (style === 'decades') {
     const startYear = Math.floor(startDate.getFullYear() / 10) * 10
     for (let y = startYear; y <= endDate.getFullYear(); y++) {
       const x = dateToX(new Date(y, 0, 1).getTime(), startMs, endMs, width)
@@ -44,13 +58,13 @@ export function getTickMarks(zoom, startMs, endMs, width) {
       const major = y % 10 === 0
       ticks.push({ x, label: major ? String(y) : (y % 5 === 0 ? String(y) : ''), major })
     }
-  } else if (zoom === 'years') {
+  } else if (style === 'years') {
     for (let y = startDate.getFullYear(); y <= endDate.getFullYear(); y++) {
       const x = dateToX(new Date(y, 0, 1).getTime(), startMs, endMs, width)
       if (x < -2 || x > width + 2) continue
       ticks.push({ x, label: String(y), major: true })
     }
-  } else if (zoom === 'months') {
+  } else if (style === 'months') {
     let d = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
     while (d <= endDate) {
       const x = dateToX(d.getTime(), startMs, endMs, width)
@@ -63,7 +77,7 @@ export function getTickMarks(zoom, startMs, endMs, width) {
       }
       d = new Date(d.getFullYear(), d.getMonth() + 1, 1)
     }
-  } else if (zoom === 'weeks') {
+  } else if (style === 'weeks') {
     let d = new Date(startDate)
     d.setDate(d.getDate() - d.getDay()) // align to Sunday
     while (d <= endDate) {

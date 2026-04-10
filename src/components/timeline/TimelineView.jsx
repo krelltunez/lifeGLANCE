@@ -8,7 +8,7 @@ import { ZOOM_LEVELS }   from '../../utils/timeline'
 import { CATEGORIES }    from '../../utils/colors'
 import { addMilestone, updateMilestone, deleteMilestone } from '../../data/milestones'
 
-const ZOOM_RANK = { decades: 4, years: 3, months: 2, weeks: 1 }
+const ZOOM_RANK = { decades: 5, '30yr': 4, years: 3, months: 2, weeks: 1, custom: 3.5 }
 
 const TEXT_SIZES = {
   small:  '19px',
@@ -30,6 +30,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [textSize,   setTextSize]  = useState(
     () => localStorage.getItem('lifeglance-text-size') || 'normal'
   )
+  const [customYears, setCustomYears] = useState(15)   // ±15 yr = 30-year window
   const timelineRef  = useRef(null)
   const zoomWrapRef  = useRef(null)
   const zoomRef      = useRef('years')   // mirrors zoom state, readable in event handlers
@@ -145,18 +146,42 @@ export default function TimelineView({ milestones, setMilestones }) {
                   {z}
                 </button>
               ))}
+              <button
+                className={`zoom-tab ${zoom === 'custom' ? 'active' : ''}`}
+                onClick={() => handleZoom('custom')}
+              >
+                custom
+              </button>
             </div>
           </div>
 
-          {/* Typed zoom indicator */}
+          {/* Zoom indicator / custom range input */}
           <div className="zoom-indicator">
-            <TypewriterText
-              key={zoom}
-              text={`viewing: ${zoom}`}
-              options={{ delay: 38, jitter: 18 }}
-              showCursor={false}
-              hideCursorWhenDone
-            />
+            {zoom === 'custom' ? (
+              <div className="custom-zoom-row">
+                <span>±</span>
+                <input
+                  className="custom-zoom-input"
+                  type="number"
+                  min="1"
+                  max="200"
+                  value={customYears}
+                  onChange={e => {
+                    const v = parseInt(e.target.value, 10)
+                    if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
+                  }}
+                />
+                <span>yr</span>
+              </div>
+            ) : (
+              <TypewriterText
+                key={zoom}
+                text={`viewing: ${zoom}`}
+                options={{ delay: 38, jitter: 18 }}
+                showCursor={false}
+                hideCursorWhenDone
+              />
+            )}
           </div>
         </div>
       </div>
@@ -171,6 +196,7 @@ export default function TimelineView({ milestones, setMilestones }) {
             milestones={filteredMilestones}
             zoom={zoom}
             textSize={textSize}
+            customHalfMs={customYears * 365.25 * 24 * 3600 * 1000}
             onMilestoneClick={setDetail}
           />
         </div>

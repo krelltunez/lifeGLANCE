@@ -39,7 +39,7 @@ function wrapTitle(text, maxChars) {
   return line2 ? [line1, line2] : [line1]
 }
 
-const Timeline = forwardRef(function Timeline({ milestones, zoom, textSize = 'normal', onMilestoneClick }, ref) {
+const Timeline = forwardRef(function Timeline({ milestones, zoom, textSize = 'normal', onMilestoneClick, customHalfMs = 0 }, ref) {
   // All card geometry derived from the current rem size so cards scale with text
   const remPx = REM_PX[textSize] || 22
 
@@ -82,10 +82,10 @@ const Timeline = forwardRef(function Timeline({ milestones, zoom, textSize = 'no
   const axisY     = Math.round(h * 0.5)
   const today     = new Date()
   const centerMs  = today.getTime() + panMs
-  const { startMs, endMs } = getTimeRange(zoom, centerMs)
+  const { startMs, endMs } = getTimeRange(zoom, centerMs, customHalfMs)
   const ticks        = getTickMarks(zoom, startMs, endMs, w)
   const todayX       = dateToX(today.getTime(), startMs, endMs, w)
-  const msPerPx      = getMsPerPx(zoom, w)
+  const msPerPx      = getMsPerPx(zoom, w, customHalfMs)
   // Max lanes that fit between axis and container edge (16px safety margin)
   const maxLane      = Math.max(0, Math.floor((axisY - CONN_LEN - CARD_H2 - 16) / CARD_STEP))
   // Only bump to a higher lane when cards would actually overlap horizontally

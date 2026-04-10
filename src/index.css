@@ -422,6 +422,29 @@ button, input, select, textarea {
   min-height: 0.8rem;
 }
 
+.custom-zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--amber);
+}
+
+.custom-zoom-input {
+  width: 3.2rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: var(--font);
+  font-size: 0.6rem;
+  text-align: center;
+  outline: none;
+  padding: 0 0.1rem;
+  -moz-appearance: textfield;
+}
+.custom-zoom-input::-webkit-outer-spin-button,
+.custom-zoom-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
 /* ─── Filter chips (inline in bottom bar) ──────────────────────────────────── */
 .filter-chips-inline {
   display: flex;
