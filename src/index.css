@@ -422,16 +422,14 @@ button, input, select, textarea {
   min-height: 0.8rem;
 }
 
-/* ─── Filter bar ───────────────────────────────────────────────────────────── */
-.filter-bar {
+/* ─── Filter chips (inline in bottom bar) ──────────────────────────────────── */
+.filter-chips-inline {
   display: flex;
   gap: 0.35rem;
-  padding: 0.4rem 1.1rem;
-  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
   align-items: center;
-  flex-shrink: 0;
-  background: var(--bg);
+  flex: 1;
+  justify-content: center;
 }
 
 .filter-chip {

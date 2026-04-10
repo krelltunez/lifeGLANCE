@@ -130,28 +130,6 @@ export default function TimelineView({ milestones, setMilestones }) {
         </div>
       </div>
 
-      {/* ── Filter bar ─────────────────────────────────────────────────────── */}
-      {presentCategories.length > 0 && (
-        <div className="filter-bar">
-          <button
-            className={`filter-chip ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            all
-          </button>
-          {presentCategories.map(cat => (
-            <button
-              key={cat.id}
-              className={`filter-chip ${filter === cat.id ? 'active' : ''}`}
-              onClick={() => setFilter(filter === cat.id ? 'all' : cat.id)}
-            >
-              <span className="filter-dot" style={{ background: cat.color }} />
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* ── Body ───────────────────────────────────────────────────────────── */}
       <div className="timeline-body">
         {!isEmpty && <StatsPanel milestones={filteredMilestones} />}
@@ -189,6 +167,28 @@ export default function TimelineView({ milestones, setMilestones }) {
         <button className="add-milestone-btn" onClick={() => setAddOpen(true)}>
           + add milestone
         </button>
+
+        {presentCategories.length > 0 && (
+          <div className="filter-chips-inline">
+            <button
+              className={`filter-chip ${filter === 'all' ? 'active' : ''}`}
+              onClick={() => setFilter('all')}
+            >
+              all
+            </button>
+            {presentCategories.map(cat => (
+              <button
+                key={cat.id}
+                className={`filter-chip ${filter === cat.id ? 'active' : ''}`}
+                onClick={() => setFilter(filter === cat.id ? 'all' : cat.id)}
+              >
+                <span className="filter-dot" style={{ background: cat.color }} />
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <button className="today-btn" onClick={() => timelineRef.current?.resetPan()}>
           jump to today
         </button>

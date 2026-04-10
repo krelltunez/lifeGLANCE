@@ -91,6 +91,6 @@ export function assignLanes(milestones) {
   return sorted.map((m, i) => ({
     ...m,
     above: i % 2 === 0,
-    lane: Math.floor(i / 2),
+    lane: 0,
   }))
 }
