@@ -82,15 +82,16 @@ export function getTickMarks(zoom, startMs, endMs, width) {
   return ticks
 }
 
-// Assign above/below lanes to sorted milestones
+// Assign above/below lanes to sorted milestones.
+// maxLane caps how far cards can stray from the axis (caller computes from geometry).
 // Returns array of milestones with { above: bool, lane: number (0-based) }
-export function assignLanes(milestones) {
+export function assignLanes(milestones, maxLane = 0) {
   const sorted = [...milestones].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
   )
   return sorted.map((m, i) => ({
     ...m,
     above: i % 2 === 0,
-    lane: 0,
+    lane: Math.min(Math.floor(i / 2), maxLane),
   }))
 }

@@ -30,7 +30,10 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [textSize,   setTextSize]  = useState(
     () => localStorage.getItem('lifeglance-text-size') || 'normal'
   )
-  const timelineRef = useRef(null)
+  const timelineRef  = useRef(null)
+  const zoomWrapRef  = useRef(null)
+  const zoomRef      = useRef('years')   // mirrors zoom state, readable in event handlers
+  const zoomLocked   = useRef(false)     // throttle: one zoom step per animation
 
   // Apply font size globally
   useEffect(() => {
@@ -48,6 +51,34 @@ export default function TimelineView({ milestones, setMilestones }) {
       setZoomAnim('')
     }, ZOOM_ANIM_MS)
   }, [zoom])
+
+  // Keep ref in sync so the wheel handler always sees current zoom
+  useEffect(() => { zoomRef.current = zoom }, [zoom])
+
+  // Stable ref to handleZoom so the wheel effect doesn't re-subscribe on every zoom change
+  const handleZoomRef = useRef(handleZoom)
+  useEffect(() => { handleZoomRef.current = handleZoom }, [handleZoom])
+
+  // ── Wheel zoom ───────────────────────────────────────────────────────────────
+  // Must be a non-passive listener to call preventDefault (stops page scroll)
+  useEffect(() => {
+    const el = zoomWrapRef.current
+    if (!el) return
+    const onWheel = (e) => {
+      e.preventDefault()
+      if (zoomLocked.current) return
+      const idx     = ZOOM_LEVELS.indexOf(zoomRef.current)
+      // scroll up (deltaY < 0) → zoom in → toward 'weeks' (higher index)
+      // scroll down (deltaY > 0) → zoom out → toward 'decades' (lower index)
+      const nextIdx = e.deltaY < 0 ? idx + 1 : idx - 1
+      if (nextIdx < 0 || nextIdx >= ZOOM_LEVELS.length) return
+      zoomLocked.current = true
+      setTimeout(() => { zoomLocked.current = false }, ZOOM_ANIM_MS + 60)
+      handleZoomRef.current(ZOOM_LEVELS[nextIdx])
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, []) // stable refs — no deps needed
 
   // ── Filter ───────────────────────────────────────────────────────────────────
   // Only show filter chips for categories that appear in the data
@@ -134,7 +165,7 @@ export default function TimelineView({ milestones, setMilestones }) {
       <div className="timeline-body">
         {!isEmpty && <StatsPanel milestones={filteredMilestones} />}
 
-        <div className={`timeline-zoom-wrap ${zoomAnim}`}>
+        <div ref={zoomWrapRef} className={`timeline-zoom-wrap ${zoomAnim}`}>
           <Timeline
             ref={timelineRef}
             milestones={filteredMilestones}
