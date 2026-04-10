@@ -34,7 +34,7 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, zoom, textSize = 'normal', onMilestoneClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick },
+  { milestones, zoom, textSize = 'normal', onMilestoneClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true },
   ref
 ) {
   const remPx = REM_PX[textSize] || 22
@@ -133,9 +133,9 @@ const Timeline = forwardRef(function Timeline(
     gi += group.length
   }
 
-  const singles      = groups.filter(g => g.length === 1).map(g => g[0])
-  const clusterGroups = groups.filter(g => g.length > 1)
-  const withLanes    = assignLanes(singles, maxLane, msPerPx * CARD_W)
+  const singles       = clustering ? groups.filter(g => g.length === 1).map(g => g[0]) : milestones
+  const clusterGroups = clustering ? groups.filter(g => g.length > 1) : []
+  const withLanes     = assignLanes(singles, maxLane, msPerPx * CARD_W)
 
   // ── Pan ─────────────────────────────────────────────────────────────────────
   // startDrag reads panMsRef so it doesn't need panMs as a dep

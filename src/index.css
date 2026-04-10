@@ -958,6 +958,51 @@ button, input, select, textarea {
   transform: scale(1.18);
 }
 
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+}
+.settings-toggle-label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.settings-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 2.2rem;
+  height: 1.2rem;
+  border-radius: 1rem;
+  background: rgba(232,224,208,0.12);
+  border: 1px solid var(--border);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.settings-toggle::after {
+  content: '';
+  position: absolute;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background: var(--text-muted);
+  top: 50%;
+  left: 0.15rem;
+  transform: translateY(-50%);
+  transition: left 0.2s, background 0.2s;
+}
+.settings-toggle:checked {
+  background: rgba(200,169,110,0.25);
+  border-color: var(--amber);
+}
+.settings-toggle:checked::after {
+  left: calc(100% - 1rem);
+  background: var(--amber);
+}
+
 .settings-backup-row {
   display: flex;
   gap: 0.5rem;

@@ -42,6 +42,9 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [viewMode,      setViewMode]      = useState('all')
   const [categories,    setCategories]    = useState(loadCategories)
   const [panMs,         setPanMs]         = useState(0)
+  const [clustering,    setClustering]    = useState(
+    () => localStorage.getItem('lifeglance-clustering') !== 'false'
+  )
 
   const timelineRef  = useRef(null)
   const zoomWrapRef  = useRef(null)
@@ -385,6 +388,7 @@ export default function TimelineView({ milestones, setMilestones }) {
             onPanMs={setPanMs}
             viewMode={viewMode}
             onClusterClick={handleClusterClick}
+            clustering={clustering}
           />
         </div>
 
@@ -463,6 +467,10 @@ export default function TimelineView({ milestones, setMilestones }) {
         <SettingsModal
           textSize={textSize}       onTextSizeChange={setTextSize}
           categories={categories}   onCategoriesChange={setCategories}
+          clustering={clustering}   onClusteringChange={v => {
+            setClustering(v)
+            localStorage.setItem('lifeglance-clustering', String(v))
+          }}
           milestones={milestones}
           onSaveBackup={handleSaveBackup}
           onRestoreFile={handleRestoreFile}
