@@ -240,7 +240,7 @@ const Timeline = forwardRef(function Timeline({ milestones, zoom, textSize = 'no
               {/* Connector line */}
               <line
                 x1={x} y1={connY1}
-                x2={x} y2={connY2actual}
+                x2={x} y2={connY2}
                 stroke={m.color} strokeWidth={1} opacity={0.3}
               />
 
