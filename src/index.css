@@ -598,7 +598,7 @@ button, input, select, textarea {
   transition: color 0.15s;
 }
 .action-link:hover { color: var(--amber); }
-.action-sep { color: var(--border); font-size: 0.56rem; }
+.action-sep { color: rgba(200,169,110,0.35); font-size: 0.75rem; line-height: 1; }
 
 /* ─── Sheet / Drawer ───────────────────────────────────────────────────────── */
 .sheet-overlay {

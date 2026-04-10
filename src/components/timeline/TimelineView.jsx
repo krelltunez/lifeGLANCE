@@ -346,7 +346,7 @@ export default function TimelineView({ milestones, setMilestones }) {
         {/* Right: settings + help */}
         <div className="header-right">
           <button className="action-link" onClick={() => setSettingsOpen(true)}>settings</button>
-          <span className="action-sep">·</span>
+          <span className="action-sep">|</span>
           <button className="action-link" onClick={() => setHelpOpen(true)}>?</button>
         </div>
       </div>
