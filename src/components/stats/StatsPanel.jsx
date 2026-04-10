@@ -1,10 +1,10 @@
 import React, { useRef } from 'react'
-import { formatDateDisplay, relativeLabel } from '../../utils/dates'
+import { formatDateDisplay } from '../../utils/dates'
 import TypewriterText from '../ui/TypewriterText'
+import AnimatedRelLabel from '../ui/AnimatedRelLabel'
 
 function StatMilestone({ m, align }) {
   const dateStr = formatDateDisplay(m.date, m.date_precision)
-  const relStr  = relativeLabel(m.date, m.date_precision)
   const k = m.id + (m.updated_at || '')
 
   return (
@@ -18,8 +18,7 @@ function StatMilestone({ m, align }) {
           options={{ delay: 14, jitter: 6, startDelay: 180 }} showCursor={false} />
       </div>
       <div className="stat-milestone-rel">
-        <TypewriterText key={k + 'rel'} text={relStr}
-          options={{ delay: 14, jitter: 6, startDelay: 320 }} showCursor={false} />
+        <AnimatedRelLabel dateStr={m.date} />
       </div>
     </div>
   )
