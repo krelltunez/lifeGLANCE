@@ -807,6 +807,7 @@ button, input, select, textarea {
 }
 .detail-date-raw  { font-size: 0.85rem; color: var(--text-dim); }
 .detail-relative  { font-size: 0.8rem;  color: var(--amber); }
+.detail-age       { font-size: 0.75rem; color: rgba(200,169,110,0.55); font-family: 'Courier Prime', monospace; }
 .detail-category  {
   display: flex;
   align-items: center;
@@ -1001,6 +1002,27 @@ button, input, select, textarea {
 .settings-toggle:checked::after {
   left: calc(100% - 1rem);
   background: var(--amber);
+}
+
+.settings-you-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.settings-you-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.settings-birthday-input {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-dim);
+  font-family: 'Courier Prime', monospace;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.5rem;
+  color-scheme: dark;
 }
 
 .settings-backup-row {

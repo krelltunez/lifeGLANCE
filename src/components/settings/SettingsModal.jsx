@@ -18,6 +18,7 @@ export default function SettingsModal({
   textSize, onTextSizeChange,
   categories, onCategoriesChange,
   clustering, onClusteringChange,
+  birthday, onBirthdayChange,
   milestones,
   onSaveBackup, onRestoreFile,
   onClose,
@@ -132,6 +133,21 @@ export default function SettingsModal({
                 />
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* ── You ───────────────────────────────────────────────────────── */}
+        <div className="settings-section">
+          <div className="settings-label">you</div>
+          <div className="settings-you-row">
+            <span className="settings-you-label">birthday</span>
+            <input
+              type="date"
+              className="settings-birthday-input"
+              value={birthday}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={e => onBirthdayChange(e.target.value)}
+            />
           </div>
         </div>
 

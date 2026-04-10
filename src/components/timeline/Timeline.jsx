@@ -3,7 +3,7 @@ import React, {
   useImperativeHandle, forwardRef,
 } from 'react'
 import { dateToX, getTimeRangeForView, getTickMarks, assignLanes, getMsPerPx } from '../../utils/timeline'
-import { relativeLabel, formatDateDisplay } from '../../utils/dates'
+import { relativeLabel, formatDateDisplay, ageAtDate } from '../../utils/dates'
 
 // Map text-size labels → root px value (must match TimelineView TEXT_SIZES)
 const REM_PX = { small: 19, normal: 22, big: 26, bigger: 30 }
@@ -34,7 +34,7 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, zoom, textSize = 'normal', onMilestoneClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true },
+  { milestones, zoom, textSize = 'normal', onMilestoneClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '' },
   ref
 ) {
   const remPx = REM_PX[textSize] || 22
@@ -47,8 +47,8 @@ const Timeline = forwardRef(function Timeline(
   const SEC_GAP     = Math.round(remPx * 0.45)
   const META_LH     = Math.round(remPx * 0.73)
   const BOT_PAD     = Math.round(remPx * 0.40)
-  const CARD_H1     = TOP_PAD + META_LH + SEC_GAP + META_LH + META_LH + BOT_PAD
-  const CARD_H2     = TOP_PAD + META_LH + TITLE_LH + SEC_GAP + META_LH + META_LH + BOT_PAD
+  const CARD_H1     = TOP_PAD + META_LH + SEC_GAP + META_LH + META_LH + (birthday ? META_LH : 0) + BOT_PAD
+  const CARD_H2     = TOP_PAD + META_LH + TITLE_LH + SEC_GAP + META_LH + META_LH + (birthday ? META_LH : 0) + BOT_PAD
   const CARD_STEP   = CARD_H2 + Math.round(remPx * 0.55)
   const MAX_CONN    = Math.round(CONN_LEN * 1.6)
 
@@ -221,12 +221,14 @@ const Timeline = forwardRef(function Timeline(
           const tDate    = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toLowerCase()
           const tYear    = today.getFullYear()
           const centered = Math.abs(panMs) < 1
+          const todayAge = birthday ? ageAtDate(birthday, today.toISOString().slice(0, 10)) : null
+          const lineY1   = todayAge !== null ? 68 : 54
           return (
             <g style={{
               filter:     centered ? 'drop-shadow(0 0 6px #C8A96E) drop-shadow(0 0 14px #C8A96E55)' : 'none',
               transition: 'filter 0.35s ease',
             }}>
-              <line x1={todayX} y1={54} x2={todayX} y2={h - 14}
+              <line x1={todayX} y1={lineY1} x2={todayX} y2={h - 14}
                 stroke="#C8A96E" strokeWidth={centered ? 2 : 1.5} strokeDasharray="4 4"
                 opacity={centered ? 1 : 0.75} />
               <text x={todayX} y={10} textAnchor="middle"
@@ -245,6 +247,12 @@ const Timeline = forwardRef(function Timeline(
                 fill="#C8A96E" fontSize="0.65em" fontWeight="bold"
                 fontFamily="'Courier Prime', monospace"
                 opacity={centered ? 1 : 0.85}>{tYear}</text>
+              {todayAge !== null && (
+                <text x={todayX} y={61} textAnchor="middle"
+                  fill="#C8A96E" fontSize="0.60em"
+                  fontFamily="'Courier Prime', monospace"
+                  opacity={centered ? 0.80 : 0.55}>{todayAge} y.o.</text>
+              )}
             </g>
           )
         })()}
@@ -285,6 +293,7 @@ const Timeline = forwardRef(function Timeline(
           const yT2   = yT1 + TITLE_LH
           const yMeta = (titleLines.length > 1 ? yT2 : yT1) + SEC_GAP + META_LH
           const yRel  = yMeta + META_LH
+          const yAge  = yRel + META_LH
 
           const cx = cardX + CARD_W / 2
           const cy = cardY + cardH / 2
@@ -349,6 +358,16 @@ const Timeline = forwardRef(function Timeline(
                 fill="#C8A96E"
                 fontSize="0.52em" fontFamily="'Courier Prime', monospace"
               >{relStr}</text>
+
+              {birthday && (() => {
+                const age = ageAtDate(birthday, m.date)
+                return age !== null ? (
+                  <text x={cardX + 10} y={yAge}
+                    fill="rgba(200,169,110,0.52)"
+                    fontSize="0.52em" fontFamily="'Courier Prime', monospace"
+                  >{age} y.o.</text>
+                ) : null
+              })()}
 
               {/* Vintage camera indicator — top-right corner */}
               {m.photo_uri && (

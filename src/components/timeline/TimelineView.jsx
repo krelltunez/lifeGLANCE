@@ -45,6 +45,9 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [clustering,    setClustering]    = useState(
     () => localStorage.getItem('lifeglance-clustering') !== 'false'
   )
+  const [birthday,      setBirthday]      = useState(
+    () => localStorage.getItem('lifeglance-birthday') || ''
+  )
 
   const timelineRef   = useRef(null)
   const zoomWrapRef   = useRef(null)
@@ -433,6 +436,7 @@ export default function TimelineView({ milestones, setMilestones }) {
             viewMode={viewMode}
             onClusterClick={handleClusterClick}
             clustering={clustering}
+            birthday={birthday}
           />
         </div>
 
@@ -502,6 +506,7 @@ export default function TimelineView({ milestones, setMilestones }) {
           onClose={() => setDetail(null)}
           onEdit={openEdit}
           onDelete={handleDelete}
+          birthday={birthday}
         />
       )}
       {helpOpen && (
@@ -514,6 +519,10 @@ export default function TimelineView({ milestones, setMilestones }) {
           clustering={clustering}   onClusteringChange={v => {
             setClustering(v)
             localStorage.setItem('lifeglance-clustering', String(v))
+          }}
+          birthday={birthday}       onBirthdayChange={v => {
+            setBirthday(v)
+            localStorage.setItem('lifeglance-birthday', v)
           }}
           milestones={milestones}
           onSaveBackup={handleSaveBackup}
