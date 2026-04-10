@@ -96,20 +96,25 @@ export function getTickMarks(zoom, startMs, endMs, width) {
   return ticks
 }
 
+// Deterministic hash → 0..1 float, stable per milestone ID
+function seededRand(id) {
+  let h = 0
+  for (const c of String(id)) h = Math.imul(31, h) + c.charCodeAt(0) | 0
+  return (h >>> 0) / 4294967295
+}
+
 // Assign above/below lanes to sorted milestones.
 //   maxLane      – max lane index that fits in the container (caller computes)
 //   cardTimeSpan – ms equivalent of one card width at current zoom (for overlap detection)
 //
-// Algorithm: greedy by time proximity. For each milestone try lane 0; only bump
-// to a higher lane if another card on the same side is within one card-width of
-// time. This means sparse milestones always stay at lane 0 regardless of sort
-// order, and only genuinely clustered milestones spread outward.
+// Algorithm: each milestone has a seeded-random preferred lane (lane 1 ~30% of the time
+// when space allows). If that lane has a time-proximity conflict, fall back to the first
+// conflict-free lane. This gives organic spread without deterministic uniformity.
 export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0) {
   const sorted = [...milestones].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
   )
 
-  // Track placed cards per side: [{ ms, lane }]
   const placed = { above: [], below: [] }
 
   return sorted.map((m, i) => {
@@ -117,15 +122,20 @@ export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0) {
     const side  = above ? 'above' : 'below'
     const mMs   = new Date(m.date).getTime()
 
-    let lane = 0
-    if (cardTimeSpan > 0) {
-      while (lane < maxLane) {
-        const conflict = placed[side].some(
-          p => p.lane === lane && Math.abs(p.ms - mMs) < cardTimeSpan
-        )
-        if (!conflict) break
-        lane++
-      }
+    const hasConflict = (l) =>
+      cardTimeSpan > 0 &&
+      placed[side].some(p => p.lane === l && Math.abs(p.ms - mMs) < cardTimeSpan)
+
+    // Seeded random: ~30% of milestones prefer lane 1 for visual variety
+    const rand       = seededRand(m.id)
+    const preferLane = (maxLane >= 1 && rand < 0.30) ? 1 : 0
+
+    let lane = preferLane
+    if (hasConflict(lane)) {
+      // Scan upward from 0 for first free lane
+      lane = 0
+      while (lane < maxLane && hasConflict(lane)) lane++
+      // If still conflicting at maxLane, accept it (unavoidable dense cluster)
     }
 
     placed[side].push({ ms: mMs, lane })

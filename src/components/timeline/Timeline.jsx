@@ -48,7 +48,7 @@ const Timeline = forwardRef(function Timeline({ milestones, zoom, textSize = 'no
   // Title chars per line: available px / (0.6em * ~0.6 char-width ratio)
   const TITLE_CHARS  = Math.floor((CARD_W - 20) / (remPx * 0.6 * 0.6))
   // Connector gap from axis to nearest card edge
-  const CONN_LEN     = Math.round(remPx * 0.9)
+  const CONN_LEN     = Math.round(remPx * 1.8)
   // Vertical spacing constants (in SVG user-units = CSS px since viewBox matches)
   const TOP_PAD      = Math.round(remPx * 0.65)   // top of card → first baseline
   const TITLE_LH     = Math.round(remPx * 0.90)   // title line-to-line spacing
