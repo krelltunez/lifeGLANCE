@@ -102,7 +102,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   }, [future.length])
 
   const highlightedIds = new Set(
-    [past[pastIdx]?.id, future[futureIdx]?.id, selectedId].filter(Boolean)
+    [past[pastIdx]?.id, future[futureIdx]?.id].filter(Boolean)
   )
 
   // ── Milestone click: first click selects + centers, second click opens detail ─
@@ -112,6 +112,14 @@ export default function TimelineView({ milestones, setMilestones }) {
     } else {
       setSelectedId(m.id)
       timelineRef.current?.panToMs(new Date(m.date).getTime())
+      // Sync stat panel to the selected milestone
+      const pastI = past.findIndex(p => p.id === m.id)
+      if (pastI !== -1) {
+        setPastIdx(pastI)
+      } else {
+        const futureI = future.findIndex(f => f.id === m.id)
+        if (futureI !== -1) setFutureIdx(futureI)
+      }
     }
   }
 
