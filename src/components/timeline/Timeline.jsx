@@ -377,6 +377,8 @@ const Timeline = forwardRef(function Timeline(
                    style={{ cursor: 'zoom-in' }}
                    onMouseEnter={e => setPhotoTip({ uri: m.photo_uri, x: e.clientX, y: e.clientY })}
                    onMouseLeave={() => setPhotoTip(null)}>
+                  {/* invisible hit area for reliable hover */}
+                  <rect x={-2} y={-1} width={18} height={13} fill="transparent" />
                   {/* body */}
                   <rect x={0} y={2.5} width={14} height={8} rx={1.3}
                     fill="none" stroke={m.color} strokeWidth={0.85} />
