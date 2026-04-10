@@ -463,14 +463,20 @@ button, input, select, textarea {
 }
 .today-btn:hover { color: var(--amber); border-color: var(--amber-dim); }
 
-/* ─── Zoom row (tabs + inline indicator) ──────────────────────────────────── */
+/* ─── Zoom row (tabs centered; indicator floats right without shifting tabs) */
 .zoom-row {
+  position: relative;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 0.6rem;
 }
 
+/* Absolutely positioned so it never nudges the tabs off-center */
 .zoom-indicator {
+  position: absolute;
+  left: calc(100% + 0.55rem);
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 0.6rem;
   color: var(--text-muted);
   letter-spacing: 0.07em;
