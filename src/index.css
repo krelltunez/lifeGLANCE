@@ -339,7 +339,7 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  gap: 1px;
 }
 .header-right {
   display: flex;
