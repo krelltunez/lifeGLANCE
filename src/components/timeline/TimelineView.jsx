@@ -269,6 +269,10 @@ export default function TimelineView({ milestones, setMilestones }) {
           break
         }
         case 'Escape': {
+          if (customInputRef.current && document.activeElement === customInputRef.current) {
+            customInputRef.current.blur()
+            break
+          }
           if (s.detail)            setDetail(null)
           else if (s.addOpen)      s.closeSheet()
           else if (s.settingsOpen) setSettingsOpen(false)
