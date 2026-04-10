@@ -85,7 +85,9 @@ const Timeline = forwardRef(function Timeline({ milestones, zoom, textSize = 'no
   const { startMs, endMs } = getTimeRange(zoom, centerMs)
   const ticks     = getTickMarks(zoom, startMs, endMs, w)
   const todayX    = dateToX(today.getTime(), startMs, endMs, w)
-  const withLanes = assignLanes(milestones)
+  // How many lanes fit between the axis and the top/bottom edge (with 16px margin)
+  const maxLane   = Math.max(0, Math.floor((axisY - CONN_LEN - CARD_H2 - 16) / CARD_STEP))
+  const withLanes = assignLanes(milestones, maxLane)
   const msPerPx   = getMsPerPx(zoom, w)
 
   // ── Pan ─────────────────────────────────────────────────────────────────────
