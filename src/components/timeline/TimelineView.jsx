@@ -271,6 +271,7 @@ export default function TimelineView({ milestones, setMilestones }) {
         case '1': case '2': case '3': case '4': case '5':
         case '6': case '7': case '8': case '9': {
           if (anyModal) break
+          e.preventDefault()
           const num = parseInt(e.key, 10)
           setCustomYears(num)
           if (s.zoom === 'custom') {
