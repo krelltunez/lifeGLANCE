@@ -3,7 +3,9 @@ import Timeline          from './Timeline'
 import StatsPanel        from '../stats/StatsPanel'
 import AddMilestoneSheet from '../milestone/AddMilestoneSheet'
 import MilestoneDetail   from '../milestone/MilestoneDetail'
+import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS }   from '../../utils/timeline'
+import { CATEGORIES }    from '../../utils/colors'
 import { addMilestone, updateMilestone, deleteMilestone } from '../../data/milestones'
 
 const ZOOM_RANK = { decades: 4, years: 3, months: 2, weeks: 1 }
@@ -15,18 +17,22 @@ const TEXT_SIZES = {
   bigger: '30px',
 }
 
+// Zoom animation duration must match CSS transition duration
+const ZOOM_ANIM_MS = 380
+
 export default function TimelineView({ milestones, setMilestones }) {
-  const [zoom,        setZoom]      = useState('years')
-  const [zoomAnim,    setZoomAnim]  = useState('')
-  const [addOpen,     setAddOpen]   = useState(false)
-  const [editTarget,  setEditTarget] = useState(null)
-  const [detail,      setDetail]    = useState(null)
-  const [textSize,    setTextSize]  = useState(
+  const [zoom,       setZoom]      = useState('years')
+  const [zoomAnim,   setZoomAnim]  = useState('')
+  const [filter,     setFilter]    = useState('all')
+  const [addOpen,    setAddOpen]   = useState(false)
+  const [editTarget, setEditTarget] = useState(null)
+  const [detail,     setDetail]    = useState(null)
+  const [textSize,   setTextSize]  = useState(
     () => localStorage.getItem('lifeglance-text-size') || 'normal'
   )
   const timelineRef = useRef(null)
 
-  // Apply font size to root whenever it changes
+  // Apply font size globally
   useEffect(() => {
     document.documentElement.style.fontSize = TEXT_SIZES[textSize]
     localStorage.setItem('lifeglance-text-size', textSize)
@@ -40,8 +46,17 @@ export default function TimelineView({ milestones, setMilestones }) {
     setTimeout(() => {
       setZoom(newZoom)
       setZoomAnim('')
-    }, 130)
+    }, ZOOM_ANIM_MS)
   }, [zoom])
+
+  // ── Filter ───────────────────────────────────────────────────────────────────
+  // Only show filter chips for categories that appear in the data
+  const presentCategories = CATEGORIES.filter(cat =>
+    milestones.some(m => m.category === cat.id)
+  )
+  const filteredMilestones = filter === 'all'
+    ? milestones
+    : milestones.filter(m => m.category === filter)
 
   // ── CRUD ─────────────────────────────────────────────────────────────────────
   async function handleSave(data, existing) {
@@ -59,17 +74,10 @@ export default function TimelineView({ milestones, setMilestones }) {
     setMilestones(prev => prev.filter(m => m.id !== id))
   }
 
-  function openEdit(m) {
-    setEditTarget(m)
-    setAddOpen(true)
-  }
+  function openEdit(m) { setEditTarget(m); setAddOpen(true) }
+  function closeSheet() { setAddOpen(false); setEditTarget(null) }
 
-  function closeSheet() {
-    setAddOpen(false)
-    setEditTarget(null)
-  }
-
-  const isEmpty = milestones.length === 0
+  const isEmpty = filteredMilestones.length === 0 && milestones.length === 0
 
   return (
     <div className="timeline-view">
@@ -80,58 +88,97 @@ export default function TimelineView({ milestones, setMilestones }) {
           <span className="logo-glance">GLANCE</span>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {/* Text size controls */}
-          <div className="zoom-tabs">
-            {Object.keys(TEXT_SIZES).map(s => (
-              <button
-                key={s}
-                className={`zoom-tab ${textSize === s ? 'active' : ''}`}
-                onClick={() => setTextSize(s)}
-                title={`Text size: ${s}`}
-              >
-                {s}
-              </button>
-            ))}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {/* Text size */}
+            <div className="zoom-tabs">
+              {Object.keys(TEXT_SIZES).map(s => (
+                <button
+                  key={s}
+                  className={`zoom-tab ${textSize === s ? 'active' : ''}`}
+                  onClick={() => setTextSize(s)}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {/* Zoom level */}
+            <div className="zoom-tabs">
+              {ZOOM_LEVELS.map(z => (
+                <button
+                  key={z}
+                  className={`zoom-tab ${zoom === z ? 'active' : ''}`}
+                  onClick={() => handleZoom(z)}
+                >
+                  {z}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Zoom level controls */}
-          <div className="zoom-tabs">
-            {ZOOM_LEVELS.map(z => (
-              <button
-                key={z}
-                className={`zoom-tab ${zoom === z ? 'active' : ''}`}
-                onClick={() => handleZoom(z)}
-              >
-                {z}
-              </button>
-            ))}
+          {/* Typed zoom indicator */}
+          <div className="zoom-indicator">
+            <TypewriterText
+              key={zoom}
+              text={`viewing: ${zoom}`}
+              options={{ delay: 38, jitter: 18 }}
+              showCursor={false}
+              hideCursorWhenDone
+            />
           </div>
         </div>
       </div>
 
+      {/* ── Filter bar ─────────────────────────────────────────────────────── */}
+      {presentCategories.length > 0 && (
+        <div className="filter-bar">
+          <button
+            className={`filter-chip ${filter === 'all' ? 'active' : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            all
+          </button>
+          {presentCategories.map(cat => (
+            <button
+              key={cat.id}
+              className={`filter-chip ${filter === cat.id ? 'active' : ''}`}
+              onClick={() => setFilter(filter === cat.id ? 'all' : cat.id)}
+            >
+              <span className="filter-dot" style={{ background: cat.color }} />
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Body ───────────────────────────────────────────────────────────── */}
       <div className="timeline-body">
-        {/* Stat panels overlay (top corners) */}
-        {!isEmpty && <StatsPanel milestones={milestones} />}
+        {!isEmpty && <StatsPanel milestones={filteredMilestones} />}
 
-        {/* Timeline with zoom animation wrapper */}
         <div className={`timeline-zoom-wrap ${zoomAnim}`}>
           <Timeline
             ref={timelineRef}
-            milestones={milestones}
+            milestones={filteredMilestones}
             zoom={zoom}
             textSize={textSize}
             onMilestoneClick={setDetail}
           />
         </div>
 
-        {/* Empty state */}
         {isEmpty && (
           <div className="empty-state">
             <div className="empty-state-label">
               no milestones yet.<br />
               add one to start your timeline.
+            </div>
+          </div>
+        )}
+
+        {!isEmpty && filteredMilestones.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-state-label">
+              no milestones in this category.
             </div>
           </div>
         )}
@@ -142,23 +189,15 @@ export default function TimelineView({ milestones, setMilestones }) {
         <button className="add-milestone-btn" onClick={() => setAddOpen(true)}>
           + add milestone
         </button>
-        <button
-          className="today-btn"
-          onClick={() => timelineRef.current?.resetPan()}
-        >
+        <button className="today-btn" onClick={() => timelineRef.current?.resetPan()}>
           jump to today
         </button>
       </div>
 
       {/* ── Sheets ─────────────────────────────────────────────────────────── */}
       {addOpen && (
-        <AddMilestoneSheet
-          onSave={handleSave}
-          onClose={closeSheet}
-          existing={editTarget}
-        />
+        <AddMilestoneSheet onSave={handleSave} onClose={closeSheet} existing={editTarget} />
       )}
-
       {detail && (
         <MilestoneDetail
           milestone={detail}

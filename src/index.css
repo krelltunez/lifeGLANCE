@@ -90,15 +90,14 @@ button, input, select, textarea {
   letter-spacing: -0.02em;
 }
 .logo-glance {
-  font-size: 2.6rem;
+  font-size: 2.8rem;
   font-weight: 700;
+  font-style: italic;
   color: var(--indigo);
   letter-spacing: -0.02em;
 }
-.logo-sm .logo-life,
-.logo-sm .logo-glance {
-  font-size: 1.25rem;
-}
+.logo-sm .logo-life   { font-size: 1.2rem; }
+.logo-sm .logo-glance { font-size: 1.3rem; }
 .logo-tagline {
   font-size: 0.9rem;
   color: var(--text-muted);
@@ -365,7 +364,7 @@ button, input, select, textarea {
   flex: 1;
   display: flex;
   flex-direction: column;
-  transition: transform 0.18s ease-out;
+  transition: transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   transform-origin: center center;
 }
 .timeline-zoom-wrap.zooming-out {
@@ -415,6 +414,44 @@ button, input, select, textarea {
 }
 .today-btn:hover { color: var(--amber); border-color: var(--amber-dim); }
 
+/* ─── Zoom indicator ───────────────────────────────────────────────────────── */
+.zoom-indicator {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  letter-spacing: 0.07em;
+  min-height: 0.8rem;
+}
+
+/* ─── Filter bar ───────────────────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.4rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  letter-spacing: 0.03em;
+}
+.filter-chip:hover { color: var(--text-dim); border-color: var(--amber-dim); }
+.filter-chip.active { color: var(--amber); border-color: var(--amber); }
+.filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
 /* ─── Stat panels ──────────────────────────────────────────────────────────── */
 .stat-panels {
   pointer-events: none;
@@ -441,17 +478,14 @@ button, input, select, textarea {
   font-size: 0.65rem;
   text-transform: lowercase;
 }
-.stat-panel-count {
-  color: var(--text-dim);
-}
-.stat-panel-item {
-  color: var(--text-muted);
-  margin-top: 0.15rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.stat-panel-count { color: var(--text-dim); }
 .stat-panel-right { text-align: right; }
+
+.stat-milestone { margin-top: 0.5rem; line-height: 1.45; }
+.stat-milestone-right { text-align: right; }
+.stat-milestone-title { font-size: 0.72rem; color: var(--text-dim); }
+.stat-milestone-date  { font-size: 0.63rem; color: var(--text-muted); margin-top: 0.1rem; }
+.stat-milestone-rel   { font-size: 0.63rem; color: var(--amber);      margin-top: 0.08rem; }
 
 /* ─── Sheet / Drawer ───────────────────────────────────────────────────────── */
 .sheet-overlay {
