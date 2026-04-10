@@ -182,7 +182,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   keyStateRef.current = {
     pastIdx, futureIdx, past, future, zoom,
     addOpen, detail, settingsOpen, helpOpen,
-    handlePastNav, handleFutureNav, handleJumpToToday, closeSheet,
+    handlePastNav, handleFutureNav, handleJumpToToday, handleViewMode, closeSheet,
   }
 
   useEffect(() => {
@@ -232,6 +232,21 @@ export default function TimelineView({ milestones, setMilestones }) {
         case 's': case 'S': {
           if (s.addOpen || !!s.detail || s.helpOpen) break
           if (!s.settingsOpen) setSettingsOpen(true)
+          break
+        }
+        case 'p': case 'P': {
+          if (anyModal) break
+          s.handleViewMode('past')
+          break
+        }
+        case 'a': case 'A': {
+          if (anyModal) break
+          s.handleViewMode('all')
+          break
+        }
+        case 'f': case 'F': {
+          if (anyModal) break
+          s.handleViewMode('future')
           break
         }
         case '?': {
