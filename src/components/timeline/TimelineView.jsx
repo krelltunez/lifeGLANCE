@@ -46,10 +46,11 @@ export default function TimelineView({ milestones, setMilestones }) {
     () => localStorage.getItem('lifeglance-clustering') !== 'false'
   )
 
-  const timelineRef  = useRef(null)
-  const zoomWrapRef  = useRef(null)
-  const zoomRef      = useRef('years')
-  const zoomLocked   = useRef(false)
+  const timelineRef   = useRef(null)
+  const zoomWrapRef   = useRef(null)
+  const zoomRef       = useRef('years')
+  const zoomLocked    = useRef(false)
+  const customInputRef = useRef(null)
 
   // Apply font size globally
   useEffect(() => {
@@ -254,6 +255,19 @@ export default function TimelineView({ milestones, setMilestones }) {
           if (!s.helpOpen) setHelpOpen(true)
           break
         }
+        case '1': case '2': case '3': case '4': case '5':
+        case '6': case '7': case '8': case '9': {
+          if (anyModal) break
+          const num = parseInt(e.key, 10)
+          setCustomYears(num)
+          if (s.zoom === 'custom') {
+            customInputRef.current?.focus()
+          } else {
+            handleZoomRef.current('custom')
+            // autoFocus fires when the input mounts after the zoom animation
+          }
+          break
+        }
         case 'Escape': {
           if (s.detail)            setDetail(null)
           else if (s.addOpen)      s.closeSheet()
@@ -346,7 +360,8 @@ export default function TimelineView({ milestones, setMilestones }) {
               {zoom === 'custom' ? (
                 <div className="custom-zoom-row">
                   <span>±</span>
-                  <input className="custom-zoom-input" type="number" min="1" max="200"
+                  <input ref={customInputRef} autoFocus
+                    className="custom-zoom-input" type="number" min="1" max="200"
                     value={customYears}
                     onChange={e => {
                       const v = parseInt(e.target.value, 10)
