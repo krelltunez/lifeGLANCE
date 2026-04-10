@@ -335,7 +335,7 @@ export default function TimelineView({ milestones, setMilestones }) {
           </div>
 
           <div className="view-tabs">
-            {[['all', '← all →'], ['past', '← past'], ['future', 'future →']].map(([mode, label]) => (
+            {[['past', '← past'], ['all', '← all →'], ['future', 'future →']].map(([mode, label]) => (
               <button key={mode}
                 className={`view-tab ${viewMode === mode ? 'active' : ''}`}
                 onClick={() => handleViewMode(mode)}>{label}</button>
