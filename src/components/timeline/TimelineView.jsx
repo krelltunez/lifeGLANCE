@@ -357,16 +357,45 @@ export default function TimelineView({ milestones, setMilestones }) {
       const { width: w, height: h } = svgEl.getBoundingClientRect()
       const scale = 2
 
-      // Clone SVG and inject a background rect + explicit dimensions
+      // Clone SVG, fix rem font-size (canvas defaults 1rem→16px, not the app's value),
+      // and inject a dark background rect.
       const clone = svgEl.cloneNode(true)
       clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
       clone.setAttribute('width', w)
       clone.setAttribute('height', h)
+      clone.style.fontSize = getComputedStyle(svgEl).fontSize // e.g. "22px"
+
       const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
       bg.setAttribute('width', '100%')
       bg.setAttribute('height', '100%')
       bg.setAttribute('fill', '#0F1117')
       clone.insertBefore(bg, clone.firstChild)
+
+      // Embed Courier Prime — fetch the Google Fonts CSS, then each woff2 file,
+      // encode as base64, and inject a <style> block so the sandboxed SVG img
+      // renders the correct font.
+      try {
+        const fontLink = document.querySelector('link[href*="googleapis.com"][href*="Courier"]')
+        if (fontLink) {
+          const css = await (await fetch(fontLink.href)).text()
+          const blocks = css.match(/@font-face\s*\{[^}]+\}/g) ?? []
+          const embedded = await Promise.all(blocks.map(async block => {
+            const m = block.match(/url\((https:\/\/fonts\.gstatic\.com[^)]+)\)/)
+            if (!m) return block
+            try {
+              const buf = await (await fetch(m[1])).arrayBuffer()
+              const b64 = btoa([...new Uint8Array(buf)].map(b => String.fromCharCode(b)).join(''))
+              return block.replace(m[0], `url('data:font/woff2;base64,${b64}')`)
+            } catch { return null }
+          }))
+          const valid = embedded.filter(Boolean)
+          if (valid.length) {
+            const style = document.createElementNS('http://www.w3.org/2000/svg', 'style')
+            style.textContent = valid.join('\n')
+            clone.insertBefore(style, clone.firstChild)
+          }
+        }
+      } catch { /* fall back to system monospace */ }
 
       const svgStr = new XMLSerializer().serializeToString(clone)
       const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
