@@ -547,6 +547,7 @@ button, input, select, textarea {
 }
 .filter-compact > .filter-chip.active {   /* all button when active */
   color: var(--amber);
+  background: rgba(200, 169, 110, 0.1);
   border-right-color: var(--border);      /* keep divider dim */
 }
 .filter-dropdown-wrap {
@@ -559,6 +560,7 @@ button, input, select, textarea {
 }
 .filter-compact .filter-dropdown-btn.active {
   color: var(--amber);
+  background: rgba(200, 169, 110, 0.1);
 }
 .filter-dropdown {
   position: absolute;
