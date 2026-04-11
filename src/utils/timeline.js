@@ -123,7 +123,7 @@ function seededHash(str) {
 // Two independent hash values per milestone:
 //   laneRand – drives lane preference (~55% chance of preferring lane 1)
 //   connRand – drives connector-length jitter in the renderer (0 → 60% extra)
-export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0) {
+export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0, forceAbove = false) {
   const sorted = [...milestones].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
   )
@@ -131,7 +131,7 @@ export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0) {
   const placed = { above: [], below: [] }
 
   return sorted.map((m, i) => {
-    const above = i % 2 === 0
+    const above = forceAbove || i % 2 === 0
     const side  = above ? 'above' : 'below'
     const mMs   = new Date(m.date).getTime()
 

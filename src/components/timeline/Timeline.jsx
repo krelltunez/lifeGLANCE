@@ -106,7 +106,8 @@ const Timeline = forwardRef(function Timeline(
   }, [])
 
   const { w, h } = size
-  const axisY    = Math.round(h * 0.5)
+  const compactLayout = h < 700
+  const axisY    = Math.round(h * (compactLayout ? 0.78 : 0.50))
   const today    = new Date()
   const centerMs = today.getTime() + panMs
   const { startMs, endMs } = getTimeRangeForView(zoom, centerMs, viewMode, customHalfMs)
@@ -138,7 +139,7 @@ const Timeline = forwardRef(function Timeline(
 
   const singles       = clustering ? groups.filter(g => g.length === 1).map(g => g[0]) : milestones
   const clusterGroups = clustering ? groups.filter(g => g.length > 1) : []
-  const withLanes     = assignLanes(singles, maxLane, msPerPx * CARD_W)
+  const withLanes     = assignLanes(singles, maxLane, msPerPx * CARD_W, compactLayout)
 
   // ── Pan ─────────────────────────────────────────────────────────────────────
   // startDrag reads panMsRef so it doesn't need panMs as a dep
