@@ -351,25 +351,51 @@ export default function TimelineView({ milestones, setMilestones }) {
 
   // ── Export image ─────────────────────────────────────────────────────────────
   async function handleExportImage() {
-    const el = bodyRef.current
-    if (!el) return
+    const svgEl = zoomWrapRef.current?.querySelector('svg')
+    if (!svgEl) return
     try {
-      const { toPng } = await import('html-to-image')
-      // skipFonts avoids CORS errors fetching Google Fonts;
-      // the browser canvas still renders with whatever fonts are active on the page.
-      const dataUrl = await toPng(el, {
-        pixelRatio: 2,
-        backgroundColor: '#0F1117',
-        skipFonts: true,
+      const { width: w, height: h } = svgEl.getBoundingClientRect()
+      const scale = 2
+
+      // Clone SVG and inject a background rect + explicit dimensions
+      const clone = svgEl.cloneNode(true)
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+      clone.setAttribute('width', w)
+      clone.setAttribute('height', h)
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+      bg.setAttribute('width', '100%')
+      bg.setAttribute('height', '100%')
+      bg.setAttribute('fill', '#0F1117')
+      clone.insertBefore(bg, clone.firstChild)
+
+      const svgStr = new XMLSerializer().serializeToString(clone)
+      const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
+      const svgUrl  = URL.createObjectURL(svgBlob)
+
+      const canvas = document.createElement('canvas')
+      canvas.width  = Math.round(w * scale)
+      canvas.height = Math.round(h * scale)
+      const ctx = canvas.getContext('2d')
+      ctx.scale(scale, scale)
+
+      await new Promise((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => { ctx.drawImage(img, 0, 0); URL.revokeObjectURL(svgUrl); resolve() }
+        img.onerror = reject
+        img.src = svgUrl
       })
-      const d = new Date()
-      const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-      const a = document.createElement('a')
-      a.download = `lifeglance-${stamp}.png`
-      a.href = dataUrl
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
+
+      canvas.toBlob(blob => {
+        const d = new Date()
+        const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+        const a = document.createElement('a')
+        a.download = `lifeglance-${stamp}.png`
+        a.href = URL.createObjectURL(blob)
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(a.href), 100)
+      }, 'image/png')
     } catch (err) {
       console.error('Export failed:', err)
     }
