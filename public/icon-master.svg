@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#0f1117"/>
+
+  <!-- Past milestone 2 connector — drawn FIRST so bar covers overlap -->
+  <line x1="400" y1="544" x2="400" y2="672" stroke="#9370DB" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Future milestone 2 — fully grouped so opacity doesn't compound -->
+  <g opacity="0.45">
+    <line x1="800" y1="544" x2="800" y2="672" stroke="#E8748A" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="800" cy="704" r="32" fill="none" stroke="#E8748A" stroke-width="10"/>
+    <circle cx="800" cy="704" r="12" fill="#E8748A"/>
+  </g>
+
+  <!-- Future bar (coral) -->
+  <rect x="136" y="476" width="752" height="68" rx="34" fill="#E8748A"/>
+
+  <!-- Past bar (indigo) — drawn on top of coral left half -->
+  <rect x="136" y="476" width="376" height="68" rx="34" fill="#3D3580"/>
+
+  <!-- Cover strip at join to block any residual bleed -->
+  <rect x="468" y="476" width="88" height="68" fill="#0f1117"/>
+  <!-- Re-draw both bar ends over the cover strip -->
+  <rect x="136" y="476" width="376" height="68" rx="34" fill="#3D3580"/>
+  <rect x="512" y="476" width="376" height="68" rx="34" fill="#E8748A"/>
+
+  <!-- Above-bar connectors (drawn after bars so bars cover any overlap) -->
+  <line x1="272" y1="476" x2="272" y2="348" stroke="#3D3580" stroke-width="10" stroke-linecap="round"/>
+  <line x1="648" y1="476" x2="648" y2="348" stroke="#E8748A" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- 4 explicit dashes BELOW pill — each 22px tall, 14px wide, 14px gap, 16px from pill -->
+  <rect x="505" y="588" width="14" height="22" rx="7" fill="#C8A96E"/>
+  <rect x="505" y="624" width="14" height="22" rx="7" fill="#C8A96E"/>
+  <rect x="505" y="660" width="14" height="22" rx="7" fill="#C8A96E"/>
+  <rect x="505" y="696" width="14" height="22" rx="7" fill="#C8A96E"/>
+
+  <!-- 4 explicit dashes ABOVE pill — identical spacing, mirrored -->
+  <rect x="505" y="414" width="14" height="22" rx="7" fill="#C8A96E"/>
+  <rect x="505" y="378" width="14" height="22" rx="7" fill="#C8A96E"/>
+  <rect x="505" y="342" width="14" height="22" rx="7" fill="#C8A96E"/>
+  <rect x="505" y="306" width="14" height="22" rx="7" fill="#C8A96E"/>
+
+  <!-- Today pill — drawn last, on top of everything -->
+  <rect x="490" y="452" width="44" height="120" rx="22" fill="#C8A96E"/>
+
+  <!-- Milestone circles — drawn after bars and connectors -->
+  <!-- Past 1 -->
+  <circle cx="272" cy="316" r="32" fill="none" stroke="#3D3580" stroke-width="10"/>
+  <circle cx="272" cy="316" r="12" fill="#3D3580"/>
+
+  <!-- Past 2 -->
+  <circle cx="400" cy="704" r="32" fill="none" stroke="#9370DB" stroke-width="10"/>
+  <circle cx="400" cy="704" r="12" fill="#9370DB"/>
+
+  <!-- Future 1 -->
+  <circle cx="648" cy="316" r="32" fill="none" stroke="#E8748A" stroke-width="10"/>
+  <circle cx="648" cy="316" r="12" fill="#E8748A"/>
+
+  <!-- Future 2 faded — handled in group at top of file -->
+</svg>
