@@ -58,6 +58,7 @@ export default function Step2Past({ onSubmit, onSkip }) {
           options={{ delay: 22, jitter: 18 }}
           onDone={() => setPromptDone(true)}
           hideCursorWhenDone
+          playSound
         />
       </div>
 

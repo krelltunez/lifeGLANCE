@@ -9,10 +9,23 @@ const HALF_RANGE_MS = {
   weeks:   13  *   7    * 24 * 3600 * 1000,
 }
 
+// Where today sits on screen for each view mode (0 = left edge, 1 = right edge)
+const VIEW_ANCHOR = { all: 0.5, past: 0.88, future: 0.12 }
+
 // customHalfMs is only used when zoom === 'custom'
 export function getTimeRange(zoom, centerMs, customHalfMs = 0) {
   const half = zoom === 'custom' ? customHalfMs : HALF_RANGE_MS[zoom]
   return { startMs: centerMs - half, endMs: centerMs + half }
+}
+
+// Like getTimeRange but today (anchorMs) is placed at VIEW_ANCHOR[viewMode]
+// instead of always at the center. All three modes produce the same total span.
+export function getTimeRangeForView(zoom, anchorMs, viewMode = 'all', customHalfMs = 0) {
+  const half     = zoom === 'custom' ? customHalfMs : HALF_RANGE_MS[zoom]
+  const span     = half * 2
+  const fraction = VIEW_ANCHOR[viewMode] ?? 0.5
+  const startMs  = anchorMs - fraction * span
+  return { startMs, endMs: startMs + span }
 }
 
 export function dateToX(dateMs, startMs, endMs, width) {

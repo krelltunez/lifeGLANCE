@@ -2,8 +2,8 @@ import React, {
   useRef, useState, useEffect, useCallback,
   useImperativeHandle, forwardRef,
 } from 'react'
-import { dateToX, getTimeRange, getTickMarks, assignLanes, getMsPerPx } from '../../utils/timeline'
-import { relativeLabel, formatDateDisplay } from '../../utils/dates'
+import { dateToX, getTimeRangeForView, getTickMarks, assignLanes, getMsPerPx } from '../../utils/timeline'
+import { relativeLabel, formatDateDisplay, ageAtDate } from '../../utils/dates'
 
 // Map text-size labels → root px value (must match TimelineView TEXT_SIZES)
 const REM_PX = { small: 19, normal: 22, big: 26, bigger: 30 }
@@ -34,52 +34,65 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, zoom, textSize = 'normal', onMilestoneClick, customHalfMs = 0, highlightedIds },
+  { milestones, zoom, textSize = 'normal', onMilestoneClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null },
   ref
 ) {
   const remPx = REM_PX[textSize] || 22
 
   const CARD_W      = Math.round(remPx * 7.8)
   const TITLE_CHARS = Math.floor((CARD_W - 20) / (remPx * 0.6 * 0.6))
-  const CONN_LEN    = Math.round(remPx * 1.8)   // base connector gap axis→card
+  const CONN_LEN    = Math.round(remPx * 1.8)
   const TOP_PAD     = Math.round(remPx * 0.65)
   const TITLE_LH    = Math.round(remPx * 0.90)
   const SEC_GAP     = Math.round(remPx * 0.45)
   const META_LH     = Math.round(remPx * 0.73)
   const BOT_PAD     = Math.round(remPx * 0.40)
-  const CARD_H1     = TOP_PAD + META_LH + SEC_GAP + META_LH + META_LH + BOT_PAD
-  const CARD_H2     = TOP_PAD + META_LH + TITLE_LH + SEC_GAP + META_LH + META_LH + BOT_PAD
+  const CARD_H1     = TOP_PAD + META_LH + SEC_GAP + META_LH + META_LH + (birthday ? META_LH : 0) + BOT_PAD
+  const CARD_H2     = TOP_PAD + META_LH + TITLE_LH + SEC_GAP + META_LH + META_LH + (birthday ? META_LH : 0) + BOT_PAD
   const CARD_STEP   = CARD_H2 + Math.round(remPx * 0.55)
-  // Max jitter adds 60% to CONN_LEN — use this for lane-fit calculation so
-  // even the tallest connector never pushes a card off-screen
   const MAX_CONN    = Math.round(CONN_LEN * 1.6)
 
-  const wrapRef = useRef(null)
+  const wrapRef  = useRef(null)
   const [size, setSize] = useState({ w: 800, h: 340 })
-  const [panMs, setPanMs] = useState(0)
-  const panMsRef = useRef(0)
+  const [photoTip,    setPhotoTip]    = useState(null) // { uri, x, y }
+  // Track which IDs have already played their fly-in so we don't re-animate on re-renders
+  const [flyDoneIds,  setFlyDoneIds]  = useState(() => new Set())
+  // panMsRef always tracks the latest value for animation calculations
+  const panMsRef = useRef(panMs)
   const animRef  = useRef(null)
-  const drag = useRef({ active: false, startX: 0, startPan: 0 })
+  const drag     = useRef({ active: false, startX: 0, startPan: 0 })
 
+  // Keep ref in sync when panMs changes from parent (e.g. minimap direct scrub)
   useEffect(() => { panMsRef.current = panMs }, [panMs])
 
-  // Smooth pan-to-today via ease-out cubic rAF loop
+  // Shared smooth-pan helper
+  const smoothPanTo = useCallback((targetPan) => {
+    if (animRef.current) cancelAnimationFrame(animRef.current)
+    const start = panMsRef.current
+    const delta = targetPan - start
+    if (Math.abs(delta) < 500) {
+      panMsRef.current = targetPan
+      onPanMs(targetPan)
+      return
+    }
+    const t0 = performance.now()
+    const dur = 480
+    function tick(now) {
+      const p = Math.min((now - t0) / dur, 1)
+      const eased = 1 - Math.pow(1 - p, 3)
+      const val = start + delta * eased
+      panMsRef.current = val
+      onPanMs(val)
+      if (p < 1) animRef.current = requestAnimationFrame(tick)
+    }
+    animRef.current = requestAnimationFrame(tick)
+  }, [onPanMs])
+
+  // Expose imperative methods to parent
   useImperativeHandle(ref, () => ({
-    resetPan: () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current)
-      const start = panMsRef.current
-      if (Math.abs(start) < 500) { setPanMs(0); return }
-      const t0 = performance.now()
-      const dur = 480
-      function tick(now) {
-        const p = Math.min((now - t0) / dur, 1)
-        const eased = 1 - Math.pow(1 - p, 3)
-        setPanMs(start * (1 - eased))
-        if (p < 1) animRef.current = requestAnimationFrame(tick)
-      }
-      animRef.current = requestAnimationFrame(tick)
-    },
-  }), [])
+    resetPan: () => smoothPanTo(0),
+    panToMs:  (targetMs) => smoothPanTo(targetMs - Date.now()),
+  }), [smoothPanTo])
 
   // Measure container
   useEffect(() => {
@@ -96,25 +109,50 @@ const Timeline = forwardRef(function Timeline(
   const axisY    = Math.round(h * 0.5)
   const today    = new Date()
   const centerMs = today.getTime() + panMs
-  const { startMs, endMs } = getTimeRange(zoom, centerMs, customHalfMs)
+  const { startMs, endMs } = getTimeRangeForView(zoom, centerMs, viewMode, customHalfMs)
   const ticks    = getTickMarks(zoom, startMs, endMs, w)
   const todayX   = dateToX(today.getTime(), startMs, endMs, w)
   const msPerPx  = getMsPerPx(zoom, w, customHalfMs)
-  // Use max possible connector length so no jittered card overflows
   const maxLane  = Math.max(0, Math.floor((axisY - MAX_CONN - CARD_H2 - 16) / CARD_STEP))
-  const withLanes = assignLanes(milestones, maxLane, msPerPx * CARD_W)
+
+  // ── Auto-density clustering ──────────────────────────────────────────────────
+  // Milestones whose axis dots fall within CLUSTER_THRESHOLD px of each other
+  // are collapsed into a badge instead of rendering as overlapping cards.
+  const CLUSTER_THRESHOLD = CARD_W * 0.4
+
+  const sorted = [...milestones].sort((a, b) => new Date(a.date) - new Date(b.date))
+  const groups = []
+  let gi = 0
+  while (gi < sorted.length) {
+    const group  = [sorted[gi]]
+    const groupX = dateToX(new Date(sorted[gi].date).getTime(), startMs, endMs, w)
+    let gj = gi + 1
+    while (gj < sorted.length) {
+      const xj = dateToX(new Date(sorted[gj].date).getTime(), startMs, endMs, w)
+      if (xj - groupX < CLUSTER_THRESHOLD) { group.push(sorted[gj]); gj++ }
+      else break
+    }
+    groups.push(group)
+    gi += group.length
+  }
+
+  const singles       = clustering ? groups.filter(g => g.length === 1).map(g => g[0]) : milestones
+  const clusterGroups = clustering ? groups.filter(g => g.length > 1) : []
+  const withLanes     = assignLanes(singles, maxLane, msPerPx * CARD_W)
 
   // ── Pan ─────────────────────────────────────────────────────────────────────
+  // startDrag reads panMsRef so it doesn't need panMs as a dep
   const startDrag = useCallback((clientX) => {
     if (animRef.current) cancelAnimationFrame(animRef.current)
-    drag.current = { active: true, startX: clientX, startPan: panMs }
-  }, [panMs])
+    drag.current = { active: true, startX: clientX, startPan: panMsRef.current }
+  }, [])
 
   const moveDrag = useCallback((clientX) => {
     if (!drag.current.active) return
-    const dx = clientX - drag.current.startX
-    setPanMs(drag.current.startPan - dx * msPerPx)
-  }, [msPerPx])
+    const val = drag.current.startPan - (clientX - drag.current.startX) * msPerPx
+    panMsRef.current = val
+    onPanMs(val)
+  }, [msPerPx, onPanMs])
 
   const endDrag = useCallback(() => { drag.current.active = false }, [])
   const touchId = useRef(null)
@@ -182,27 +220,48 @@ const Timeline = forwardRef(function Timeline(
 
         {/* ── Today marker ────────────────────────────────────────────────── */}
         {todayX > -10 && todayX < w + 10 && (() => {
-          const tDay  = today.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase()
-          const tDate = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase()
+          const tDay     = today.toLocaleDateString('en-US', { weekday: 'long'  }).toLowerCase()
+          const tDate    = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toLowerCase()
+          const tYear    = today.getFullYear()
+          const centered = Math.abs(panMs) < 1
+          const todayAge = birthday ? ageAtDate(birthday, today.toISOString().slice(0, 10)) : null
+          const lineY1   = todayAge !== null ? 68 : 54
           return (
-            <g>
-              <line x1={todayX} y1={42} x2={todayX} y2={h - 14}
-                stroke="#C8A96E" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.75} />
-              <text x={todayX} y={11} textAnchor="middle"
-                fill="#C8A96E" fontSize="0.54em"
-                fontFamily="'Courier Prime', monospace" opacity={0.85}>today</text>
-              <text x={todayX} y={23} textAnchor="middle"
-                fill="#C8A96E" fontSize="0.48em"
-                fontFamily="'Courier Prime', monospace" opacity={0.6}>{tDay}</text>
+            <g style={{
+              filter:     centered ? 'drop-shadow(0 0 6px #C8A96E) drop-shadow(0 0 14px #C8A96E55)' : 'none',
+              transition: 'filter 0.35s ease',
+            }}>
+              <line x1={todayX} y1={lineY1} x2={todayX} y2={h - 14}
+                stroke="#C8A96E" strokeWidth={centered ? 2 : 1.5} strokeDasharray="4 4"
+                opacity={centered ? 1 : 0.75} />
+              <text x={todayX} y={10} textAnchor="middle"
+                fill="#C8A96E" fontSize="0.65em"
+                fontFamily="'Courier Prime', monospace"
+                opacity={centered ? 1 : 0.90}>today</text>
+              <text x={todayX} y={22} textAnchor="middle"
+                fill="#C8A96E" fontSize="0.60em"
+                fontFamily="'Courier Prime', monospace"
+                opacity={centered ? 1 : 0.70}>{tDay}</text>
               <text x={todayX} y={34} textAnchor="middle"
-                fill="#C8A96E" fontSize="0.48em"
-                fontFamily="'Courier Prime', monospace" opacity={0.6}>{tDate}</text>
+                fill="#C8A96E" fontSize="0.60em"
+                fontFamily="'Courier Prime', monospace"
+                opacity={centered ? 1 : 0.70}>{tDate}</text>
+              <text x={todayX} y={47} textAnchor="middle"
+                fill="#C8A96E" fontSize="0.65em" fontWeight="bold"
+                fontFamily="'Courier Prime', monospace"
+                opacity={centered ? 1 : 0.85}>{tYear}</text>
+              {todayAge !== null && (
+                <text x={todayX} y={61} textAnchor="middle"
+                  fill="#C8A96E" fontSize="0.60em"
+                  fontFamily="'Courier Prime', monospace"
+                  opacity={centered ? 0.80 : 0.55}>{todayAge} y.o.</text>
+              )}
             </g>
           )
         })()}
 
         {/* ── Milestone cards ─────────────────────────────────────────────── */}
-        {withLanes.map((m) => {
+        {withLanes.map((m, i) => {
           const x = dateToX(new Date(m.date).getTime(), startMs, endMs, w)
           if (x < -(CARD_W + 10) || x > w + CARD_W + 10) return null
 
@@ -210,7 +269,6 @@ const Timeline = forwardRef(function Timeline(
           const alpha  = isPast ? 0.72 : 1
           const isHL   = !!highlightedIds?.has(m.id)
 
-          // Per-card connector length jitter: base + 0–60% extra, seeded stable
           const connLen = CONN_LEN + Math.round((m.connRand ?? 0) * CONN_LEN * 0.6)
 
           const titleLines = wrapTitle(m.title, TITLE_CHARS)
@@ -238,8 +296,8 @@ const Timeline = forwardRef(function Timeline(
           const yT2   = yT1 + TITLE_LH
           const yMeta = (titleLines.length > 1 ? yT2 : yT1) + SEC_GAP + META_LH
           const yRel  = yMeta + META_LH
+          const yAge  = yRel + META_LH
 
-          // CSS transform to scale highlighted card around its own centre
           const cx = cardX + CARD_W / 2
           const cy = cardY + cardH / 2
           const groupStyle = {
@@ -250,26 +308,42 @@ const Timeline = forwardRef(function Timeline(
             }),
           }
 
+          // Fly-in for newly saved cards: scale from todayX so the card
+          // appears to launch from today and travel to its date position.
+          // Guard: fall back to standard if today is off-screen.
+          const todayOnScreen = todayX >= 0 && todayX <= w
+          const isFlying = m.id === newlyAddedId && !flyDoneIds.has(m.id) && todayOnScreen
+          const flew     = flyDoneIds.has(m.id)
+          const innerAnimStyle = flew ? { animation: 'none' } : {
+            animation:        isFlying
+              ? 'milestone-fly 0.65s cubic-bezier(0.34,1.56,0.64,1) both'
+              : 'milestone-appear 0.45s cubic-bezier(0.22,1,0.36,1) both',
+            animationDelay:   isFlying ? '0ms' : `${i * 28}ms`,
+            transformOrigin:  isFlying ? `${todayX}px ${axisY}px` : `${x}px ${axisY}px`,
+          }
+
           return (
             <g key={m.id} onClick={() => onMilestoneClick(m)} style={groupStyle} opacity={alpha}>
-              {/* Axis anchor dot — larger when highlighted */}
+              <g
+                style={innerAnimStyle}
+                onAnimationEnd={isFlying
+                  ? () => setFlyDoneIds(prev => new Set([...prev, m.id]))
+                  : undefined}
+              >
               <circle cx={x} cy={axisY}
                 r={isHL ? 5.5 : 3.5}
                 fill={m.color}
                 opacity={isHL ? 1 : 0.85} />
 
-              {/* Connector line */}
               <line x1={x} y1={connY1} x2={x} y2={connY2}
                 stroke={m.color} strokeWidth={isHL ? 1.5 : 1} opacity={isHL ? 0.6 : 0.3} />
 
-              {/* Highlight glow halo behind card */}
               {isHL && (
                 <rect x={cardX - 4} y={cardY - 4}
                   width={CARD_W + 8} height={cardH + 8}
                   fill={m.color} opacity={0.12} />
               )}
 
-              {/* Card body */}
               <rect
                 x={cardX} y={cardY}
                 width={CARD_W} height={cardH}
@@ -278,36 +352,121 @@ const Timeline = forwardRef(function Timeline(
                 strokeOpacity={borderOpacity}
                 strokeWidth={borderWidth}
                 style={{
-                  animation: 'milestone-appear 0.4s cubic-bezier(0.34,1.56,0.64,1) both',
-                  transformOrigin: `${x}px ${axisY}px`,
                   filter: isHL ? `drop-shadow(0 0 7px ${m.color}99)` : undefined,
                 }}
               />
 
-              {/* Left accent bar */}
               <rect x={cardX} y={cardY} width={3} height={cardH}
                 fill={m.color} opacity={isPast ? 0.5 : 0.85} />
 
-              {/* Title */}
-              {titleLines.map((line, i) => (
-                <text key={i}
-                  x={cardX + 10} y={i === 0 ? yT1 : yT2}
+              {titleLines.map((line, li) => (
+                <text key={li}
+                  x={cardX + 10} y={li === 0 ? yT1 : yT2}
                   fill="rgba(232,224,208,0.95)"
                   fontSize="0.6em" fontFamily="'Courier Prime', monospace" fontWeight="bold"
                 >{line}</text>
               ))}
 
-              {/* Date */}
               <text x={cardX + 10} y={yMeta}
                 fill="rgba(232,224,208,0.45)"
                 fontSize="0.52em" fontFamily="'Courier Prime', monospace"
               >{dateStr}</text>
 
-              {/* Relative time */}
               <text x={cardX + 10} y={yRel}
                 fill="#C8A96E"
                 fontSize="0.52em" fontFamily="'Courier Prime', monospace"
               >{relStr}</text>
+
+              {birthday && (() => {
+                const age = ageAtDate(birthday, m.date)
+                return age !== null ? (
+                  <text x={cardX + 10} y={yAge}
+                    fill="rgba(200,169,110,0.52)"
+                    fontSize="0.52em" fontFamily="'Courier Prime', monospace"
+                  >{age} y.o.</text>
+                ) : null
+              })()}
+
+              {/* Vintage camera indicator — top-right corner */}
+              {m.photo_uri && (
+                <g transform={`translate(${cardX + CARD_W - 21},${cardY + 3})`}
+                   opacity={isHL ? 0.9 : 0.52}
+                   style={{ cursor: 'zoom-in' }}
+                   onMouseEnter={e => setPhotoTip({ uri: m.photo_uri, x: e.clientX, y: e.clientY })}
+                   onMouseLeave={() => setPhotoTip(null)}>
+                  {/* invisible hit area for reliable hover */}
+                  <rect x={-2} y={-1} width={18} height={13} fill="transparent" />
+                  {/* body */}
+                  <rect x={0} y={2.5} width={14} height={8} rx={1.3}
+                    fill="none" stroke={m.color} strokeWidth={0.85} />
+                  {/* viewfinder bump */}
+                  <rect x={2} y={0.5} width={4} height={2.8} rx={0.7}
+                    fill="none" stroke={m.color} strokeWidth={0.75} />
+                  {/* lens ring */}
+                  <circle cx={7} cy={6.5} r={2.6}
+                    fill="none" stroke={m.color} strokeWidth={0.85} />
+                  {/* lens glass */}
+                  <circle cx={7} cy={6.5} r={1.25}
+                    fill={m.color} opacity={0.55} />
+                  {/* shutter button */}
+                  <circle cx={11.8} cy={4} r={0.75}
+                    fill={m.color} />
+                </g>
+              )}
+              </g>
+            </g>
+          )
+        })}
+
+        {/* ── Cluster badges ──────────────────────────────────────────────── */}
+        {clusterGroups.map((group, idx) => {
+          const xs    = group.map(m => dateToX(new Date(m.date).getTime(), startMs, endMs, w))
+          const avgX  = xs.reduce((a, b) => a + b, 0) / xs.length
+          if (avgX < -40 || avgX > w + 40) return null
+
+          const count     = group.length
+          const colors    = [...new Map(group.map(m => [m.color, m.color])).values()].slice(0, 5)
+          const years     = group.map(m => new Date(m.date).getFullYear())
+          const minY      = Math.min(...years)
+          const maxY      = Math.max(...years)
+          const rangeLabel = minY === maxY ? String(minY) : `${minY}–${maxY}`
+          const clCenterMs = group.reduce((s, m) => s + new Date(m.date).getTime(), 0) / count
+
+          const R      = 11
+          const badgeCy = axisY - R - 10
+
+          return (
+            <g key={`cl-${idx}`} style={{ cursor: 'pointer' }}
+               onClick={() => onClusterClick?.(clCenterMs)}>
+              {/* Dashed connector */}
+              <line x1={avgX} y1={axisY - 5} x2={avgX} y2={badgeCy + R}
+                stroke="rgba(200,169,110,0.22)" strokeWidth={1} strokeDasharray="2 3" />
+              {/* Axis dot */}
+              <circle cx={avgX} cy={axisY} r={5}
+                fill="#0D0F16" stroke="rgba(200,169,110,0.55)" strokeWidth={1.2} />
+              {/* Badge circle */}
+              <circle cx={avgX} cy={badgeCy} r={R}
+                fill="rgba(13,15,22,0.94)" stroke="rgba(200,169,110,0.4)" strokeWidth={1} />
+              {/* Count */}
+              <text x={avgX} y={badgeCy + 4}
+                textAnchor="middle"
+                fill="rgba(200,169,110,0.9)"
+                fontSize="0.58em" fontFamily="'Courier Prime', monospace" fontWeight="bold"
+              >{count}</text>
+              {/* Category colour dots above badge */}
+              {colors.map((color, ci) => {
+                const spread = (colors.length - 1) * 6
+                return (
+                  <circle key={ci} cx={avgX + ci * 6 - spread / 2} cy={badgeCy - R - 6}
+                    r={2.5} fill={color} opacity={0.82} />
+                )
+              })}
+              {/* Date range */}
+              <text x={avgX} y={axisY + 22}
+                textAnchor="middle"
+                fill="rgba(232,224,208,0.2)"
+                fontSize="0.5em" fontFamily="'Courier Prime', monospace"
+              >{rangeLabel}</text>
             </g>
           )
         })}
@@ -316,6 +475,27 @@ const Timeline = forwardRef(function Timeline(
         <rect x={0}    y={0} width={70}   height={h} fill="url(#tl-left)"  pointerEvents="none" />
         <rect x={w-70} y={0} width={70}   height={h} fill="url(#tl-right)" pointerEvents="none" />
       </svg>
+
+      {photoTip && (
+        <div style={{
+          position: 'fixed',
+          left: photoTip.x,
+          top:  photoTip.y,
+          transform: 'translate(-50%, calc(-100% - 12px))',
+          pointerEvents: 'none',
+          zIndex: 9999,
+        }}>
+          <img src={photoTip.uri} alt="" style={{
+            display: 'block',
+            maxWidth: 220,
+            maxHeight: 180,
+            objectFit: 'cover',
+            borderRadius: 4,
+            border: '1px solid rgba(200,169,110,0.35)',
+            boxShadow: '0 6px 24px rgba(0,0,0,0.7)',
+          }} />
+        </div>
+      )}
     </div>
   )
 })

@@ -6,6 +6,17 @@ import {
   isPast,
 } from 'date-fns'
 
+// Returns the age (in whole years) at a given date, or null if birthday not set
+// or the target date precedes the birthday.
+export function ageAtDate(birthdayStr, targetDateStr) {
+  if (!birthdayStr || !targetDateStr) return null
+  const born   = new Date(birthdayStr)
+  const target = new Date(targetDateStr)
+  if (isNaN(born.getTime()) || isNaN(target.getTime())) return null
+  if (target < born) return null
+  return differenceInYears(target, born)
+}
+
 export function relativeLabel(dateStr, precision = 'day') {
   const date = new Date(dateStr)
   const now  = new Date()

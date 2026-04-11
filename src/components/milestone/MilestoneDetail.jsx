@@ -1,7 +1,7 @@
 import React from 'react'
-import { formatDateDisplay, relativeLabel } from '../../utils/dates'
+import { formatDateDisplay, relativeLabel, ageAtDate } from '../../utils/dates'
 
-export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete }) {
+export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, birthday }) {
   function handleDelete() {
     if (window.confirm(`Delete "${m.title}"?`)) {
       onDelete(m.id)
@@ -17,6 +17,13 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
           <button className="sheet-close" onClick={onClose}>✕</button>
         </div>
 
+        {/* Photo */}
+        {m.photo_uri && (
+          <div className="detail-photo-wrap">
+            <img src={m.photo_uri} alt={m.title} className="detail-photo" />
+          </div>
+        )}
+
         {/* Title */}
         <div className="detail-title">{m.title}</div>
 
@@ -28,6 +35,12 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
           <div className="detail-relative">
             {relativeLabel(m.date, m.date_precision)}
           </div>
+          {(() => {
+            const age = birthday ? ageAtDate(birthday, m.date) : null
+            return age !== null ? (
+              <div className="detail-age">{age} y.o.</div>
+            ) : null
+          })()}
         </div>
 
         {/* Category */}

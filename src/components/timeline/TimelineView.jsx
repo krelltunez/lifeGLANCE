@@ -3,10 +3,15 @@ import Timeline          from './Timeline'
 import StatsPanel        from '../stats/StatsPanel'
 import AddMilestoneSheet from '../milestone/AddMilestoneSheet'
 import MilestoneDetail   from '../milestone/MilestoneDetail'
+import SettingsModal     from '../settings/SettingsModal'
+import HelpModal         from '../help/HelpModal'
+import SearchModal       from '../search/SearchModal'
+import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS }   from '../../utils/timeline'
-import { CATEGORIES }    from '../../utils/colors'
+import { loadCategories } from '../../utils/colors'
 import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones } from '../../data/milestones'
+import * as audio from '../../utils/audio'
 
 const ZOOM_RANK = { decades: 5, '30yr': 4, years: 3, months: 2, weeks: 1, custom: 3.5 }
 
@@ -20,24 +25,43 @@ const TEXT_SIZES = {
 const ZOOM_ANIM_MS = 380
 
 export default function TimelineView({ milestones, setMilestones }) {
-  const [zoom,        setZoom]       = useState('years')
-  const [zoomAnim,    setZoomAnim]   = useState('')
-  const [filter,      setFilter]     = useState('all')
-  const [addOpen,     setAddOpen]    = useState(false)
-  const [editTarget,  setEditTarget] = useState(null)
-  const [detail,      setDetail]     = useState(null)
-  const [textSize,    setTextSize]   = useState(
+  const [zoom,          setZoom]          = useState('years')
+  const [zoomAnim,      setZoomAnim]      = useState('')
+  const [filter,        setFilter]        = useState('all')
+  const [addOpen,       setAddOpen]       = useState(false)
+  const [editTarget,    setEditTarget]    = useState(null)
+  const [detail,        setDetail]        = useState(null)
+  const [textSize,      setTextSize]      = useState(
     () => localStorage.getItem('lifeglance-text-size') || 'normal'
   )
-  const [customYears, setCustomYears] = useState(15)
-  const [pastIdx,     setPastIdx]    = useState(0)
-  const [futureIdx,   setFutureIdx]  = useState(0)
+  const [customYears,   setCustomYears]   = useState(15)
+  const [pastIdx,       setPastIdx]       = useState(0)
+  const [futureIdx,     setFutureIdx]     = useState(0)
+  const [selectedId,    setSelectedId]    = useState(null)
+  const [highlightsActive, setHighlightsActive] = useState(true)
+  const [settingsOpen,  setSettingsOpen]  = useState(false)
+  const [helpOpen,      setHelpOpen]      = useState(false)
+  const [searchOpen,    setSearchOpen]    = useState(false)
+  const [viewMode,      setViewMode]      = useState('all')
+  const [categories,    setCategories]    = useState(loadCategories)
+  const [panMs,         setPanMs]         = useState(0)
+  const [clustering,    setClustering]    = useState(
+    () => localStorage.getItem('lifeglance-clustering') !== 'false'
+  )
+  const [birthday,      setBirthday]      = useState(
+    () => localStorage.getItem('lifeglance-birthday') || ''
+  )
+  const [canUndo,       setCanUndo]       = useState(false)
+  const [canRedo,       setCanRedo]       = useState(false)
+  const [newlyAddedId,  setNewlyAddedId]  = useState(null)
 
-  const timelineRef = useRef(null)
-  const zoomWrapRef = useRef(null)
-  const zoomRef     = useRef('years')
-  const zoomLocked  = useRef(false)
-  const restoreRef  = useRef(null)
+  const timelineRef    = useRef(null)
+  const zoomWrapRef    = useRef(null)
+  const bodyRef        = useRef(null)
+  const zoomRef        = useRef('years')
+  const zoomLocked     = useRef(false)
+  const customInputRef = useRef(null)
+  const historyRef     = useRef(null)   // { stack: Milestone[][], idx: number }
 
   // Apply font size globally
   useEffect(() => {
@@ -76,7 +100,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   }, [])
 
   // ── Filter ───────────────────────────────────────────────────────────────────
-  const presentCategories = CATEGORIES.filter(cat =>
+  const presentCategories = categories.filter(cat =>
     milestones.some(m => m.category === cat.id)
   )
   const filteredMilestones = filter === 'all'
@@ -87,12 +111,12 @@ export default function TimelineView({ milestones, setMilestones }) {
   const now    = new Date()
   const past   = [...filteredMilestones]
     .filter(m => new Date(m.date) < now)
-    .sort((a, b) => new Date(b.date) - new Date(a.date))   // most-recent first
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
   const future = [...filteredMilestones]
     .filter(m => new Date(m.date) >= now)
-    .sort((a, b) => new Date(a.date) - new Date(b.date))   // soonest first
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
 
-  // Clamp indices when lists shrink (filter change, deletion)
+  // Clamp indices when lists shrink
   useEffect(() => {
     setPastIdx(i => Math.min(i, Math.max(0, past.length - 1)))
   }, [past.length])
@@ -100,28 +124,397 @@ export default function TimelineView({ milestones, setMilestones }) {
     setFutureIdx(i => Math.min(i, Math.max(0, future.length - 1)))
   }, [future.length])
 
-  const highlightedIds = new Set(
-    [past[pastIdx]?.id, future[futureIdx]?.id].filter(Boolean)
-  )
+  const highlightedIds = highlightsActive
+    ? new Set([past[pastIdx]?.id, future[futureIdx]?.id].filter(Boolean))
+    : new Set()
+
+  // ── Stat panel navigation (shared by buttons, keyboard, and swipe) ───────────
+  function handlePastNav(i) {
+    const clamped = Math.max(0, Math.min(i, past.length - 1))
+    setPastIdx(clamped)
+    setSelectedId(null)
+    setHighlightsActive(true)
+    const m = past[clamped]
+    if (m) timelineRef.current?.panToMs(new Date(m.date).getTime())
+  }
+
+  function handleFutureNav(i) {
+    const clamped = Math.max(0, Math.min(i, future.length - 1))
+    setFutureIdx(clamped)
+    setSelectedId(null)
+    setHighlightsActive(true)
+    const m = future[clamped]
+    if (m) timelineRef.current?.panToMs(new Date(m.date).getTime())
+  }
+
+  // ── Milestone click: first click selects + centers, second opens detail ───────
+  function handleMilestoneClick(m) {
+    if (highlightsActive && selectedId === m.id) {
+      setDetail(m)
+    } else {
+      setSelectedId(m.id)
+      setHighlightsActive(true)
+      timelineRef.current?.panToMs(new Date(m.date).getTime())
+      const pastI = past.findIndex(p => p.id === m.id)
+      if (pastI !== -1) {
+        setPastIdx(pastI)
+      } else {
+        const futureI = future.findIndex(f => f.id === m.id)
+        if (futureI !== -1) setFutureIdx(futureI)
+      }
+    }
+  }
+
+  // ── Jump to today ─────────────────────────────────────────────────────────────
+  function handleJumpToToday() {
+    timelineRef.current?.resetPan()
+    setPastIdx(0)
+    setFutureIdx(0)
+    setSelectedId(null)
+    setHighlightsActive(true)
+  }
+
+  // ── Cluster click: zoom in one level and pan to cluster centre ───────────────
+  function handleClusterClick(clusterCenterMs) {
+    timelineRef.current?.panToMs(clusterCenterMs)
+    const idx = ZOOM_LEVELS.indexOf(zoom)
+    if (idx < ZOOM_LEVELS.length - 1) handleZoom(ZOOM_LEVELS[idx + 1])
+  }
+
+  // ── Search select ────────────────────────────────────────────────────────────
+  function handleSearchSelect(m) {
+    setSearchOpen(false)
+    setSelectedId(m.id)
+    setHighlightsActive(true)
+    timelineRef.current?.panToMs(new Date(m.date).getTime())
+    const pastI = past.findIndex(p => p.id === m.id)
+    if (pastI !== -1) {
+      setPastIdx(pastI)
+    } else {
+      const futureI = future.findIndex(f => f.id === m.id)
+      if (futureI !== -1) setFutureIdx(futureI)
+    }
+  }
+
+  // ── View mode ────────────────────────────────────────────────────────────────
+  function handleViewMode(mode) {
+    setViewMode(mode)
+    setPanMs(0)
+    if (timelineRef.current) timelineRef.current.resetPan()
+  }
+
+  // ── Undo / redo ───────────────────────────────────────────────────────────────
+  // Snapshot-based: each mutation stores the full milestones array.
+  // historyRef.current = { stack: Milestone[][], idx: number }
+  // stack[idx] is the current state; stack[idx-1] is "one undo ago".
+
+  function pushHistory(newMs) {
+    if (!historyRef.current) {
+      // lazy init: capture the pre-mutation state as the base entry
+      historyRef.current = { stack: [milestones], idx: 0 }
+    }
+    const h = historyRef.current
+    h.stack = h.stack.slice(0, h.idx + 1)   // discard any redo history
+    h.stack.push(newMs)
+    if (h.stack.length > 51) h.stack.shift() // cap memory at 50 undos
+    else h.idx++
+    setCanUndo(h.idx > 0)
+    setCanRedo(false)
+  }
+
+  async function handleUndo() {
+    const h = historyRef.current
+    if (!h || h.idx === 0) return
+    h.idx--
+    const snapshot = h.stack[h.idx]
+    await restoreMilestones(snapshot)
+    setMilestones(snapshot)
+    setCanUndo(h.idx > 0)
+    setCanRedo(true)
+  }
+
+  async function handleRedo() {
+    const h = historyRef.current
+    if (!h || h.idx >= h.stack.length - 1) return
+    h.idx++
+    const snapshot = h.stack[h.idx]
+    await restoreMilestones(snapshot)
+    setMilestones(snapshot)
+    setCanUndo(true)
+    setCanRedo(h.idx < h.stack.length - 1)
+  }
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────────
+  // Use a ref so the listener is registered once but always sees fresh state
+  const keyStateRef = useRef(null)
+  keyStateRef.current = {
+    pastIdx, futureIdx, past, future, zoom,
+    addOpen, detail, settingsOpen, helpOpen, searchOpen,
+    handlePastNav, handleFutureNav, handleJumpToToday, handleViewMode, closeSheet,
+    handleUndo, handleRedo, canUndo, canRedo,
+  }
+
+  useEffect(() => {
+    function onKey(e) {
+      // Allow Escape through even when an input is focused (to close modals)
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && e.key !== 'Escape') return
+      audio.init()   // unlock AudioContext on first keystroke (idempotent)
+      const s = keyStateRef.current
+      const anyModal = s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen || s.searchOpen
+
+      switch (e.key) {
+        case 'ArrowLeft': {
+          if (anyModal) break
+          e.preventDefault()
+          if (s.past.length > 0) {
+            audio.playNavTick(false)
+            s.handlePastNav((s.pastIdx + 1) % s.past.length)
+          }
+          break
+        }
+        case 'ArrowRight': {
+          if (anyModal) break
+          e.preventDefault()
+          if (s.future.length > 0) {
+            audio.playNavTick(true)
+            s.handleFutureNav((s.futureIdx + 1) % s.future.length)
+          }
+          break
+        }
+        case 'ArrowUp': {
+          if (anyModal) break
+          e.preventDefault()
+          const upIdx = ZOOM_LEVELS.indexOf(s.zoom)
+          if (upIdx < ZOOM_LEVELS.length - 1) handleZoomRef.current(ZOOM_LEVELS[upIdx + 1])
+          break
+        }
+        case 'ArrowDown': {
+          if (anyModal) break
+          e.preventDefault()
+          const downIdx = ZOOM_LEVELS.indexOf(s.zoom)
+          if (downIdx > 0) handleZoomRef.current(ZOOM_LEVELS[downIdx - 1])
+          break
+        }
+        case 't': case 'T': {
+          if (anyModal) break
+          s.handleJumpToToday()
+          break
+        }
+        case 'e': case 'E': {
+          if (anyModal) break
+          handleExportImage()
+          break
+        }
+        case 'n': case 'N': {
+          if (s.settingsOpen || !!s.detail) break
+          if (!s.addOpen) { e.preventDefault(); setAddOpen(true) }
+          break
+        }
+        case 's': case 'S': {
+          if (s.addOpen || !!s.detail || s.helpOpen) break
+          if (!s.settingsOpen) setSettingsOpen(true)
+          break
+        }
+        case 'c': case 'C': {
+          if (anyModal) break
+          if (s.zoom === 'custom') {
+            customInputRef.current?.focus()
+          } else {
+            handleZoomRef.current('custom')
+            // autoFocus fires when the input mounts
+          }
+          break
+        }
+        case 'p': case 'P': {
+          if (anyModal) break
+          s.handleViewMode('past')
+          break
+        }
+        case 'a': case 'A': {
+          if (anyModal) break
+          s.handleViewMode('all')
+          break
+        }
+        case 'f': case 'F': {
+          if (anyModal) break
+          s.handleViewMode('future')
+          break
+        }
+        case '/': {
+          e.preventDefault() // prevent browser Quick Find (Firefox etc.) regardless
+          if (s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen) break
+          if (!s.searchOpen) setSearchOpen(true)
+          break
+        }
+        case '?': {
+          if (s.addOpen || !!s.detail || s.settingsOpen || s.searchOpen) break
+          if (!s.helpOpen) setHelpOpen(true)
+          break
+        }
+        case '1': case '2': case '3': case '4': case '5':
+        case '6': case '7': case '8': case '9': {
+          if (anyModal) break
+          e.preventDefault()
+          const num = parseInt(e.key, 10)
+          setCustomYears(num)
+          if (s.zoom === 'custom') {
+            customInputRef.current?.focus()
+          } else {
+            handleZoomRef.current('custom')
+            // autoFocus fires when the input mounts after the zoom animation
+          }
+          break
+        }
+        case 'm': case 'M': {
+          if (anyModal) break
+          audio.toggleMuted()
+          break
+        }
+        case 'z': case 'Z': {
+          if (anyModal) break
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault()
+            if (e.shiftKey) { if (s.canRedo) s.handleRedo() }
+            else            { if (s.canUndo) s.handleUndo() }
+          }
+          break
+        }
+        case 'y': case 'Y': {
+          if (anyModal) break
+          if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
+            e.preventDefault()
+            if (s.canRedo) s.handleRedo()
+          }
+          break
+        }
+        case 'Escape': {
+          if (customInputRef.current && document.activeElement === customInputRef.current) {
+            customInputRef.current.blur()
+            break
+          }
+          if (s.detail)            setDetail(null)
+          else if (s.addOpen)      s.closeSheet()
+          else if (s.settingsOpen) setSettingsOpen(false)
+          else if (s.helpOpen)     setHelpOpen(false)
+          else if (s.searchOpen)   setSearchOpen(false)
+          break
+        }
+        default: break
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, []) // stable — reads fresh values from keyStateRef
 
   // ── CRUD ─────────────────────────────────────────────────────────────────────
   async function handleSave(data, existing) {
+    audio.init()   // ensure AudioContext is running (form submit = user gesture)
     if (existing) {
       const updated = await updateMilestone(existing.id, data, existing)
-      setMilestones(prev => prev.map(m => m.id === existing.id ? updated : m))
+      const newMs = milestones.map(m => m.id === existing.id ? updated : m)
+      pushHistory(newMs)
+      setMilestones(newMs)
+      audio.playEditSave()
     } else {
       const m = await addMilestone(data)
-      setMilestones(prev => [...prev, m])
+      const newMs = [...milestones, m]
+      pushHistory(newMs)
+      setMilestones(newMs)
+      setNewlyAddedId(m.id)
+      audio.playChime()
     }
   }
 
   async function handleDelete(id) {
     await deleteMilestone(id)
-    setMilestones(prev => prev.filter(m => m.id !== id))
+    const newMs = milestones.filter(m => m.id !== id)
+    pushHistory(newMs)
+    setMilestones(newMs)
   }
 
   function openEdit(m)  { setEditTarget(m); setAddOpen(true) }
   function closeSheet() { setAddOpen(false); setEditTarget(null) }
+
+  // ── Export image ─────────────────────────────────────────────────────────────
+  async function handleExportImage() {
+    const svgEl = zoomWrapRef.current?.querySelector('svg')
+    if (!svgEl) return
+    try {
+      const { width: w, height: h } = svgEl.getBoundingClientRect()
+      const scale = 2
+
+      // Clone SVG, fix rem font-size (canvas defaults 1rem→16px, not the app's value),
+      // and inject a dark background rect.
+      const clone = svgEl.cloneNode(true)
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+      clone.setAttribute('width', w)
+      clone.setAttribute('height', h)
+      clone.style.fontSize = getComputedStyle(svgEl).fontSize // e.g. "22px"
+
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+      bg.setAttribute('width', '100%')
+      bg.setAttribute('height', '100%')
+      bg.setAttribute('fill', '#0F1117')
+      clone.insertBefore(bg, clone.firstChild)
+
+      // Embed Courier Prime — fetch the Google Fonts CSS, then each woff2 file,
+      // encode as base64, and inject a <style> block so the sandboxed SVG img
+      // renders the correct font.
+      try {
+        const fontLink = document.querySelector('link[href*="googleapis.com"][href*="Courier"]')
+        if (fontLink) {
+          const css = await (await fetch(fontLink.href)).text()
+          const blocks = css.match(/@font-face\s*\{[^}]+\}/g) ?? []
+          const embedded = await Promise.all(blocks.map(async block => {
+            const m = block.match(/url\((https:\/\/fonts\.gstatic\.com[^)]+)\)/)
+            if (!m) return block
+            try {
+              const buf = await (await fetch(m[1])).arrayBuffer()
+              const b64 = btoa([...new Uint8Array(buf)].map(b => String.fromCharCode(b)).join(''))
+              return block.replace(m[0], `url('data:font/woff2;base64,${b64}')`)
+            } catch { return null }
+          }))
+          const valid = embedded.filter(Boolean)
+          if (valid.length) {
+            const style = document.createElementNS('http://www.w3.org/2000/svg', 'style')
+            style.textContent = valid.join('\n')
+            clone.insertBefore(style, clone.firstChild)
+          }
+        }
+      } catch { /* fall back to system monospace */ }
+
+      const svgStr = new XMLSerializer().serializeToString(clone)
+      const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
+      const svgUrl  = URL.createObjectURL(svgBlob)
+
+      const canvas = document.createElement('canvas')
+      canvas.width  = Math.round(w * scale)
+      canvas.height = Math.round(h * scale)
+      const ctx = canvas.getContext('2d')
+      ctx.scale(scale, scale)
+
+      await new Promise((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => { ctx.drawImage(img, 0, 0); URL.revokeObjectURL(svgUrl); resolve() }
+        img.onerror = reject
+        img.src = svgUrl
+      })
+
+      canvas.toBlob(blob => {
+        const d = new Date()
+        const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+        const a = document.createElement('a')
+        a.download = `lifeglance-${stamp}.png`
+        a.href = URL.createObjectURL(blob)
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(a.href), 100)
+      }, 'image/png')
+    } catch (err) {
+      console.error('Export failed:', err)
+    }
+  }
 
   // ── Backup ───────────────────────────────────────────────────────────────────
   function handleSaveBackup() {
@@ -130,7 +523,6 @@ export default function TimelineView({ milestones, setMilestones }) {
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href     = url
-    // Use local date so the filename matches the user's calendar day
     const d    = new Date()
     const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
     a.download = `lifeglance-${stamp}.json`
@@ -146,6 +538,9 @@ export default function TimelineView({ milestones, setMilestones }) {
       const data     = JSON.parse(text)
       const restored = await restoreMilestones(data)
       setMilestones(restored)
+      historyRef.current = { stack: [restored], idx: 0 }
+      setCanUndo(false)
+      setCanRedo(false)
     } catch (err) {
       console.error('Restore failed:', err)
     }
@@ -153,28 +548,21 @@ export default function TimelineView({ milestones, setMilestones }) {
   }
 
   const isEmpty = filteredMilestones.length === 0 && milestones.length === 0
+  const customHalfMs = customYears * 365.25 * 24 * 3600 * 1000
 
   return (
     <div className="timeline-view">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="timeline-header">
+        {/* Left: logo */}
         <div className="logo logo-sm">
           <span className="logo-life">life</span>
           <span className="logo-glance">GLANCE</span>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            {/* Text size */}
-            <div className="zoom-tabs">
-              {Object.keys(TEXT_SIZES).map(s => (
-                <button key={s}
-                  className={`zoom-tab ${textSize === s ? 'active' : ''}`}
-                  onClick={() => setTextSize(s)}>{s}</button>
-              ))}
-            </div>
-
-            {/* Zoom level */}
+        {/* Center: zoom row + view picker */}
+        <div className="header-center">
+          <div className="zoom-row">
             <div className="zoom-tabs">
               {ZOOM_LEVELS.map(z => (
                 <button key={z}
@@ -185,46 +573,53 @@ export default function TimelineView({ milestones, setMilestones }) {
                 className={`zoom-tab ${zoom === 'custom' ? 'active' : ''}`}
                 onClick={() => handleZoom('custom')}>custom</button>
             </div>
+
+            <div className="zoom-indicator">
+              {zoom === 'custom' ? (
+                <div className="custom-zoom-row">
+                  <span>±</span>
+                  <input ref={customInputRef} autoFocus
+                    className="custom-zoom-input" type="number" min="1" max="200"
+                    value={customYears}
+                    onChange={e => {
+                      const v = parseInt(e.target.value, 10)
+                      if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
+                    }} />
+                  <span>yr</span>
+                </div>
+              ) : (
+                <TypewriterText key={zoom} text={`viewing: ${zoom}`}
+                  options={{ delay: 38, jitter: 18 }} showCursor={false} hideCursorWhenDone />
+              )}
+            </div>
           </div>
 
-          {/* Zoom indicator / custom input */}
-          <div className="zoom-indicator">
-            {zoom === 'custom' ? (
-              <div className="custom-zoom-row">
-                <span>±</span>
-                <input className="custom-zoom-input" type="number" min="1" max="200"
-                  value={customYears}
-                  onChange={e => {
-                    const v = parseInt(e.target.value, 10)
-                    if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
-                  }} />
-                <span>yr</span>
-              </div>
-            ) : (
-              <TypewriterText key={zoom} text={`viewing: ${zoom}`}
-                options={{ delay: 38, jitter: 18 }} showCursor={false} hideCursorWhenDone />
-            )}
+          <div className="view-tabs">
+            {[['past', '← past'], ['all', '← all →'], ['future', 'future →']].map(([mode, label]) => (
+              <button key={mode}
+                className={`view-tab ${viewMode === mode ? 'active' : ''}`}
+                onClick={() => handleViewMode(mode)}>{label}</button>
+            ))}
           </div>
+        </div>
 
-          {/* Backup links */}
-          <div className="header-actions">
-            <button className="action-link" onClick={handleSaveBackup}>save backup</button>
-            <span className="action-sep">·</span>
-            <button className="action-link" onClick={() => restoreRef.current?.click()}>restore</button>
-            <input ref={restoreRef} type="file" accept=".json"
-              style={{ display: 'none' }} onChange={handleRestoreFile} />
-          </div>
+        {/* Right: settings + help */}
+        <div className="header-right">
+          <button className="action-link" onClick={() => setSettingsOpen(true)}>settings</button>
+          <span className="action-sep">|</span>
+          <button className="action-link" onClick={() => setHelpOpen(true)}>?</button>
         </div>
       </div>
 
       {/* ── Body ───────────────────────────────────────────────────────────── */}
-      <div className="timeline-body">
+      <div className="timeline-body" ref={bodyRef}>
         {!isEmpty && (
           <StatsPanel
             past={past} future={future}
             pastIdx={pastIdx} futureIdx={futureIdx}
-            onPastChange={i => setPastIdx(Math.max(0, Math.min(i, past.length - 1)))}
-            onFutureChange={i => setFutureIdx(Math.max(0, Math.min(i, future.length - 1)))}
+            onPastChange={handlePastNav}
+            onFutureChange={handleFutureNav}
+            viewMode={viewMode}
           />
         )}
 
@@ -234,9 +629,16 @@ export default function TimelineView({ milestones, setMilestones }) {
             milestones={filteredMilestones}
             zoom={zoom}
             textSize={textSize}
-            customHalfMs={customYears * 365.25 * 24 * 3600 * 1000}
+            customHalfMs={customHalfMs}
             highlightedIds={highlightedIds}
-            onMilestoneClick={setDetail}
+            onMilestoneClick={handleMilestoneClick}
+            panMs={panMs}
+            onPanMs={setPanMs}
+            viewMode={viewMode}
+            onClusterClick={handleClusterClick}
+            clustering={clustering}
+            birthday={birthday}
+            newlyAddedId={newlyAddedId}
           />
         </div>
 
@@ -253,6 +655,19 @@ export default function TimelineView({ milestones, setMilestones }) {
           </div>
         )}
       </div>
+
+      {/* ── Minimap ────────────────────────────────────────────────────────── */}
+      {!isEmpty && (
+        <MinimapBar
+          milestones={filteredMilestones}
+          panMs={panMs}
+          onPanDirect={setPanMs}
+          panToMs={(ms) => timelineRef.current?.panToMs(ms)}
+          zoom={zoom}
+          customHalfMs={customHalfMs}
+          viewMode={viewMode}
+        />
+      )}
 
       {/* ── Bottom bar ─────────────────────────────────────────────────────── */}
       <div className="timeline-bottom">
@@ -275,14 +690,17 @@ export default function TimelineView({ milestones, setMilestones }) {
           </div>
         )}
 
-        <button className="today-btn" onClick={() => timelineRef.current?.resetPan()}>
+        <button className="today-btn" onClick={handleJumpToToday}>
           jump to today
         </button>
       </div>
 
       {/* ── Sheets ─────────────────────────────────────────────────────────── */}
       {addOpen && (
-        <AddMilestoneSheet onSave={handleSave} onClose={closeSheet} existing={editTarget} />
+        <AddMilestoneSheet
+          onSave={handleSave} onClose={closeSheet} existing={editTarget}
+          categories={categories}
+        />
       )}
       {detail && (
         <MilestoneDetail
@@ -290,6 +708,36 @@ export default function TimelineView({ milestones, setMilestones }) {
           onClose={() => setDetail(null)}
           onEdit={openEdit}
           onDelete={handleDelete}
+          birthday={birthday}
+        />
+      )}
+      {searchOpen && (
+        <SearchModal
+          milestones={milestones}
+          onSelect={handleSearchSelect}
+          onClose={() => setSearchOpen(false)}
+        />
+      )}
+      {helpOpen && (
+        <HelpModal onClose={() => setHelpOpen(false)} />
+      )}
+      {settingsOpen && (
+        <SettingsModal
+          textSize={textSize}       onTextSizeChange={setTextSize}
+          categories={categories}   onCategoriesChange={setCategories}
+          clustering={clustering}   onClusteringChange={v => {
+            setClustering(v)
+            localStorage.setItem('lifeglance-clustering', String(v))
+          }}
+          birthday={birthday}       onBirthdayChange={v => {
+            setBirthday(v)
+            localStorage.setItem('lifeglance-birthday', v)
+          }}
+          milestones={milestones}
+          onExportImage={handleExportImage}
+          onSaveBackup={handleSaveBackup}
+          onRestoreFile={handleRestoreFile}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
     </div>

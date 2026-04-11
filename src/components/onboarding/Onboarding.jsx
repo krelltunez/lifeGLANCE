@@ -5,11 +5,18 @@ import Step3Future    from './Step3Future'
 import Step4Reveal    from './Step4Reveal'
 import TimelinePreview from './TimelinePreview'
 import { addMilestone } from '../../data/milestones'
+import { init as audioInit, startAmbient, stopAmbient } from '../../utils/audio'
 
 export default function Onboarding({ onComplete }) {
   const [step, setStep]               = useState(1)
   const [pastMilestone, setPast]      = useState(null)
   const [futureMilestone, setFuture]  = useState(null)
+
+  function handleBegin() {
+    audioInit()       // unlock AudioContext on this user gesture
+    startAmbient()    // start soft drone
+    setStep(2)
+  }
 
   async function handlePast(data) {
     const m = await addMilestone(data)
@@ -24,6 +31,7 @@ export default function Onboarding({ onComplete }) {
   }
 
   function finish() {
+    stopAmbient()     // fade out drone as we enter the timeline
     onComplete([pastMilestone, futureMilestone].filter(Boolean))
   }
 
@@ -31,7 +39,7 @@ export default function Onboarding({ onComplete }) {
 
   return (
     <div className="onboarding">
-      {step === 1 && <Step1Welcome onBegin={() => setStep(2)} onSkip={finish} />}
+      {step === 1 && <Step1Welcome onBegin={handleBegin} onSkip={finish} />}
       {step === 2 && <Step2Past    onSubmit={handlePast}    onSkip={finish} />}
       {step === 3 && <Step3Future  onSubmit={handleFuture}  onSkip={finish} pastMilestone={pastMilestone} />}
       {step === 4 && <Step4Reveal  onComplete={finish} pastMilestone={pastMilestone} futureMilestone={futureMilestone} />}

@@ -59,6 +59,7 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
           options={{ delay: 22, jitter: 18 }}
           onDone={() => setPromptDone(true)}
           hideCursorWhenDone
+          playSound
         />
       </div>
 
