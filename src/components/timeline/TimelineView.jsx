@@ -288,8 +288,8 @@ export default function TimelineView({ milestones, setMilestones }) {
           break
         }
         case '/': {
+          e.preventDefault() // prevent browser Quick Find (Firefox etc.) regardless
           if (s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen) break
-          e.preventDefault()
           if (!s.searchOpen) setSearchOpen(true)
           break
         }
@@ -355,16 +355,21 @@ export default function TimelineView({ milestones, setMilestones }) {
     const el = bodyRef.current
     if (!el) return
     try {
+      // skipFonts avoids CORS errors fetching Google Fonts;
+      // the browser canvas still renders with whatever fonts are active on the page.
       const dataUrl = await toPng(el, {
         pixelRatio: 2,
         backgroundColor: '#0F1117',
+        skipFonts: true,
       })
-      const a = document.createElement('a')
-      a.href = dataUrl
       const d = new Date()
       const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      const a = document.createElement('a')
       a.download = `lifeglance-${stamp}.png`
+      a.href = dataUrl
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
     } catch (err) {
       console.error('Export failed:', err)
     }
