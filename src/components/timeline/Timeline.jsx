@@ -54,6 +54,9 @@ const Timeline = forwardRef(function Timeline(
 
   const wrapRef  = useRef(null)
   const [size, setSize] = useState({ w: 800, h: 340 })
+  const [compactLayout, setCompactLayout] = useState(
+    () => window.matchMedia('(max-height: 900px)').matches
+  )
   const [photoTip,    setPhotoTip]    = useState(null) // { uri, x, y }
   // Track which IDs have already played their fly-in so we don't re-animate on re-renders
   const [flyDoneIds,  setFlyDoneIds]  = useState(() => new Set())
@@ -61,6 +64,14 @@ const Timeline = forwardRef(function Timeline(
   const panMsRef = useRef(panMs)
   const animRef  = useRef(null)
   const drag     = useRef({ active: false, startX: 0, startPan: 0 })
+
+  // Track viewport height for compact layout (axis shift + all-above)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-height: 900px)')
+    const handler = (e) => setCompactLayout(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   // Keep ref in sync when panMs changes from parent (e.g. minimap direct scrub)
   useEffect(() => { panMsRef.current = panMs }, [panMs])
@@ -106,7 +117,6 @@ const Timeline = forwardRef(function Timeline(
   }, [])
 
   const { w, h } = size
-  const compactLayout = h < 700
   const axisY    = Math.round(h * (compactLayout ? 0.78 : 0.50))
   const today    = new Date()
   const centerMs = today.getTime() + panMs
