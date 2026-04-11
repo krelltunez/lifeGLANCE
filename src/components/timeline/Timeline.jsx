@@ -294,6 +294,7 @@ const Timeline = forwardRef(function Timeline(
             connY2 = cardY + cardH
           } else {
             cardY  = axisY + connLen + m.lane * CARD_STEP
+            cardY  = Math.min(h - cardH - 10, cardY) // never clip below SVG bounds
             connY1 = axisY + 4
             connY2 = cardY
           }
