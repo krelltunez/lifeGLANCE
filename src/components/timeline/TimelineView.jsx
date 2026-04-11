@@ -1,5 +1,4 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { toPng } from 'html-to-image'
 import Timeline          from './Timeline'
 import StatsPanel        from '../stats/StatsPanel'
 import AddMilestoneSheet from '../milestone/AddMilestoneSheet'
@@ -355,6 +354,7 @@ export default function TimelineView({ milestones, setMilestones }) {
     const el = bodyRef.current
     if (!el) return
     try {
+      const { toPng } = await import('html-to-image')
       // skipFonts avoids CORS errors fetching Google Fonts;
       // the browser canvas still renders with whatever fonts are active on the page.
       const dataUrl = await toPng(el, {
