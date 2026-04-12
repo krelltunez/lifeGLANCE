@@ -2,7 +2,8 @@ import React, { useRef, useState } from 'react'
 import { saveCategories } from '../../utils/colors'
 import { isMuted, setMuted } from '../../utils/audio'
 
-const TEXT_SIZES = { small: true, normal: true, big: true, bigger: true }
+const TEXT_SIZES_ALL     = ['small', 'normal', 'big', 'bigger']
+const TEXT_SIZES_COMPACT = ['small', 'normal']
 
 const COLOR_PALETTE = [
   '#9370DB', '#A78BFA', '#6366F1', '#3D3580',
@@ -23,6 +24,7 @@ export default function SettingsModal({
   milestones,
   onExportImage, onSaveBackup, onRestoreFile,
   onClose,
+  ultraCompact = false,
 }) {
   const [newLabel,  setNewLabel]  = useState('')
   const [newColor,  setNewColor]  = useState(COLOR_PALETTE[0])
@@ -65,12 +67,15 @@ export default function SettingsModal({
         <div className="settings-section">
           <div className="settings-label">text size</div>
           <div className="zoom-tabs">
-            {Object.keys(TEXT_SIZES).map(s => (
+            {(ultraCompact ? TEXT_SIZES_COMPACT : TEXT_SIZES_ALL).map(s => (
               <button key={s}
                 className={`zoom-tab ${textSize === s ? 'active' : ''}`}
                 onClick={() => onTextSizeChange(s)}>{s}</button>
             ))}
           </div>
+          {ultraCompact && (
+            <div className="settings-note">big / bigger unavailable on short screens</div>
+          )}
         </div>
 
         {/* ── Display ───────────────────────────────────────────────────── */}

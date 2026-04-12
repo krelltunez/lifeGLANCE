@@ -983,6 +983,12 @@ button, input, select, textarea {
   color: var(--amber);
   letter-spacing: 0.07em;
 }
+.settings-note {
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-top: 0.2rem;
+}
 
 .settings-cat-list {
   display: flex;

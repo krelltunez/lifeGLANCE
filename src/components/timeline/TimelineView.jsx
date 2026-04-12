@@ -56,7 +56,13 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [compactStats,  setCompactStats]  = useState(
     () => window.matchMedia('(max-width: 768px), (max-height: 600px)').matches
   )
-  const [minimapOpen,   setMinimapOpen]   = useState(false)
+  const [ultraCompact,  setUltraCompact]  = useState(
+    () => window.matchMedia('(max-height: 500px)').matches
+  )
+  const [minimapOpen,   setMinimapOpen]   = useState(
+    () => window.matchMedia('(max-height: 500px)').matches &&
+          (localStorage.getItem('lifeglance-text-size') || 'normal') === 'small'
+  )
   const [clustering,    setClustering]    = useState(
     () => localStorage.getItem('lifeglance-clustering') !== 'false'
   )
@@ -111,13 +117,30 @@ export default function TimelineView({ milestones, setMilestones }) {
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 768px), (max-height: 600px)')
-    const handler = (e) => {
-      setCompactStats(e.matches)
-      if (!e.matches) setMinimapOpen(false) // reset when leaving compact mode
-    }
+    const handler = (e) => setCompactStats(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-height: 500px)')
+    const handler = (e) => setUltraCompact(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // Auto-show minimap on ultra-compact only when text is small enough to fit.
+  // Auto-hide when leaving compact or switching to a larger text size.
+  useEffect(() => {
+    if (compactStats) setMinimapOpen(ultraCompact && textSize === 'small')
+  }, [compactStats, ultraCompact, textSize])
+
+  // Restrict text size: big/bigger cards overflow the axis on short screens.
+  useEffect(() => {
+    if (ultraCompact && (textSize === 'big' || textSize === 'bigger')) {
+      setTextSize('normal')
+    }
+  }, [ultraCompact, textSize])
 
   // ── Zoom ─────────────────────────────────────────────────────────────────────
   const handleZoom = useCallback((newZoom) => {
@@ -735,6 +758,7 @@ export default function TimelineView({ milestones, setMilestones }) {
             clustering={clustering}
             birthday={birthday}
             newlyAddedId={newlyAddedId}
+            ultraCompact={ultraCompact}
           />
         </div>
 
@@ -863,6 +887,7 @@ export default function TimelineView({ milestones, setMilestones }) {
       {settingsOpen && (
         <SettingsModal
           textSize={textSize}       onTextSizeChange={setTextSize}
+          ultraCompact={ultraCompact}
           categories={categories}   onCategoriesChange={setCategories}
           clustering={clustering}   onClusteringChange={v => {
             setClustering(v)
