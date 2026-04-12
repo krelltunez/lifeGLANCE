@@ -437,16 +437,11 @@ const Timeline = forwardRef(function Timeline(
                        opacity={op} style={{ cursor: 'pointer' }}
                        onClick={e => { e.stopPropagation(); window.open(m.url, '_blank', 'noopener,noreferrer') }}>
                       <rect x={-2} y={-1} width={18} height={13} fill="transparent" />
-                      {/* page */}
-                      <rect x={0} y={3} width={8} height={7} rx={1}
-                        fill="none" stroke={m.color} strokeWidth={0.85} />
-                      {/* arrow shaft */}
-                      <line x1={6} y1={5} x2={12} y2={0}
-                        stroke={m.color} strokeWidth={0.85} strokeLinecap="round" />
-                      {/* arrow head */}
-                      <polyline points="9,0 12,0 12,3"
-                        fill="none" stroke={m.color} strokeWidth={0.85}
-                        strokeLinecap="round" strokeLinejoin="round" />
+                      {/* chain-link: two interlocked ovals */}
+                      <rect x={0.5} y={3} width={7} height={5} rx={2.5}
+                        fill="none" stroke={m.color} strokeWidth={0.9} />
+                      <rect x={5.5} y={3} width={7} height={5} rx={2.5}
+                        fill="none" stroke={m.color} strokeWidth={0.9} />
                     </g>
                   )
                   if (type === 'recurrence') return (
