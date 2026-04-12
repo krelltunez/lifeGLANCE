@@ -265,7 +265,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
                     placeholder={String(Math.max(base, new Date().getFullYear()) + 3)}
                     onChange={e => setRecEndYear(e.target.value)}
                     min={year}
-                    max={base + 50}
+                    max={base + 99}
                   />
                   <span className="recurrence-range-count">
                     {count} instance{count !== 1 ? 's' : ''}

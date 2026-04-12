@@ -505,13 +505,13 @@ export default function TimelineView({ milestones, setMilestones }) {
       setMilestones(newMs)
       audio.playEditSave()
     } else if (data.recurrence === 'annual') {
-      // Generate one instance per year from base year to chosen end year (max +50)
+      // Generate one instance per year from base year to chosen end year (max +99)
       const rid       = crypto.randomUUID()
       const baseDate  = new Date(data.date)
       const baseYear  = baseDate.getFullYear()
       const endYear   = Math.min(
         data.recurrenceEndYear ?? Math.max(baseYear, new Date().getFullYear()) + 3,
-        baseYear + 50
+        baseYear + 99
       )
       const created   = []
       for (let y = baseYear; y <= endYear; y++) {
