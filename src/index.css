@@ -448,6 +448,20 @@ button, input, select, textarea {
 .recur-filter-btn:hover { color: var(--text-dim); background: rgba(200, 169, 110, 0.06); }
 .recur-filter-btn.active { color: var(--amber); background: rgba(200, 169, 110, 0.1); border-color: rgba(200, 169, 110, 0.3); }
 
+/* Single-row compact controls: zoom ▾  |  past ↺  |  rec: next */
+.compact-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+}
+/* View-mode cycle button — standalone tab, same look as zoom dropdown btn */
+.view-cycle-btn {
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
 .timeline-body {
   flex: 1;
   position: relative;
@@ -1719,12 +1733,13 @@ button, input, select, textarea {
 }
 
 
-/* ─── Short-screen header (landscape phones ≤500px tall) ──────────────────── */
-/* Collapses the two-row header-center (zoom + view tabs) into a single row,   */
-/* saving ~37px of vertical space for the timeline body.                        */
+/* ─── Short-screen overrides (landscape phones ≤500px tall) ───────────────── */
+/* compact header already collapses to a single row; here we squeeze padding   */
+/* and shrink the action-link strip to recover extra pixels for the SVG.       */
 @media (max-height: 500px) {
-  .timeline-header  { padding: 0.28rem 0.8rem; }
-  .header-center    { flex-direction: row; gap: 0.5rem; align-items: center; }
+  .timeline-header { padding: 0.18rem 0.8rem; }
+  .action-link     { font-size: 0.5rem; }
+  .action-sep      { font-size: 0.6rem; }
 
   /* Onboarding: compress everything for landscape phones, push content down from edge */
   .onboarding         { justify-content: flex-start; padding: 1.5rem 1.5rem 4rem; }
