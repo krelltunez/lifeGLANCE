@@ -196,6 +196,9 @@ const Timeline = forwardRef(function Timeline(
       }}
       onTouchEnd={endDrag}
     >
+      <div style={{ position:'absolute', top:4, right:4, background:'rgba(0,0,0,0.75)', color:'#fff', fontSize:'10px', padding:'2px 5px', zIndex:9999, pointerEvents:'none', fontFamily:'monospace' }}>
+        svg:{w}×{h} ax:{axisY} win:{window.innerWidth}×{window.innerHeight}
+      </div>
       <svg
         width={w} height={h}
         viewBox={`0 0 ${w} ${h}`}
