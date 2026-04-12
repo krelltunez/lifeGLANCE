@@ -57,6 +57,9 @@ const Timeline = forwardRef(function Timeline(
   const [compactLayout, setCompactLayout] = useState(
     () => window.matchMedia('(max-height: 900px)').matches
   )
+  const [ultraCompact, setUltraCompact] = useState(
+    () => window.matchMedia('(max-height: 500px)').matches
+  )
   const [photoTip,    setPhotoTip]    = useState(null) // { uri, x, y }
   // Track which IDs have already played their fly-in so we don't re-animate on re-renders
   const [flyDoneIds,  setFlyDoneIds]  = useState(() => new Set())
@@ -69,6 +72,13 @@ const Timeline = forwardRef(function Timeline(
   useEffect(() => {
     const mq = window.matchMedia('(max-height: 900px)')
     const handler = (e) => setCompactLayout(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-height: 500px)')
+    const handler = (e) => setUltraCompact(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [])
@@ -117,9 +127,16 @@ const Timeline = forwardRef(function Timeline(
   }, [])
 
   const { w, h } = size
-  // Compact: pin axis a fixed distance from the bottom so there's no dead space below.
-  // Normal: centre the axis.
-  const axisY    = compactLayout ? h - 40 : Math.round(h * 0.50)
+  // ultraCompact (≤500px tall): axis at ~70% so cards fit above and there's
+  //   breathing room below before the map bar; floor at 193 so cards never
+  //   cross the axis (topClamp 84 + CARD_H2 101 + 8px min-connector = 193).
+  // compact (≤900px): axis pinned near bottom to maximise card space above.
+  // normal: axis centred.
+  const axisY = ultraCompact
+    ? Math.max(193, Math.round(h * 0.70))
+    : compactLayout
+      ? h - 40
+      : Math.round(h * 0.50)
   const today    = new Date()
   const centerMs = today.getTime() + panMs
   const { startMs, endMs } = getTimeRangeForView(zoom, centerMs, viewMode, customHalfMs)
