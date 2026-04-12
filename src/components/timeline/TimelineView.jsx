@@ -758,57 +758,54 @@ export default function TimelineView({ milestones, setMilestones }) {
         {/* Center: zoom row + view picker */}
         <div className="header-center">
           {compactHeader ? (
-            <>
-              <div className="zoom-row">
-                <div className="zoom-dropdown-wrap" onClick={e => e.stopPropagation()}>
-                  <button
-                    className={`zoom-tab active zoom-dropdown-btn`}
-                    onClick={() => setZoomOpen(o => !o)}>
-                    {zoom === 'custom' ? 'custom' : zoom} ▾
-                  </button>
-                  {zoomOpen && (
-                    <div className="zoom-dropdown">
-                      {[...ZOOM_LEVELS, 'custom'].map(z => (
-                        <button key={z}
-                          className={`zoom-dropdown-item ${zoom === z ? 'active' : ''}`}
-                          onClick={() => { handleZoom(z); setZoomOpen(false) }}>
-                          {z}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {zoom === 'custom' && (
-                  <div className="custom-zoom-row">
-                    <span>±</span>
-                    <input ref={customInputRef} autoFocus
-                      className="custom-zoom-input" type="number" min="1" max="200"
-                      value={customYears}
-                      onChange={e => {
-                        const v = parseInt(e.target.value, 10)
-                        if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
-                      }} />
-                    <span>yr</span>
+            /* Single row on narrow screens: zoom ▾  |  past ↺  |  rec: next */
+            <div className="compact-controls-row">
+              <div className="zoom-dropdown-wrap" onClick={e => e.stopPropagation()}>
+                <button
+                  className="zoom-tab active zoom-dropdown-btn"
+                  onClick={() => setZoomOpen(o => !o)}>
+                  {zoom === 'custom' ? 'custom' : zoom} ▾
+                </button>
+                {zoomOpen && (
+                  <div className="zoom-dropdown">
+                    {[...ZOOM_LEVELS, 'custom'].map(z => (
+                      <button key={z}
+                        className={`zoom-dropdown-item ${zoom === z ? 'active' : ''}`}
+                        onClick={() => { handleZoom(z); setZoomOpen(false) }}>
+                        {z}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
-              <div className="view-tabs-row">
-                <div className="view-tabs">
-                  {[['past', 'past'], ['all', 'all'], ['future', 'future']].map(([mode, label]) => (
-                    <button key={mode}
-                      className={`view-tab ${viewMode === mode ? 'active' : ''}`}
-                      onClick={() => handleViewMode(mode)}>{label}</button>
-                  ))}
+              {zoom === 'custom' && (
+                <div className="custom-zoom-row">
+                  <span>±</span>
+                  <input ref={customInputRef} autoFocus
+                    className="custom-zoom-input" type="number" min="1" max="200"
+                    value={customYears}
+                    onChange={e => {
+                      const v = parseInt(e.target.value, 10)
+                      if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
+                    }} />
+                  <span>yr</span>
                 </div>
-                {hasRecurring && (
-                  <button
-                    className={`recur-filter-btn${recurFilter !== 'next' ? ' active' : ''}`}
-                    onClick={cycleRecurFilter}>
-                    recurring: {recurFilter}
-                  </button>
-                )}
-              </div>
-            </>
+              )}
+              <button
+                className="zoom-tab active view-cycle-btn"
+                onClick={() => handleViewMode(
+                  viewMode === 'past' ? 'all' : viewMode === 'all' ? 'future' : 'past'
+                )}>
+                {viewMode} ↺
+              </button>
+              {hasRecurring && (
+                <button
+                  className={`recur-filter-btn${recurFilter !== 'next' ? ' active' : ''}`}
+                  onClick={cycleRecurFilter}>
+                  rec: {recurFilter}
+                </button>
+              )}
+            </div>
           ) : (
             <>
               <div className="zoom-row">
