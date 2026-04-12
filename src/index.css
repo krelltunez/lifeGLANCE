@@ -963,6 +963,187 @@ button, input, select, textarea {
   padding-left: 0.75rem;
 }
 
+/* ─── Milestone detail — extra fields ─────────────────────────────────────── */
+.detail-url {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--amber);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-all;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+.detail-url:hover { opacity: 1; }
+
+.detail-recurrence {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.detail-delete-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.detail-delete-series {
+  font-size: 0.72rem;
+  opacity: 0.75;
+}
+
+/* ─── Add milestone sheet — recurrence ─────────────────────────────────────── */
+.recurrence-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+}
+.sheet-recurrence-note {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  margin-top: 0.2rem;
+}
+
+/* ─── Summary modal ─────────────────────────────────────────────────────────── */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  border: 1px solid var(--border);
+}
+.summary-cell {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.summary-value {
+  font-size: 1.15rem;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+.summary-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+}
+.summary-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+.summary-section-label {
+  font-size: 0.62rem;
+  color: var(--amber);
+  letter-spacing: 0.07em;
+}
+.summary-gap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.summary-gap-title {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.summary-gap-arrow {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.summary-gap-dur {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.summary-busiest {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.summary-busiest-year  { font-size: 1.1rem; color: var(--text); }
+.summary-busiest-count { font-size: 0.72rem; color: var(--text-muted); }
+
+.summary-decades {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.summary-decade-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.summary-decade-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  width: 3.2rem;
+  flex-shrink: 0;
+}
+.summary-decade-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(232,224,208,0.07);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.summary-decade-bar {
+  height: 100%;
+  background: var(--amber);
+  opacity: 0.65;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.summary-decade-count {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  width: 1.4rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ─── On this day modal ─────────────────────────────────────────────────────── */
+.otd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.otd-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(232,224,208,0.06);
+  cursor: pointer;
+  transition: background 0.12s;
+  border-radius: 3px;
+  padding-left: 0.3rem;
+}
+.otd-item:hover { background: rgba(232,224,208,0.04); }
+.otd-item:last-child { border-bottom: none; }
+.otd-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.3rem;
+}
+.otd-content { display: flex; flex-direction: column; gap: 0.18rem; }
+.otd-title   { font-size: 0.85rem; color: var(--text-dim); }
+.otd-meta    { font-size: 0.65rem; color: var(--text-muted); }
+.otd-years   { color: var(--amber); opacity: 0.8; }
+.otd-approx  { opacity: 0.6; font-style: italic; }
+
+/* "on this day" bottom-bar button — amber accent to draw attention */
+.otd-btn { color: var(--amber) !important; opacity: 0.85; }
+.otd-btn:hover { opacity: 1; }
+
 /* ─── Empty state ──────────────────────────────────────────────────────────── */
 .empty-state {
   position: absolute;

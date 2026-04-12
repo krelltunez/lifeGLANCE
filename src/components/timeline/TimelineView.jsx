@@ -6,6 +6,8 @@ import MilestoneDetail   from '../milestone/MilestoneDetail'
 import SettingsModal     from '../settings/SettingsModal'
 import HelpModal         from '../help/HelpModal'
 import SearchModal       from '../search/SearchModal'
+import SummaryModal      from '../stats/SummaryModal'
+import OnThisDayModal    from './OnThisDayModal'
 import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS }   from '../../utils/timeline'
@@ -74,6 +76,8 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [canUndo,       setCanUndo]       = useState(false)
   const [canRedo,       setCanRedo]       = useState(false)
   const [newlyAddedId,  setNewlyAddedId]  = useState(null)
+  const [summaryOpen,   setSummaryOpen]   = useState(false)
+  const [onThisDayOpen, setOnThisDayOpen] = useState(false)
 
   const timelineRef    = useRef(null)
   const zoomWrapRef    = useRef(null)
@@ -176,6 +180,21 @@ export default function TimelineView({ milestones, setMilestones }) {
   const filteredMilestones = filter === 'all'
     ? milestones
     : milestones.filter(m => m.category === filter)
+
+  // ── "On this day" — milestones that share today's month (and day if precision allows) ──
+  const onThisDayItems = React.useMemo(() => {
+    const today = new Date()
+    const todayMonth = today.getMonth() + 1
+    const todayDay   = today.getDate()
+    return milestones.filter(m => {
+      if (new Date(m.date) >= today) return false
+      if (m.date_precision === 'year') return false
+      const d = new Date(m.date)
+      const sameMonth = d.getMonth() + 1 === todayMonth
+      if (m.date_precision === 'month') return sameMonth
+      return sameMonth && d.getDate() === todayDay
+    }).sort((a, b) => new Date(b.date) - new Date(a.date))
+  }, [milestones])
 
   // ── Past / future for stat panel ─────────────────────────────────────────────
   const now    = new Date()
@@ -485,6 +504,32 @@ export default function TimelineView({ milestones, setMilestones }) {
       pushHistory(newMs)
       setMilestones(newMs)
       audio.playEditSave()
+    } else if (data.recurrence === 'annual') {
+      // Generate one instance per year from base year to current+3
+      const rid       = crypto.randomUUID()
+      const baseDate  = new Date(data.date)
+      const baseYear  = baseDate.getFullYear()
+      const endYear   = Math.max(baseYear, new Date().getFullYear()) + 3
+      const created   = []
+      for (let y = baseYear; y <= endYear; y++) {
+        const d = new Date(baseDate)
+        d.setFullYear(y)
+        const m = await addMilestone({
+          ...data,
+          date:          d,
+          recurrence_id: rid,
+          // only the base-year instance keeps the original note / photo / url
+          note:      y === baseYear ? data.note      : '',
+          photo_uri: y === baseYear ? data.photo_uri : '',
+          url:       y === baseYear ? data.url       : '',
+        })
+        created.push(m)
+      }
+      const newMs = [...milestones, ...created]
+      pushHistory(newMs)
+      setMilestones(newMs)
+      setNewlyAddedId(created[0].id)
+      audio.playChime()
     } else {
       const m = await addMilestone(data)
       const newMs = [...milestones, m]
@@ -498,6 +543,14 @@ export default function TimelineView({ milestones, setMilestones }) {
   async function handleDelete(id) {
     await deleteMilestone(id)
     const newMs = milestones.filter(m => m.id !== id)
+    pushHistory(newMs)
+    setMilestones(newMs)
+  }
+
+  async function handleDeleteSeries(recurrence_id) {
+    const toDelete = milestones.filter(m => m.recurrence_id === recurrence_id)
+    for (const m of toDelete) await deleteMilestone(m.id)
+    const newMs = milestones.filter(m => m.recurrence_id !== recurrence_id)
     pushHistory(newMs)
     setMilestones(newMs)
   }
@@ -718,8 +771,10 @@ export default function TimelineView({ milestones, setMilestones }) {
           )}
         </div>
 
-        {/* Right: settings + help */}
+        {/* Right: stats + settings + help */}
         <div className="header-right">
+          <button className="action-link" onClick={() => setSummaryOpen(true)}>stats</button>
+          <span className="action-sep">|</span>
           <button className="action-link" onClick={() => setSettingsOpen(true)}>settings</button>
           <span className="action-sep">|</span>
           <button className="action-link" onClick={() => setHelpOpen(true)}>?</button>
@@ -839,6 +894,11 @@ export default function TimelineView({ milestones, setMilestones }) {
           )
         )}
 
+        {onThisDayItems.length > 0 && (
+          <button className="today-btn otd-btn" onClick={() => setOnThisDayOpen(true)}>
+            on this day
+          </button>
+        )}
         <button className="today-btn" onClick={handleJumpToToday}>
           jump to today
         </button>
@@ -857,6 +917,7 @@ export default function TimelineView({ milestones, setMilestones }) {
           onClose={() => setDetail(null)}
           onEdit={openEdit}
           onDelete={handleDelete}
+          onDeleteSeries={handleDeleteSeries}
           birthday={birthday}
         />
       )}
@@ -869,6 +930,19 @@ export default function TimelineView({ milestones, setMilestones }) {
       )}
       {helpOpen && (
         <HelpModal onClose={() => setHelpOpen(false)} />
+      )}
+      {summaryOpen && (
+        <SummaryModal
+          milestones={milestones}
+          onClose={() => setSummaryOpen(false)}
+        />
+      )}
+      {onThisDayOpen && (
+        <OnThisDayModal
+          items={onThisDayItems}
+          onClose={() => setOnThisDayOpen(false)}
+          onSelect={m => { setOnThisDayOpen(false); setDetail(m) }}
+        />
       )}
       {settingsOpen && (
         <SettingsModal

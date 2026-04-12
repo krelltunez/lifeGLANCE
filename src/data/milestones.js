@@ -13,6 +13,9 @@ export function buildMilestone({
   color,
   note           = '',
   photo_uri      = '',
+  url            = '',
+  recurrence     = null,   // null | 'annual'
+  recurrence_id  = null,   // UUID shared across instances of a series
 }) {
   const dateObj = date instanceof Date ? date : new Date(date)
   const today   = new Date()
@@ -28,6 +31,9 @@ export function buildMilestone({
     color:          color || categoryColor(category),
     note,
     photo_uri,
+    url,
+    recurrence,
+    recurrence_id,
     created_at:     now,
     updated_at:     now,
   }

@@ -12,15 +12,17 @@ const MONTHS = [
 export default function AddMilestoneSheet({ onSave, onClose, existing, categories = DEFAULT_CATEGORIES }) {
   const isEdit = !!existing
 
-  const [title,     setTitle]     = useState(existing?.title     ?? '')
-  const [month,     setMonth]     = useState('6')
-  const [day,       setDay]       = useState('')
-  const [year,      setYear]      = useState('')
-  const [precision, setPrecision] = useState(existing?.date_precision ?? 'month')
-  const [category,  setCategory]  = useState(existing?.category  ?? 'personal')
-  const [note,      setNote]      = useState(existing?.note       ?? '')
-  const [photoUri,  setPhotoUri]  = useState(existing?.photo_uri  ?? '')
-  const [busy,      setBusy]      = useState(false)
+  const [title,      setTitle]      = useState(existing?.title     ?? '')
+  const [month,      setMonth]      = useState('6')
+  const [day,        setDay]        = useState('')
+  const [year,       setYear]       = useState('')
+  const [precision,  setPrecision]  = useState(existing?.date_precision ?? 'month')
+  const [category,   setCategory]   = useState(existing?.category  ?? 'personal')
+  const [note,       setNote]       = useState(existing?.note       ?? '')
+  const [url,        setUrl]        = useState(existing?.url        ?? '')
+  const [photoUri,   setPhotoUri]   = useState(existing?.photo_uri  ?? '')
+  const [recurrence, setRecurrence] = useState(false)
+  const [busy,       setBusy]       = useState(false)
   const photoRef = useRef(null)
 
   // Pre-fill date from existing
@@ -50,6 +52,9 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
         color: selectedCat?.color,
         note: note.trim(),
         photo_uri: photoUri,
+        url: url.trim(),
+        recurrence: (!isEdit && recurrence) ? 'annual' : (existing?.recurrence ?? null),
+        recurrence_id: existing?.recurrence_id ?? null,
       }, existing)
       onClose()
     } finally {
@@ -174,6 +179,19 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
           />
         </div>
 
+        {/* URL */}
+        <div className="sheet-field">
+          <label className="field-label">link (optional)</label>
+          <input
+            className="input"
+            type="url"
+            placeholder="https://…"
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            autoComplete="off"
+          />
+        </div>
+
         {/* Photo */}
         <div className="sheet-field">
           <label className="field-label">photo (optional)</label>
@@ -204,6 +222,28 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
             }}
           />
         </div>
+
+        {/* Recurrence (new milestones only) */}
+        {!isEdit && (
+          <div className="sheet-field">
+            <label className="recurrence-toggle-row">
+              <span className="field-label" style={{ marginBottom: 0 }}>repeats annually</span>
+              <input type="checkbox" className="settings-toggle"
+                checked={recurrence}
+                onChange={e => setRecurrence(e.target.checked)} />
+            </label>
+            {recurrence && (
+              <div className="sheet-recurrence-note">
+                instances will be created from this year through {new Date().getFullYear() + 3}
+              </div>
+            )}
+          </div>
+        )}
+        {isEdit && existing?.recurrence === 'annual' && (
+          <div className="sheet-field">
+            <div className="detail-recurrence">↻ repeats annually — editing this instance only</div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="sheet-actions">

@@ -1,10 +1,17 @@
 import React from 'react'
 import { formatDateDisplay, relativeLabel, ageAtDate } from '../../utils/dates'
 
-export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, birthday }) {
+export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday }) {
   function handleDelete() {
     if (window.confirm(`Delete "${m.title}"?`)) {
       onDelete(m.id)
+      onClose()
+    }
+  }
+
+  function handleDeleteSeries() {
+    if (window.confirm(`Delete all instances of "${m.title}"?`)) {
+      onDeleteSeries(m.recurrence_id)
       onClose()
     }
   }
@@ -49,16 +56,35 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
           {m.category}
         </div>
 
+        {/* Recurrence badge */}
+        {m.recurrence === 'annual' && (
+          <div className="detail-recurrence">↻ repeats annually</div>
+        )}
+
         {/* Note */}
         {m.note && (
           <div className="detail-note">{m.note}</div>
         )}
 
+        {/* URL link */}
+        {m.url && (
+          <a href={m.url} target="_blank" rel="noopener noreferrer" className="detail-url">
+            {m.url.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+          </a>
+        )}
+
         {/* Actions */}
         <div className="sheet-actions">
-          <button className="btn-ghost" onClick={handleDelete}>
-            delete
-          </button>
+          <div className="detail-delete-group">
+            <button className="btn-ghost" onClick={handleDelete}>
+              delete
+            </button>
+            {m.recurrence_id && onDeleteSeries && (
+              <button className="btn-ghost detail-delete-series" onClick={handleDeleteSeries}>
+                delete series
+              </button>
+            )}
+          </div>
           <div className="sheet-actions-right">
             <button className="btn" onClick={() => { onClose(); onEdit(m); }}
               style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}

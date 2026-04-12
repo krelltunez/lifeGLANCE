@@ -405,32 +405,72 @@ const Timeline = forwardRef(function Timeline(
                 ) : null
               })()}
 
-              {/* Vintage camera indicator — top-right corner */}
-              {m.photo_uri && (
-                <g transform={`translate(${cardX + CARD_W - 21},${cardY + 3})`}
-                   opacity={isHL ? 0.9 : 0.52}
-                   style={{ cursor: 'zoom-in' }}
-                   onMouseEnter={e => setPhotoTip({ uri: m.photo_uri, x: e.clientX, y: e.clientY })}
-                   onMouseLeave={() => setPhotoTip(null)}>
-                  {/* invisible hit area for reliable hover */}
-                  <rect x={-2} y={-1} width={18} height={13} fill="transparent" />
-                  {/* body */}
-                  <rect x={0} y={2.5} width={14} height={8} rx={1.3}
-                    fill="none" stroke={m.color} strokeWidth={0.85} />
-                  {/* viewfinder bump */}
-                  <rect x={2} y={0.5} width={4} height={2.8} rx={0.7}
-                    fill="none" stroke={m.color} strokeWidth={0.75} />
-                  {/* lens ring */}
-                  <circle cx={7} cy={6.5} r={2.6}
-                    fill="none" stroke={m.color} strokeWidth={0.85} />
-                  {/* lens glass */}
-                  <circle cx={7} cy={6.5} r={1.25}
-                    fill={m.color} opacity={0.55} />
-                  {/* shutter button */}
-                  <circle cx={11.8} cy={4} r={0.75}
-                    fill={m.color} />
-                </g>
-              )}
+              {/* Card icons — top-right corner: camera, link, recurrence (right → left) */}
+              {(() => {
+                const icons = []
+                if (m.photo_uri)  icons.push('camera')
+                if (m.url)        icons.push('link')
+                if (m.recurrence) icons.push('recurrence')
+                return icons.map((type, i) => {
+                  const ix = cardX + CARD_W - 21 - i * 17
+                  const iy = cardY + 3
+                  const op = isHL ? 0.9 : 0.52
+                  if (type === 'camera') return (
+                    <g key="camera" transform={`translate(${ix},${iy})`}
+                       opacity={op} style={{ cursor: 'zoom-in' }}
+                       onMouseEnter={e => setPhotoTip({ uri: m.photo_uri, x: e.clientX, y: e.clientY })}
+                       onMouseLeave={() => setPhotoTip(null)}>
+                      <rect x={-2} y={-1} width={18} height={13} fill="transparent" />
+                      <rect x={0} y={2.5} width={14} height={8} rx={1.3}
+                        fill="none" stroke={m.color} strokeWidth={0.85} />
+                      <rect x={2} y={0.5} width={4} height={2.8} rx={0.7}
+                        fill="none" stroke={m.color} strokeWidth={0.75} />
+                      <circle cx={7} cy={6.5} r={2.6}
+                        fill="none" stroke={m.color} strokeWidth={0.85} />
+                      <circle cx={7} cy={6.5} r={1.25}
+                        fill={m.color} opacity={0.55} />
+                      <circle cx={11.8} cy={4} r={0.75} fill={m.color} />
+                    </g>
+                  )
+                  if (type === 'link') return (
+                    <g key="link" transform={`translate(${ix},${iy})`}
+                       opacity={op} style={{ cursor: 'pointer' }}
+                       onClick={e => { e.stopPropagation(); window.open(m.url, '_blank', 'noopener,noreferrer') }}>
+                      <rect x={-2} y={-1} width={18} height={13} fill="transparent" />
+                      {/* page */}
+                      <rect x={0} y={3} width={8} height={7} rx={1}
+                        fill="none" stroke={m.color} strokeWidth={0.85} />
+                      {/* arrow shaft */}
+                      <line x1={6} y1={5} x2={12} y2={0}
+                        stroke={m.color} strokeWidth={0.85} strokeLinecap="round" />
+                      {/* arrow head */}
+                      <polyline points="9,0 12,0 12,3"
+                        fill="none" stroke={m.color} strokeWidth={0.85}
+                        strokeLinecap="round" strokeLinejoin="round" />
+                    </g>
+                  )
+                  if (type === 'recurrence') return (
+                    <g key="recurrence" transform={`translate(${ix},${iy})`} opacity={op}>
+                      <rect x={-2} y={-1} width={18} height={13} fill="transparent" />
+                      {/* top arc */}
+                      <path d="M 2,5.5 C 2,1 11,1 11,5.5"
+                        fill="none" stroke={m.color} strokeWidth={0.85} strokeLinecap="round" />
+                      {/* top arrowhead */}
+                      <polyline points="9,3 11,5.5 8.5,6.5"
+                        fill="none" stroke={m.color} strokeWidth={0.85}
+                        strokeLinecap="round" strokeLinejoin="round" />
+                      {/* bottom arc */}
+                      <path d="M 11,6.5 C 11,11 2,11 2,6.5"
+                        fill="none" stroke={m.color} strokeWidth={0.85} strokeLinecap="round" />
+                      {/* bottom arrowhead */}
+                      <polyline points="3.5,8.5 2,6.5 4.5,5.5"
+                        fill="none" stroke={m.color} strokeWidth={0.85}
+                        strokeLinecap="round" strokeLinejoin="round" />
+                    </g>
+                  )
+                  return null
+                })
+              })()}
               </g>
               </g>
             </g>
