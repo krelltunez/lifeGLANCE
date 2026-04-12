@@ -447,18 +447,18 @@ const Timeline = forwardRef(function Timeline(
                   if (type === 'recurrence') return (
                     <g key="recurrence" transform={`translate(${ix},${iy})`} opacity={op}>
                       <rect x={-2} y={-1} width={18} height={13} fill="transparent" />
-                      {/* top arc: CW from ~9 o'clock to ~3 o'clock (over the top) */}
-                      <path d="M 2.6,4.5 A 4,4 0 0,1 10.4,4.5"
+                      {/* top arc: CW from 210° to 330° (over the top), 30° gap each side */}
+                      <path d="M 3.0,3.5 A 4,4 0 0,1 10.0,3.5"
                         fill="none" stroke={m.color} strokeWidth={0.9} strokeLinecap="round" />
-                      {/* bottom arc: CW from ~3 o'clock to ~9 o'clock (under the bottom) */}
-                      <path d="M 10.4,6.5 A 4,4 0 0,1 2.6,6.5"
+                      {/* bottom arc: CW from 30° to 150° (under the bottom) */}
+                      <path d="M 10.0,7.5 A 4,4 0 0,1 3.0,7.5"
                         fill="none" stroke={m.color} strokeWidth={0.9} strokeLinecap="round" />
-                      {/* arrowhead at 3 o'clock gap — points down (CW direction) */}
-                      <polyline points="11.7,4.0 10.5,5.5 9.3,4.0"
+                      {/* arrowhead at 3 o'clock — points down, 1px clear of arc ends */}
+                      <polyline points="9.5,4.5 10.5,6.5 11.5,4.5"
                         fill="none" stroke={m.color} strokeWidth={0.9}
                         strokeLinecap="round" strokeLinejoin="round" />
-                      {/* arrowhead at 9 o'clock gap — points up (CW direction) */}
-                      <polyline points="3.7,7.0 2.5,5.5 1.3,7.0"
+                      {/* arrowhead at 9 o'clock — points up, 1px clear of arc ends */}
+                      <polyline points="1.5,6.5 2.5,4.5 3.5,6.5"
                         fill="none" stroke={m.color} strokeWidth={0.9}
                         strokeLinecap="round" strokeLinejoin="round" />
                     </g>

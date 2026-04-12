@@ -68,7 +68,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [helpOpen,      setHelpOpen]      = useState(false)
   const [searchOpen,    setSearchOpen]    = useState(false)
   const [viewMode,      setViewMode]      = useState('all')
-  const [recurFilter,   setRecurFilter]   = useState('all')
+  const [recurFilter,   setRecurFilter]   = useState('next')
   const [categories,    setCategories]    = useState(loadCategories)
   const [panMs,         setPanMs]         = useState(0)
   const [compactHeader, setCompactHeader] = useState(
@@ -363,6 +363,7 @@ export default function TimelineView({ milestones, setMilestones }) {
     addOpen, detail, settingsOpen, helpOpen, searchOpen,
     handlePastNav, handleFutureNav, handleJumpToToday, handleViewMode, closeSheet,
     handleUndo, handleRedo, canUndo, canRedo,
+    clustering, setClustering,
   }
 
   useEffect(() => {
@@ -474,6 +475,15 @@ export default function TimelineView({ milestones, setMilestones }) {
             handleZoomRef.current('custom')
             // autoFocus fires when the input mounts after the zoom animation
           }
+          break
+        }
+        case ' ': {
+          if (anyModal) break
+          if (e.target.tagName === 'BUTTON') break  // let Space activate focused buttons normally
+          e.preventDefault()
+          const next = !s.clustering
+          s.setClustering(next)
+          localStorage.setItem('lifeglance-clustering', String(next))
           break
         }
         case 'm': case 'M': {
