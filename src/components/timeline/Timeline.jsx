@@ -117,16 +117,13 @@ const Timeline = forwardRef(function Timeline(
   }, [])
 
   const { w, h } = size
-  // ultraCompact (≤500px tall): axis at ~70% so cards fit above and there's
-  //   breathing room below before the map bar; floor at 193 so cards never
-  //   cross the axis (topClamp 84 + CARD_H2 101 + 8px min-connector = 193).
-  // compact (≤900px): axis pinned near bottom to maximise card space above.
+  // ultraCompact + compactLayout (≤900px): axis pinned 40px from bottom so
+  //   cards maximise space above and axis sits just above the minimap bar.
+  //   Floor at 193 prevents card overflow at very small heights.
   // normal: axis centred.
-  const axisY = ultraCompact
-    ? Math.min(h - 32, Math.max(193, Math.round(h * 0.70)))
-    : compactLayout
-      ? h - 40
-      : Math.round(h * 0.50)
+  const axisY = compactLayout
+    ? Math.max(193, h - 40)
+    : Math.round(h * 0.50)
   const today    = new Date()
   const centerMs = today.getTime() + panMs
   const { startMs, endMs } = getTimeRangeForView(zoom, centerMs, viewMode, customHalfMs)
