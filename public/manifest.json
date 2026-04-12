@@ -3,7 +3,7 @@
   "short_name": "lifeGLANCE",
   "description": "Your life, at a glance. A zoomable timeline for life's milestones — past and future.",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#0f1117",
   "theme_color": "#0f1117",
   "orientation": "landscape-primary",
