@@ -53,6 +53,10 @@ export default function TimelineView({ milestones, setMilestones }) {
     () => window.matchMedia('(max-width: 1200px)').matches
   )
   const [filterOpen,    setFilterOpen]    = useState(false)
+  const [compactStats,  setCompactStats]  = useState(
+    () => window.matchMedia('(max-width: 768px)').matches
+  )
+  const [minimapOpen,   setMinimapOpen]   = useState(false)
   const [clustering,    setClustering]    = useState(
     () => localStorage.getItem('lifeglance-clustering') !== 'false'
   )
@@ -104,6 +108,16 @@ export default function TimelineView({ milestones, setMilestones }) {
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [filterOpen])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const handler = (e) => {
+      setCompactStats(e.matches)
+      if (!e.matches) setMinimapOpen(false) // reset when leaving compact mode
+    }
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
 
   // ── Zoom ─────────────────────────────────────────────────────────────────────
   const handleZoom = useCallback((newZoom) => {
@@ -701,6 +715,7 @@ export default function TimelineView({ milestones, setMilestones }) {
             onPastChange={handlePastNav}
             onFutureChange={handleFutureNav}
             viewMode={viewMode}
+            compact={compactStats}
           />
         )}
 
@@ -739,15 +754,26 @@ export default function TimelineView({ milestones, setMilestones }) {
 
       {/* ── Minimap ────────────────────────────────────────────────────────── */}
       {!isEmpty && (
-        <MinimapBar
-          milestones={filteredMilestones}
-          panMs={panMs}
-          onPanDirect={setPanMs}
-          panToMs={(ms) => timelineRef.current?.panToMs(ms)}
-          zoom={zoom}
-          customHalfMs={customHalfMs}
-          viewMode={viewMode}
-        />
+        <>
+          {(!compactStats || minimapOpen) && (
+            <MinimapBar
+              milestones={filteredMilestones}
+              panMs={panMs}
+              onPanDirect={setPanMs}
+              panToMs={(ms) => timelineRef.current?.panToMs(ms)}
+              zoom={zoom}
+              customHalfMs={customHalfMs}
+              viewMode={viewMode}
+            />
+          )}
+          {compactStats && (
+            <button
+              className={`minimap-grip${minimapOpen ? ' minimap-grip-open' : ''}`}
+              onClick={() => setMinimapOpen(o => !o)}>
+              {minimapOpen ? '▴ map' : '▾ map'}
+            </button>
+          )}
+        </>
       )}
 
       {/* ── Bottom bar ─────────────────────────────────────────────────────── */}

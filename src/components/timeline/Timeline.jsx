@@ -476,10 +476,10 @@ const Timeline = forwardRef(function Timeline(
                     r={2.5} fill={color} opacity={0.82} />
                 )
               })}
-              {/* Date range */}
-              <text x={avgX} y={axisY + 22}
+              {/* Date range — above colour dots */}
+              <text x={avgX} y={badgeCy - R - 17}
                 textAnchor="middle"
-                fill="rgba(232,224,208,0.2)"
+                fill="rgba(232,224,208,0.55)"
                 fontSize="0.5em" fontFamily="'Courier Prime', monospace"
               >{rangeLabel}</text>
             </g>
