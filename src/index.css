@@ -1405,6 +1405,119 @@ button, input, select, textarea {
   flex-wrap: wrap;
 }
 
+/* ─── ICS Import Modal ──────────────────────────────────────────────────────── */
+.ics-sheet {
+  max-width: 640px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;          /* table-wrap scrolls, not the sheet */
+  max-height: 88vh;
+}
+
+.ics-notice {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ics-stats {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.ics-stats-skipped { color: var(--text-muted); }
+
+.ics-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.ics-table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.ics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+.ics-table thead {
+  position: sticky;
+  top: 0;
+  background: var(--bg-elevated);
+  z-index: 1;
+}
+.ics-table th {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  font-size: 0.65rem;
+  color: var(--amber);
+  text-transform: lowercase;
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+.ics-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  vertical-align: middle;
+}
+.ics-table tbody tr:last-child td { border-bottom: none; }
+.ics-table tbody tr:hover { background: color-mix(in srgb, var(--bg-elevated) 80%, var(--amber) 5%); }
+
+.ics-row-dim { opacity: 0.35; }
+
+.ics-col-date {
+  white-space: nowrap;
+  color: var(--text-muted);
+  width: 7.5rem;
+}
+.ics-col-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.ics-col-title span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ics-col-cat { width: 8rem; }
+
+.ics-annual-badge {
+  font-size: 0.6rem;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.ics-cat-select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.3rem;
+  width: 100%;
+  color-scheme: dark;
+}
+
+.ics-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+}
+
 /* ─── Help modal ───────────────────────────────────────────────────────────── */
 .help-sheet { max-width: 420px; }
 

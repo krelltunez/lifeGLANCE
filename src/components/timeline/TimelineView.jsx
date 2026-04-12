@@ -8,11 +8,13 @@ import HelpModal         from '../help/HelpModal'
 import SearchModal       from '../search/SearchModal'
 import SummaryModal      from '../stats/SummaryModal'
 import OnThisDayModal    from './OnThisDayModal'
+import IcsImportModal    from '../import/IcsImportModal'
 import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS }   from '../../utils/timeline'
 import { loadCategories } from '../../utils/colors'
 import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones } from '../../data/milestones'
+import { parseIcs }      from '../../utils/icsParser'
 import * as audio from '../../utils/audio'
 
 const ZOOM_RANK = { decades: 5, '30yr': 4, years: 3, months: 2, weeks: 1, custom: 3.5 }
@@ -96,6 +98,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [newlyAddedId,  setNewlyAddedId]  = useState(null)
   const [summaryOpen,   setSummaryOpen]   = useState(false)
   const [onThisDayOpen, setOnThisDayOpen] = useState(false)
+  const [icsImport,     setIcsImport]     = useState(null)  // { candidates, timedCount } | null
 
   const timelineRef    = useRef(null)
   const zoomWrapRef    = useRef(null)
@@ -688,6 +691,35 @@ export default function TimelineView({ milestones, setMilestones }) {
     URL.revokeObjectURL(url)
   }
 
+  async function handleImportIcsFile(file) {
+    try {
+      const text = await file.text()
+      const result = parseIcs(text)
+      setIcsImport(result)
+    } catch (err) {
+      console.error('ICS parse failed:', err)
+    }
+  }
+
+  async function handleIcsImport(selected) {
+    const added = []
+    for (const row of selected) {
+      const m = await addMilestone({
+        title:          row.title,
+        date:           row.date,
+        date_precision: 'day',
+        category:       row.category,
+        note:           row.note,
+        url:            row.url,
+      })
+      added.push(m)
+    }
+    const newMs = [...milestones, ...added]
+    pushHistory(newMs)
+    setMilestones(newMs)
+    setIcsImport(null)
+  }
+
   async function handleRestoreFile(e) {
     const file = e.target.files[0]
     if (!file) return
@@ -1014,7 +1046,17 @@ export default function TimelineView({ milestones, setMilestones }) {
           onExportImage={handleExportImage}
           onSaveBackup={handleSaveBackup}
           onRestoreFile={handleRestoreFile}
+          onImportIcsFile={handleImportIcsFile}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+      {icsImport && (
+        <IcsImportModal
+          candidates={icsImport.candidates}
+          timedCount={icsImport.timedCount}
+          categories={categories}
+          onImport={handleIcsImport}
+          onClose={() => setIcsImport(null)}
         />
       )}
     </div>

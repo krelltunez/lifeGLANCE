@@ -21,14 +21,15 @@ export default function SettingsModal({
   clustering, onClusteringChange,
   birthday, onBirthdayChange,
   milestones,
-  onExportImage, onSaveBackup, onRestoreFile,
+  onExportImage, onSaveBackup, onRestoreFile, onImportIcsFile,
   onClose,
   ultraCompact = false,
 }) {
   const [newLabel,  setNewLabel]  = useState('')
   const [newColor,  setNewColor]  = useState(COLOR_PALETTE[0])
   const [soundOn,   setSoundOn]   = useState(() => !isMuted())
-  const fileRef = useRef(null)
+  const fileRef    = useRef(null)
+  const icsFileRef = useRef(null)
 
   const usedIds = new Set(milestones.map(m => m.category))
 
@@ -51,6 +52,14 @@ export default function SettingsModal({
 
   async function handleFileChange(e) {
     await onRestoreFile(e)
+    onClose()
+  }
+
+  async function handleIcsFileChange(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    e.target.value = ''
+    await onImportIcsFile(file)
     onClose()
   }
 
@@ -177,8 +186,13 @@ export default function SettingsModal({
             <button className="btn"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
               onClick={() => fileRef.current?.click()}>restore from file</button>
+            <button className="btn"
+              style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+              onClick={() => icsFileRef.current?.click()}>import .ics</button>
             <input ref={fileRef} type="file" accept=".json"
               style={{ display: 'none' }} onChange={handleFileChange} />
+            <input ref={icsFileRef} type="file" accept=".ics"
+              style={{ display: 'none' }} onChange={handleIcsFileChange} />
           </div>
         </div>
       </div>
