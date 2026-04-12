@@ -123,7 +123,7 @@ const Timeline = forwardRef(function Timeline(
   // compact (≤900px): axis pinned near bottom to maximise card space above.
   // normal: axis centred.
   const axisY = ultraCompact
-    ? Math.max(193, Math.round(h * 0.70))
+    ? Math.min(h - 32, Math.max(193, Math.round(h * 0.70)))
     : compactLayout
       ? h - 40
       : Math.round(h * 0.50)

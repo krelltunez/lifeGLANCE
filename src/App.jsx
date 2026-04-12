@@ -54,7 +54,7 @@ export default function App() {
             <span className="logo-life">life</span>
             <span className="logo-glance">GLANCE</span>
           </div>
-          <div className="portrait-rotate-icon">↻</div>
+          <div className="portrait-rotate-icon">↺</div>
           <div className="portrait-message">
             please rotate your device<br />
             for the best experience
