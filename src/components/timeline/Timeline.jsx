@@ -34,7 +34,7 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, zoom, textSize = 'normal', onMilestoneClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
+  { milestones, zoom, textSize = 'normal', onMilestoneClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false, onDebug },
   ref
 ) {
   const remPx = REM_PX[textSize] || 22
@@ -127,6 +127,8 @@ const Timeline = forwardRef(function Timeline(
     : compactLayout
       ? h - 40
       : Math.round(h * 0.50)
+  useEffect(() => { onDebug?.(`svgH:${h} ax:${axisY}`) }, [h, axisY, onDebug])
+
   const today    = new Date()
   const centerMs = today.getTime() + panMs
   const { startMs, endMs } = getTimeRangeForView(zoom, centerMs, viewMode, customHalfMs)

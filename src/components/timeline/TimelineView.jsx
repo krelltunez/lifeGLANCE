@@ -73,6 +73,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [canRedo,       setCanRedo]       = useState(false)
   const [newlyAddedId,  setNewlyAddedId]  = useState(null)
   const [dbg,           setDbg]           = useState('')
+  const [tlDbg,         setTlDbg]         = useState('')
 
   const timelineRef    = useRef(null)
   const zoomWrapRef    = useRef(null)
@@ -770,6 +771,7 @@ export default function TimelineView({ milestones, setMilestones }) {
             birthday={birthday}
             newlyAddedId={newlyAddedId}
             ultraCompact={ultraCompact}
+            onDebug={setTlDbg}
           />
         </div>
 
@@ -871,7 +873,7 @@ export default function TimelineView({ milestones, setMilestones }) {
 
       {/* ── DEBUG ──────────────────────────────────────────────────────────── */}
       <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(0,0,0,0.85)', color:'#0f0', fontSize:'9px', padding:'2px 6px', zIndex:99999, pointerEvents:'none', fontFamily:'monospace', whiteSpace:'nowrap', overflow:'hidden' }}>
-        {dbg}
+        {dbg} | {tlDbg}
       </div>
 
       {/* ── Sheets ─────────────────────────────────────────────────────────── */}
