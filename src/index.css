@@ -463,6 +463,43 @@ button, input, select, textarea {
 }
 .today-btn:hover { color: var(--amber); border-color: var(--amber-dim); }
 
+/* ─── Compact zoom dropdown (max-width: 1080px) ────────────────────────────── */
+.zoom-dropdown-wrap {
+  position: relative;
+}
+.zoom-dropdown-btn {
+  gap: 0.35rem;
+  letter-spacing: 0.06em;
+}
+.zoom-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  z-index: 50;
+  min-width: 100%;
+}
+.zoom-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.3rem 0.9rem;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+}
+.zoom-dropdown-item:first-child { border-top: none; }
+.zoom-dropdown-item:hover { color: var(--text-dim); background: rgba(200,169,110,0.06); }
+.zoom-dropdown-item.active { color: var(--amber); background: rgba(200,169,110,0.1); }
+
 /* ─── Zoom row (tabs centered; indicator floats right without shifting tabs) */
 .zoom-row {
   position: relative;

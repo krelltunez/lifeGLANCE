@@ -45,6 +45,10 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [viewMode,      setViewMode]      = useState('all')
   const [categories,    setCategories]    = useState(loadCategories)
   const [panMs,         setPanMs]         = useState(0)
+  const [compactHeader, setCompactHeader] = useState(
+    () => window.matchMedia('(max-width: 1080px)').matches
+  )
+  const [zoomOpen,      setZoomOpen]      = useState(false)
   const [compactFilter, setCompactFilter] = useState(
     () => window.matchMedia('(max-width: 1200px)').matches
   )
@@ -72,6 +76,20 @@ export default function TimelineView({ milestones, setMilestones }) {
     document.documentElement.style.fontSize = TEXT_SIZES[textSize]
     localStorage.setItem('lifeglance-text-size', textSize)
   }, [textSize])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1080px)')
+    const handler = (e) => setCompactHeader(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  useEffect(() => {
+    if (!zoomOpen) return
+    const close = () => setZoomOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [zoomOpen])
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1200px)')
@@ -580,45 +598,90 @@ export default function TimelineView({ milestones, setMilestones }) {
 
         {/* Center: zoom row + view picker */}
         <div className="header-center">
-          <div className="zoom-row">
-            <div className="zoom-tabs">
-              {ZOOM_LEVELS.map(z => (
-                <button key={z}
-                  className={`zoom-tab ${zoom === z ? 'active' : ''}`}
-                  onClick={() => handleZoom(z)}>{z}</button>
-              ))}
-              <button
-                className={`zoom-tab ${zoom === 'custom' ? 'active' : ''}`}
-                onClick={() => handleZoom('custom')}>custom</button>
-            </div>
-
-            <div className="zoom-indicator">
-              {zoom === 'custom' ? (
-                <div className="custom-zoom-row">
-                  <span>±</span>
-                  <input ref={customInputRef} autoFocus
-                    className="custom-zoom-input" type="number" min="1" max="200"
-                    value={customYears}
-                    onChange={e => {
-                      const v = parseInt(e.target.value, 10)
-                      if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
-                    }} />
-                  <span>yr</span>
+          {compactHeader ? (
+            <>
+              <div className="zoom-row">
+                <div className="zoom-dropdown-wrap" onClick={e => e.stopPropagation()}>
+                  <button
+                    className={`zoom-tab active zoom-dropdown-btn`}
+                    onClick={() => setZoomOpen(o => !o)}>
+                    {zoom === 'custom' ? 'custom' : zoom} ▾
+                  </button>
+                  {zoomOpen && (
+                    <div className="zoom-dropdown">
+                      {[...ZOOM_LEVELS, 'custom'].map(z => (
+                        <button key={z}
+                          className={`zoom-dropdown-item ${zoom === z ? 'active' : ''}`}
+                          onClick={() => { handleZoom(z); setZoomOpen(false) }}>
+                          {z}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <TypewriterText key={zoom} text={`viewing: ${zoom}`}
-                  options={{ delay: 38, jitter: 18 }} showCursor={false} hideCursorWhenDone />
-              )}
-            </div>
-          </div>
-
-          <div className="view-tabs">
-            {[['past', '← past'], ['all', '← all →'], ['future', 'future →']].map(([mode, label]) => (
-              <button key={mode}
-                className={`view-tab ${viewMode === mode ? 'active' : ''}`}
-                onClick={() => handleViewMode(mode)}>{label}</button>
-            ))}
-          </div>
+                {zoom === 'custom' && (
+                  <div className="custom-zoom-row">
+                    <span>±</span>
+                    <input ref={customInputRef} autoFocus
+                      className="custom-zoom-input" type="number" min="1" max="200"
+                      value={customYears}
+                      onChange={e => {
+                        const v = parseInt(e.target.value, 10)
+                        if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
+                      }} />
+                    <span>yr</span>
+                  </div>
+                )}
+              </div>
+              <div className="view-tabs">
+                {[['past', 'past'], ['all', 'all'], ['future', 'future']].map(([mode, label]) => (
+                  <button key={mode}
+                    className={`view-tab ${viewMode === mode ? 'active' : ''}`}
+                    onClick={() => handleViewMode(mode)}>{label}</button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="zoom-row">
+                <div className="zoom-tabs">
+                  {ZOOM_LEVELS.map(z => (
+                    <button key={z}
+                      className={`zoom-tab ${zoom === z ? 'active' : ''}`}
+                      onClick={() => handleZoom(z)}>{z}</button>
+                  ))}
+                  <button
+                    className={`zoom-tab ${zoom === 'custom' ? 'active' : ''}`}
+                    onClick={() => handleZoom('custom')}>custom</button>
+                </div>
+                <div className="zoom-indicator">
+                  {zoom === 'custom' ? (
+                    <div className="custom-zoom-row">
+                      <span>±</span>
+                      <input ref={customInputRef} autoFocus
+                        className="custom-zoom-input" type="number" min="1" max="200"
+                        value={customYears}
+                        onChange={e => {
+                          const v = parseInt(e.target.value, 10)
+                          if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
+                        }} />
+                      <span>yr</span>
+                    </div>
+                  ) : (
+                    <TypewriterText key={zoom} text={`viewing: ${zoom}`}
+                      options={{ delay: 38, jitter: 18 }} showCursor={false} hideCursorWhenDone />
+                  )}
+                </div>
+              </div>
+              <div className="view-tabs">
+                {[['past', '← past'], ['all', '← all →'], ['future', 'future →']].map(([mode, label]) => (
+                  <button key={mode}
+                    className={`view-tab ${viewMode === mode ? 'active' : ''}`}
+                    onClick={() => handleViewMode(mode)}>{label}</button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Right: settings + help */}
