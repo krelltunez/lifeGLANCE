@@ -1385,10 +1385,22 @@ button, input, select, textarea {
 @media (max-height: 500px) {
   .timeline-header  { padding: 0.28rem 0.8rem; }
   .header-center    { flex-direction: row; gap: 0.5rem; align-items: center; }
+
+  /* Onboarding: switch to top-aligned, compress everything for landscape phones */
+  .onboarding         { justify-content: flex-start; padding: 0.6rem 1.5rem 4rem; }
+  .onboarding-step    { gap: 0.65rem; }
+  .onboarding-inputs  { gap: 0.5rem; }
+  .onboarding-prompt  { font-size: 1rem; min-height: 2.2rem; }
+  .timeline-preview   { height: 50px; }
+  .stat-reveal-rows   { gap: 0.55rem; }
 }
 
 /* ─── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .onboarding-prompt { font-size: 1.1rem; }
+  /* Onboarding: reduce gaps and reserved prompt height on portrait phones */
+  .onboarding         { padding: 1.5rem 1.25rem 5rem; }
+  .onboarding-step    { gap: 1.2rem; }
+  .onboarding-inputs  { gap: 0.85rem; }
+  .onboarding-prompt  { font-size: 1.05rem; min-height: 4rem; }
   .logo-life, .logo-glance { font-size: 2rem; }
 }
