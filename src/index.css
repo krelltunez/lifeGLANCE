@@ -1006,6 +1006,16 @@ button, input, select, textarea {
   letter-spacing: 0.03em;
   margin-top: 0.2rem;
 }
+.recurrence-range-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+.recurrence-range-from  { font-size: 0.72rem; color: var(--text-muted); }
+.recurrence-range-arrow { font-size: 0.72rem; color: var(--text-muted); }
+.recurrence-range-count { font-size: 0.65rem; color: var(--text-muted); font-style: italic; }
 
 /* ─── Summary modal ─────────────────────────────────────────────────────────── */
 .summary-grid {

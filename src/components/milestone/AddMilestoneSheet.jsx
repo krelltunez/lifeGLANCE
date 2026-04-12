@@ -22,6 +22,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
   const [url,        setUrl]        = useState(existing?.url        ?? '')
   const [photoUri,   setPhotoUri]   = useState(existing?.photo_uri  ?? '')
   const [recurrence, setRecurrence] = useState(false)
+  const [recEndYear, setRecEndYear] = useState('')
   const [busy,       setBusy]       = useState(false)
   const photoRef = useRef(null)
 
@@ -34,6 +35,19 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
       setYear(String(d.getFullYear()))
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the recurrence end-year default in sync with the base year
+  React.useEffect(() => {
+    if (recurrence && year.length >= 4) {
+      const base = Number(year)
+      setRecEndYear(y => {
+        // only override if blank or user hasn't manually changed it
+        const current = Number(y)
+        const def = Math.max(base, new Date().getFullYear()) + 3
+        return (!y || current < base) ? String(def) : y
+      })
+    }
+  }, [recurrence, year])
 
   const canSave = title.trim() && year.length >= 4
 
@@ -55,6 +69,9 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
         url: url.trim(),
         recurrence: (!isEdit && recurrence) ? 'annual' : (existing?.recurrence ?? null),
         recurrence_id: existing?.recurrence_id ?? null,
+        recurrenceEndYear: (!isEdit && recurrence && year.length >= 4)
+          ? (recEndYear ? Number(recEndYear) : Math.max(Number(year), new Date().getFullYear()) + 3)
+          : undefined,
       }, existing)
       onClose()
     } finally {
@@ -230,13 +247,32 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
               <span className="field-label" style={{ marginBottom: 0 }}>repeats annually</span>
               <input type="checkbox" className="settings-toggle"
                 checked={recurrence}
-                onChange={e => setRecurrence(e.target.checked)} />
+                onChange={e => { setRecurrence(e.target.checked); setRecEndYear('') }} />
             </label>
-            {recurrence && (
-              <div className="sheet-recurrence-note">
-                instances will be created from this year through {new Date().getFullYear() + 3}
-              </div>
-            )}
+            {recurrence && year.length >= 4 && (() => {
+              const base  = Number(year)
+              const end   = recEndYear ? Number(recEndYear) : Math.max(base, new Date().getFullYear()) + 3
+              const count = Math.max(0, end - base + 1)
+              return (
+                <div className="recurrence-range-row">
+                  <span className="recurrence-range-from">{year}</span>
+                  <span className="recurrence-range-arrow">→</span>
+                  <input
+                    type="number"
+                    className="input input-sm"
+                    style={{ width: '5.2rem' }}
+                    value={recEndYear}
+                    placeholder={String(Math.max(base, new Date().getFullYear()) + 3)}
+                    onChange={e => setRecEndYear(e.target.value)}
+                    min={year}
+                    max={base + 50}
+                  />
+                  <span className="recurrence-range-count">
+                    {count} instance{count !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )
+            })()}
           </div>
         )}
         {isEdit && existing?.recurrence === 'annual' && (
