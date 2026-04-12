@@ -54,7 +54,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   )
   const [filterOpen,    setFilterOpen]    = useState(false)
   const [compactStats,  setCompactStats]  = useState(
-    () => window.matchMedia('(max-width: 768px)').matches
+    () => window.matchMedia('(max-width: 768px), (max-height: 600px)').matches
   )
   const [minimapOpen,   setMinimapOpen]   = useState(false)
   const [clustering,    setClustering]    = useState(
@@ -110,7 +110,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   }, [filterOpen])
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)')
+    const mq = window.matchMedia('(max-width: 768px), (max-height: 600px)')
     const handler = (e) => {
       setCompactStats(e.matches)
       if (!e.matches) setMinimapOpen(false) // reset when leaving compact mode
