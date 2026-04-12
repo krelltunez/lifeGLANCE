@@ -72,8 +72,6 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [canUndo,       setCanUndo]       = useState(false)
   const [canRedo,       setCanRedo]       = useState(false)
   const [newlyAddedId,  setNewlyAddedId]  = useState(null)
-  const [dbg,           setDbg]           = useState('')
-  const [tlDbg,         setTlDbg]         = useState('')
 
   const timelineRef    = useRef(null)
   const zoomWrapRef    = useRef(null)
@@ -136,16 +134,6 @@ export default function TimelineView({ milestones, setMilestones }) {
   useEffect(() => {
     if (compactStats) setMinimapOpen(ultraCompact && textSize === 'small')
   }, [compactStats, ultraCompact, textSize])
-
-  // DEBUG — measure real DOM heights each render
-  useEffect(() => {
-    const body   = document.querySelector('.timeline-body')?.offsetHeight ?? '?'
-    const bottom = document.querySelector('.timeline-bottom')?.offsetHeight ?? '?'
-    const map    = document.querySelector('.minimap-bar')?.offsetHeight ?? 0
-    const grip   = document.querySelector('.minimap-grip')?.offsetHeight ?? 0
-    const hdr    = document.querySelector('.timeline-header')?.offsetHeight ?? '?'
-    setDbg(`${__BUILD_TIME__.slice(11,19)} win:${window.innerWidth}×${window.innerHeight} | hdr:${hdr} body:${body} map:${map} grip:${grip} btm:${bottom} | uc:${ultraCompact?1:0} cs:${compactStats?1:0} mo:${minimapOpen?1:0} ts:${textSize}`)
-  })
 
   // Restrict text size: big/bigger cards overflow the axis on short screens.
   useEffect(() => {
@@ -771,7 +759,6 @@ export default function TimelineView({ milestones, setMilestones }) {
             birthday={birthday}
             newlyAddedId={newlyAddedId}
             ultraCompact={ultraCompact}
-            onDebug={setTlDbg}
           />
         </div>
 
@@ -869,11 +856,6 @@ export default function TimelineView({ milestones, setMilestones }) {
         <button className="today-btn" onClick={handleJumpToToday}>
           jump to today
         </button>
-      </div>
-
-      {/* ── DEBUG ──────────────────────────────────────────────────────────── */}
-      <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(0,0,0,0.85)', color:'#0f0', fontSize:'9px', padding:'2px 6px', zIndex:99999, pointerEvents:'none', fontFamily:'monospace', whiteSpace:'nowrap', overflow:'hidden' }}>
-        {dbg} | {tlDbg}
       </div>
 
       {/* ── Sheets ─────────────────────────────────────────────────────────── */}

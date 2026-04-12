@@ -435,6 +435,7 @@ button, input, select, textarea {
 /* ─── SVG Timeline wrapper (pan + zoom) ────────────────────────────────────── */
 .timeline-svg-wrap {
   flex: 1;
+  min-height: 0;
   width: 100%;
   cursor: grab;
   touch-action: pan-y;
@@ -445,6 +446,7 @@ button, input, select, textarea {
 /* Zoom animation wrapper — wraps the entire Timeline component */
 .timeline-zoom-wrap {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   transition: transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94);
