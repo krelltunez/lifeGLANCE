@@ -1378,29 +1378,6 @@ button, input, select, textarea {
   padding: 0.55rem 0.65rem;
 }
 
-/* ─── Minimap grip toggle (compact mode) ────────────────────────────────── */
-.minimap-grip {
-  height: 18px;
-  flex-shrink: 0;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg);
-  border: none;
-  border-top: 1px solid var(--border);
-  cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
-  font-family: var(--font);
-  font-size: 0.5rem;
-  color: var(--text-muted);
-  letter-spacing: 0.1em;
-  transition: color 0.15s, background 0.15s;
-  padding: 0;
-}
-.minimap-grip:hover     { color: var(--amber-dim); background: rgba(200, 169, 110, 0.03); }
-.minimap-grip-open      { border-top-color: rgba(200, 169, 110, 0.12); }
 
 /* ─── Short-screen header (landscape phones ≤500px tall) ──────────────────── */
 /* Collapses the two-row header-center (zoom + view tabs) into a single row,   */

@@ -59,9 +59,6 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [ultraCompact,  setUltraCompact]  = useState(
     () => window.matchMedia('(max-height: 500px)').matches
   )
-  const [minimapOpen,   setMinimapOpen]   = useState(
-    () => window.matchMedia('(max-height: 500px)').matches
-  )
   const [clustering,    setClustering]    = useState(
     () => localStorage.getItem('lifeglance-clustering') !== 'false'
   )
@@ -128,10 +125,6 @@ export default function TimelineView({ milestones, setMilestones }) {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  // Auto-show minimap on ultra-compact screens; hide when leaving that range.
-  useEffect(() => {
-    if (compactStats) setMinimapOpen(ultraCompact)
-  }, [compactStats, ultraCompact])
 
   // Restrict text size: big/bigger cards overflow the axis on short screens.
   useEffect(() => {
@@ -776,26 +769,15 @@ export default function TimelineView({ milestones, setMilestones }) {
 
       {/* ── Minimap ────────────────────────────────────────────────────────── */}
       {!isEmpty && (
-        <>
-          {(!compactStats || minimapOpen) && (
-            <MinimapBar
-              milestones={filteredMilestones}
-              panMs={panMs}
-              onPanDirect={setPanMs}
-              panToMs={(ms) => timelineRef.current?.panToMs(ms)}
-              zoom={zoom}
-              customHalfMs={customHalfMs}
-              viewMode={viewMode}
-            />
-          )}
-          {compactStats && (!minimapOpen || !ultraCompact) && (
-            <button
-              className={`minimap-grip${minimapOpen ? ' minimap-grip-open' : ''}`}
-              onClick={() => setMinimapOpen(o => !o)}>
-              {minimapOpen ? '▴ map' : '▾ map'}
-            </button>
-          )}
-        </>
+        <MinimapBar
+          milestones={filteredMilestones}
+          panMs={panMs}
+          onPanDirect={setPanMs}
+          panToMs={(ms) => timelineRef.current?.panToMs(ms)}
+          zoom={zoom}
+          customHalfMs={customHalfMs}
+          viewMode={viewMode}
+        />
       )}
 
       {/* ── Bottom bar ─────────────────────────────────────────────────────── */}
