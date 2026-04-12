@@ -373,6 +373,11 @@ export default function TimelineView({ milestones, setMilestones }) {
     function onKey(e) {
       // Allow Escape through even when an input is focused (to close modals)
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && e.key !== 'Escape') return
+      // Blur focused buttons so keyboard shortcuts work after clicking UI elements.
+      // Exception: Space on a button should still activate it (handled per-case below).
+      if (e.target.tagName === 'BUTTON' && e.key !== ' ' && e.key !== 'Enter') {
+        e.target.blur()
+      }
       audio.init()   // unlock AudioContext on first keystroke (idempotent)
       const s = keyStateRef.current
       const anyModal = s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen || s.searchOpen
