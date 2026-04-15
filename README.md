@@ -11,7 +11,7 @@ Built for people who want to map their life without handing their data to a clou
 
 ## Install
 
-Download the latest APK from [GitHub Releases](../../releases) and install via [Obtainium](https://github.com/ImranR98/Obtainium), or self-host with Docker (see below).
+Use the hosted version at [lifeglance.app](https://lifeglance.app), or self-host with Docker (see below).
 
 ---
 
