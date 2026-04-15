@@ -4,6 +4,7 @@ import { dbGetMedia } from '../../data/db'
 
 export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday }) {
   const [audioUrl, setAudioUrl] = useState(null)
+  const [confirm,  setConfirm]  = useState(null) // null | 'single' | 'series'
 
   useEffect(() => {
     if (!m.media_type) return
@@ -15,19 +16,9 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
     })
     return () => { if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, [m.id, m.media_type])
-  function handleDelete() {
-    if (window.confirm(`Delete "${m.title}"?`)) {
-      onDelete(m.id)
-      onClose()
-    }
-  }
 
-  function handleDeleteSeries() {
-    if (window.confirm(`Delete all instances of "${m.title}"?`)) {
-      onDeleteSeries(m.recurrence_id)
-      onClose()
-    }
-  }
+  function doDelete()       { onDelete(m.id); onClose() }
+  function doDeleteSeries() { onDeleteSeries(m.recurrence_id); onClose() }
 
   return (
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -96,26 +87,47 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
           </a>
         )}
 
-        {/* Actions */}
-        <div className="sheet-actions">
-          <div className="detail-delete-group">
-            <button className="btn-ghost" onClick={handleDelete}>
-              delete
-            </button>
-            {m.recurrence_id && onDeleteSeries && (
-              <button className="btn-ghost detail-delete-series" onClick={handleDeleteSeries}>
-                delete series
+        {/* Actions / inline confirmation */}
+        {confirm ? (
+          <div className="detail-confirm">
+            <div className="detail-confirm-msg">
+              {confirm === 'series'
+                ? `delete all instances of "${m.title}"?`
+                : `delete "${m.title}"?`}
+            </div>
+            <div className="detail-confirm-actions">
+              <button className="btn" onClick={() => setConfirm(null)}
+                style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
+                cancel
               </button>
-            )}
+              <button className="btn btn-danger"
+                onClick={confirm === 'series' ? doDeleteSeries : doDelete}
+                style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
+                {confirm === 'series' ? 'delete all' : 'delete'}
+              </button>
+            </div>
           </div>
-          <div className="sheet-actions-right">
-            <button className="btn" onClick={() => { onClose(); onEdit(m); }}
-              style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}
-            >
-              edit
-            </button>
+        ) : (
+          <div className="sheet-actions">
+            <div className="detail-delete-group">
+              <button className="btn-ghost" onClick={() => setConfirm('single')}>
+                delete
+              </button>
+              {m.recurrence_id && onDeleteSeries && (
+                <button className="btn-ghost detail-delete-series"
+                  onClick={() => setConfirm('series')}>
+                  delete series
+                </button>
+              )}
+            </div>
+            <div className="sheet-actions-right">
+              <button className="btn" onClick={() => { onClose(); onEdit(m) }}
+                style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
+                edit
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

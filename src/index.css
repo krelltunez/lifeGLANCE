@@ -1074,6 +1074,32 @@ button, input, select, textarea {
 }
 .detail-delete-series:hover { opacity: 1; }
 
+.detail-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.detail-confirm-msg {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+.detail-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+.btn-danger {
+  color: #E85D75;
+  border-color: rgba(232, 93, 117, 0.35);
+}
+.btn-danger:hover {
+  background: rgba(232, 93, 117, 0.1);
+  border-color: rgba(232, 93, 117, 0.6);
+  color: #E85D75;
+}
+
 /* ─── Add milestone sheet — recurrence ─────────────────────────────────────── */
 .recurrence-toggle-row {
   display: flex;
