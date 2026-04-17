@@ -316,7 +316,11 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
             </label>
             {recurrence && year.length >= 4 && (() => {
               const base  = Number(year)
-              const end   = recEndYear ? Number(recEndYear) : Math.max(base, new Date().getFullYear()) + 3
+              const maxYear = base + 99
+              const end   = Math.min(
+                recEndYear ? Number(recEndYear) : Math.max(base, new Date().getFullYear()) + 3,
+                maxYear
+              )
               const count = Math.max(0, end - base + 1)
               return (
                 <div className="recurrence-range-row">
@@ -328,9 +332,13 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
                     style={{ width: '5.2rem' }}
                     value={recEndYear}
                     placeholder={String(Math.max(base, new Date().getFullYear()) + 3)}
-                    onChange={e => setRecEndYear(e.target.value)}
+                    onChange={e => {
+                      const v = e.target.value
+                      if (!v) { setRecEndYear(''); return }
+                      setRecEndYear(String(Math.min(Math.max(Number(v), base), maxYear)))
+                    }}
                     min={year}
-                    max={base + 99}
+                    max={maxYear}
                   />
                   <span className="recurrence-range-count">
                     {count} instance{count !== 1 ? 's' : ''}

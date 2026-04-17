@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 
-const VERSION = '0.9.0'
+const VERSION = '1.0.0'
 
 const SHORTCUTS = [
   { keys: ['←', '→'],        desc: 'cycle past / future milestones'   },

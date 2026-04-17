@@ -100,6 +100,8 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [summaryOpen,   setSummaryOpen]   = useState(false)
   const [onThisDayOpen, setOnThisDayOpen] = useState(false)
   const [icsImport,     setIcsImport]     = useState(null)  // { candidates, timedCount } | null
+  const [toast,         setToast]         = useState(null)  // { message, type } | null
+  const [mediaConfirm,  setMediaConfirm]  = useState(null)  // { data, existing, fileSize, remaining } | null
 
   const timelineRef    = useRef(null)
   const zoomWrapRef    = useRef(null)
@@ -108,6 +110,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const zoomLocked     = useRef(false)
   const customInputRef = useRef(null)
   const historyRef     = useRef(null)   // { stack: Milestone[][], idx: number }
+  const toastTimerRef  = useRef(null)
 
   // Apply font size globally
   useEffect(() => {
@@ -536,10 +539,22 @@ export default function TimelineView({ milestones, setMilestones }) {
     return () => window.removeEventListener('keydown', onKey)
   }, []) // stable — reads fresh values from keyStateRef
 
-  // ── CRUD ─────────────────────────────────────────────────────────────────────
-  async function handleSave(data, existing) {
-    audio.init()   // ensure AudioContext is running (form submit = user gesture)
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function fmtBytes(n) {
+    if (n < 1024 ** 2) return `${(n / 1024).toFixed(0)} KB`
+    if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`
+    return `${(n / 1024 ** 3).toFixed(1)} GB`
+  }
 
+  // ── Toast ────────────────────────────────────────────────────────────────────
+  function showToast(message, type = 'error') {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToast({ message, type })
+    toastTimerRef.current = setTimeout(() => setToast(null), 5000)
+  }
+
+  // ── CRUD ─────────────────────────────────────────────────────────────────────
+  async function executeSave(data, existing) {
     // mediaFile / mediaRemoved are transfer-only fields from the form — strip them
     // before passing to the data layer, and handle blob persistence here.
     const { mediaFile, mediaRemoved, ...milestoneData } = data
@@ -547,71 +562,115 @@ export default function TimelineView({ milestones, setMilestones }) {
       ? (mediaFile.type.startsWith('video/') ? 'video' : 'audio')
       : null
 
-    if (existing) {
-      const mediaType = mediaFile    ? newMediaType
-                      : mediaRemoved ? null
-                      : (existing.media_type ?? null)
-      const updated = await updateMilestone(existing.id, { ...milestoneData, media_type: mediaType }, existing)
-      if (mediaFile) await dbPutMedia(updated.id, mediaFile, mediaFile.type)
-      const newMs = milestones.map(m => m.id === existing.id ? updated : m)
-      pushHistory(newMs)
-      setMilestones(newMs)
-      audio.playEditSave()
-    } else if (milestoneData.recurrence === 'annual') {
-      // Generate one instance per year from base year to chosen end year (max +99)
-      const rid       = crypto.randomUUID()
-      const baseDate  = new Date(milestoneData.date)
-      const baseYear  = baseDate.getFullYear()
-      const endYear   = Math.max(baseYear, Math.min(
-        milestoneData.recurrenceEndYear ?? Math.max(baseYear, new Date().getFullYear()) + 3,
-        baseYear + 99
-      ))
-      const created   = []
-      for (let y = baseYear; y <= endYear; y++) {
-        const d = new Date(baseDate)
-        d.setFullYear(y)
-        const m = await addMilestone({
-          ...milestoneData,
-          date:          d,
-          recurrence_id: rid,
-          // only the base-year instance keeps the original note / photo / media / url
-          note:       y === baseYear ? milestoneData.note      : '',
-          photo_uri:  y === baseYear ? milestoneData.photo_uri : '',
-          media_type: y === baseYear ? newMediaType            : null,
-          url:        y === baseYear ? milestoneData.url       : '',
-        })
-        if (y === baseYear && mediaFile) await dbPutMedia(m.id, mediaFile, mediaFile.type)
-        created.push(m)
+    try {
+      if (existing) {
+        const mediaType = mediaFile    ? newMediaType
+                        : mediaRemoved ? null
+                        : (existing.media_type ?? null)
+        const updated = await updateMilestone(existing.id, { ...milestoneData, media_type: mediaType }, existing)
+        if (mediaFile) await dbPutMedia(updated.id, mediaFile, mediaFile.type)
+        const newMs = milestones.map(m => m.id === existing.id ? updated : m)
+        pushHistory(newMs)
+        setMilestones(newMs)
+        audio.playEditSave()
+      } else if (milestoneData.recurrence === 'annual') {
+        // Generate one instance per year from base year to chosen end year (max +99)
+        const rid       = crypto.randomUUID()
+        const baseDate  = new Date(milestoneData.date)
+        const baseYear  = baseDate.getFullYear()
+        const endYear   = Math.max(baseYear, Math.min(
+          milestoneData.recurrenceEndYear ?? Math.max(baseYear, new Date().getFullYear()) + 3,
+          baseYear + 99
+        ))
+        const created   = []
+        for (let y = baseYear; y <= endYear; y++) {
+          const d = new Date(baseDate)
+          d.setFullYear(y)
+          const m = await addMilestone({
+            ...milestoneData,
+            date:          d,
+            recurrence_id: rid,
+            // only the base-year instance keeps the original note / photo / media / url
+            note:       y === baseYear ? milestoneData.note      : '',
+            photo_uri:  y === baseYear ? milestoneData.photo_uri : '',
+            media_type: y === baseYear ? newMediaType            : null,
+            url:        y === baseYear ? milestoneData.url       : '',
+          })
+          if (y === baseYear && mediaFile) await dbPutMedia(m.id, mediaFile, mediaFile.type)
+          created.push(m)
+        }
+        const newMs = [...milestones, ...created]
+        pushHistory(newMs)
+        setMilestones(newMs)
+        setNewlyAddedId(created[0].id)
+        audio.playChime()
+      } else {
+        const m = await addMilestone({ ...milestoneData, media_type: newMediaType })
+        if (mediaFile) await dbPutMedia(m.id, mediaFile, mediaFile.type)
+        const newMs = [...milestones, m]
+        pushHistory(newMs)
+        setMilestones(newMs)
+        setNewlyAddedId(m.id)
+        audio.playChime()
       }
-      const newMs = [...milestones, ...created]
-      pushHistory(newMs)
-      setMilestones(newMs)
-      setNewlyAddedId(created[0].id)
-      audio.playChime()
-    } else {
-      const m = await addMilestone({ ...milestoneData, media_type: newMediaType })
-      if (mediaFile) await dbPutMedia(m.id, mediaFile, mediaFile.type)
-      const newMs = [...milestones, m]
-      pushHistory(newMs)
-      setMilestones(newMs)
-      setNewlyAddedId(m.id)
-      audio.playChime()
+    } catch (err) {
+      console.error('Save failed:', err)
+      const isQuota = err?.name === 'QuotaExceededError' || err?.code === 22
+      showToast(isQuota
+        ? 'Storage full — export a backup to free space, then try again.'
+        : 'Failed to save milestone. Please try again.'
+      )
     }
   }
 
+  async function handleSave(data, existing) {
+    audio.init()   // ensure AudioContext is running (form submit = user gesture)
+    const { mediaFile } = data
+
+    if (mediaFile) {
+      let remaining = null
+      if (navigator.storage?.estimate) {
+        try {
+          const { quota, usage } = await navigator.storage.estimate()
+          remaining = quota - usage
+          if (remaining < mediaFile.size) {
+            showToast('Not enough storage space for this file. Free up space and try again.')
+            return
+          }
+        } catch { /* estimate unavailable, proceed */ }
+      }
+      if (mediaFile.size > 50 * 1024 * 1024) {
+        setMediaConfirm({ data, existing, fileSize: mediaFile.size, remaining })
+        return
+      }
+    }
+
+    await executeSave(data, existing)
+  }
+
   async function handleDelete(id) {
-    await deleteMilestone(id)
-    const newMs = milestones.filter(m => m.id !== id)
-    pushHistory(newMs)
-    setMilestones(newMs)
+    try {
+      await deleteMilestone(id)
+      const newMs = milestones.filter(m => m.id !== id)
+      pushHistory(newMs)
+      setMilestones(newMs)
+    } catch (err) {
+      console.error('Delete failed:', err)
+      showToast('Failed to delete milestone. Please try again.')
+    }
   }
 
   async function handleDeleteSeries(recurrence_id) {
-    const toDelete = milestones.filter(m => m.recurrence_id === recurrence_id)
-    for (const m of toDelete) await deleteMilestone(m.id)
-    const newMs = milestones.filter(m => m.recurrence_id !== recurrence_id)
-    pushHistory(newMs)
-    setMilestones(newMs)
+    try {
+      const toDelete = milestones.filter(m => m.recurrence_id === recurrence_id)
+      for (const m of toDelete) await deleteMilestone(m.id)
+      const newMs = milestones.filter(m => m.recurrence_id !== recurrence_id)
+      pushHistory(newMs)
+      setMilestones(newMs)
+    } catch (err) {
+      console.error('Delete series failed:', err)
+      showToast('Failed to delete recurring series. Please try again.')
+    }
   }
 
   function openEdit(m)  { setEditTarget(m); setAddOpen(true) }
@@ -744,21 +803,30 @@ export default function TimelineView({ milestones, setMilestones }) {
 
   async function handleIcsImport(selected) {
     const added = []
+    let failed = 0
     for (const row of selected) {
-      const m = await addMilestone({
-        title:          row.title,
-        date:           row.date,
-        date_precision: 'day',
-        category:       row.category,
-        note:           row.note,
-        url:            row.url,
-      })
-      added.push(m)
+      try {
+        const m = await addMilestone({
+          title:          row.title,
+          date:           row.date,
+          date_precision: 'day',
+          category:       row.category,
+          note:           row.note,
+          url:            row.url,
+        })
+        added.push(m)
+      } catch (err) {
+        console.error('ICS import item failed:', err)
+        failed++
+      }
     }
     const newMs = [...milestones, ...added]
     pushHistory(newMs)
     setMilestones(newMs)
     setIcsImport(null)
+    if (failed > 0) {
+      showToast(`${failed} event${failed > 1 ? 's' : ''} failed to import. ${added.length} imported successfully.`)
+    }
   }
 
   async function handleRestoreFile(e) {
@@ -1096,6 +1164,32 @@ export default function TimelineView({ milestones, setMilestones }) {
           onImport={handleIcsImport}
           onClose={() => setIcsImport(null)}
         />
+      )}
+      {mediaConfirm && (
+        <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && setMediaConfirm(null)}>
+          <div className="media-confirm-modal">
+            <p className="media-confirm-title">large file</p>
+            <p className="media-confirm-body">
+              This file is <strong>{fmtBytes(mediaConfirm.fileSize)}</strong>.
+              {mediaConfirm.remaining != null && (
+                <> You have <strong>{fmtBytes(mediaConfirm.remaining)}</strong> of storage remaining.</>
+              )}
+            </p>
+            <div className="media-confirm-actions">
+              <button className="btn" onClick={() => setMediaConfirm(null)}>cancel</button>
+              <button className="btn btn-filled" onClick={async () => {
+                const { data, existing } = mediaConfirm
+                setMediaConfirm(null)
+                await executeSave(data, existing)
+              }}>attach anyway</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {toast && (
+        <div className={`toast toast-${toast.type}`} role="alert" onClick={() => setToast(null)}>
+          {toast.message}
+        </div>
       )}
     </div>
   )

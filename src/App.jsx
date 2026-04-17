@@ -19,7 +19,7 @@ export default function App() {
 
   useEffect(() => {
     initDB()
-      .then(() => dbGetAll())
+      .then(() => { navigator.storage?.persist?.(); return dbGetAll() })
       .then((all) => {
         setMilestones(all)
         setScreen(all.length === 0 ? 'onboarding' : 'timeline')

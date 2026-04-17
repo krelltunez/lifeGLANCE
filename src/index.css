@@ -1629,6 +1629,13 @@ button, input, select, textarea {
   vertical-align: middle;
 }
 
+.help-note {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin-top: 0.4rem;
+}
+
 .help-footer {
   display: flex;
   justify-content: space-between;
@@ -1840,4 +1847,63 @@ button, input, select, textarea {
   .onboarding-inputs  { gap: 0.85rem; }
   .onboarding-prompt  { font-size: 1.05rem; min-height: 4rem; }
   .logo-life, .logo-glance { font-size: 2rem; }
+}
+
+/* ─── Media confirm modal ───────────────────────────────────────────────────── */
+.media-confirm-modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  max-width: 360px;
+  width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.media-confirm-title {
+  font-size: 0.85rem;
+  color: var(--amber);
+  letter-spacing: 0.04em;
+}
+.media-confirm-body {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.media-confirm-body strong { color: var(--text); }
+.media-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* ─── Toast ─────────────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 0.8em;
+  max-width: min(480px, 90vw);
+  text-align: center;
+  cursor: pointer;
+  animation: toast-in 0.2s ease;
+}
+.toast-error {
+  background: #2D1010;
+  border: 1px solid rgba(220, 80, 80, 0.4);
+  color: #F08080;
+}
+.toast-info {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
