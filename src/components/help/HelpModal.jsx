@@ -85,15 +85,6 @@ export default function HelpModal({ onClose }) {
           </table>
         </div>
 
-        {/* ── Import notes ────────────────────────────────────────────────── */}
-        <div className="settings-section">
-          <div className="settings-label">calendar import (.ics)</div>
-          <p className="help-note">
-            Only all-day events are imported. Timed events are skipped — the import dialog
-            shows a count of how many were omitted.
-          </p>
-        </div>
-
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <div className="help-footer">
           <div className="help-footer-storage">

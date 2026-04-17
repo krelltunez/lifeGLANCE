@@ -194,6 +194,9 @@ export default function SettingsModal({
             <input ref={icsFileRef} type="file" accept=".ics"
               style={{ display: 'none' }} onChange={handleIcsFileChange} />
           </div>
+          <p className="settings-note" style={{ marginTop: '0.5rem' }}>
+            .ics import supports all-day events only. Timed events are skipped — the import dialog shows a count of how many were omitted.
+          </p>
         </div>
       </div>
     </div>
