@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 
-const VERSION = '0.9.0'
+const VERSION = '1.0.0'
 
 const SHORTCUTS = [
   { keys: ['←', '→'],        desc: 'cycle past / future milestones'   },
@@ -83,6 +83,15 @@ export default function HelpModal({ onClose }) {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* ── Import notes ────────────────────────────────────────────────── */}
+        <div className="settings-section">
+          <div className="settings-label">calendar import (.ics)</div>
+          <p className="help-note">
+            Only all-day events are imported. Timed events are skipped — the import dialog
+            shows a count of how many were omitted.
+          </p>
         </div>
 
         {/* ── Footer ──────────────────────────────────────────────────────── */}

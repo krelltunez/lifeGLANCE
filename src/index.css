@@ -1629,6 +1629,13 @@ button, input, select, textarea {
   vertical-align: middle;
 }
 
+.help-note {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin-top: 0.4rem;
+}
+
 .help-footer {
   display: flex;
   justify-content: space-between;
