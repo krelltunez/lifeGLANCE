@@ -101,6 +101,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [onThisDayOpen, setOnThisDayOpen] = useState(false)
   const [icsImport,     setIcsImport]     = useState(null)  // { candidates, timedCount } | null
   const [toast,         setToast]         = useState(null)  // { message, type } | null
+  const [mediaConfirm,  setMediaConfirm]  = useState(null)  // { data, existing, fileSize, remaining } | null
 
   const timelineRef    = useRef(null)
   const zoomWrapRef    = useRef(null)
@@ -538,6 +539,13 @@ export default function TimelineView({ milestones, setMilestones }) {
     return () => window.removeEventListener('keydown', onKey)
   }, []) // stable — reads fresh values from keyStateRef
 
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function fmtBytes(n) {
+    if (n < 1024 ** 2) return `${(n / 1024).toFixed(0)} KB`
+    if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`
+    return `${(n / 1024 ** 3).toFixed(1)} GB`
+  }
+
   // ── Toast ────────────────────────────────────────────────────────────────────
   function showToast(message, type = 'error') {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
@@ -546,31 +554,13 @@ export default function TimelineView({ milestones, setMilestones }) {
   }
 
   // ── CRUD ─────────────────────────────────────────────────────────────────────
-  async function handleSave(data, existing) {
-    audio.init()   // ensure AudioContext is running (form submit = user gesture)
-
+  async function executeSave(data, existing) {
     // mediaFile / mediaRemoved are transfer-only fields from the form — strip them
     // before passing to the data layer, and handle blob persistence here.
     const { mediaFile, mediaRemoved, ...milestoneData } = data
     const newMediaType = mediaFile
       ? (mediaFile.type.startsWith('video/') ? 'video' : 'audio')
       : null
-
-    if (mediaFile) {
-      if (mediaFile.size > 100 * 1024 * 1024) {
-        showToast('Media file exceeds 100 MB limit. Please use a smaller file.')
-        return
-      }
-      if (navigator.storage?.estimate) {
-        try {
-          const { quota, usage } = await navigator.storage.estimate()
-          if (quota - usage < mediaFile.size) {
-            showToast('Not enough storage space for this file. Free up space and try again.')
-            return
-          }
-        } catch { /* estimate unavailable, proceed */ }
-      }
-    }
 
     try {
       if (existing) {
@@ -631,6 +621,31 @@ export default function TimelineView({ milestones, setMilestones }) {
         : 'Failed to save milestone. Please try again.'
       )
     }
+  }
+
+  async function handleSave(data, existing) {
+    audio.init()   // ensure AudioContext is running (form submit = user gesture)
+    const { mediaFile } = data
+
+    if (mediaFile) {
+      let remaining = null
+      if (navigator.storage?.estimate) {
+        try {
+          const { quota, usage } = await navigator.storage.estimate()
+          remaining = quota - usage
+          if (remaining < mediaFile.size) {
+            showToast('Not enough storage space for this file. Free up space and try again.')
+            return
+          }
+        } catch { /* estimate unavailable, proceed */ }
+      }
+      if (mediaFile.size > 50 * 1024 * 1024) {
+        setMediaConfirm({ data, existing, fileSize: mediaFile.size, remaining })
+        return
+      }
+    }
+
+    await executeSave(data, existing)
   }
 
   async function handleDelete(id) {
@@ -1149,6 +1164,27 @@ export default function TimelineView({ milestones, setMilestones }) {
           onImport={handleIcsImport}
           onClose={() => setIcsImport(null)}
         />
+      )}
+      {mediaConfirm && (
+        <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && setMediaConfirm(null)}>
+          <div className="media-confirm-modal">
+            <p className="media-confirm-title">large file</p>
+            <p className="media-confirm-body">
+              This file is <strong>{fmtBytes(mediaConfirm.fileSize)}</strong>.
+              {mediaConfirm.remaining != null && (
+                <> You have <strong>{fmtBytes(mediaConfirm.remaining)}</strong> of storage remaining.</>
+              )}
+            </p>
+            <div className="media-confirm-actions">
+              <button className="btn" onClick={() => setMediaConfirm(null)}>cancel</button>
+              <button className="btn btn-filled" onClick={async () => {
+                const { data, existing } = mediaConfirm
+                setMediaConfirm(null)
+                await executeSave(data, existing)
+              }}>attach anyway</button>
+            </div>
+          </div>
+        </div>
       )}
       {toast && (
         <div className={`toast toast-${toast.type}`} role="alert" onClick={() => setToast(null)}>

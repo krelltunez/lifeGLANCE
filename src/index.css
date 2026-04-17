@@ -1849,6 +1849,35 @@ button, input, select, textarea {
   .logo-life, .logo-glance { font-size: 2rem; }
 }
 
+/* ─── Media confirm modal ───────────────────────────────────────────────────── */
+.media-confirm-modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  max-width: 360px;
+  width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.media-confirm-title {
+  font-size: 0.85rem;
+  color: var(--amber);
+  letter-spacing: 0.04em;
+}
+.media-confirm-body {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.media-confirm-body strong { color: var(--text); }
+.media-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 /* ─── Toast ─────────────────────────────────────────────────────────────────── */
 .toast {
   position: fixed;
