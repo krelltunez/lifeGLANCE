@@ -13,7 +13,7 @@ import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS }   from '../../utils/timeline'
 import { loadCategories } from '../../utils/colors'
-import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones } from '../../data/milestones'
+import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones, uid } from '../../data/milestones'
 import { dbPutMedia } from '../../data/db'
 import { parseIcs }      from '../../utils/icsParser'
 import * as audio from '../../utils/audio'
@@ -575,7 +575,7 @@ export default function TimelineView({ milestones, setMilestones }) {
         audio.playEditSave()
       } else if (milestoneData.recurrence === 'annual') {
         // Generate one instance per year from base year to chosen end year (max +99)
-        const rid       = crypto.randomUUID()
+        const rid       = uid()
         const baseDate  = new Date(milestoneData.date)
         const baseYear  = baseDate.getFullYear()
         const endYear   = Math.max(baseYear, Math.min(

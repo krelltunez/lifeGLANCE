@@ -1,8 +1,15 @@
 import { dbGetAll, dbAdd, dbPut, dbDelete, dbClearAllMedia } from './db'
 import { categoryColor } from '../utils/colors'
 
-function uid() {
-  return crypto.randomUUID()
+export function uid() {
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  // Fallback for non-secure (HTTP) contexts — randomUUID requires HTTPS
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = crypto.getRandomValues(new Uint8Array(1))[0] & 15
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+  })
 }
 
 export function buildMilestone({
