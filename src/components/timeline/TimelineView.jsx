@@ -848,13 +848,16 @@ export default function TimelineView({ milestones, setMilestones }) {
       const text   = await file.text()
       const parsed = JSON.parse(text)
 
-      // Support both legacy format (array) and new format ({ milestones, photos, chapters })
-      // Also accept 'eras' key from backups made before the Chapters rename.
+      // Support legacy milestone-only format (plain array) and current format
+      // ({ milestones, photos, chapters }).  Backups with an 'eras' key instead of
+      // 'chapters' are from a pre-rename dev build and are not supported.
+      if (!Array.isArray(parsed) && Array.isArray(parsed.eras) && !Array.isArray(parsed.chapters)) {
+        throw new Error('This backup was created before the Chapters rename and cannot be imported. Please regenerate the backup from the app.')
+      }
+
       const items    = Array.isArray(parsed) ? parsed : (parsed.milestones ?? parsed)
       const photos   = (!Array.isArray(parsed) && parsed.photos) ? parsed.photos : {}
-      const chapters = (!Array.isArray(parsed) && Array.isArray(parsed.chapters)) ? parsed.chapters
-                     : (!Array.isArray(parsed) && Array.isArray(parsed.eras))     ? parsed.eras
-                     : []
+      const chapters = (!Array.isArray(parsed) && Array.isArray(parsed.chapters)) ? parsed.chapters : []
 
       const restored = await restoreMilestones(items)
       await restoreChapters(chapters)
@@ -882,11 +885,13 @@ export default function TimelineView({ milestones, setMilestones }) {
       }
 
       setMilestones([...restored])
+      setChapters([...chapters])
       historyRef.current = { stack: [[...restored]], idx: 0 }
       setCanUndo(false)
       setCanRedo(false)
     } catch (err) {
       console.error('Restore failed:', err)
+      showToast(err.message || 'Restore failed. The backup file may be invalid.')
     }
     e.target.value = ''
   }

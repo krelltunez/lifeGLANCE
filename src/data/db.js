@@ -69,14 +69,11 @@ export function initDB() {
         }
       }
 
-      // v4 — chapters store (originally 'eras') + mainTimelineVisibility field on milestones
+      // v4 — mainTimelineVisibility field added to milestones
+      // Note: the 'eras' store was also created here originally, but that store name
+      // was renamed to 'chapters' in v5. The store creation is handled entirely by the
+      // v5 block below for all install paths (fresh install and upgrades alike).
       if (e.oldVersion < 4) {
-        // Fresh installs going straight to v5 skip this; v5 handles store creation.
-        // Installs upgrading from v3 get 'eras' here; v5 will migrate it to 'chapters'.
-        if (!db.objectStoreNames.contains('eras') && !db.objectStoreNames.contains(CHAPTERS)) {
-          db.createObjectStore('eras', { keyPath: 'id' })
-        }
-
         const s = e.target.transaction.objectStore(STORE)
         let migratedCount = 0
         s.openCursor().onsuccess = ev => {
@@ -93,12 +90,12 @@ export function initDB() {
         }
       }
 
-      // v5 — rename 'eras' store to 'chapters'
+      // v5 — 'chapters' store (renamed from 'eras' in the Chapters feature rename)
       if (e.oldVersion < 5) {
         if (!db.objectStoreNames.contains(CHAPTERS)) {
           db.createObjectStore(CHAPTERS, { keyPath: 'id' })
         }
-        // Copy records from legacy 'eras' store when upgrading from v4
+        // Copy records from legacy 'eras' store for installs upgrading from v4
         if (db.objectStoreNames.contains('eras')) {
           const src  = e.target.transaction.objectStore('eras')
           const dest = e.target.transaction.objectStore(CHAPTERS)
