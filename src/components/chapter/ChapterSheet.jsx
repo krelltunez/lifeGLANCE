@@ -227,24 +227,37 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
             <div className="chapter-members-empty">no milestones in this date range</div>
           ) : (
             <div className="chapter-members-list">
-              {displayMilestones.map(m => (
-                <label key={m.id} className="chapter-member-row">
-                  <input
-                    type="checkbox"
-                    className="chapter-member-check"
-                    checked={checkedIds.has(m.id)}
-                    onChange={() => toggleId(m.id)}
-                  />
-                  <span
-                    className="chapter-member-dot"
-                    style={{ background: m.color ?? 'var(--text-muted)' }}
-                  />
-                  <span className={`chapter-member-title${isEdit && !inRangeIds.has(m.id) ? ' chapter-member-retained' : ''}`}>
-                    {m.title}
-                  </span>
-                  <span className="chapter-member-date">{fmtDate(m)}</span>
-                </label>
-              ))}
+              {displayMilestones.map(m => {
+                // Endpoint: milestone date matches the chapter's start or end (day-level comparison).
+                // Only checked members can be endpoints — unchecked milestones aren't members yet.
+                const mDay      = m.date?.slice(0, 10)
+                const startDay  = start
+                const endDay    = end
+                const isEndpoint = checkedIds.has(m.id) &&
+                  mDay && (mDay === startDay || mDay === endDay)
+
+                return (
+                  <label key={m.id} className="chapter-member-row">
+                    <input
+                      type="checkbox"
+                      className="chapter-member-check"
+                      checked={checkedIds.has(m.id)}
+                      onChange={() => toggleId(m.id)}
+                    />
+                    <span
+                      className="chapter-member-dot"
+                      style={{ background: m.color ?? 'var(--text-muted)' }}
+                    />
+                    <span className={`chapter-member-title${isEdit && !inRangeIds.has(m.id) ? ' chapter-member-retained' : ''}`}>
+                      {m.title}
+                    </span>
+                    {isEndpoint && (
+                      <span className="chapter-member-endpoint" title="endpoint — always shown on main timeline">⚓</span>
+                    )}
+                    <span className="chapter-member-date">{fmtDate(m)}</span>
+                  </label>
+                )
+              })}
             </div>
           )}
         </div>

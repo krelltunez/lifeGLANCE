@@ -2032,3 +2032,58 @@ button, input, select, textarea {
   color: var(--text-muted);
   flex-shrink: 0;
 }
+.chapter-member-endpoint {
+  font-size: 0.6rem;
+  opacity: 0.7;
+  flex-shrink: 0;
+  margin-left: auto;
+  cursor: default;
+}
+
+/* ─── Phase 4: Visibility control in milestone edit form ───────────────────── */
+.vis-toggle-row {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  align-self: flex-start;
+}
+.vis-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  border-right: 1px solid var(--border);
+}
+.vis-tab:last-child { border-right: none; }
+.vis-tab:hover { color: var(--text-dim); background: rgba(232,224,208,0.06); }
+.vis-tab.active {
+  background: rgba(200,169,110,0.15);
+  color: var(--amber);
+}
+.vis-status {
+  font-size: 0.68rem;
+  margin-top: 0.35rem;
+  opacity: 0.85;
+  line-height: 1.4;
+}
+.vis-status-shown { color: rgba(100,200,120,0.9); }
+.vis-status-hidden { color: rgba(200,100,100,0.9); }
+.vis-endpoint-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  color: var(--amber);
+  background: rgba(200,169,110,0.08);
+  border: 1px solid rgba(200,169,110,0.2);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+.vis-endpoint-icon { flex-shrink: 0; font-style: normal; }

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import { DEFAULT_CATEGORIES } from '../../utils/colors'
 import { buildDateFromParts } from '../../utils/dates'
 import { dbGetPhoto } from '../../data/db'
+import { getMilestoneVisibility } from '../../utils/visibility'
 
 const MONTHS = [
   { v: '1',  l: 'Jan' }, { v: '2',  l: 'Feb' }, { v: '3',  l: 'Mar' },
@@ -10,7 +11,7 @@ const MONTHS = [
   { v: '10', l: 'Oct' }, { v: '11', l: 'Nov' }, { v: '12', l: 'Dec' },
 ]
 
-export default function AddMilestoneSheet({ onSave, onClose, existing, categories = DEFAULT_CATEGORIES }) {
+export default function AddMilestoneSheet({ onSave, onClose, existing, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() } }) {
   const isEdit = !!existing
 
   const [title,      setTitle]      = useState(existing?.title     ?? '')
@@ -33,9 +34,18 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
   const [mediaObjectUrl, setMediaObjectUrl] = useState(null) // transient preview URL
   const [recurrence,    setRecurrence]    = useState(false)
   const [recEndYear,    setRecEndYear]    = useState('')
+  const [visibility,    setVisibility]    = useState(existing?.mainTimelineVisibility ?? 'inherit')
   const [busy,          setBusy]          = useState(false)
   const photoRef = useRef(null)
   const mediaRef = useRef(null)
+
+  // Compute visibility status for the edit-mode info panel. Re-runs when
+  // visibility setting changes (existing.date stays constant during a session).
+  const visInfo = React.useMemo(() => {
+    if (!isEdit || !existing) return null
+    const provisional = { ...existing, mainTimelineVisibility: visibility }
+    return getMilestoneVisibility(provisional, chapters, visibilityPrecomputed, 'main')
+  }, [isEdit, existing, visibility, chapters, visibilityPrecomputed])
 
   // Load existing photo blob from IndexedDB for edit mode
   React.useEffect(() => {
@@ -126,6 +136,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
         mediaFile,
         mediaRemoved,
         url: url.trim(),
+        mainTimelineVisibility: visibility,
         recurrence: (!isEdit && recurrence) ? 'annual' : (existing?.recurrence ?? null),
         recurrence_id: existing?.recurrence_id ?? null,
         recurrenceEndYear: (!isEdit && recurrence && year.length >= 4)
@@ -405,6 +416,62 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
         {isEdit && existing?.recurrence === 'annual' && (
           <div className="sheet-field">
             <div className="detail-recurrence-warn">↻ repeats annually — editing this instance only</div>
+          </div>
+        )}
+
+        {/* Visibility (edit mode only) */}
+        {isEdit && (
+          <div className="sheet-field">
+            <label className="field-label">main timeline visibility</label>
+
+            {/* Endpoint override notice — shown when a chapter's start/end anchors this milestone */}
+            {visInfo?.reason === 'endpoint' && (
+              <div className="vis-endpoint-notice">
+                <span className="vis-endpoint-icon">⚓</span>
+                <span>
+                  endpoint of {visInfo.endpointChapters.map(t => `'${t}'`).join(', ')} —
+                  always shown regardless of setting below
+                </span>
+              </div>
+            )}
+
+            {/* Three-way toggle: inherit / shown / hidden */}
+            <div className="vis-toggle-row">
+              {['inherit', 'shown', 'hidden'].map(v => (
+                <button
+                  key={v}
+                  type="button"
+                  className={`vis-tab${visibility === v ? ' active' : ''}`}
+                  onClick={() => setVisibility(v)}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+
+            {/* Status line — explains the resolved behavior */}
+            {visInfo && (
+              <div className={`vis-status ${visInfo.visible ? 'vis-status-shown' : 'vis-status-hidden'}`}>
+                {visInfo.reason === 'endpoint' && (
+                  'shown (endpoint floor — overrides setting above)'
+                )}
+                {visInfo.reason === 'milestone-shown' && (
+                  'shown (set explicitly)'
+                )}
+                {visInfo.reason === 'milestone-hidden' && (
+                  'hidden (set explicitly)'
+                )}
+                {visInfo.reason === 'cascade-shown' && (
+                  `shown (inheriting — ${visInfo.inheritSource})`
+                )}
+                {visInfo.reason === 'cascade-hidden' && (
+                  `hidden (inheriting — ${visInfo.inheritSource})`
+                )}
+                {visInfo.reason === 'no-chapters' && (
+                  'shown (inheriting — not a member of any chapter)'
+                )}
+              </div>
+            )}
           </div>
         )}
 

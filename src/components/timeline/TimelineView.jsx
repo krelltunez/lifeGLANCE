@@ -14,6 +14,7 @@ import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS, applyRecurFilter } from '../../utils/timeline'
 import { expandAnnualDates } from '../../utils/recurrence'
 import { loadCategories } from '../../utils/colors'
+import { getMilestoneVisibility, precomputeEndpoints } from '../../utils/visibility'
 import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones, uid } from '../../data/milestones'
 import { listChapters, restoreChapters, createChapter, updateChapter, deleteChapter } from '../../data/chapters'
 import ChapterSheet from '../chapter/ChapterSheet'
@@ -191,13 +192,23 @@ export default function TimelineView({ milestones, setMilestones }) {
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
 
+  // ── Visibility precomputation ─────────────────────────────────────────────────
+  // Precompute endpoint data once per chapters change. This is O(chapters × members)
+  // and avoids re-scanning chapters for every milestone on every render.
+  const visibilityPrecomputed = React.useMemo(() => precomputeEndpoints(chapters), [chapters])
+
   // ── Filter ───────────────────────────────────────────────────────────────────
   const presentCategories = categories.filter(cat =>
     milestones.some(m => m.category === cat.id)
   )
   const hasRecurring = milestones.some(m => m.recurrence_id)
   const categoryFiltered = filter === 'all' ? milestones : milestones.filter(m => m.category === filter)
-  const filteredMilestones = applyRecurFilter(categoryFiltered, recurFilter)
+  const recurFiltered = applyRecurFilter(categoryFiltered, recurFilter)
+  // Apply cascade visibility — hidden milestones are excluded entirely from the
+  // main timeline render (no layout space, not in the DOM, not hoverable).
+  const filteredMilestones = recurFiltered.filter(m =>
+    getMilestoneVisibility(m, chapters, visibilityPrecomputed, 'main').visible
+  )
 
   function cycleRecurFilter() {
     setRecurFilter(f => ({ next: 'all', all: 'past', past: 'future', future: 'next' }[f]))
@@ -1206,6 +1217,8 @@ export default function TimelineView({ milestones, setMilestones }) {
         <AddMilestoneSheet
           onSave={handleSave} onClose={closeSheet} existing={editTarget}
           categories={categories}
+          chapters={chapters}
+          visibilityPrecomputed={visibilityPrecomputed}
         />
       )}
       {chapterSheetOpen && (
