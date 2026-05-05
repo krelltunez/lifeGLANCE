@@ -87,7 +87,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [chapterSheetOpen, setChapterSheetOpen] = useState(false)
   const [editChapter,      setEditChapter]      = useState(null)
   const [drilledChapter,   setDrilledChapter]   = useState(null)
-  const [predrillState,    setPredrillState]    = useState(null) // { zoom, customYears, panMs }
+  const predrillRef        = useRef(null) // { zoom, customYears, panMs } — ref avoids stale-closure issues
   const [newlyAddedId,     setNewlyAddedId]     = useState(null)
   const [summaryOpen,   setSummaryOpen]   = useState(false)
   const [onThisDayOpen, setOnThisDayOpen] = useState(false)
@@ -377,6 +377,7 @@ export default function TimelineView({ milestones, setMilestones }) {
     handlePastNav, handleFutureNav, handleJumpToToday, handleViewMode, closeSheet,
     handleUndo, handleRedo, canUndo, canRedo,
     clustering, setClustering,
+    exitDrillIn,
   }
 
   useEffect(() => {
@@ -538,7 +539,7 @@ export default function TimelineView({ milestones, setMilestones }) {
           else if (s.settingsOpen)     setSettingsOpen(false)
           else if (s.helpOpen)         setHelpOpen(false)
           else if (s.searchOpen)       setSearchOpen(false)
-          else if (anyDrillIn)         exitDrillIn()
+          else if (anyDrillIn)         s.exitDrillIn()
           break
         }
         default: break
@@ -742,16 +743,19 @@ export default function TimelineView({ milestones, setMilestones }) {
 
   // ── Drill-in (Phase 5) ───────────────────────────────────────────────────────
   function handleChapterClick(chapter) {
-    // Save current view state so we can restore it on exit.
-    setPredrillState({ zoom, customYears, panMs })
+    // Don't re-enter if already drilled — prevents overwriting the saved pre-drill state.
+    if (drilledChapter) return
+
+    // Save current view state in a ref so exitDrillIn always reads the latest value
+    // regardless of which render's closure calls it.
+    predrillRef.current = { zoom, customYears, panMs }
 
     // Compute zoom-to-fit: center on the chapter with 15% padding each side.
-    const startMs        = new Date(chapter.start).getTime()
-    const endMs          = new Date(chapter.end).getTime()
+    const startMs         = new Date(chapter.start).getTime()
+    const endMs           = new Date(chapter.end).getTime()
     const chapterCenterMs = (startMs + endMs) / 2
-    const halfMs         = (endMs - startMs) / 2 * 1.15
-    // Convert halfMs to customYears (the unit TimelineView stores).
-    const halfYears      = halfMs / (365.25 * 24 * 3600 * 1000)
+    const halfMs          = (endMs - startMs) / 2 * 1.15
+    const halfYears       = halfMs / (365.25 * 24 * 3600 * 1000)
 
     setZoomAnim('zooming-in')
     setTimeout(() => {
@@ -765,13 +769,14 @@ export default function TimelineView({ milestones, setMilestones }) {
 
   function exitDrillIn(immediate = false) {
     const restore = () => {
-      if (predrillState) {
-        setZoom(predrillState.zoom)
-        setCustomYears(predrillState.customYears)
-        setPanMs(predrillState.panMs)
+      const saved = predrillRef.current
+      if (saved) {
+        setZoom(saved.zoom)
+        setCustomYears(saved.customYears)
+        setPanMs(saved.panMs)
+        predrillRef.current = null
       }
       setDrilledChapter(null)
-      setPredrillState(null)
       setZoomAnim('')
     }
     if (immediate) { restore(); return }
