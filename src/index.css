@@ -2087,3 +2087,57 @@ button, input, select, textarea {
   line-height: 1.4;
 }
 .vis-endpoint-icon { flex-shrink: 0; font-style: normal; }
+
+/* ─── Phase 5: Drill-in breadcrumb ────────────────────────────────────────── */
+.drill-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font);
+}
+.drill-breadcrumb-life {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.drill-breadcrumb-life:hover { color: var(--text-dim); }
+.drill-breadcrumb-sep {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+.drill-breadcrumb-chapter {
+  font-size: 0.82rem;
+  color: var(--drill-color, var(--amber));
+  letter-spacing: 0.01em;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drill-breadcrumb-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  padding: 0 0.2rem;
+  margin-left: 0.15rem;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.drill-breadcrumb-close:hover { color: var(--text); }
+
+/* Subtle tint: left border on the zoom-wrap pulses the chapter color */
+.timeline-zoom-wrap {
+  --drill-color: transparent;
+}
+.timeline-zoom-wrap[style] {
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--drill-color) 40%, transparent);
+}

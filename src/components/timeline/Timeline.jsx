@@ -64,7 +64,7 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
+  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
   ref
 ) {
   const remPx = REM_PX[textSize] || 22
@@ -94,9 +94,11 @@ const Timeline = forwardRef(function Timeline(
   // Track which IDs have already played their fly-in so we don't re-animate on re-renders
   const [flyDoneIds,  setFlyDoneIds]  = useState(() => new Set())
   // panMsRef always tracks the latest value for animation calculations
-  const panMsRef = useRef(panMs)
-  const animRef  = useRef(null)
-  const drag     = useRef({ active: false, startX: 0, startPan: 0 })
+  const panMsRef        = useRef(panMs)
+  const animRef         = useRef(null)
+  const drag            = useRef({ active: false, startX: 0, startPan: 0 })
+  // Distinguishes single-click (drill-in) from double-click (edit) on chapter ribbons.
+  const chapterClickTimer = useRef(null)
 
   // Track viewport height for compact layout (axis shift + all-above)
   useEffect(() => {
@@ -368,7 +370,14 @@ const Timeline = forwardRef(function Timeline(
                   onMouseEnter={e => setChapterTip({ chapter, x: e.clientX, y: e.clientY })}
                   onMouseLeave={() => setChapterTip(null)}
                   onMouseMove={e => setChapterTip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
-                  onDoubleClick={() => onChapterDoubleClick?.(chapter)}
+                  onClick={() => {
+                    // Schedule drill-in on single click; cancel if double-click fires first.
+                    chapterClickTimer.current = setTimeout(() => onChapterClick?.(chapter), 250)
+                  }}
+                  onDoubleClick={() => {
+                    clearTimeout(chapterClickTimer.current)
+                    onChapterDoubleClick?.(chapter)
+                  }}
                 >
                   {/* Bar body */}
                   <rect x={x1} y={barY} width={barW} height={barH}

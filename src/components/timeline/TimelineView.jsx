@@ -86,6 +86,8 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [chapters,         setChapters]         = useState([])
   const [chapterSheetOpen, setChapterSheetOpen] = useState(false)
   const [editChapter,      setEditChapter]      = useState(null)
+  const [drilledChapter,   setDrilledChapter]   = useState(null)
+  const [predrillState,    setPredrillState]    = useState(null) // { zoom, customYears, panMs }
   const [newlyAddedId,     setNewlyAddedId]     = useState(null)
   const [summaryOpen,   setSummaryOpen]   = useState(false)
   const [onThisDayOpen, setOnThisDayOpen] = useState(false)
@@ -371,7 +373,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const keyStateRef = useRef(null)
   keyStateRef.current = {
     pastIdx, futureIdx, past, future, zoom,
-    addOpen, detail, settingsOpen, helpOpen, searchOpen, chapterSheetOpen,
+    addOpen, detail, settingsOpen, helpOpen, searchOpen, chapterSheetOpen, drilledChapter,
     handlePastNav, handleFutureNav, handleJumpToToday, handleViewMode, closeSheet,
     handleUndo, handleRedo, canUndo, canRedo,
     clustering, setClustering,
@@ -389,6 +391,7 @@ export default function TimelineView({ milestones, setMilestones }) {
       audio.init()   // unlock AudioContext on first keystroke (idempotent)
       const s = keyStateRef.current
       const anyModal = s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen || s.searchOpen || s.chapterSheetOpen
+      const anyDrillIn = !!s.drilledChapter
 
       switch (e.key) {
         case 'ArrowLeft': {
@@ -535,6 +538,7 @@ export default function TimelineView({ milestones, setMilestones }) {
           else if (s.settingsOpen)     setSettingsOpen(false)
           else if (s.helpOpen)         setHelpOpen(false)
           else if (s.searchOpen)       setSearchOpen(false)
+          else if (anyDrillIn)         exitDrillIn()
           break
         }
         default: break
@@ -732,6 +736,47 @@ export default function TimelineView({ milestones, setMilestones }) {
   async function handleChapterDelete(id) {
     await deleteChapter(id)
     setChapters(prev => prev.filter(c => c.id !== id))
+    // If the deleted chapter is currently drilled into, exit drill-in immediately.
+    if (drilledChapter?.id === id) exitDrillIn(true)
+  }
+
+  // ── Drill-in (Phase 5) ───────────────────────────────────────────────────────
+  function handleChapterClick(chapter) {
+    // Save current view state so we can restore it on exit.
+    setPredrillState({ zoom, customYears, panMs })
+
+    // Compute zoom-to-fit: center on the chapter with 15% padding each side.
+    const startMs        = new Date(chapter.start).getTime()
+    const endMs          = new Date(chapter.end).getTime()
+    const chapterCenterMs = (startMs + endMs) / 2
+    const halfMs         = (endMs - startMs) / 2 * 1.15
+    // Convert halfMs to customYears (the unit TimelineView stores).
+    const halfYears      = halfMs / (365.25 * 24 * 3600 * 1000)
+
+    setZoomAnim('zooming-in')
+    setTimeout(() => {
+      setZoom('custom')
+      setCustomYears(Math.max(0.1, halfYears))
+      setPanMs(chapterCenterMs - Date.now())
+      setZoomAnim('')
+      setDrilledChapter(chapter)
+    }, ZOOM_ANIM_MS)
+  }
+
+  function exitDrillIn(immediate = false) {
+    const restore = () => {
+      if (predrillState) {
+        setZoom(predrillState.zoom)
+        setCustomYears(predrillState.customYears)
+        setPanMs(predrillState.panMs)
+      }
+      setDrilledChapter(null)
+      setPredrillState(null)
+      setZoomAnim('')
+    }
+    if (immediate) { restore(); return }
+    setZoomAnim('zooming-out')
+    setTimeout(restore, ZOOM_ANIM_MS)
   }
 
   // ── Export image ─────────────────────────────────────────────────────────────
@@ -957,18 +1002,45 @@ export default function TimelineView({ milestones, setMilestones }) {
     e.target.value = ''
   }
 
+  // In drill-in mode: show every milestone regardless of visibility/category/recurrence
+  // filters — non-members are dimmed via highlightedIds, members shown fully.
   const isEmpty = filteredMilestones.length === 0 && milestones.length === 0
   const customHalfMs = customYears * 365.25 * 24 * 3600 * 1000
+  const drillMilestones  = drilledChapter ? milestones : filteredMilestones
+  const drillHighlighted = drilledChapter
+    ? new Set(drilledChapter.milestoneIds)
+    : highlightedIds
 
   return (
     <div className="timeline-view">
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="timeline-header">
-        {/* Left: logo */}
-        <div className="logo logo-sm">
-          <span className="logo-life">life</span>
-          <span className="logo-glance">GLANCE</span>
-        </div>
+      <div
+        className="timeline-header"
+        style={drilledChapter ? { borderBottom: `1px solid ${drilledChapter.color}44` } : undefined}
+      >
+        {/* Left: logo / breadcrumb */}
+        {drilledChapter ? (
+          <div className="drill-breadcrumb" style={{ '--drill-color': drilledChapter.color }}>
+            <button className="drill-breadcrumb-life" onClick={() => exitDrillIn()}>
+              life<span className="logo-glance" style={{ fontSize: '0.7em' }}>GLANCE</span>
+            </button>
+            <span className="drill-breadcrumb-sep">›</span>
+            <TypewriterText
+              key={drilledChapter.id}
+              text={drilledChapter.title}
+              options={{ delay: 42, jitter: 16 }}
+              showCursor={false}
+              hideCursorWhenDone
+              className="drill-breadcrumb-chapter"
+            />
+            <button className="drill-breadcrumb-close" onClick={() => exitDrillIn()} title="exit chapter view">✕</button>
+          </div>
+        ) : (
+          <div className="logo logo-sm">
+            <span className="logo-life">life</span>
+            <span className="logo-glance">GLANCE</span>
+          </div>
+        )}
 
         {/* Center: zoom row + view picker */}
         <div className="header-center">
@@ -1096,16 +1168,21 @@ export default function TimelineView({ milestones, setMilestones }) {
           />
         )}
 
-        <div ref={zoomWrapRef} className={`timeline-zoom-wrap ${zoomAnim}`}>
+        <div
+          ref={zoomWrapRef}
+          className={`timeline-zoom-wrap ${zoomAnim}`}
+          style={drilledChapter ? { '--drill-color': drilledChapter.color } : undefined}
+        >
           <Timeline
             ref={timelineRef}
-            milestones={filteredMilestones}
+            milestones={drillMilestones}
             chapters={chapters}
             zoom={zoom}
             textSize={textSize}
             customHalfMs={customHalfMs}
-            highlightedIds={highlightedIds}
+            highlightedIds={drillHighlighted}
             onMilestoneClick={handleMilestoneClick}
+            onChapterClick={handleChapterClick}
             onChapterDoubleClick={openChapterEdit}
             panMs={panMs}
             onPanMs={setPanMs}
