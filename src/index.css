@@ -2106,8 +2106,8 @@ button, input, select, textarea {
   align-items: baseline;
   transition: opacity 0.15s;
 }
-.drill-breadcrumb-life .logo-life   { font-size: 1.1rem; }
-.drill-breadcrumb-life .logo-glance { font-size: 1.2rem; }
+.drill-breadcrumb-life .logo-life   { font-size: 0.78rem; font-weight: 400; color: var(--text); }
+.drill-breadcrumb-life .logo-glance { font-size: 0.85rem; font-weight: 700; font-style: italic; color: var(--indigo); }
 .drill-breadcrumb-life:hover { opacity: 0.7; }
 .drill-breadcrumb-sep {
   color: var(--text-muted);

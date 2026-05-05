@@ -529,6 +529,10 @@ export default function TimelineView({ milestones, setMilestones }) {
           break
         }
         case 'Escape': {
+          // Drill-in exit takes priority — entering drill-in sets zoom='custom' which
+          // auto-focuses the custom zoom input, causing the first ESC to only blur
+          // the input rather than exit the chapter view.
+          if (anyDrillIn) { s.exitDrillIn(); break }
           if (customInputRef.current && document.activeElement === customInputRef.current) {
             customInputRef.current.blur()
             break
@@ -539,7 +543,6 @@ export default function TimelineView({ milestones, setMilestones }) {
           else if (s.settingsOpen)     setSettingsOpen(false)
           else if (s.helpOpen)         setHelpOpen(false)
           else if (s.searchOpen)       setSearchOpen(false)
-          else if (anyDrillIn)         s.exitDrillIn()
           break
         }
         default: break
@@ -1077,7 +1080,7 @@ export default function TimelineView({ milestones, setMilestones }) {
               {zoom === 'custom' && (
                 <div className="custom-zoom-row">
                   <span>±</span>
-                  <input ref={customInputRef} autoFocus
+                  <input ref={customInputRef} autoFocus={!drilledChapter}
                     className="custom-zoom-input" type="number" min="1" max="200"
                     value={customYears}
                     onChange={e => {
@@ -1119,7 +1122,7 @@ export default function TimelineView({ milestones, setMilestones }) {
                   {zoom === 'custom' ? (
                     <div className="custom-zoom-row">
                       <span>±</span>
-                      <input ref={customInputRef} autoFocus
+                      <input ref={customInputRef} autoFocus={!drilledChapter}
                         className="custom-zoom-input" type="number" min="1" max="200"
                         value={customYears}
                         onChange={e => {
