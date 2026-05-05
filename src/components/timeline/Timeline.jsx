@@ -64,7 +64,7 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onMilestoneDoubleClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
+  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
   ref
 ) {
   const remPx = REM_PX[textSize] || 22
@@ -535,7 +535,7 @@ const Timeline = forwardRef(function Timeline(
           }
 
           return (
-            <g key={m.id} onClick={(e) => { if (e.detail >= 2) onMilestoneDoubleClick?.(m); else onMilestoneClick(m) }} opacity={alpha} style={{ cursor: 'pointer' }}>
+            <g key={m.id} onClick={() => onMilestoneClick(m)} opacity={alpha} style={{ cursor: 'pointer' }}>
               {/* Dot and connector: not inside the scale group so they stay on the axis */}
               <g style={stemAnimStyle}>
                 <circle cx={x} cy={m.above ? msAxisY : axisY}
