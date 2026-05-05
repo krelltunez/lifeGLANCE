@@ -2100,13 +2100,15 @@ button, input, select, textarea {
   border: none;
   cursor: pointer;
   font-family: var(--font);
-  font-size: 0.82rem;
-  color: var(--text-muted);
   padding: 0;
   line-height: 1;
-  transition: color 0.15s;
+  display: inline-flex;
+  align-items: baseline;
+  transition: opacity 0.15s;
 }
-.drill-breadcrumb-life:hover { color: var(--text-dim); }
+.drill-breadcrumb-life .logo-life   { font-size: 1.1rem; }
+.drill-breadcrumb-life .logo-glance { font-size: 1.2rem; }
+.drill-breadcrumb-life:hover { opacity: 0.7; }
 .drill-breadcrumb-sep {
   color: var(--text-muted);
   font-size: 0.8rem;

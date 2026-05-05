@@ -750,6 +750,11 @@ export default function TimelineView({ milestones, setMilestones }) {
     // regardless of which render's closure calls it.
     predrillRef.current = { zoom, customYears, panMs }
 
+    // Set drilledChapter immediately (before the animation) so that keyStateRef
+    // reflects the drilled state right away — this means ESC works during the
+    // enter animation rather than requiring a second press after it completes.
+    setDrilledChapter(chapter)
+
     // Compute zoom-to-fit: center on the chapter with 15% padding each side.
     const startMs         = new Date(chapter.start).getTime()
     const endMs           = new Date(chapter.end).getTime()
@@ -763,7 +768,6 @@ export default function TimelineView({ milestones, setMilestones }) {
       setCustomYears(Math.max(0.1, halfYears))
       setPanMs(chapterCenterMs - Date.now())
       setZoomAnim('')
-      setDrilledChapter(chapter)
     }, ZOOM_ANIM_MS)
   }
 
@@ -1027,7 +1031,7 @@ export default function TimelineView({ milestones, setMilestones }) {
         {drilledChapter ? (
           <div className="drill-breadcrumb" style={{ '--drill-color': drilledChapter.color }}>
             <button className="drill-breadcrumb-life" onClick={() => exitDrillIn()}>
-              life<span className="logo-glance" style={{ fontSize: '0.7em' }}>GLANCE</span>
+              <span className="logo-life">life</span><span className="logo-glance">GLANCE</span>
             </button>
             <span className="drill-breadcrumb-sep">›</span>
             <TypewriterText
