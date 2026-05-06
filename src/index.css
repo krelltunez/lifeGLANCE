@@ -703,6 +703,7 @@ button, input, select, textarea {
 .filter-dropdown-item:first-child { border-top: none; }
 .filter-dropdown-item:hover { color: var(--text-dim); background: rgba(200,169,110,0.06); }
 .filter-dropdown-item.active { color: var(--amber); }
+.filter-check { margin-left: auto; font-size: 0.65rem; opacity: 0.8; }
 
 /* ─── Stat panels ──────────────────────────────────────────────────────────── */
 .stat-panels {

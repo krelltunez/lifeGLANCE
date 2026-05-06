@@ -36,7 +36,7 @@ const ZOOM_ANIM_MS = 380
 export default function TimelineView({ milestones, setMilestones }) {
   const [zoom,          setZoom]          = useState('years')
   const [zoomAnim,      setZoomAnim]      = useState('')
-  const [filter,        setFilter]        = useState('all')
+  const [filter,        setFilter]        = useState(new Set())
   const [addOpen,       setAddOpen]       = useState(false)
   const [editTarget,    setEditTarget]    = useState(null)
   const [detail,        setDetail]        = useState(null)
@@ -204,7 +204,17 @@ export default function TimelineView({ milestones, setMilestones }) {
     milestones.some(m => m.category === cat.id)
   )
   const hasRecurring = milestones.some(m => m.recurrence_id)
-  const categoryFiltered = filter === 'all' ? milestones : milestones.filter(m => m.category === filter)
+  const categoryFiltered = filter.size === 0 ? milestones : milestones.filter(m => filter.has(m.category))
+
+  function toggleCategoryFilter(catId) {
+    setFilter(prev => {
+      const next = new Set(prev)
+      if (next.has(catId)) next.delete(catId)
+      else next.add(catId)
+      if (presentCategories.every(c => next.has(c.id))) return new Set()
+      return next
+    })
+  }
   const recurFiltered = applyRecurFilter(categoryFiltered, recurFilter)
   // Apply cascade visibility — hidden milestones are excluded entirely from the
   // main timeline render (no layout space, not in the DOM, not hoverable).
@@ -769,6 +779,7 @@ export default function TimelineView({ milestones, setMilestones }) {
     // reflects the drilled state right away — this means ESC works during the
     // enter animation rather than requiring a second press after it completes.
     setDrilledChapter(chapter)
+    audio.playDrillIn()
 
     // Compute zoom-to-fit: center on the chapter with 15% padding each side.
     const startMs         = new Date(chapter.start).getTime()
@@ -799,6 +810,7 @@ export default function TimelineView({ milestones, setMilestones }) {
       setZoomAnim('')
     }
     if (immediate) { restore(); return }
+    audio.playDrillOut()
     setZoomAnim('zooming-out')
     setTimeout(restore, ZOOM_ANIM_MS)
   }
@@ -1245,7 +1257,7 @@ export default function TimelineView({ milestones, setMilestones }) {
         )}
         {!isEmpty && filteredMilestones.length === 0 && (
           <div className="empty-state">
-            <div className="empty-state-label">no milestones in this category.</div>
+            <div className="empty-state-label">no milestones in {filter.size === 1 ? 'this category' : 'these categories'}.</div>
           </div>
         )}
       </div>
@@ -1276,28 +1288,29 @@ export default function TimelineView({ milestones, setMilestones }) {
         {presentCategories.length > 0 && (
           compactFilter ? (
             <div className="filter-compact" onClick={e => e.stopPropagation()}>
-              <button className={`filter-chip ${filter === 'all' ? 'active' : ''}`}
-                onClick={() => { setFilter('all'); setFilterOpen(false) }}>all</button>
+              <button className={`filter-chip ${filter.size === 0 ? 'active' : ''}`}
+                onClick={() => { setFilter(new Set()); setFilterOpen(false) }}>all</button>
               <div className="filter-dropdown-wrap">
                 <button
-                  className={`filter-chip filter-dropdown-btn ${filter !== 'all' ? 'active' : ''}`}
+                  className={`filter-chip filter-dropdown-btn ${filter.size > 0 ? 'active' : ''}`}
                   onClick={() => setFilterOpen(o => !o)}>
-                  {filter !== 'all' ? (
+                  {filter.size === 1 ? (
                     <>
                       <span className="filter-dot"
-                        style={{ background: presentCategories.find(c => c.id === filter)?.color }} />
-                      {presentCategories.find(c => c.id === filter)?.label}
+                        style={{ background: presentCategories.find(c => filter.has(c.id))?.color }} />
+                      {presentCategories.find(c => filter.has(c.id))?.label}
                     </>
-                  ) : 'category'} ▾
+                  ) : filter.size > 1 ? `${filter.size} categories` : 'category'} ▾
                 </button>
                 {filterOpen && (
                   <div className="filter-dropdown">
                     {presentCategories.map(cat => (
                       <button key={cat.id}
-                        className={`filter-dropdown-item ${filter === cat.id ? 'active' : ''}`}
-                        onClick={() => { setFilter(cat.id); setFilterOpen(false) }}>
+                        className={`filter-dropdown-item ${filter.has(cat.id) ? 'active' : ''}`}
+                        onClick={() => toggleCategoryFilter(cat.id)}>
                         <span className="filter-dot" style={{ background: cat.color }} />
                         {cat.label}
+                        {filter.has(cat.id) && <span className="filter-check">✓</span>}
                       </button>
                     ))}
                   </div>
@@ -1306,12 +1319,12 @@ export default function TimelineView({ milestones, setMilestones }) {
             </div>
           ) : (
             <div className="filter-chips-inline">
-              <button className={`filter-chip ${filter === 'all' ? 'active' : ''}`}
-                onClick={() => setFilter('all')}>all</button>
+              <button className={`filter-chip ${filter.size === 0 ? 'active' : ''}`}
+                onClick={() => setFilter(new Set())}>all</button>
               {presentCategories.map(cat => (
                 <button key={cat.id}
-                  className={`filter-chip ${filter === cat.id ? 'active' : ''}`}
-                  onClick={() => setFilter(filter === cat.id ? 'all' : cat.id)}>
+                  className={`filter-chip ${filter.has(cat.id) ? 'active' : ''}`}
+                  onClick={() => toggleCategoryFilter(cat.id)}>
                   <span className="filter-dot" style={{ background: cat.color }} />
                   {cat.label}
                 </button>

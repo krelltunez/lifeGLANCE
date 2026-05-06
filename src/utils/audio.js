@@ -218,3 +218,49 @@ function _fadeOutAmbient() {
 }
 
 export function stopAmbient() { _fadeOutAmbient() }
+
+// ── Chapter drill-in / drill-out ──────────────────────────────────────────────
+// Drill-in: ascending frequency sweep (180 → 520 Hz) + arrival piano note.
+// Drill-out: descending sweep (520 → 180 Hz) + lower landing note.
+
+export function playDrillIn() {
+  if (_muted) return
+  const c = getCtx()
+  if (!c) return
+  const t0 = c.currentTime
+  const osc  = c.createOscillator()
+  const gain = c.createGain()
+  osc.connect(gain)
+  gain.connect(c.destination)
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(180, t0)
+  osc.frequency.exponentialRampToValueAtTime(520, t0 + 0.26)
+  gain.gain.setValueAtTime(0, t0)
+  gain.gain.linearRampToValueAtTime(0.11, t0 + 0.04)
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.32)
+  osc.start(t0)
+  osc.stop(t0 + 0.35)
+  // Landing note
+  setTimeout(() => playPianoNote(523.25, 0.06, 0.7), 220)
+}
+
+export function playDrillOut() {
+  if (_muted) return
+  const c = getCtx()
+  if (!c) return
+  const t0 = c.currentTime
+  const osc  = c.createOscillator()
+  const gain = c.createGain()
+  osc.connect(gain)
+  gain.connect(c.destination)
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(520, t0)
+  osc.frequency.exponentialRampToValueAtTime(180, t0 + 0.26)
+  gain.gain.setValueAtTime(0, t0)
+  gain.gain.linearRampToValueAtTime(0.11, t0 + 0.04)
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.32)
+  osc.start(t0)
+  osc.stop(t0 + 0.35)
+  // Landing note
+  setTimeout(() => playPianoNote(261.63, 0.06, 0.7), 220)
+}
