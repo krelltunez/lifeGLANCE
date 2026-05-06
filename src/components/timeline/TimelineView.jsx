@@ -1012,14 +1012,16 @@ export default function TimelineView({ milestones, setMilestones }) {
     e.target.value = ''
   }
 
-  // In drill-in mode: show every milestone regardless of visibility/category/recurrence
-  // filters — non-members are dimmed via highlightedIds, members shown fully.
+  // In drill-in mode: show only the drilled chapter's member milestones (hidden entirely,
+  // not dimmed) and only the drilled chapter's ribbon. The stat-panel highlights still
+  // apply among whichever members happen to be the next/prev highlighted milestone.
   const isEmpty = filteredMilestones.length === 0 && milestones.length === 0
-  const customHalfMs = customYears * 365.25 * 24 * 3600 * 1000
-  const drillMilestones  = drilledChapter ? milestones : filteredMilestones
-  const drillHighlighted = drilledChapter
-    ? new Set(drilledChapter.milestoneIds)
-    : highlightedIds
+  const customHalfMs  = customYears * 365.25 * 24 * 3600 * 1000
+  const drillMilestones = drilledChapter
+    ? milestones.filter(m => drilledChapter.milestoneIds.includes(m.id))
+    : filteredMilestones
+  const drillChapters   = drilledChapter ? [drilledChapter] : chapters
+  const drillHighlighted = highlightedIds
 
   return (
     <div className="timeline-view">
@@ -1186,7 +1188,7 @@ export default function TimelineView({ milestones, setMilestones }) {
           <Timeline
             ref={timelineRef}
             milestones={drillMilestones}
-            chapters={chapters}
+            chapters={drillChapters}
             zoom={zoom}
             textSize={textSize}
             customHalfMs={customHalfMs}
