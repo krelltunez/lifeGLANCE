@@ -11,7 +11,7 @@ const MONTHS = [
   { v: '10', l: 'Oct' }, { v: '11', l: 'Nov' }, { v: '12', l: 'Dec' },
 ]
 
-export default function AddMilestoneSheet({ onSave, onClose, existing, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() } }) {
+export default function AddMilestoneSheet({ onSave, onClose, existing, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() }, drilledChapter = null }) {
   const isEdit = !!existing
 
   const [title,      setTitle]      = useState(existing?.title     ?? '')
@@ -38,6 +38,37 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
   const [busy,          setBusy]          = useState(false)
   const photoRef = useRef(null)
   const mediaRef = useRef(null)
+
+  // Chapter membership suggestion (create mode only).
+  // Recomputes whenever the date changes; defaults the drilled chapter checked if it overlaps.
+  const overlappingChapters = React.useMemo(() => {
+    if (isEdit || year.length < 4) return []
+    const date = buildDateFromParts(month, year, precision, day)
+    if (!date) return []
+    return chapters.filter(ch => date >= new Date(ch.start) && date <= new Date(ch.end))
+  }, [isEdit, month, day, year, precision, chapters])
+
+  const [selectedChapterIds, setSelectedChapterIds] = React.useState(() => new Set())
+
+  // When the overlapping set changes, reset selection: check only the drilled chapter
+  // (if it overlaps), leave everything else unchecked.
+  React.useEffect(() => {
+    if (isEdit) return
+    const overlapIds = new Set(overlappingChapters.map(c => c.id))
+    setSelectedChapterIds(
+      drilledChapter && overlapIds.has(drilledChapter.id)
+        ? new Set([drilledChapter.id])
+        : new Set()
+    )
+  }, [overlappingChapters, drilledChapter, isEdit])
+
+  function toggleChapter(id) {
+    setSelectedChapterIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   // Compute visibility status for the edit-mode info panel. Re-runs when
   // visibility setting changes (existing.date stays constant during a session).
@@ -137,6 +168,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
         mediaRemoved,
         url: url.trim(),
         mainTimelineVisibility: visibility,
+        chapterIds: isEdit ? undefined : [...selectedChapterIds],
         recurrence: (!isEdit && recurrence) ? 'annual' : (existing?.recurrence ?? null),
         recurrence_id: existing?.recurrence_id ?? null,
         recurrenceEndYear: (!isEdit && recurrence && year.length >= 4)
@@ -472,6 +504,27 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Chapter membership suggestion — create mode only */}
+        {!isEdit && overlappingChapters.length > 0 && (
+          <div className="sheet-field">
+            <label className="field-label">add to chapters</label>
+            <div className="chapter-members-list">
+              {overlappingChapters.map(ch => (
+                <label key={ch.id} className="chapter-member-row">
+                  <input
+                    type="checkbox"
+                    className="chapter-member-check"
+                    checked={selectedChapterIds.has(ch.id)}
+                    onChange={() => toggleChapter(ch.id)}
+                  />
+                  <span className="chapter-member-dot" style={{ background: ch.color }} />
+                  <span className="chapter-member-title">{ch.title}</span>
+                </label>
+              ))}
+            </div>
           </div>
         )}
 

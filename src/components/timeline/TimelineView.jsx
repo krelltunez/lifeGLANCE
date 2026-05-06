@@ -569,7 +569,7 @@ export default function TimelineView({ milestones, setMilestones }) {
     // photoFile / photoRemoved / mediaFile / mediaRemoved are transfer-only fields
     // from the form — strip them before passing to the data layer and handle blob
     // persistence here.
-    const { mediaFile, mediaRemoved, photoFile, photoRemoved, ...milestoneData } = data
+    const { mediaFile, mediaRemoved, photoFile, photoRemoved, chapterIds, ...milestoneData } = data
     const newMediaType = mediaFile
       ? (mediaFile.type.startsWith('video/') ? 'video' : 'audio')
       : null
@@ -628,6 +628,20 @@ export default function TimelineView({ milestones, setMilestones }) {
         pushHistory(newMs)
         setMilestones(newMs)
         setNewlyAddedId(m.id)
+        // Add to any chapters the user selected in the form.
+        if (chapterIds?.length) {
+          const updated = [...chapters]
+          for (const chId of chapterIds) {
+            const idx = updated.findIndex(c => c.id === chId)
+            if (idx === -1 || updated[idx].milestoneIds.includes(m.id)) continue
+            updated[idx] = await updateChapter(
+              chId,
+              { milestoneIds: [...updated[idx].milestoneIds, m.id] },
+              updated[idx],
+            )
+          }
+          setChapters(updated)
+        }
         audio.playChime()
       }
     } catch (err) {
@@ -1307,6 +1321,7 @@ export default function TimelineView({ milestones, setMilestones }) {
           categories={categories}
           chapters={chapters}
           visibilityPrecomputed={visibilityPrecomputed}
+          drilledChapter={drilledChapter}
         />
       )}
       {chapterSheetOpen && (
