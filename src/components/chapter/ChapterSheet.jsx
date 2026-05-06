@@ -346,11 +346,11 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
               {displayMilestones.map(m => {
                 // Endpoint: milestone date matches the chapter's start or end (day-level comparison).
                 // Only checked members can be endpoints — unchecked milestones aren't members yet.
-                const mDay      = m.date?.slice(0, 10)
-                const sDay      = startDate?.toISOString().slice(0, 10)
-                const eDay      = endDate?.toISOString().slice(0, 10)
-                const isEndpoint = checkedIds.has(m.id) &&
-                  mDay && (mDay === sDay || mDay === eDay)
+                const mDay        = m.date?.slice(0, 10)
+                const sDay        = startDate?.toISOString().slice(0, 10)
+                const eDay        = endDate?.toISOString().slice(0, 10)
+                const isDateMatch = !!(mDay && (mDay === sDay || mDay === eDay))
+                const isEndpoint  = checkedIds.has(m.id) && isDateMatch
 
                 return (
                   <label key={m.id} className="chapter-member-row">
@@ -367,8 +367,13 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
                     <span className={`chapter-member-title${isEdit && !inRangeIds.has(m.id) ? ' chapter-member-retained' : ''}`}>
                       {m.title}
                     </span>
-                    {isEndpoint && (
-                      <span className="chapter-member-endpoint" title="endpoint — always shown on main timeline">⚓</span>
+                    {isDateMatch && (
+                      <span
+                        className={`chapter-member-endpoint${isEndpoint ? '' : ' chapter-member-endpoint-dim'}`}
+                        title={isEndpoint
+                          ? 'endpoint — always shown on main timeline'
+                          : 'matches chapter boundary — add to make it an endpoint'}
+                      >⚓</span>
                     )}
                     <span className="chapter-member-date">{fmtDate(m)}</span>
                   </label>

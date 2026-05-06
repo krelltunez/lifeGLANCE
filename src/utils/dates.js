@@ -68,7 +68,7 @@ export function getYearsMonths(dateStr) {
 export function buildDateFromParts(month, year, precision, day) {
   const y = Number(year)
   const m = Number(month) - 1
-  if (precision === 'year')  return new Date(y, 0, 1)
-  if (precision === 'day')   return new Date(y, m, Number(day) || 1)
-  return new Date(y, m, 15) // month precision — use midpoint
+  if (precision === 'year')  return new Date(Date.UTC(y, 0, 1))
+  if (precision === 'day')   return new Date(Date.UTC(y, m, Number(day) || 1))
+  return new Date(Date.UTC(y, m, 15)) // month precision — use midpoint
 }

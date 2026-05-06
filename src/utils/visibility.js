@@ -19,7 +19,7 @@
  * Call once when chapters change, then pass the result to getMilestoneVisibility.
  *
  * @param {Array} chapters
- * @returns {{ endpointIds: Set<string>, endpointChapterNames: Map<string, string[]> }}
+ * @returns {{ endpointChapterNames: Map<string, string[]> }}
  */
 export function precomputeEndpoints(chapters) {
   const endpointIds          = new Set()

@@ -13,12 +13,13 @@ const SHORTCUTS = [
   { keys: ['⌘Z', 'Ctrl+Z'],  desc: 'undo'                              },
   { keys: ['⌘⇧Z', 'Ctrl+Y'], desc: 'redo'                              },
   { keys: ['M'],              desc: 'mute / unmute sound'               },
-  { keys: ['N'],              desc: 'new milestone'                     },
+  { keys: ['n'],              desc: 'new milestone'                     },
+  { keys: ['⇧N'],            desc: 'new chapter'                       },
   { keys: ['E'],              desc: 'export image'                      },
   { keys: ['/'],              desc: 'search milestones'                 },
   { keys: ['S'],              desc: 'settings'                          },
   { keys: ['?'],              desc: 'help'                              },
-  { keys: ['Esc'],            desc: 'close modal / exit input'          },
+  { keys: ['Esc'],            desc: 'close modal / exit chapter / exit input' },
 ]
 
 function fmtBytes(n) {

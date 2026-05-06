@@ -2061,6 +2061,7 @@ button, input, select, textarea {
   margin-left: auto;
   cursor: default;
 }
+.chapter-member-endpoint-dim { opacity: 0.22; }
 
 /* ─── Phase 4: Visibility control in milestone edit form ───────────────────── */
 .vis-toggle-row {

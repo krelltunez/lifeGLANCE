@@ -387,7 +387,7 @@ export default function TimelineView({ milestones, setMilestones }) {
     handlePastNav, handleFutureNav, handleJumpToToday, handleViewMode, closeSheet,
     handleUndo, handleRedo, canUndo, canRedo,
     clustering, setClustering,
-    exitDrillIn,
+    exitDrillIn, openChapterCreate,
   }
 
   useEffect(() => {
@@ -447,9 +447,15 @@ export default function TimelineView({ milestones, setMilestones }) {
           handleExportImage()
           break
         }
-        case 'n': case 'N': {
+        case 'n': {
           if (s.settingsOpen || !!s.detail) break
           if (!s.addOpen) { e.preventDefault(); setAddOpen(true) }
+          break
+        }
+        case 'N': {
+          if (anyModal) break
+          e.preventDefault()
+          s.openChapterCreate()
           break
         }
         case 's': case 'S': {
