@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { formatDateDisplay, relativeLabel } from '../../utils/dates'
 
-export default function SearchModal({ milestones, onSelect, onClose }) {
+export default function SearchModal({ milestones, chapters = [], onSelect, onClose }) {
   const [query,       setQuery]       = useState('')
   const [highlighted, setHighlighted] = useState(0)
   const inputRef = useRef(null)
@@ -68,6 +68,20 @@ export default function SearchModal({ milestones, onSelect, onClose }) {
                     <span className="search-result-sep">·</span>
                     {relativeLabel(m.date, m.date_precision)}
                   </span>
+                  {(() => {
+                    const memberOf = chapters.filter(ch => ch.milestoneIds?.includes(m.id))
+                    if (!memberOf.length) return null
+                    return (
+                      <div className="search-result-chapters">
+                        {memberOf.map(ch => (
+                          <span key={ch.id} className="search-result-chapter-tag"
+                            style={{ '--tag-color': ch.color }}>
+                            {ch.title}
+                          </span>
+                        ))}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             ))}

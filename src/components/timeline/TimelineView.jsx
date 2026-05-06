@@ -1362,6 +1362,7 @@ export default function TimelineView({ milestones, setMilestones }) {
       {searchOpen && (
         <SearchModal
           milestones={milestones}
+          chapters={chapters}
           onSelect={handleSearchSelect}
           onClose={() => setSearchOpen(false)}
         />
