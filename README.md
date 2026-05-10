@@ -149,7 +149,7 @@ lifeGLANCE has no backend, no analytics, no accounts, and no network requests be
 
 ## Support
 
-If you have enjoyed using lifeGLANCE, consider supporting development:
+If you have enjoyed using lifeGLANCE, consider supporting its development:
 
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-EA4AAA?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/krelltunez)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?logo=kofi&logoColor=white)](https://ko-fi.com/krelltunez)
