@@ -790,8 +790,8 @@ export default function TimelineView({ milestones, setMilestones }) {
 
   // ── Drill-in (Phase 5) ───────────────────────────────────────────────────────
   function handleChapterClick(chapter) {
-    // Don't re-enter if already drilled — prevents overwriting the saved pre-drill state.
-    if (drilledChapter) return
+    // Clicking the ribbon while drilled in acts as a toggle — drill back out.
+    if (drilledChapter) { exitDrillIn(); return }
 
     // Save current view state in a ref so exitDrillIn always reads the latest value
     // regardless of which render's closure calls it.
