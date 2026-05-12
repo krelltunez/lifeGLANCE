@@ -795,6 +795,7 @@ export default function TimelineView({ milestones, setMilestones }) {
 
   // ── Drill-in (Phase 5) ───────────────────────────────────────────────────────
   function handleChapterClick(chapter) {
+    audio.init()  // chapter clicks may be the first gesture after page load
     // Clicking the ribbon while drilled in acts as a toggle — drill back out.
     if (drilledChapter) { exitDrillIn(); return }
 
