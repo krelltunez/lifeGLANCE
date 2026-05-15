@@ -5,7 +5,7 @@
 Built for people who want to map their life without handing their data to a cloud service. lifeGLANCE is a privacy-first progressive web app that runs entirely in the browser. There is no account, no server, no sync — your data never leaves your device.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.5.1-brightgreen.svg)](../../releases)
+[![Version](https://img.shields.io/badge/version-1.5.2-brightgreen.svg)](../../releases)
 
 ---
 
