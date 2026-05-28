@@ -27,17 +27,17 @@ function assignChapterRows(chapters) {
   })
 }
 
-// Human-readable duration string, e.g. "4y 2mo" or "8mo". Returns "ongoing" for open-ended chapters.
+// Human-readable elapsed duration, e.g. "3 yrs, 6 mo" or "8 mo".
+// For ongoing chapters (endIso is null) uses today as the end.
 function chapterSpan(startIso, endIso) {
-  if (!endIso) return 'ongoing'
-  const s = new Date(startIso), e = new Date(endIso)
+  const s = new Date(startIso), e = endIso ? new Date(endIso) : new Date()
   const totalMonths = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth())
   const yrs = Math.floor(totalMonths / 12)
   const mos = totalMonths % 12
-  if (yrs > 0 && mos > 0) return `${yrs}y ${mos}mo`
-  if (yrs > 0)             return `${yrs}y`
-  if (mos > 0)             return `${mos}mo`
-  return '< 1mo'
+  if (yrs > 0 && mos > 0) return `${yrs} yr${yrs !== 1 ? 's' : ''}, ${mos} mo`
+  if (yrs > 0)             return `${yrs} yr${yrs !== 1 ? 's' : ''}`
+  if (mos > 0)             return `${mos} mo`
+  return '< 1 mo'
 }
 
 // Word-wrap title to at most 2 lines given a max-chars-per-line limit.
@@ -395,7 +395,9 @@ const Timeline = forwardRef(function Timeline(
               const labelCharW   = labelFontPx * 0.60
               const labelMaxCh   = Math.floor((visW - 14) / labelCharW)
               const durText      = chapterSpan(chapter.start, chapter.end)
-              const fullLabel    = `${chapter.title} · ${durText}`
+              const fullLabel    = chapter.end
+                ? `${chapter.title} · ${durText}`
+                : `${chapter.title} · ${durText} · ongoing`
               const labelText    = labelMaxCh > 2
                 ? (fullLabel.length <= labelMaxCh
                     ? fullLabel
@@ -871,7 +873,7 @@ const Timeline = forwardRef(function Timeline(
             {chapterTip.chapter.title}
           </div>
           <div style={{ fontSize: '0.55rem', color: 'rgba(232,224,208,0.55)', marginTop: 2 }}>
-            {chapterTip.chapter.end ? chapterSpan(chapterTip.chapter.start, chapterTip.chapter.end) : 'ongoing'}
+            {chapterSpan(chapterTip.chapter.start, chapterTip.chapter.end)}{!chapterTip.chapter.end && ' · ongoing'}
           </div>
         </div>
       )}
