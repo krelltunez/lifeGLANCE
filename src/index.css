@@ -1610,7 +1610,7 @@ button, input, select, textarea {
 }
 
 /* ─── Help modal ───────────────────────────────────────────────────────────── */
-.help-sheet { max-width: 483px; }
+.help-sheet { max-width: 450px; }
 
 .help-header-title {
   display: flex;
@@ -1676,6 +1676,7 @@ button, input, select, textarea {
   gap: 0.25rem;
   font-family: var(--font);
   font-size: 0.58rem;
+  margin-top: 0.35rem;
   color: var(--text-dim);
   background: rgba(232, 224, 208, 0.06);
   border: 1px solid rgba(232, 224, 208, 0.14);
