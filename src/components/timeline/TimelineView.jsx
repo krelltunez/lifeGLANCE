@@ -4,7 +4,8 @@ import StatsPanel        from '../stats/StatsPanel'
 import AddMilestoneSheet from '../milestone/AddMilestoneSheet'
 import MilestoneDetail   from '../milestone/MilestoneDetail'
 import SettingsModal     from '../settings/SettingsModal'
-import HelpModal         from '../help/HelpModal'
+import HelpModal                from '../help/HelpModal'
+import KeyboardShortcutsModal  from '../help/KeyboardShortcutsModal'
 import SearchModal       from '../search/SearchModal'
 import SummaryModal      from '../stats/SummaryModal'
 import OnThisDayModal    from './OnThisDayModal'
@@ -56,6 +57,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const [highlightsActive, setHighlightsActive] = useState(true)
   const [settingsOpen,  setSettingsOpen]  = useState(false)
   const [helpOpen,      setHelpOpen]      = useState(false)
+  const [kbdOpen,       setKbdOpen]       = useState(false)
   const [searchOpen,    setSearchOpen]    = useState(false)
   const [viewMode,      setViewMode]      = useState('all')
   const [recurFilter,   setRecurFilter]   = useState('next')
@@ -383,7 +385,7 @@ export default function TimelineView({ milestones, setMilestones }) {
   const keyStateRef = useRef(null)
   keyStateRef.current = {
     pastIdx, futureIdx, past, future, zoom,
-    addOpen, detail, settingsOpen, helpOpen, searchOpen, chapterSheetOpen, drilledChapter,
+    addOpen, detail, settingsOpen, helpOpen, kbdOpen, searchOpen, chapterSheetOpen, drilledChapter,
     handlePastNav, handleFutureNav, handleJumpToToday, handleViewMode, closeSheet,
     handleUndo, handleRedo, canUndo, canRedo,
     clustering, setClustering,
@@ -401,7 +403,7 @@ export default function TimelineView({ milestones, setMilestones }) {
       }
       audio.init()   // unlock AudioContext on first keystroke (idempotent)
       const s = keyStateRef.current
-      const anyModal = s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen || s.searchOpen || s.chapterSheetOpen
+      const anyModal = s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen || s.kbdOpen || s.searchOpen || s.chapterSheetOpen
       const anyDrillIn = !!s.drilledChapter
 
       switch (e.key) {
@@ -495,8 +497,8 @@ export default function TimelineView({ milestones, setMilestones }) {
           break
         }
         case '?': {
-          if (s.addOpen || !!s.detail || s.settingsOpen || s.searchOpen) break
-          if (!s.helpOpen) setHelpOpen(true)
+          if (s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen || s.searchOpen) break
+          if (!s.kbdOpen) setKbdOpen(true)
           break
         }
         case '1': case '2': case '3': case '4': case '5':
@@ -555,6 +557,7 @@ export default function TimelineView({ milestones, setMilestones }) {
           if (s.chapterSheetOpen)      { setChapterSheetOpen(false); setEditChapter(null); break }
           if (s.settingsOpen)          { setSettingsOpen(false); break }
           if (s.helpOpen)              { setHelpOpen(false); break }
+          if (s.kbdOpen)               { setKbdOpen(false); break }
           if (s.searchOpen)            { setSearchOpen(false); break }
           if (anyDrillIn)              { s.exitDrillIn(); break }
           break
@@ -1412,6 +1415,9 @@ export default function TimelineView({ milestones, setMilestones }) {
       )}
       {helpOpen && (
         <HelpModal onClose={() => setHelpOpen(false)} />
+      )}
+      {kbdOpen && (
+        <KeyboardShortcutsModal onClose={() => setKbdOpen(false)} />
       )}
       {summaryOpen && (
         <SummaryModal

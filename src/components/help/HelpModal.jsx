@@ -1,27 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { version as VERSION } from '../../../package.json'
 
-const SHORTCUTS = [
-  { keys: ['←', '→'],        desc: 'cycle past / future milestones'   },
-  { keys: ['↑', '↓'],        desc: 'zoom out / in'                     },
-  { keys: ['1–9'],            desc: 'custom zoom to N years'            },
-  { keys: ['C'],              desc: 'custom zoom (focus input)'         },
-  { keys: ['T'],              desc: 'jump to today'                     },
-  { keys: ['P'],              desc: 'past view'                         },
-  { keys: ['A'],              desc: 'all view'                          },
-  { keys: ['F'],              desc: 'future view'                       },
-  { keys: ['⌘Z', 'Ctrl+Z'],  desc: 'undo'                              },
-  { keys: ['⌘⇧Z', 'Ctrl+Y'], desc: 'redo'                              },
-  { keys: ['M'],              desc: 'mute / unmute sound'               },
-  { keys: ['n'],              desc: 'new milestone'                     },
-  { keys: ['⇧N'],            desc: 'new chapter'                       },
-  { keys: ['E'],              desc: 'export image'                      },
-  { keys: ['/'],              desc: 'search milestones'                 },
-  { keys: ['S'],              desc: 'settings'                          },
-  { keys: ['?'],              desc: 'help'                              },
-  { keys: ['Esc'],            desc: 'close modal / exit chapter / exit input' },
-]
-
 function fmtBytes(n) {
   if (n == null) return '—'
   if (n < 1024)        return `${n} B`
@@ -30,7 +9,6 @@ function fmtBytes(n) {
   return `${(n / 1024 ** 3).toFixed(2)} GB`
 }
 
-// localStorage — synchronous, just settings/prefs (a few KB)
 function useLocalStorageSize() {
   return useMemo(() => {
     try {
@@ -42,7 +20,6 @@ function useLocalStorageSize() {
   }, [])
 }
 
-// IndexedDB — async via Storage API; where milestones + media blobs live
 function useIndexedDBEstimate() {
   const [est, setEst] = useState(null)
   useEffect(() => {
@@ -68,44 +45,58 @@ export default function HelpModal({ onClose }) {
           <button className="sheet-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* ── Keyboard shortcuts ──────────────────────────────────────────── */}
+        {/* ── About ───────────────────────────────────────────────────────── */}
         <div className="settings-section">
-          <div className="settings-label">keyboard shortcuts</div>
-          <table className="help-shortcuts-table">
-            <tbody>
-              {SHORTCUTS.map(({ keys, desc }) => (
-                <tr key={desc}>
-                  <td className="help-keys">
-                    {keys.map(k => <kbd key={k} className="help-kbd">{k}</kbd>)}
-                  </td>
-                  <td className="help-desc">{desc}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="settings-label">about</div>
+          <p className="help-about-text">
+            <strong className="help-about-name">lifeGLANCE</strong> is a personal
+            timeline for your milestones and life chapters — all stored locally
+            in your browser, never sent anywhere.
+          </p>
+          <p className="help-about-text">
+            Add milestones with <kbd className="help-kbd">n</kbd>, create chapters
+            with <kbd className="help-kbd">⇧N</kbd>, and navigate your timeline
+            with the arrow keys. Press <kbd className="help-kbd">?</kbd> to see
+            all keyboard shortcuts.
+          </p>
+        </div>
+
+        {/* ── Data & privacy ──────────────────────────────────────────────── */}
+        <div className="settings-section">
+          <div className="settings-label">data &amp; privacy</div>
+          <p className="help-about-text">
+            Everything lives in your browser — milestones, photos, and settings.
+            Clearing site data will erase all your entries. Export a backup
+            anytime with <kbd className="help-kbd">E</kbd>.
+          </p>
+        </div>
+
+        {/* ── Storage ─────────────────────────────────────────────────────── */}
+        <div className="settings-section">
+          <div className="settings-label">storage</div>
+          <div className="help-storage-grid">
+            <span className="help-storage-label">indexedDB</span>
+            <span className="help-storage-value">
+              {idbEst ? `${fmtBytes(idbEst.usage)} used` : '…'}
+              {idbEst && (
+                <span className="help-storage-dim">
+                  {' '}/ {fmtBytes(idbEst.quota)} available
+                </span>
+              )}
+            </span>
+            <span className="help-storage-label">localStorage</span>
+            <span className="help-storage-value">
+              {localSize}
+              <span className="help-storage-dim"> (settings only)</span>
+            </span>
+          </div>
         </div>
 
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <div className="help-footer">
-          <div className="help-footer-storage">
-            <span className="help-footer-meta">
-              indexedDB&ensp;
-              <span className="help-footer-value">
-                {idbEst ? `${fmtBytes(idbEst.usage)} used` : '…'}
-              </span>
-              {idbEst && (
-                <>
-                  <span className="help-footer-dim"> / </span>
-                  <span className="help-footer-value">{fmtBytes(idbEst.quota)} available</span>
-                </>
-              )}
-            </span>
-            <span className="help-footer-meta">
-              localStorage&ensp;
-              <span className="help-footer-value">{localSize}</span>
-              <span className="help-footer-dim"> (settings only)</span>
-            </span>
-          </div>
+          <span className="help-footer-meta">
+            all data stays on your device
+          </span>
           <span className="help-footer-meta help-footer-version">v{VERSION}</span>
         </div>
 

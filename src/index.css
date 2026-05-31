@@ -1610,7 +1610,42 @@ button, input, select, textarea {
 }
 
 /* ─── Help modal ───────────────────────────────────────────────────────────── */
-.help-sheet { max-width: 420px; }
+.help-sheet { max-width: 440px; }
+
+.help-about-text {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  line-height: 1.65;
+  margin: 0 0 0.6rem;
+}
+.help-about-text:last-child { margin-bottom: 0; }
+.help-about-name {
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.help-storage-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 0.75rem;
+  align-items: baseline;
+}
+.help-storage-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.help-storage-value {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+.help-storage-dim {
+  opacity: 0.55;
+}
+
+/* ─── Keyboard shortcuts modal ─────────────────────────────────────────────── */
+.kbd-sheet { max-width: 380px; }
 
 .help-shortcuts-table {
   width: 100%;
