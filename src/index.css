@@ -1672,14 +1672,14 @@ button, input, select, textarea {
 .help-shortcuts-btn {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.25rem;
   font-family: var(--font);
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   color: var(--text-dim);
   background: rgba(232, 224, 208, 0.06);
   border: 1px solid rgba(232, 224, 208, 0.14);
-  border-radius: 6px;
-  padding: 0.3rem 0.65rem 0.3rem 0.5rem;
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem 0.2rem 0.3rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
@@ -1688,6 +1688,11 @@ button, input, select, textarea {
 .help-shortcuts-btn:hover {
   background: rgba(232, 224, 208, 0.1);
   color: var(--text);
+}
+.help-shortcuts-btn .help-kbd {
+  font-size: 0.52rem;
+  padding: 0.1em 0.35em;
+  margin-right: 0;
 }
 
 /* ─── Keyboard shortcuts modal ─────────────────────────────────────────────── */
