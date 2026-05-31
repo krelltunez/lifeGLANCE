@@ -1610,7 +1610,7 @@ button, input, select, textarea {
 }
 
 /* ─── Help modal ───────────────────────────────────────────────────────────── */
-.help-sheet { max-width: 420px; }
+.help-sheet { max-width: 483px; }
 
 .help-header-title {
   display: flex;
