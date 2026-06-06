@@ -9,19 +9,22 @@ function webdavProxyPlugin() {
     name: 'webdav-proxy',
     configureServer(server) {
       server.middlewares.use('/api/webdav-proxy', async (req, res) => {
-        const target = req.headers['x-webdav-url']
-        if (!target) { res.writeHead(400); res.end('Missing X-WebDAV-Url'); return }
+        // @glance-apps/sync uses ?url= query param; intents transport uses X-WebDAV-Url header
+        const qs = new URL(req.url, 'http://localhost').searchParams
+        const target = qs.get('url') || req.headers['x-webdav-url']
+        if (!target) { res.writeHead(400); res.end('Missing target URL'); return }
         const headers = {}
-        for (const h of ['authorization', 'x-webdav-auth', 'content-type', 'if-match', 'depth', 'destination']) {
+        for (const h of ['authorization', 'content-type', 'if-match', 'if-none-match', 'depth', 'destination']) {
           if (req.headers[h]) headers[h] = req.headers[h]
         }
+        if (req.headers['x-webdav-auth']) headers['authorization'] = req.headers['x-webdav-auth']
         const chunks = []
         for await (const chunk of req) chunks.push(chunk)
         const body = chunks.length ? Buffer.concat(chunks) : undefined
         try {
           const upstream = await fetch(target, { method: req.method, headers, body })
           const resHeaders = {}
-          for (const h of ['content-type', 'etag', 'last-modified', 'dav', 'allow']) {
+          for (const h of ['content-type', 'etag', 'last-modified', 'dav', 'allow', 'if-match', 'if-none-match']) {
             const v = upstream.headers.get(h)
             if (v) resHeaders[h] = v
           }

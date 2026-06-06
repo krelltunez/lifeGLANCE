@@ -26,7 +26,7 @@ export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setC
     applyPayload: makeApplyPayload(setMilestones, setChapters),
     mergePayloads,
 
-    proxyUrl: import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy',
+    proxyUrl: import.meta.env.VITE_WEBDAV_PROXY_URL ?? '',
 
     onStatusChange: setSyncStatus,
     onError: (msg, code, isHardStop) => {
