@@ -90,11 +90,17 @@ async function putEventFile(cfg, envelope) {
 
 // PROPFIND the events directory and return a sorted list of .json filenames.
 async function listEventFiles(cfg) {
-  const res = await proxyFetch(
-    cfg, '', 'PROPFIND',
-    { 'Depth': '1', 'Content-Type': 'application/xml' },
-    '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>',
-  )
+  let res
+  try {
+    res = await proxyFetch(
+      cfg, '', 'PROPFIND',
+      { 'Depth': '1', 'Content-Type': 'application/xml' },
+      '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>',
+    )
+  } catch (err) {
+    err.transient = true
+    throw err
+  }
   if (!res.ok) {
     const err = new Error(`PROPFIND failed: ${res.status}`)
     err.transient = res.status >= 500
