@@ -162,7 +162,7 @@ export default function IntegrationSettings() {
           <p className="settings-note" style={{ marginTop: '0.5rem' }}>
             lifeGLANCE and dayGLANCE must point at the same WebDAV endpoint and
             events path. Milestones you mark "track as dayGLANCE Goal" will appear
-            as tasks in dayGLANCE; Goal completions and date changes sync back here.
+            as goals in dayGLANCE; Goal completions and date changes sync back here.
           </p>
         </>
       )}
