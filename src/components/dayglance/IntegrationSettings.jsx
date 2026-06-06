@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { loadIntentsConfig, saveIntentsConfig, DEFAULT_CONFIG } from '../../lib/intentsTransport.js'
 
-const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? ''
+const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy'
 
 // Section shown inside SettingsModal for the dayGLANCE integration.
 // All integration UI is gated behind the user enabling the integration and

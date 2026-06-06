@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG = {
 }
 
 // Proxy URL from the build env — same Vercel function used by the sync layer.
-const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? ''
+const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy'
 
 export function loadIntentsConfig() {
   try {
