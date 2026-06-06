@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { pollEvents, isIntegrationEnabled } from '../lib/intentsTransport.js'
-import { ACTIONS, NOTIFY_EVENTS, SOURCE_APP_LIFEGLANCE, SOURCE_APP_DAYGLANCE } from '../lib/intents.js'
+import { ACTIONS, SOURCE_APPS } from '@glance-apps/intents'
 
 // Polls the WebDAV events directory while the component is mounted (foreground).
 // Calls the appropriate handler for each inbound event:
@@ -30,11 +30,9 @@ export function useIntentPoller({
       const { action, payload, event_id, emitted_by } = envelope
       activityRef.current?.({ type: 'received', event_id, action, emitted_by, payload })
 
-      if (action === ACTIONS.CREATE && emitted_by === SOURCE_APP_DAYGLANCE) {
-        // dayGLANCE is pushing a new Goal → create a mirrored milestone in lifeGLANCE.
+      if (action === ACTIONS.CREATE && emitted_by === SOURCE_APPS.DAYGLANCE) {
         await createRef.current?.(payload)
-      } else if (action === ACTIONS.NOTIFY && payload.source_app === SOURCE_APP_LIFEGLANCE) {
-        // dayGLANCE is reporting a state change on one of our tasks.
+      } else if (action === ACTIONS.NOTIFY && payload.source_app === SOURCE_APPS.LIFEGLANCE) {
         await notifyRef.current?.(payload)
       }
     })

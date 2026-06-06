@@ -29,7 +29,7 @@ import { parseIcs }      from '../../utils/icsParser'
 import * as audio from '../../utils/audio'
 import { useIntentPoller } from '../../hooks/useIntentPoller.js'
 import { emitCreateForMilestone, emitRescheduledNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
-import { NOTIFY_EVENTS, SOURCE_APP_DAYGLANCE } from '../../lib/intents.js'
+import { EVENTS } from '@glance-apps/intents'
 
 const ZOOM_RANK = { decades: 5, '30yr': 4, years: 3, months: 2, weeks: 1, custom: 3.5 }
 
@@ -200,7 +200,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     if (!current) return
 
     try {
-      if (event === NOTIFY_EVENTS.COMPLETED) {
+      if (event === EVENTS.COMPLETED) {
         const updated = await updateMilestone(current.id, {
           dayglance_completed:    true,
           dayglance_completed_at: completed_at ?? new Date().toISOString(),
@@ -208,18 +208,18 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         setMilestones(prev => prev.map(m => m.id === current.id ? updated : m))
         showToast(`Goal completed in dayGLANCE: "${current.title}"`, 'success')
 
-      } else if (event === NOTIFY_EVENTS.RESCHEDULED && due) {
+      } else if (event === EVENTS.RESCHEDULED && due) {
         const updated = await updateMilestone(current.id, { date: new Date(due) }, current)
         setMilestones(prev => prev.map(m => m.id === current.id ? updated : m))
 
-      } else if (event === NOTIFY_EVENTS.UPDATED && title && title !== current.title) {
+      } else if (event === EVENTS.UPDATED && title && title !== current.title) {
         const updated = await updateMilestone(current.id, { title }, current)
         setMilestones(prev => prev.map(m => m.id === current.id ? updated : m))
 
-      } else if (event === NOTIFY_EVENTS.DELETED) {
+      } else if (event === EVENTS.DELETED) {
         showToast(`dayGLANCE Goal deleted — "${current.title}" still exists here.`, 'info')
 
-      } else if (event === NOTIFY_EVENTS.UNCOMPLETED) {
+      } else if (event === EVENTS.UNCOMPLETED) {
         const updated = await updateMilestone(current.id, {
           dayglance_completed:    false,
           dayglance_completed_at: null,
