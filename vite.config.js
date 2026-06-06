@@ -1,16 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-import { resolve } from 'path'
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      // Map the published package name to the local implementation so imports
-      // of '@glance-apps/intents' work without the package being on npm.
-      '@glance-apps/intents': resolve('./src/lib/intents.js'),
-    },
-  },
   plugins: [
     react(),
     VitePWA({

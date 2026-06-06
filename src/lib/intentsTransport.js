@@ -5,10 +5,10 @@ import {
   buildEnvelope,
   parseEnvelope,
   filenameFor,
-  SOURCE_APP_LIFEGLANCE,
+  SOURCE_APPS,
   ACTIONS,
-  NOTIFY_EVENTS,
-} from './intents.js'
+  EVENTS,
+} from '@glance-apps/intents'
 
 const CONFIG_KEY = 'lifeglance-intents-config'
 const CURSOR_KEY = 'lifeglance-intents-cursor'
@@ -58,9 +58,8 @@ function targetUrl(cfg, filename = '') {
   return `${base}${dir}${filename}`
 }
 
-// Builds fetch options routing through the shared Vercel proxy when available.
-// The proxy reads the real target from the X-WebDAV-Url header, matching the
-// convention used by the sync layer's api/webdav-proxy.js.
+// Routes a fetch through the shared Vercel proxy (X-WebDAV-Url header) when
+// VITE_WEBDAV_PROXY_URL is set, matching api/webdav-proxy.js convention.
 function proxyFetch(cfg, filename, method, extraHeaders = {}, body) {
   const target = targetUrl(cfg, filename)
   const authHeader = cfg.webdavUser
@@ -81,7 +80,7 @@ function proxyFetch(cfg, filename, method, extraHeaders = {}, body) {
 async function putEventFile(cfg, envelope) {
   const res = await proxyFetch(
     cfg,
-    filenameFor(envelope.event_id),
+    filenameFor(envelope),
     'PUT',
     { 'Content-Type': 'application/json' },
     JSON.stringify(envelope),
@@ -102,7 +101,6 @@ async function listEventFiles(cfg) {
     throw err
   }
   const text = await res.text()
-  // Extract href paths and keep only event-file names (yyyyMMddTHHmmssZ-xxxxxx.json).
   const EVENT_FILE_RE = /(\d{8}T\d{6}Z-[0-9a-f]+\.json)/g
   const matches = [...text.matchAll(EVENT_FILE_RE)]
   return [...new Set(matches.map(m => m[1]))].sort()
@@ -131,12 +129,16 @@ async function getEventFile(cfg, filename) {
 export async function emitCreateForMilestone(milestone) {
   const cfg = loadIntentsConfig()
   if (!cfg.enabled || !cfg.webdavUrl.trim()) return
-  const envelope = buildEnvelope(SOURCE_APP_LIFEGLANCE, ACTIONS.CREATE, {
-    title:            milestone.title,
-    due:              milestone.date,
-    source_app:       SOURCE_APP_LIFEGLANCE,
-    source_entity_id: milestone.id,
-    notes:            milestone.note || undefined,
+  const envelope = buildEnvelope({
+    emittedBy: SOURCE_APPS.LIFEGLANCE,
+    action:    ACTIONS.CREATE,
+    payload: {
+      title:            milestone.title,
+      due:              milestone.date,
+      source_app:       SOURCE_APPS.LIFEGLANCE,
+      source_entity_id: milestone.id,
+      notes:            milestone.note || undefined,
+    },
   })
   await putEventFile(cfg, envelope)
   return envelope.event_id
@@ -147,17 +149,20 @@ export async function emitRescheduledNotify(milestone, previousDue) {
   const cfg = loadIntentsConfig()
   if (!cfg.enabled || !cfg.webdavUrl.trim()) return
   if (!milestone.dayglance_linked) return
-  const envelope = buildEnvelope(SOURCE_APP_LIFEGLANCE, ACTIONS.NOTIFY, {
-    event_id:         undefined, // top-level event_id serves this role
-    source_app:       SOURCE_APP_LIFEGLANCE,
-    source_entity_id: milestone.id,
-    event:            NOTIFY_EVENTS.RESCHEDULED,
-    task_id:          milestone.dayglance_task_id ?? '',
-    title:            milestone.title,
-    timestamp:        new Date().toISOString(),
-    due:              milestone.date,
-    previous_due:     previousDue,
-    entity_type:      'goal',
+  const envelope = buildEnvelope({
+    emittedBy: SOURCE_APPS.LIFEGLANCE,
+    action:    ACTIONS.NOTIFY,
+    payload: {
+      source_app:       SOURCE_APPS.LIFEGLANCE,
+      source_entity_id: milestone.id,
+      event:            EVENTS.RESCHEDULED,
+      task_id:          milestone.dayglance_task_id ?? '',
+      title:            milestone.title,
+      timestamp:        new Date().toISOString(),
+      due:              milestone.date,
+      previous_due:     previousDue,
+      entity_type:      'goal',
+    },
   })
   await putEventFile(cfg, envelope)
   return envelope.event_id
@@ -166,9 +171,7 @@ export async function emitRescheduledNotify(milestone, previousDue) {
 // ── Poller ────────────────────────────────────────────────────────────────────
 
 // Polls the WebDAV events directory for new events since the last cursor.
-// Calls onEvent({ action, payload, event_id, emitted_by }) for each new event.
-// Advances the cursor only on definitive outcomes (success or non-transient error).
-// Breaks out of the loop without advancing on transient errors so they are retried.
+// Advances the cursor only on definitive outcomes; holds on transient errors.
 export async function pollEvents(onEvent) {
   const cfg = loadIntentsConfig()
   if (!cfg.enabled || !cfg.webdavUrl.trim()) return
@@ -178,12 +181,11 @@ export async function pollEvents(onEvent) {
   try {
     files = await listEventFiles(cfg)
   } catch (err) {
-    if (err.transient) return  // retry next poll
+    if (err.transient) return
     console.warn('[intents] PROPFIND failed (non-transient):', err)
     return
   }
 
-  // Process only files newer than cursor (filename sort is chronological).
   const toProcess = cursor
     ? files.filter(f => f.replace('.json', '') > cursor.replace('.json', ''))
     : files
@@ -195,9 +197,9 @@ export async function pollEvents(onEvent) {
       const raw = await getEventFile(cfg, filename)
       envelope  = parseEnvelope(raw)
     } catch (err) {
-      if (err.transient) break  // transient: stop loop, retry this file next poll
+      if (err.transient) break
       console.warn('[intents] skipping malformed event file:', filename, err)
-      lastProcessed = filename  // non-transient: advance past it
+      lastProcessed = filename
       continue
     }
 
