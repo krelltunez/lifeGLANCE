@@ -52,13 +52,13 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setTestResult(null)
     try {
       // Build a temporary config to test
-      const config = { provider, url, username, password, folder }
-      // The engine exposes a test mechanism via the provider system
-      // For now we use a basic fetch to verify connectivity
-      const result = await engine?.testConnection?.(config)
-      setTestResult(result
+      const config = { provider, url, username, password, folder,
+        webdavUrl: url, nextcloudUrl: url, appPassword: password }
+      const result = await engine?.test?.(config)
+      if (!result) throw new Error('Sync engine not initialized.')
+      setTestResult(result.success
         ? { ok: true, message: 'Connection successful.' }
-        : { ok: false, message: 'Connection failed. Check your credentials and URL.' })
+        : { ok: false, message: result.error ?? 'Connection failed. Check your credentials and URL.' })
     } catch (err) {
       setTestResult({ ok: false, message: `Connection failed: ${err.message}` })
     } finally {
