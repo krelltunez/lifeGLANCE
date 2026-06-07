@@ -52,7 +52,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setTestResult(null)
     try {
       // Build a temporary config to test
-      const config = { provider, url, username, password, folder,
+      const config = { provider, url, username, password, folder, enabled: true,
         webdavUrl: url, nextcloudUrl: url, appPassword: password }
       const result = await engine?.test?.(config)
       if (!result) throw new Error('Sync engine not initialized.')
@@ -77,7 +77,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setSaving(true)
     console.log('[sync] handleSave engine=', engine, 'provider=', provider, 'url=', url)
     try {
-      const config = { provider, url, username, password, folder, encrypt,
+      const config = { provider, url, username, password, folder, encrypt, enabled: true,
         webdavUrl: url, nextcloudUrl: url, appPassword: password }
       engine?.setConfig(config)
       console.log('[sync] config set, calling sync...')
