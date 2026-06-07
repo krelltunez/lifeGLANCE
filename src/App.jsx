@@ -66,12 +66,16 @@ export default function App() {
       })
   }, [])
 
-  // Sync interval — trigger sync every 60 seconds
+  // Sync interval — trigger sync every 60 seconds with a random initial jitter
+  // so multiple browser windows don't stay phase-locked after a hot reload.
   useEffect(() => {
-    const id = setInterval(() => {
+    const jitter = Math.random() * 30_000
+    let id
+    const t = setTimeout(() => {
       getSyncEngine()?.sync()
-    }, 60_000)
-    return () => clearInterval(id)
+      id = setInterval(() => getSyncEngine()?.sync(), 60_000)
+    }, jitter)
+    return () => { clearTimeout(t); clearInterval(id) }
   }, [])
 
   // Upload on data changes (debounced 5s)
