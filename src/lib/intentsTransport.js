@@ -3,23 +3,31 @@
 
 import {
   buildEnvelope,
+  buildEncryptedEnvelope,
   parseEnvelope,
+  parseEncryptedEnvelope,
   filenameFor,
   SOURCE_APPS,
   ACTIONS,
   EVENTS,
+  NoKeyError,
+  WrongKeyError,
+  MalformedEnvelopeError,
 } from '@glance-apps/intents'
+import { loadIntentsRootKey, setupIntentsEncryption, makeDeriveFn } from './intentsKeyStore.js'
 
 const CONFIG_KEY = 'lifeglance-intents-config'
 const CURSOR_KEY = 'lifeglance-intents-cursor'
+const SALT_FILENAME = 'intents-encryption-salt.json'
 
 export const DEFAULT_CONFIG = {
-  enabled:        false,
-  webdavUrl:      '',   // https://cloud.example.com/remote.php/dav/files/user
-  webdavUser:     '',
-  webdavPass:     '',
-  eventsPath:     '/GLANCE/events/',
-  pollIntervalMin: 2,
+  enabled:           false,
+  webdavUrl:         '',   // https://cloud.example.com/remote.php/dav/files/user
+  webdavUser:        '',
+  webdavPass:        '',
+  eventsPath:        '/GLANCE/events/',
+  pollIntervalMin:   2,
+  encryptionEnabled: false,
 }
 
 // Proxy URL from the build env — same Vercel function used by the sync layer.
@@ -58,8 +66,7 @@ function targetUrl(cfg, filename = '') {
   return `${base}${dir}${filename}`
 }
 
-// Routes a fetch through the shared Vercel proxy (X-WebDAV-Url header) when
-// VITE_WEBDAV_PROXY_URL is set, matching api/webdav-proxy.js convention.
+// Routes a fetch through the shared Vercel proxy (X-WebDAV-Url header).
 function proxyFetch(cfg, filename, method, extraHeaders = {}, body) {
   const target = targetUrl(cfg, filename)
   const authHeader = cfg.webdavUser
@@ -118,7 +125,7 @@ async function getEventFile(cfg, filename) {
   try {
     res = await proxyFetch(cfg, filename, 'GET')
   } catch (err) {
-    err.transient = true  // network-level failure (TypeError / AbortError)
+    err.transient = true
     throw err
   }
   if (!res.ok) {
@@ -129,13 +136,74 @@ async function getEventFile(cfg, filename) {
   return res.json()
 }
 
+// ── Encryption salt management ────────────────────────────────────────────────
+
+// Reads the shared root salt from the events directory. Returns null if absent.
+async function loadSharedSalt(cfg) {
+  let res
+  try {
+    res = await proxyFetch(cfg, SALT_FILENAME, 'GET')
+  } catch {
+    return null
+  }
+  if (res.status === 404) return null
+  if (!res.ok) return null
+  try {
+    const json = await res.json()
+    // Salt is stored as a base64 string
+    const bin = atob(json.salt)
+    return Uint8Array.from(bin, c => c.charCodeAt(0))
+  } catch {
+    return null
+  }
+}
+
+// Writes a new shared root salt to the events directory.
+async function writeSharedSalt(cfg, saltBytes) {
+  const b64 = btoa(String.fromCharCode(...saltBytes))
+  const res = await proxyFetch(
+    cfg, SALT_FILENAME, 'PUT',
+    { 'Content-Type': 'application/json' },
+    JSON.stringify({ salt: b64 }),
+  )
+  if (!res.ok) throw new Error(`Failed to write shared salt: ${res.status}`)
+}
+
+// Sets up intents encryption for this device. Reads or creates the shared salt,
+// derives the root key from the passphrase, and persists it to IDB.
+export async function enableIntentsEncryption(passphrase) {
+  const cfg = loadIntentsConfig()
+  if (!cfg.enabled || !cfg.webdavUrl.trim()) throw new Error('Integration not configured')
+
+  let saltBytes = await loadSharedSalt(cfg)
+  if (!saltBytes) {
+    // First app to enable encryption — generate and publish the shared salt.
+    saltBytes = crypto.getRandomValues(new Uint8Array(32))
+    await writeSharedSalt(cfg, saltBytes)
+  }
+
+  await setupIntentsEncryption(passphrase, saltBytes)
+  saveIntentsConfig({ ...cfg, encryptionEnabled: true })
+}
+
 // ── Emit helpers ──────────────────────────────────────────────────────────────
+
+async function buildOutboundEnvelope(args) {
+  const cfg = loadIntentsConfig()
+  if (cfg.encryptionEnabled) {
+    const rootKey = await loadIntentsRootKey()
+    if (!rootKey) throw new Error('[intents] encryption enabled but key not set up on this device (setup_incomplete)')
+    const deriveFn = makeDeriveFn(rootKey)
+    return buildEncryptedEnvelope(args, deriveFn)
+  }
+  return buildEnvelope(args)
+}
 
 // Emit an outbound `create` to dayGLANCE for a milestone the user wants tracked.
 export async function emitCreateForMilestone(milestone) {
   const cfg = loadIntentsConfig()
   if (!cfg.enabled || !cfg.webdavUrl.trim()) return
-  const envelope = buildEnvelope({
+  const envelope = await buildOutboundEnvelope({
     emittedBy: SOURCE_APPS.LIFEGLANCE,
     action:    ACTIONS.CREATE,
     payload: {
@@ -155,7 +223,7 @@ export async function emitRescheduledNotify(milestone, previousDue) {
   const cfg = loadIntentsConfig()
   if (!cfg.enabled || !cfg.webdavUrl.trim()) return
   if (!milestone.dayglance_linked) return
-  const envelope = buildEnvelope({
+  const envelope = await buildOutboundEnvelope({
     emittedBy: SOURCE_APPS.LIFEGLANCE,
     action:    ACTIONS.NOTIFY,
     payload: {
@@ -182,6 +250,10 @@ export async function pollEvents(onEvent) {
   const cfg = loadIntentsConfig()
   if (!cfg.enabled || !cfg.webdavUrl.trim()) return
 
+  // Load root key once for the whole poll cycle.
+  const rootKey  = cfg.encryptionEnabled ? await loadIntentsRootKey() : null
+  const deriveFn = makeDeriveFn(rootKey)
+
   const cursor = loadCursor()
   let files
   try {
@@ -192,19 +264,40 @@ export async function pollEvents(onEvent) {
     return
   }
 
-  const toProcess = cursor
+  // Exclude the salt metadata file from event processing.
+  const toProcess = (cursor
     ? files.filter(f => f.replace('.json', '') > cursor.replace('.json', ''))
     : files
+  ).filter(f => f !== SALT_FILENAME)
 
   let lastProcessed = cursor
   for (const filename of toProcess) {
     let envelope
     try {
       const raw = await getEventFile(cfg, filename)
-      envelope  = parseEnvelope(raw)
+      if (raw.encrypted === true) {
+        if (!deriveFn) {
+          console.warn('[intents] skipping encrypted event (no_root_key):', filename)
+          lastProcessed = filename
+          continue
+        }
+        envelope = await parseEncryptedEnvelope(raw, deriveFn)
+      } else {
+        envelope = parseEnvelope(raw)
+      }
     } catch (err) {
       if (err.transient) break
-      console.warn('[intents] skipping malformed event file:', filename, err)
+      if (err instanceof NoKeyError || err instanceof WrongKeyError) {
+        console.warn('[intents] skipping event — key mismatch:', filename, err.name)
+        lastProcessed = filename
+        continue
+      }
+      if (err instanceof MalformedEnvelopeError) {
+        console.warn('[intents] skipping malformed event file:', filename, err)
+        lastProcessed = filename
+        continue
+      }
+      console.warn('[intents] skipping event file:', filename, err)
       lastProcessed = filename
       continue
     }

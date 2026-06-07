@@ -1,16 +1,16 @@
 import React, { useState } from 'react'
-import { loadIntentsConfig, saveIntentsConfig, DEFAULT_CONFIG } from '../../lib/intentsTransport.js'
+import { loadIntentsConfig, saveIntentsConfig, enableIntentsEncryption } from '../../lib/intentsTransport.js'
+import { loadIntentsRootKey } from '../../lib/intentsKeyStore.js'
 
 const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy'
 
-// Section shown inside SettingsModal for the dayGLANCE integration.
-// All integration UI is gated behind the user enabling the integration and
-// providing a WebDAV URL — standalone mode (no config) hides this entirely
-// from the parent via the isIntegrationEnabled() check.
 export default function IntegrationSettings() {
   const [cfg, setCfg] = useState(loadIntentsConfig)
   const [testStatus, setTestStatus] = useState(null) // null | 'testing' | 'ok' | 'error'
   const [testMsg,    setTestMsg]    = useState('')
+  const [passphrase, setPassphrase] = useState('')
+  const [encStatus,  setEncStatus]  = useState(null) // null | 'saving' | 'ok' | 'error'
+  const [encMsg,     setEncMsg]     = useState('')
 
   function update(partial) {
     setCfg(prev => {
@@ -31,11 +31,10 @@ export default function IntegrationSettings() {
         ? { Authorization: 'Basic ' + btoa(`${cfg.webdavUser}:${cfg.webdavPass}`) }
         : {}
       const extraHeaders = { ...authHeader, 'Depth': '0', 'Content-Type': 'application/xml' }
-      const fetchUrl = PROXY_URL || target
       const fetchHeaders = PROXY_URL
         ? { ...extraHeaders, 'X-WebDAV-Url': target }
         : extraHeaders
-      const res = await fetch(fetchUrl, {
+      const res = await fetch(PROXY_URL || target, {
         method:  'PROPFIND',
         headers: fetchHeaders,
         body:    '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>',
@@ -56,7 +55,35 @@ export default function IntegrationSettings() {
     }
   }
 
-  const hasUrl = !!cfg.webdavUrl.trim()
+  async function handleEncryptionToggle(enabled) {
+    if (!enabled) {
+      update({ encryptionEnabled: false })
+      setEncStatus(null)
+      setEncMsg('')
+      return
+    }
+    // Turning on — need a passphrase to derive/verify the root key
+    update({ encryptionEnabled: true })
+  }
+
+  async function handleSetupEncryption() {
+    if (!passphrase) return
+    setEncStatus('saving')
+    setEncMsg('')
+    try {
+      await enableIntentsEncryption(passphrase)
+      setCfg(loadIntentsConfig())
+      setPassphrase('')
+      setEncStatus('ok')
+      setEncMsg('Encryption enabled. Passphrase not stored — not needed again on this device.')
+    } catch (err) {
+      setEncStatus('error')
+      setEncMsg(`Setup failed: ${err.message}`)
+    }
+  }
+
+  const hasUrl      = !!cfg.webdavUrl.trim()
+  const keyReady    = cfg.encryptionEnabled  // we check IDB async; flag is sufficient for UI
 
   return (
     <div className="settings-section">
@@ -158,6 +185,51 @@ export default function IntegrationSettings() {
               onChange={e => update({ pollIntervalMin: Math.max(1, Math.min(30, Number(e.target.value))) })}
             />
           </div>
+
+          {/* Encryption */}
+          <label className="settings-toggle-row" style={{ marginTop: '0.5rem' }}>
+            <span className="settings-toggle-label">encrypt intent events</span>
+            <input
+              type="checkbox"
+              className="settings-toggle"
+              checked={cfg.encryptionEnabled}
+              onChange={e => handleEncryptionToggle(e.target.checked)}
+            />
+          </label>
+
+          {cfg.encryptionEnabled && (
+            <div className="settings-intents-field" style={{ marginTop: '0.25rem' }}>
+              <p className="settings-note" style={{ marginTop: 0, marginBottom: '0.4rem' }}>
+                Uses your cloud sync passphrase. Set up once; remains active across sessions.
+              </p>
+              <div className="settings-intents-row" style={{ alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  className="input input-sm"
+                  type="password"
+                  placeholder="enter passphrase to activate"
+                  value={passphrase}
+                  onChange={e => setPassphrase(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSetupEncryption()}
+                  autoComplete="current-password"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="btn"
+                  style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', whiteSpace: 'nowrap' }}
+                  disabled={!passphrase || encStatus === 'saving'}
+                  onClick={handleSetupEncryption}
+                >
+                  {encStatus === 'saving' ? 'activating…' : 'activate'}
+                </button>
+              </div>
+              {encStatus && encStatus !== 'saving' && (
+                <span className={`settings-note ${encStatus === 'ok' ? 'intents-test-ok' : 'intents-test-err'}`}
+                  style={{ marginTop: '0.3rem', display: 'block' }}>
+                  {encMsg}
+                </span>
+              )}
+            </div>
+          )}
 
           <p className="settings-note" style={{ marginTop: '0.5rem' }}>
             lifeGLANCE and dayGLANCE must point at the same WebDAV endpoint and
