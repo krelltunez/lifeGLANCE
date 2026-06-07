@@ -11,6 +11,14 @@ export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setC
   })()
   const appFolderName = savedSyncConfig?.folder ?? 'GLANCE/lifeglance'
 
+  // Pre-seed so the engine always takes the normal CRDT merge path.
+  // Without this, the first sync on a new device triggers onConflict which
+  // holds the engine lock permanently (no public resolveConflict() exists).
+  const KEY_LAST_SYNCED = 'lifeglance-cloud-sync-last-synced'
+  if (!localStorage.getItem(KEY_LAST_SYNCED)) {
+    localStorage.setItem(KEY_LAST_SYNCED, new Date(Date.now() - 60_000).toISOString())
+  }
+
   engine = createSyncEngine({
     storageKeyPrefix: 'lifeglance',
     cryptoDBName: 'lifeglance-crypto',

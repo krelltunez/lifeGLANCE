@@ -102,12 +102,6 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
         const { setupEncryptionKey } = await import('@glance-apps/sync')
         await setupEncryptionKey(passphrase)
       }
-      // Pre-seed last-synced so the engine treats this as a normal merge cycle
-      // rather than a "first-sync conflict" — the conflict path holds the engine
-      // lock forever with no public resolveConflict() API to release it.
-      if (!localStorage.getItem('lifeglance-cloud-sync-last-synced')) {
-        localStorage.setItem('lifeglance-cloud-sync-last-synced', new Date().toISOString())
-      }
       await engine?.sync()
       onClose()
     } catch (err) {
