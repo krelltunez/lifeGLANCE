@@ -672,6 +672,7 @@ const Timeline = forwardRef(function Timeline(
               {/* Card icons — top-right corner: camera, audio, link, recurrence (right → left) */}
               {(() => {
                 const icons = []
+                if (m.dayglance_linked) icons.push('dayglance')
                 if (m.photo_uri)  icons.push('camera')
                 if (m.media_type === 'audio') icons.push('audio')
                 if (m.media_type === 'video') icons.push('video')
@@ -681,7 +682,14 @@ const Timeline = forwardRef(function Timeline(
                   const ix = cardX + CARD_W - 21 - i * 17
                   const iy = cardY + 3
                   const op = isHL ? 0.9 : 0.52
-                  if (type === 'camera') return (
+                  if (type === 'dayglance') return (
+                    <text key="dayglance"
+                      x={ix + 7} y={iy + 10}
+                      fill={m.dayglance_completed ? '#34D399' : m.color}
+                      fontSize="0.55em" fontFamily="'Courier Prime', monospace"
+                      textAnchor="middle" opacity={isHL ? 0.9 : 0.7}
+                    >{m.dayglance_completed ? '✓' : '◈'}</text>
+                  )
                     <g key="camera" transform={`translate(${ix},${iy})`}
                        opacity={op} style={{ cursor: 'zoom-in' }}
                        onMouseEnter={e => setPhotoTip({ uri: m.photo_uri, x: e.clientX, y: e.clientY })}
