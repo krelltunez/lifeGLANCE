@@ -209,8 +209,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
           ? (recEndYear ? Number(recEndYear) : Math.max(Number(year), new Date().getFullYear()) + 3)
           : undefined,
         trackAsDayglanceGoal: integrationActive ? trackAsDg : false,
-        // Preserve existing dayGLANCE link state in edit mode
-        dayglance_linked:       isEdit ? (existing?.dayglance_linked ?? false) : undefined,
+        dayglance_linked:       isEdit ? (integrationActive ? trackAsDg : (existing?.dayglance_linked ?? false)) : undefined,
         dayglance_task_id:      isEdit ? (existing?.dayglance_task_id ?? null)  : undefined,
         dayglance_completed:    isEdit ? (existing?.dayglance_completed ?? false) : undefined,
         dayglance_completed_at: isEdit ? (existing?.dayglance_completed_at ?? null) : undefined,

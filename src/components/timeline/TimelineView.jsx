@@ -29,6 +29,8 @@ import { parseIcs }      from '../../utils/icsParser'
 import * as audio from '../../utils/audio'
 import { useIntentPoller } from '../../hooks/useIntentPoller.js'
 import { emitCreateForMilestone, emitRescheduledNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
+import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
+import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
 import { EVENTS } from '@glance-apps/intents'
 
 const ZOOM_RANK = { decades: 5, '30yr': 4, years: 3, months: 2, weeks: 1, custom: 3.5 }
@@ -98,8 +100,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const [drilledChapter,   setDrilledChapter]   = useState(null)
   const predrillRef        = useRef(null) // { zoom, customYears, panMs } — ref avoids stale-closure issues
   const [newlyAddedId,     setNewlyAddedId]     = useState(null)
-  const [summaryOpen,   setSummaryOpen]   = useState(false)
-  const [onThisDayOpen, setOnThisDayOpen] = useState(false)
+  const [summaryOpen,      setSummaryOpen]      = useState(false)
+  const [onThisDayOpen,    setOnThisDayOpen]    = useState(false)
+  const [activityLogOpen,  setActivityLogOpen]  = useState(false)
   const [icsImport,     setIcsImport]     = useState(null)  // { candidates, timedCount } | null
   const [toast,         setToast]         = useState(null)  // { message, type } | null
   const [mediaConfirm,  setMediaConfirm]  = useState(null)  // { data, existing, fileSize, remaining } | null
@@ -238,6 +241,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   useIntentPoller({
     onInboundCreate:  handleInboundCreate,
     onInboundNotify:  handleInboundNotify,
+    onActivityEntry:  appendActivityEntry,
     intervalMin:      intentsConfig?.pollIntervalMin ?? 2,
   })
 
@@ -572,6 +576,11 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           s.handleViewMode('future')
           break
         }
+        case 'l':
+        case 'L':
+          if (s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen || s.searchOpen) break
+          if (isIntegrationEnabled()) setActivityLogOpen(v => !v)
+          break
         case '/': {
           e.preventDefault() // prevent browser Quick Find (Firefox etc.) regardless
           if (s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen) break
@@ -641,6 +650,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           if (s.helpOpen)              { setHelpOpen(false); break }
           if (s.kbdOpen)               { setKbdOpen(false); break }
           if (s.searchOpen)            { setSearchOpen(false); break }
+          if (activityLogOpen)         { setActivityLogOpen(false); break }
           if (anyDrillIn)              { s.exitDrillIn(); break }
           break
         }
@@ -692,8 +702,14 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         pushHistory(newMs)
         setMilestones(newMs)
         audio.playEditSave()
+        // Emit create if the user just enabled dayGLANCE tracking for the first time.
+        if (updated.dayglance_linked && !existing.dayglance_linked) {
+          emitCreateForMilestone(updated).then(() =>
+            appendActivityEntry({ type: 'sent', action: 'create', payload: { title: updated.title } })
+          ).catch(err => console.warn('[intents] create emit failed:', err))
+        }
         // Emit rescheduled notify if this milestone is linked and the date changed.
-        if (updated.dayglance_linked && existing.date !== updated.date) {
+        if (updated.dayglance_linked && existing.dayglance_linked && existing.date !== updated.date) {
           emitRescheduledNotify(updated, existing.date).catch(err =>
             console.warn('[intents] rescheduled emit failed:', err)
           )
@@ -744,9 +760,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         setNewlyAddedId(m.id)
         // Emit outbound create to dayGLANCE if the user checked "track as dayGLANCE Goal".
         if (dgLinked) {
-          emitCreateForMilestone(m).catch(err =>
-            console.warn('[intents] create emit failed:', err)
-          )
+          emitCreateForMilestone(m).then(() =>
+            appendActivityEntry({ type: 'sent', action: 'create', payload: { title: m.title } })
+          ).catch(err => console.warn('[intents] create emit failed:', err))
         }
         // Add to any chapters the user selected in the form, and close ongoing chapters if requested.
         if (chapterIds?.length || closeChapterIds?.length) {
@@ -1586,8 +1602,12 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onImportIcsFile={handleImportIcsFile}
           onOpenCloudSync={onOpenCloudSync ? () => { setSettingsOpen(false); onOpenCloudSync() } : undefined}
           onOpenAutoBackup={() => { setSettingsOpen(false); setAutoBackupOpen(true) }}
+          onOpenActivityLog={isIntegrationEnabled() ? () => { setSettingsOpen(false); setActivityLogOpen(true) } : undefined}
           onClose={() => setSettingsOpen(false)}
         />
+      )}
+      {activityLogOpen && (
+        <ActivityLogModal onClose={() => setActivityLogOpen(false)} />
       )}
       {icsImport && (
         <IcsImportModal

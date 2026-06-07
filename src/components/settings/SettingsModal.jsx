@@ -25,6 +25,7 @@ export default function SettingsModal({
   onExportImage, onSaveBackup, onRestoreFile, onImportIcsFile,
   onOpenCloudSync,
   onOpenAutoBackup,
+  onOpenActivityLog,
   onClose,
   ultraCompact = false,
 }) {
@@ -246,6 +247,18 @@ export default function SettingsModal({
         </div>
 
         <IntegrationSettings />
+
+        {onOpenActivityLog && (
+          <div className="settings-section">
+            <button className="btn" style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+              onClick={() => { onClose(); onOpenActivityLog() }}>
+              activity log
+            </button>
+            <p className="settings-note" style={{ marginTop: '0.4rem' }}>
+              press <kbd>L</kbd> to open at any time
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
