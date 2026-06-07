@@ -2,10 +2,16 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { buildDateFromParts } from '../../utils/dates'
 
 const CHAPTER_COLORS = [
-  { hex: '#C8A96E', label: 'amber'  },
-  { hex: '#3D3580', label: 'indigo' },
-  { hex: '#E8748A', label: 'coral'  },
-  { hex: '#9370DB', label: 'purple' },
+  { hex: '#C8A96E', label: 'amber'   },
+  { hex: '#3D3580', label: 'indigo'  },
+  { hex: '#E8748A', label: 'coral'   },
+  { hex: '#9370DB', label: 'purple'  },
+  { hex: '#38B2AC', label: 'teal'    },
+  { hex: '#5CAD6E', label: 'green'   },
+  { hex: '#4A90D9', label: 'blue'    },
+  { hex: '#FB923C', label: 'orange'  },
+  { hex: '#E879F9', label: 'fuchsia' },
+  { hex: '#F87171', label: 'red'     },
 ]
 
 const MONTHS = [
