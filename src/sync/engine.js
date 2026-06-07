@@ -1,5 +1,6 @@
 import { createSyncEngine } from '@glance-apps/sync';
 import { buildPayload, buildBackupPayload, mergePayloads, makeApplyPayload } from './adapter.js';
+import { dbGetAll, dbGetAllChapters } from '../data/db.js';
 
 let engine = null;
 
@@ -29,13 +30,20 @@ export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setC
     proxyUrl: import.meta.env.VITE_WEBDAV_PROXY_URL ?? '',
 
     // First-sync conflict: remote has data but this device has never synced.
-    // Always keep local and overwrite remote — a user enabling sync for the
-    // first time should never lose their existing timeline.
-    onConflict: (_remoteData, _lastModified, _etag) => {
-      engine?.upload()
+    // Only keep local (upload) if this device actually has data — otherwise
+    // let the engine apply the remote so an empty new device doesn't wipe
+    // an existing user's timeline.
+    onConflict: async (_remoteData, _lastModified, _etag) => {
+      const [localMilestones, localChapters] = await Promise.all([dbGetAll(), dbGetAllChapters()])
+      if (localMilestones.length > 0 || localChapters.length > 0) {
+        engine?.upload()
+      }
     },
 
-    onStatusChange: setSyncStatus,
+    onStatusChange: (status) => {
+      setSyncStatus(status)
+      if (status === 'synced' || status === 'idle') setSyncError(null)
+    },
     onError: (msg, code, isHardStop) => {
       setSyncError({ message: msg, code, isHardStop });
       if (isHardStop) setSyncHalted(true);
