@@ -16,6 +16,7 @@ const SHORTCUTS = [
   { keys: ['⇧N'],            desc: 'new chapter'                            },
   { keys: ['E'],              desc: 'export image'                           },
   { keys: ['/'],              desc: 'search milestones'                      },
+  { keys: ['L'],              desc: 'dayGLANCE activity log'                 },
   { keys: ['S'],              desc: 'settings'                               },
   { keys: ['?'],              desc: 'keyboard shortcuts'                     },
   { keys: ['Esc'],            desc: 'close modal / exit chapter / exit input'},
