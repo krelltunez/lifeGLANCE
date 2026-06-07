@@ -690,6 +690,7 @@ const Timeline = forwardRef(function Timeline(
                       textAnchor="middle" opacity={isHL ? 0.9 : 0.7}
                     >{m.dayglance_completed ? '✓' : '◈'}</text>
                   )
+                  if (type === 'camera') return (
                     <g key="camera" transform={`translate(${ix},${iy})`}
                        opacity={op} style={{ cursor: 'zoom-in' }}
                        onMouseEnter={e => setPhotoTip({ uri: m.photo_uri, x: e.clientX, y: e.clientY })}
