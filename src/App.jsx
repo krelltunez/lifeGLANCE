@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import Onboarding   from './components/onboarding/Onboarding'
 import TimelineView from './components/timeline/TimelineView'
 import CloudSyncModal from './components/sync/CloudSyncModal'
@@ -7,6 +8,7 @@ import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
 
 export default function App() {
+  const { t } = useTranslation('common')
   const [screen,      setScreen]      = useState('loading')  // loading | onboarding | timeline
   const [milestones,  setMilestones]  = useState([])
   const [chapters,    setChapters]    = useState([])
@@ -153,8 +155,7 @@ export default function App() {
           </div>
           <div className="portrait-rotate-icon">&#x21BA;</div>
           <div className="portrait-message">
-            please rotate your device<br />
-            for the best experience
+            {t('portraitMessage')}
           </div>
         </div>
       )}
