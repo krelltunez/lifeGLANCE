@@ -37,6 +37,38 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
+      # ── Smoke test ────────────────────────────────────────────────────────────
+      # Build locally first (amd64 only) and verify the container starts before
+      # publishing anything to GHCR.
+
+      - name: Build image locally for smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: lifeglance:smoke
+          cache-from: type=gha
+
+      - name: Run smoke test
+        run: |
+          docker run -d --name lifeglance -p 8080:80 lifeglance:smoke
+          sleep 3
+
+          # SPA serves index.html
+          curl -sf http://localhost:8080/ | grep -q 'id="root"' \
+            || { echo "SPA check failed"; docker logs lifeglance; exit 1; }
+
+          # /api/webdav-proxy is reachable — proxy process is up inside the container
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "http://localhost:8080/api/webdav-proxy/?url=https%3A%2F%2Fexample.com%2F")
+          [ "$STATUS" != "405" ] && [ "$STATUS" != "502" ] \
+            || { echo "Proxy endpoint returned $STATUS"; docker logs lifeglance; exit 1; }
+
+          docker rm -f lifeglance
+
+      # ── Publish ───────────────────────────────────────────────────────────────
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -45,27 +77,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Extract proxy metadata
-        id: proxy-meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/krelltunez/lifeglance-proxy
-          tags: |
-            type=raw,value=latest
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-
-      - name: Build and push proxy
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.proxy
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.proxy-meta.outputs.tags }}
-          labels: ${{ steps.proxy-meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
