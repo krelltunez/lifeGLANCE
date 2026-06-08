@@ -29,5 +29,8 @@
   "activate": "activer",
   "encryptionEnabled": "Chiffrement activé. La phrase secrète n'est pas stockée — inutile de la resaisir sur cet appareil.",
   "setupFailed": "Échec de la configuration : {{message}}",
-  "integrationNote": "lifeGLANCE et dayGLANCE doivent pointer vers le même endpoint WebDAV et le même chemin d'événements. Les jalons marqués « suivre comme objectif dayGLANCE » apparaîtront comme objectifs dans dayGLANCE ; les validations d'objectifs et les changements de date se synchronisent ici."
+  "integrationNote": "lifeGLANCE et dayGLANCE doivent pointer vers le même endpoint WebDAV et le même chemin d'événements. Les jalons marqués « suivre comme objectif dayGLANCE » apparaîtront comme objectifs dans dayGLANCE ; les validations d'objectifs et les changements de date se synchronisent ici.",
+  "toastGoalAdded": "Objectif dayGLANCE ajouté : « {{title}} »",
+  "toastGoalCompleted": "« {{title}} » accompli dans dayGLANCE",
+  "toastGoalDeleted": "Objectif dayGLANCE supprimé — « {{title}} » existe toujours ici."
 }

@@ -47,6 +47,25 @@ const ZOOM_ANIM_MS = 420
 
 export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, onOpenCloudSync }) {
   const { t } = useTranslation('timeline')
+  const { t: tdg } = useTranslation('dayglance')
+  const { t: tc } = useTranslation('common')
+
+  // Computed display labels (stable within a render, i18next t is referentially stable)
+  const ZOOM_LABELS = {
+    decades: t('zoomLabelDecades'),
+    '30yr':  t('zoomLabel30yr'),
+    years:   t('zoomLabelYears'),
+    months:  t('zoomLabelMonths'),
+    weeks:   t('zoomLabelWeeks'),
+    custom:  t('zoomLabelCustom'),
+  }
+  const RECUR_LABELS = {
+    next:   t('recurLabelNext'),
+    all:    t('recurLabelAll'),
+    past:   t('recurLabelPast'),
+    future: t('recurLabelFuture'),
+  }
+
   const [zoom,          setZoom]          = useState('years')
   const [zoomAnim,      setZoomAnim]      = useState('')
   const [filter,        setFilter]        = useState(new Set())
@@ -194,7 +213,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         pushHistory(next)
         return next
       })
-      showToast(`dayGLANCE Goal added: "${m.title}"`, 'success')
+      showToast(tdg('toastGoalAdded', { title: m.title }), 'success')
     } catch (err) {
       console.error('[intents] inbound create failed:', err)
     }
@@ -213,7 +232,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           dayglance_completed_at: completed_at ?? new Date().toISOString(),
         }, current)
         setMilestones(prev => prev.map(m => m.id === current.id ? updated : m))
-        showToast(`Goal completed in dayGLANCE: "${current.title}"`, 'success')
+        showToast(tdg('toastGoalCompleted', { title: current.title }), 'success')
 
       } else if (event === EVENTS.RESCHEDULED && due) {
         const updated = await updateMilestone(current.id, { date: new Date(due) }, current)
@@ -224,7 +243,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         setMilestones(prev => prev.map(m => m.id === current.id ? updated : m))
 
       } else if (event === EVENTS.DELETED) {
-        showToast(`dayGLANCE Goal deleted — "${current.title}" still exists here.`, 'info')
+        showToast(tdg('toastGoalDeleted', { title: current.title }), 'info')
 
       } else if (event === EVENTS.UNCOMPLETED) {
         const updated = await updateMilestone(current.id, {
@@ -1275,7 +1294,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                 <button
                   className="zoom-tab active zoom-dropdown-btn"
                   onClick={() => setZoomOpen(o => !o)}>
-                  {zoom === 'custom' ? 'custom' : zoom} ▾
+                  {ZOOM_LABELS[zoom] ?? zoom} ▾
                 </button>
                 {zoomOpen && (
                   <div className="zoom-dropdown">
@@ -1283,7 +1302,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                       <button key={z}
                         className={`zoom-dropdown-item ${zoom === z ? 'active' : ''}`}
                         onClick={() => { handleZoom(z); setZoomOpen(false) }}>
-                        {z}
+                        {ZOOM_LABELS[z] ?? z}
                       </button>
                     ))}
                   </div>
@@ -1299,7 +1318,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                       const v = parseInt(e.target.value, 10)
                       if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
                     }} />
-                  <span>yr</span>
+                  <span>{t('zoomYrUnit')}</span>
                 </div>
               )}
               <button
@@ -1307,13 +1326,13 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                 onClick={() => handleViewMode(
                   viewMode === 'past' ? 'all' : viewMode === 'all' ? 'future' : 'past'
                 )}>
-                {viewMode} ↺
+                {RECUR_LABELS[viewMode] ?? viewMode} ↺
               </button>
               {hasRecurring && (
                 <button
                   className={`recur-filter-btn${recurFilter !== 'next' ? ' active' : ''}`}
                   onClick={cycleRecurFilter}>
-                  rec: {recurFilter}
+                  {t('recurCompact', { filter: RECUR_LABELS[recurFilter] ?? recurFilter })}
                 </button>
               )}
             </div>
@@ -1324,11 +1343,11 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                   {ZOOM_LEVELS.map(z => (
                     <button key={z}
                       className={`zoom-tab ${zoom === z ? 'active' : ''}`}
-                      onClick={() => handleZoom(z)}>{z}</button>
+                      onClick={() => handleZoom(z)}>{ZOOM_LABELS[z] ?? z}</button>
                   ))}
                   <button
                     className={`zoom-tab ${zoom === 'custom' ? 'active' : ''}`}
-                    onClick={() => handleZoom('custom')}>custom</button>
+                    onClick={() => handleZoom('custom')}>{t('zoomLabelCustom')}</button>
                 </div>
                 <div className="zoom-indicator">
                   {zoom === 'custom' ? (
@@ -1341,17 +1360,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                           const v = parseInt(e.target.value, 10)
                           if (!isNaN(v)) setCustomYears(Math.max(1, Math.min(200, v)))
                         }} />
-                      <span>yr</span>
+                      <span>{t('zoomYrUnit')}</span>
                     </div>
                   ) : (
-                    <TypewriterText key={zoom} text={`viewing: ${zoom}`}
+                    <TypewriterText key={zoom} text={t('viewing', { zoom: ZOOM_LABELS[zoom] ?? zoom })}
                       options={{ delay: 38, jitter: 18 }} showCursor={false} hideCursorWhenDone />
                   )}
                 </div>
               </div>
               <div className="view-tabs-row">
                 <div className="view-tabs">
-                  {[['past', '← past'], ['all', '← all →'], ['future', 'future →']].map(([mode, label]) => (
+                  {[['past', t('viewPast')], ['all', t('viewAll')], ['future', t('viewFuture')]].map(([mode, label]) => (
                     <button key={mode}
                       className={`view-tab ${viewMode === mode ? 'active' : ''}`}
                       onClick={() => handleViewMode(mode)}>{label}</button>
@@ -1361,7 +1380,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                   <button
                     className={`recur-filter-btn${recurFilter !== 'next' ? ' active' : ''}`}
                     onClick={cycleRecurFilter}>
-                    recurring: {recurFilter}
+                    {t('recurFull', { filter: RECUR_LABELS[recurFilter] ?? recurFilter })}
                   </button>
                 )}
               </div>
@@ -1371,9 +1390,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
         {/* Right: stats + settings + help + sync indicator */}
         <div className="header-right">
-          <button className="action-link" onClick={() => setSummaryOpen(true)}>stats</button>
+          <button className="action-link" onClick={() => setSummaryOpen(true)}>{t('statsBtn')}</button>
           <span className="action-sep">|</span>
-          <button className="action-link" onClick={() => setSettingsOpen(true)}>settings</button>
+          <button className="action-link" onClick={() => setSettingsOpen(true)}>{t('settingsBtn')}</button>
           <span className="action-sep">|</span>
           <button className="action-link" onClick={() => setHelpOpen(true)}>?</button>
           {onOpenCloudSync && (
@@ -1382,7 +1401,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               <button
                 className="action-link sync-status-btn"
                 onClick={onOpenCloudSync}
-                title={syncHalted ? 'Sync error (click to configure)' : syncStatus === 'syncing' ? 'Syncing...' : syncError ? 'Sync error' : 'Cloud sync'}
+                title={syncHalted ? t('syncErrorTitle') : syncStatus === 'syncing' ? t('syncingTitle') : syncError ? t('syncErrorSimple') : t('cloudSyncTitle')}
               >
                 <span
                   className="sync-dot"
@@ -1395,7 +1414,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                     background: syncHalted || syncError ? '#E85D75' : syncStatus === 'syncing' ? '#D4A800' : '#34D399',
                   }}
                 />
-                sync
+                {t('syncBtn')}
               </button>
             </>
           )}
@@ -1445,13 +1464,15 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         {isEmpty && (
           <div className="empty-state">
             <div className="empty-state-label">
-              no milestones yet.<br />add one to start your timeline.
+              {t('emptyState').split('\n').map((line, i) => (
+                <React.Fragment key={i}>{line}{i === 0 && <br />}</React.Fragment>
+              ))}
             </div>
           </div>
         )}
         {!isEmpty && filteredMilestones.length === 0 && (
           <div className="empty-state">
-            <div className="empty-state-label">no milestones in {filter.size === 1 ? 'this category' : 'these categories'}.</div>
+            <div className="empty-state-label">{t('emptyFiltered', { count: filter.size })}</div>
           </div>
         )}
       </div>
@@ -1473,17 +1494,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       {/* ── Bottom bar ─────────────────────────────────────────────────────── */}
       <div className="timeline-bottom">
         <button className="add-milestone-btn" onClick={() => setAddOpen(true)}>
-          + add milestone
+          {t('addMilestone')}
         </button>
         <button className="add-chapter-btn" onClick={openChapterCreate}>
-          + add chapter
+          {t('addChapter')}
         </button>
 
         {presentCategories.length > 0 && (
           compactFilter ? (
             <div className="filter-compact" onClick={e => e.stopPropagation()}>
               <button className={`filter-chip ${filter.size === 0 ? 'active' : ''}`}
-                onClick={() => { setFilter(new Set()); setFilterOpen(false) }}>all</button>
+                onClick={() => { setFilter(new Set()); setFilterOpen(false) }}>{t('filterAll')}</button>
               <div className="filter-dropdown-wrap">
                 <button
                   className={`filter-chip filter-dropdown-btn ${filter.size > 0 ? 'active' : ''}`}
@@ -1494,7 +1515,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                         style={{ background: presentCategories.find(c => filter.has(c.id))?.color }} />
                       {presentCategories.find(c => filter.has(c.id))?.label}
                     </>
-                  ) : filter.size > 1 ? `${filter.size} categories` : 'category'} ▾
+                  ) : filter.size > 1 ? t('filterCategories', { count: filter.size }) : t('filterCategory')} ▾
                 </button>
                 {filterOpen && (
                   <div className="filter-dropdown">
@@ -1514,7 +1535,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           ) : (
             <div className="filter-chips-inline">
               <button className={`filter-chip ${filter.size === 0 ? 'active' : ''}`}
-                onClick={() => setFilter(new Set())}>all</button>
+                onClick={() => setFilter(new Set())}>{t('filterAll')}</button>
               {presentCategories.map(cat => (
                 <button key={cat.id}
                   className={`filter-chip ${filter.has(cat.id) ? 'active' : ''}`}
@@ -1637,20 +1658,20 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       {mediaConfirm && (
         <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && setMediaConfirm(null)}>
           <div className="media-confirm-modal">
-            <p className="media-confirm-title">large file</p>
+            <p className="media-confirm-title">{t('mediaLargeFile')}</p>
             <p className="media-confirm-body">
-              This file is <strong>{fmtBytes(mediaConfirm.fileSize)}</strong>.
+              {t('mediaFileSize', { size: fmtBytes(mediaConfirm.fileSize) })}
               {mediaConfirm.remaining != null && (
-                <> You have <strong>{fmtBytes(mediaConfirm.remaining)}</strong> of storage remaining.</>
+                <> {t('mediaStorageRemaining', { size: fmtBytes(mediaConfirm.remaining) })}</>
               )}
             </p>
             <div className="media-confirm-actions">
-              <button className="btn" onClick={() => setMediaConfirm(null)}>cancel</button>
+              <button className="btn" onClick={() => setMediaConfirm(null)}>{tc('cancel')}</button>
               <button className="btn btn-filled" onClick={async () => {
                 const { data, existing } = mediaConfirm
                 setMediaConfirm(null)
                 await executeSave(data, existing)
-              }}>attach anyway</button>
+              }}>{t('mediaAttachAnyway')}</button>
             </div>
           </div>
         </div>
