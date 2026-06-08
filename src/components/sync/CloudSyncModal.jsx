@@ -110,9 +110,20 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
       engine?.setConfig(config)
       const dirUrl = `${webdavBase}/${folder}/`
       await mkdirp(dirUrl, username, password)
-      if (encrypt && passphrase) {
-        const { setupEncryptionKey } = await import('@glance-apps/sync')
-        await setupEncryptionKey(passphrase)
+      if (encrypt) {
+        const cryptoConfig = { cryptoDBName: 'lifeglance-crypto' }
+        if (passphrase) {
+          const { setupEncryptionKey } = await import('@glance-apps/sync')
+          await setupEncryptionKey(passphrase, cryptoConfig)
+        } else {
+          const { initSessionKey } = await import('@glance-apps/sync')
+          const restored = await initSessionKey(cryptoConfig)
+          if (!restored) {
+            setTestResult({ ok: false, message: 'Enter your passphrase to activate encryption.' })
+            setSaving(false)
+            return
+          }
+        }
       }
       await engine?.sync()
       onClose()
