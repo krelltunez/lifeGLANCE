@@ -78,6 +78,12 @@ jobs:
           [ "$GOT_SIZE" = "$PAYLOAD_SIZE" ] \
             || { echo "FAIL: body size mismatch"; docker logs lifeglance; exit 1; }
 
+          # 4. Bare /api/webdav-proxy with no ?url= -- expect 400, not 500
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PROXY")
+          echo "Bare proxy: $STATUS"
+          [ "$STATUS" = "400" ] \
+            || { echo "FAIL: bare proxy returned $STATUS, expected 400"; docker logs lifeglance; exit 1; }
+
       - name: Cleanup
         if: always()
         run: |
