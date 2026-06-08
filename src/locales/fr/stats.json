@@ -1,0 +1,15 @@
+{
+  "title": "statistiques de la frise",
+  "noMilestones": "aucun jalon pour l'instant",
+  "milestones": "jalons",
+  "inThePast": "dans le passé",
+  "upcoming": "à venir",
+  "timeTracked": "temps couvert",
+  "longestGap": "plus long intervalle",
+  "busiestYear": "année la plus chargée",
+  "byDecade": "par décennie",
+  "pastLabel": "← passé",
+  "futureLabel": "futur →",
+  "milestoneCount_one": "{{count}} jalon",
+  "milestoneCount_other": "{{count}} jalons"
+}

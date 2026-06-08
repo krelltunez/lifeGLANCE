@@ -1,0 +1,23 @@
+{
+  "skip": "passer",
+  "cancel": "annuler",
+  "save": "enregistrer",
+  "saveChanges": "enregistrer les modifications",
+  "delete": "supprimer",
+  "edit": "modifier",
+  "add": "ajouter",
+  "remove": "retirer",
+  "replace": "remplacer",
+  "month": "mois",
+  "year": "année",
+  "day": "jour",
+  "date": "date",
+  "settings": "paramètres",
+  "eventName": "nom de l'événement",
+  "placing": "placement…",
+  "saving": "enregistrement…",
+  "deleting": "suppression…",
+  "loading": "Chargement…",
+  "testing": "test en cours…",
+  "portraitMessage": "veuillez tourner votre appareil pour une meilleure expérience"
+}

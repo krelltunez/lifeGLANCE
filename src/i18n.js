@@ -15,6 +15,19 @@ import stats from './locales/en/stats.json'
 import importNs from './locales/en/import.json'
 import dayglance from './locales/en/dayglance.json'
 
+import frCommon from './locales/fr/common.json'
+import frOnboarding from './locales/fr/onboarding.json'
+import frMilestone from './locales/fr/milestone.json'
+import frChapter from './locales/fr/chapter.json'
+import frSettings from './locales/fr/settings.json'
+import frSync from './locales/fr/sync.json'
+import frTimeline from './locales/fr/timeline.json'
+import frSearch from './locales/fr/search.json'
+import frHelp from './locales/fr/help.json'
+import frStats from './locales/fr/stats.json'
+import frImport from './locales/fr/import.json'
+import frDayglance from './locales/fr/dayglance.json'
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -49,6 +62,20 @@ i18n
         stats,
         import: importNs,
         dayglance,
+      },
+      fr: {
+        common: frCommon,
+        onboarding: frOnboarding,
+        milestone: frMilestone,
+        chapter: frChapter,
+        settings: frSettings,
+        sync: frSync,
+        timeline: frTimeline,
+        search: frSearch,
+        help: frHelp,
+        stats: frStats,
+        import: frImport,
+        dayglance: frDayglance,
       },
     },
     interpolation: {

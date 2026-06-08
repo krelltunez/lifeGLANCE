@@ -1,0 +1,10 @@
+{
+  "today": "aujourd'hui",
+  "ongoing": "en cours",
+  "onThisDay": "ce jour-là",
+  "approx": "(approx.)",
+  "yearsOldSuffix": "ans",
+  "jumpToToday": "aller à aujourd'hui",
+  "memberCount_one": "{{count}} membre",
+  "memberCount_other": "{{count}} membres"
+}

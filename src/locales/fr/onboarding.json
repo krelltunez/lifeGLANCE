@@ -1,0 +1,22 @@
+{
+  "tagline": "Votre vie, en un coup d'œil.",
+  "begin": "commencer →",
+  "step2Eyebrow": "étape 2 sur 4 — votre passé",
+  "step2Prompt": "Quel est l'un des événements les plus heureux que vous avez vécus jusqu'ici ?",
+  "step2Placeholder": "ex. Nous nous sommes mariés",
+  "step3Eyebrow": "étape 3 sur 4 — votre futur",
+  "step3Prompt": "Quelle est la chose que vous attendez le plus dans le futur ?",
+  "step3Placeholder": "ex. Voyage au Japon",
+  "step4Eyebrow": "étape 4 sur 4 — votre frise",
+  "step4Prompt": "Voilà votre vie, en un coup d'œil.",
+  "approximateIsFine": "une approximation suffit",
+  "errorPastEvent": "Cet événement doit être dans le passé.",
+  "errorFutureEvent": "Cet événement doit être dans le futur.",
+  "placeOnTimeline": "ajouter à ma frise →",
+  "lookingBack": "en regardant en arrière",
+  "lookingAhead": "en regardant devant",
+  "noPastEvent": "aucun événement passé ajouté",
+  "noFutureEvent": "aucun événement futur ajouté",
+  "openTimeline": "ouvrir ma frise →",
+  "keyboardShortcutHint": "appuyez sur <kbd>?</kbd> à tout moment pour les raccourcis clavier"
+}

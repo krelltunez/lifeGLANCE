@@ -1,0 +1,16 @@
+{
+  "title": "importer depuis le calendrier",
+  "notice": "L'import est conçu pour les jalons de vie — anniversaires, diplômes, voyages. Décochez ce qui ne convient pas.",
+  "allDayEventsFound_one": "{{count}} événement toute la journée trouvé",
+  "allDayEventsFound_other": "{{count}} événements toute la journée trouvés",
+  "timedEventsSkipped_one": "· {{count}} événement horodaté ignoré",
+  "timedEventsSkipped_other": "· {{count}} événements horodatés ignorés",
+  "noEvents": "Aucun événement toute la journée trouvé dans ce fichier.",
+  "deselectAll": "tout désélectionner",
+  "selectAll": "tout sélectionner",
+  "titleColumn": "titre",
+  "categoryColumn": "catégorie",
+  "annual": "annuel",
+  "importButton_one": "importer {{count}} jalon",
+  "importButton_other": "importer {{count}} jalons"
+}
