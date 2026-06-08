@@ -4,3 +4,9 @@ services:
     ports:
       - "6868:80"
     restart: unless-stopped
+    depends_on:
+      - proxy
+
+  proxy:
+    image: ghcr.io/krelltunez/lifeglance-proxy:latest
+    restart: unless-stopped

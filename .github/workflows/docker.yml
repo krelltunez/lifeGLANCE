@@ -47,3 +47,25 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Extract proxy metadata
+        id: proxy-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/krelltunez/lifeglance-proxy
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push proxy
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.proxy
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.proxy-meta.outputs.tags }}
+          labels: ${{ steps.proxy-meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
