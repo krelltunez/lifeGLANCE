@@ -78,6 +78,34 @@ export default function App() {
     return () => { clearTimeout(t); clearInterval(id) }
   }, [])
 
+  // Auto-backup timer — checks every 60s if a scheduled backup is due.
+  // Skips if cloud sync encryption is configured but the session key isn't loaded yet
+  // (avoids writing unencrypted backup files).
+  useEffect(() => {
+    const INTERVALS = { hourly: 3_600_000, daily: 86_400_000, weekly: 604_800_000 }
+    const tick = async () => {
+      try {
+        const backupCfg = JSON.parse(localStorage.getItem('lifeglance-auto-backup-config') ?? 'null')
+        if (!backupCfg?.remoteEnabled) return
+        const freq = backupCfg.frequency ?? 'daily'
+        const interval = INTERVALS[freq] ?? INTERVALS.daily
+        const lastKey = `lifeglance-backup-last-${freq}`
+        const last = Number(localStorage.getItem(lastKey) ?? '0')
+        if (Date.now() - last < interval) return
+        const engine = getSyncEngine()
+        const syncCfg = engine?.getConfig()
+        if (!syncCfg?.enabled) return
+        if (syncCfg?.encrypt && !engine?.hasEncryptionReady?.()) return
+        await engine?.runBackup(freq)
+        localStorage.setItem(lastKey, String(Date.now()))
+      } catch (err) {
+        console.error('[auto-backup]', err)
+      }
+    }
+    const id = setInterval(tick, 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   // Upload on data changes (debounced 5s)
   const uploadTimerRef = useRef(null)
   useEffect(() => {
