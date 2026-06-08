@@ -95,21 +95,21 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   }
 
   async function handleSave() {
-    if (!isExisting && encrypt) {
-      if (!passphrase) return
-      if (passphrase !== confirmPass) {
-        setTestResult({ ok: false, message: 'Passphrases do not match.' })
-        return
-      }
+    if (!isExisting && encrypt && !passphrase) return
+    if (!isExisting && encrypt && passphrase !== confirmPass) {
+      setTestResult({ ok: false, message: 'Passphrases do not match.' })
+      return
     }
     setSaving(true)
     try {
       const webdavBase = resolveWebdavBase(provider, url, username)
-      const config = { provider, url, username, password, folder, encrypt, encryptionEnabled: encrypt, enabled: true,
-        webdavUrl: webdavBase, nextcloudUrl: url, appPassword: password }
-      engine?.setConfig(config)
+      const baseConfig = {
+        provider, url, username, password, folder, encrypt, enabled: true,
+        webdavUrl: webdavBase, nextcloudUrl: url, appPassword: password,
+      }
       const dirUrl = `${webdavBase}/${folder}/`
       await mkdirp(dirUrl, username, password)
+
       if (encrypt) {
         const cryptoConfig = { cryptoDBName: 'lifeglance-crypto' }
         if (passphrase) {
@@ -117,15 +117,23 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
           await setupEncryptionKey(passphrase, cryptoConfig)
         } else {
           const { initSessionKey } = await import('@glance-apps/sync')
-          const restored = await initSessionKey(cryptoConfig)
-          if (!restored) {
+          const ok = await initSessionKey(cryptoConfig)
+          if (!ok) {
             setTestResult({ ok: false, message: 'Enter your passphrase to activate encryption.' })
             setSaving(false)
             return
           }
         }
+        // Key is loaded — persist config with encryptionEnabled and immediately
+        // upload so the plaintext file on the server is overwritten encrypted.
+        engine?.setConfig({ ...baseConfig, encryptionEnabled: true })
+        await engine?.upload()
+      } else {
+        const { clearEncryptionKey } = await import('@glance-apps/sync')
+        await clearEncryptionKey({ cryptoDBName: 'lifeglance-crypto' })
+        engine?.setConfig({ ...baseConfig, encryptionEnabled: false })
+        engine?.upload().catch(console.error)
       }
-      await engine?.sync()
       onClose()
     } catch (err) {
       console.error('[sync] save failed:', err)
