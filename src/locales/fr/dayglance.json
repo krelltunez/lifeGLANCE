@@ -17,6 +17,7 @@
   "eventsPath": "Chemin des événements",
   "eventsPathDefault": "(défaut : /GLANCE/events/)",
   "testing": "test en cours…",
+  "testConnection": "tester la connexion",
   "connectionOk": "Connecté — le répertoire d'événements est accessible.",
   "directoryNotFound": "Répertoire d'événements introuvable (404). Créez-le d'abord : {{path}}",
   "unexpectedResponse": "Réponse inattendue : {{status}} {{statusText}}",

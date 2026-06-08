@@ -162,7 +162,7 @@ export default function IntegrationSettings() {
               disabled={!hasUrl || testStatus === 'testing'}
               onClick={handleTest}
             >
-              {testStatus === 'testing' ? t('testing') : ts('testConnection')}
+              {testStatus === 'testing' ? t('testing') : t('testConnection')}
             </button>
             {testStatus && testStatus !== 'testing' && (
               <span className={`settings-note ${testStatus === 'ok' ? 'intents-test-ok' : 'intents-test-err'}`}

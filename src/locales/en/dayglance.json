@@ -17,6 +17,7 @@
   "eventsPath": "Events path",
   "eventsPathDefault": "(default: /GLANCE/events/)",
   "testing": "testing…",
+  "testConnection": "test connection",
   "connectionOk": "Connected - events directory is reachable.",
   "directoryNotFound": "Events directory not found (404). Create it first: {{path}}",
   "unexpectedResponse": "Unexpected response: {{status}} {{statusText}}",
