@@ -8,8 +8,9 @@ on:
     types: [published]
 
 jobs:
-  # Runs on every push and PR so broken images never reach GHCR.
-  smoke-test:
+  # Runs on every push and PR to verify the image builds and passes the
+  # WebDAV round-trip test before anything reaches GHCR.
+  test:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -90,9 +91,9 @@ jobs:
           docker rm -f lifeglance webdav || true
           docker network rm test-net || true
 
-  # Only runs on release, and only if smoke-test passes.
-  publish:
-    needs: smoke-test
+  # Runs on release only, gated on test passing.
+  publish-to-ghcr:
+    needs: test
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     env:
