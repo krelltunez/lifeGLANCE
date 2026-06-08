@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function SyncPassphraseModal({ onClose, onUnlocked }) {
+  const { t } = useTranslation('sync')
   const [passphrase, setPassphrase] = useState('')
   const [error,      setError]      = useState(null)
   const [loading,    setLoading]    = useState(false)
@@ -15,7 +17,7 @@ export default function SyncPassphraseModal({ onClose, onUnlocked }) {
       setSyncPassphrase(passphrase)
       onUnlocked()
     } catch (err) {
-      setError('Incorrect passphrase. Please try again.')
+      setError(t('incorrectPassphrase'))
     } finally {
       setLoading(false)
     }
@@ -25,19 +27,19 @@ export default function SyncPassphraseModal({ onClose, onUnlocked }) {
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="sheet" style={{ maxWidth: '420px' }}>
         <div className="sheet-header">
-          <span className="sheet-title">enter sync passphrase</span>
+          <span className="sheet-title">{t('passphraseModalTitle')}</span>
           <button className="sheet-close" onClick={onClose}>&#x2715;</button>
         </div>
 
         <p className="settings-note" style={{ marginBottom: '1rem' }}>
-          Your data is encrypted. Enter your sync passphrase to continue.
+          {t('passphraseModalNote')}
         </p>
 
         <form onSubmit={handleUnlock}>
           <input
             className="input"
             type="password"
-            placeholder="passphrase"
+            placeholder={t('passphrasePlaceholderNew')}
             value={passphrase}
             onChange={e => setPassphrase(e.target.value)}
             autoFocus
@@ -52,14 +54,14 @@ export default function SyncPassphraseModal({ onClose, onUnlocked }) {
 
           <div className="sheet-actions" style={{ justifyContent: 'flex-end', gap: '0.5rem', display: 'flex' }}>
             <button type="button" className="btn" onClick={onClose}>
-              cancel
+              {t('cancel', { ns: 'common' })}
             </button>
             <button
               type="submit"
               className="btn btn-filled"
               disabled={loading || !passphrase}
             >
-              {loading ? 'unlocking...' : 'unlock'}
+              {loading ? t('unlocking') : t('unlock')}
             </button>
           </div>
         </form>

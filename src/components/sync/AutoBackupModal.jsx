@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getSyncEngine } from '../../sync/engine'
 
 const FREQUENCIES = [
@@ -14,6 +15,8 @@ function loadBackupConfig() {
 }
 
 function SettingsTab({ onClose }) {
+  const { t } = useTranslation('sync')
+  const { t: tc } = useTranslation('common')
   const engine = getSyncEngine()
   const existingConfig = engine?.getConfig() ?? null
   const savedBackupConfig = loadBackupConfig()
@@ -30,7 +33,7 @@ function SettingsTab({ onClose }) {
 
   function handleSave() {
     localStorage.setItem(BACKUP_CONFIG_KEY, JSON.stringify({ remoteEnabled, frequency }))
-    setResult({ ok: true, message: 'Settings saved.' })
+    setResult({ ok: true, message: t('settingsSaved') })
     setTimeout(() => { setResult(null); onClose() }, 1200)
   }
 
@@ -41,10 +44,10 @@ function SettingsTab({ onClose }) {
       const config = { provider, url, username, password }
       const ok = await engine?.testConnection?.(config)
       setResult(ok
-        ? { ok: true, message: 'Connection successful.' }
-        : { ok: false, message: 'Connection failed.' })
+        ? { ok: true, message: t('connectionSuccessful') }
+        : { ok: false, message: t('connectionFailedSimple') })
     } catch (err) {
-      setResult({ ok: false, message: `Error: ${err.message}` })
+      setResult({ ok: false, message: t('error', { message: err.message }) })
     } finally {
       setTesting(false)
     }
@@ -55,9 +58,9 @@ function SettingsTab({ onClose }) {
     setResult(null)
     try {
       await engine?.runBackup(frequency)
-      setResult({ ok: true, message: 'Backup complete.' })
+      setResult({ ok: true, message: t('backupComplete') })
     } catch (err) {
-      setResult({ ok: false, message: `Backup failed: ${err.message}` })
+      setResult({ ok: false, message: t('backupFailed', { message: err.message }) })
     } finally {
       setBackingUp(false)
     }
@@ -76,15 +79,15 @@ function SettingsTab({ onClose }) {
           background: '#2a1f10',
           color: '#D4A800',
         }}>
-          Cloud Sync must be configured first. Auto-backup uploads to the same server.
+          {t('cloudSyncRequired')}
         </div>
       )}
 
       {/* Remote backups */}
       <div className="settings-section">
-        <div className="settings-label">remote backups</div>
+        <div className="settings-label">{t('remoteBackupsLabel')}</div>
         <label className="settings-toggle-row">
-          <span className="settings-toggle-label">enable automatic remote backups</span>
+          <span className="settings-toggle-label">{t('enableRemoteBackups')}</span>
           <input
             type="checkbox"
             className="settings-toggle"
@@ -97,29 +100,29 @@ function SettingsTab({ onClose }) {
         {remoteEnabled && (
           <>
             <div style={{ marginTop: '0.75rem' }}>
-              <div className="settings-label">server url</div>
+              <div className="settings-label">{t('serverUrlLabel')}</div>
               <input
                 className="input"
                 type="url"
-                placeholder="https://your-nextcloud.example.com"
+                placeholder={t('nextcloudPlaceholder')}
                 value={url}
                 onChange={e => setUrl(e.target.value)}
                 style={{ width: '100%' }}
               />
             </div>
             <div style={{ marginTop: '0.5rem' }}>
-              <div className="settings-label">username</div>
+              <div className="settings-label">{t('usernameLabel')}</div>
               <input
                 className="input"
                 type="text"
-                placeholder="your username"
+                placeholder={t('usernamePlaceholder')}
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 style={{ width: '100%' }}
               />
             </div>
             <div style={{ marginTop: '0.5rem' }}>
-              <div className="settings-label">password</div>
+              <div className="settings-label">{t('passwordLabel')}</div>
               <input
                 className="input"
                 type="password"
@@ -130,7 +133,7 @@ function SettingsTab({ onClose }) {
               />
             </div>
             <div style={{ marginTop: '0.5rem' }}>
-              <div className="settings-label">frequency</div>
+              <div className="settings-label">{t('frequencyLabel')}</div>
               <select
                 className="input"
                 value={frequency}
@@ -147,7 +150,7 @@ function SettingsTab({ onClose }) {
 
         {!remoteEnabled && syncConfigured && (
           <div style={{ marginTop: '0.75rem' }}>
-            <div className="settings-label">frequency</div>
+            <div className="settings-label">{t('frequencyLabel')}</div>
             <select
               className="input"
               value={frequency}
@@ -184,7 +187,7 @@ function SettingsTab({ onClose }) {
               onClick={handleTest}
               disabled={testing || !url || !username}
             >
-              {testing ? 'testing...' : 'test connection'}
+              {testing ? t('testing') : t('testConnection')}
             </button>
           )}
           {syncConfigured && (
@@ -194,7 +197,7 @@ function SettingsTab({ onClose }) {
               onClick={handleBackupNow}
               disabled={backingUp}
             >
-              {backingUp ? 'backing up...' : 'backup now'}
+              {backingUp ? t('backingUp') : t('backupNow')}
             </button>
           )}
         </div>
@@ -203,23 +206,24 @@ function SettingsTab({ onClose }) {
           style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
           onClick={handleSave}
         >
-          save
+          {tc('save')}
         </button>
       </div>
 
       <p className="settings-note" style={{ marginTop: '0.75rem' }}>
-        Only enable on one device. If you use multiple devices, use Cloud Sync to keep them in sync and set up remote backups on your primary device only.
+        {t('backupNote')}
       </p>
     </div>
   )
 }
 
 function HistoryTab() {
+  const { t } = useTranslation('sync')
+  const { t: tc } = useTranslation('common')
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Load backup records from the engine's backup IndexedDB
     async function load() {
       try {
         const engine = getSyncEngine()
@@ -235,11 +239,11 @@ function HistoryTab() {
   }, [])
 
   if (loading) {
-    return <p className="settings-note">Loading...</p>
+    return <p className="settings-note">{tc('loading')}</p>
   }
 
   if (records.length === 0) {
-    return <p className="settings-note">No backups yet.</p>
+    return <p className="settings-note">{t('noBackupsYet')}</p>
   }
 
   return (
@@ -261,13 +265,15 @@ function HistoryTab() {
 }
 
 export default function AutoBackupModal({ onClose }) {
+  const { t } = useTranslation('sync')
+  const { t: tc } = useTranslation('common')
   const [tab, setTab] = useState('settings')
 
   return (
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="sheet settings-sheet">
         <div className="sheet-header">
-          <span className="sheet-title">auto-backup</span>
+          <span className="sheet-title">{t('autoBackupTitle')}</span>
           <button className="sheet-close" onClick={onClose}>&#x2715;</button>
         </div>
 
@@ -277,13 +283,13 @@ export default function AutoBackupModal({ onClose }) {
             className={`zoom-tab ${tab === 'settings' ? 'active' : ''}`}
             onClick={() => setTab('settings')}
           >
-            settings
+            {tc('settings')}
           </button>
           <button
             className={`zoom-tab ${tab === 'history' ? 'active' : ''}`}
             onClick={() => setTab('history')}
           >
-            history
+            {t('historyTab')}
           </button>
         </div>
 

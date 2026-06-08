@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { saveCategories } from '../../utils/colors'
 import { isMuted, setMuted } from '../../utils/audio'
 import IntegrationSettings from '../dayglance/IntegrationSettings'
@@ -29,6 +30,8 @@ export default function SettingsModal({
   onClose,
   ultraCompact = false,
 }) {
+  const { t } = useTranslation('settings')
+  const { t: tc } = useTranslation('common')
   const [newLabel,   setNewLabel]   = useState('')
   const [newColor,   setNewColor]   = useState(COLOR_PALETTE[0])
   const [soundOn,    setSoundOn]    = useState(() => !isMuted())
@@ -83,15 +86,15 @@ export default function SettingsModal({
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="sheet settings-sheet">
         <div className="sheet-header">
-          <span className="sheet-title">settings</span>
+          <span className="sheet-title">{t('title')}</span>
           <button className="sheet-close" onClick={onClose}>✕</button>
         </div>
 
         {/* ── Text size ─────────────────────────────────────────────────── */}
         <div className="settings-section">
-          <div className="settings-label">text size</div>
+          <div className="settings-label">{t('textSizeLabel')}</div>
           {ultraCompact ? (
-            <div className="settings-note">text size adjustment unavailable on short screens</div>
+            <div className="settings-note">{t('textSizeUnavailable')}</div>
           ) : (
             <div className="zoom-tabs">
               {TEXT_SIZES_ALL.map(s => (
@@ -105,15 +108,15 @@ export default function SettingsModal({
 
         {/* ── Display ───────────────────────────────────────────────────── */}
         <div className="settings-section">
-          <div className="settings-label">display</div>
+          <div className="settings-label">{t('displayLabel')}</div>
           <label className="settings-toggle-row">
-            <span className="settings-toggle-label">auto-cluster nearby milestones</span>
+            <span className="settings-toggle-label">{t('clustering')}</span>
             <input type="checkbox" className="settings-toggle"
               checked={clustering}
               onChange={e => onClusteringChange(e.target.checked)} />
           </label>
           <label className="settings-toggle-row">
-            <span className="settings-toggle-label">sound effects</span>
+            <span className="settings-toggle-label">{t('soundEffects')}</span>
             <input type="checkbox" className="settings-toggle"
               checked={soundOn}
               onChange={e => { setSoundOn(e.target.checked); setMuted(!e.target.checked) }} />
@@ -122,7 +125,7 @@ export default function SettingsModal({
 
         {/* ── Categories ────────────────────────────────────────────────── */}
         <div className="settings-section">
-          <div className="settings-label">categories</div>
+          <div className="settings-label">{t('categoriesLabel')}</div>
 
           <div className="settings-cat-list">
             {categories.map(cat => {
@@ -131,11 +134,11 @@ export default function SettingsModal({
                 <div key={cat.id} className="settings-cat-row">
                   <div className="settings-cat-dot" style={{ background: cat.color }} />
                   <span className="settings-cat-name">{cat.label}</span>
-                  {inUse && <span className="settings-cat-inuse">in use</span>}
+                  {inUse && <span className="settings-cat-inuse">{t('categoryInUse')}</span>}
                   <button
                     className="settings-cat-del"
                     disabled={inUse}
-                    title={inUse ? 'cannot delete — category is in use' : 'delete category'}
+                    title={inUse ? t('categoryCannotDelete') : t('categoryDelete')}
                     onClick={() => handleDelete(cat.id)}
                   >✕</button>
                 </div>
@@ -147,7 +150,7 @@ export default function SettingsModal({
             <div className="settings-cat-add-row">
               <input
                 className="input input-sm"
-                placeholder="new category name"
+                placeholder={t('categoryNewPlaceholder')}
                 value={newLabel}
                 onChange={e => setNewLabel(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAdd()}
@@ -159,7 +162,7 @@ export default function SettingsModal({
                 style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', flexShrink: 0 }}
                 disabled={!newLabel.trim()}
                 onClick={handleAdd}
-              >add</button>
+              >{tc('add')}</button>
             </div>
             <div className="settings-palette">
               {COLOR_PALETTE.map(c => (
@@ -176,9 +179,9 @@ export default function SettingsModal({
 
         {/* ── You ───────────────────────────────────────────────────────── */}
         <div className="settings-section">
-          <div className="settings-label">you</div>
+          <div className="settings-label">{t('youLabel')}</div>
           <div className="settings-you-row">
-            <span className="settings-you-label">birthday</span>
+            <span className="settings-you-label">{t('birthday')}</span>
             <input
               type="date"
               className="settings-birthday-input"
@@ -192,17 +195,17 @@ export default function SettingsModal({
         {/* ── Cloud sync ────────────────────────────────────────────────── */}
         {(onOpenCloudSync || onOpenAutoBackup) && (
           <div className="settings-section">
-            <div className="settings-label">cloud</div>
+            <div className="settings-label">{t('cloudLabel')}</div>
             <div className="settings-backup-row">
               {onOpenCloudSync && (
                 <button className="btn"
                   style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-                  onClick={() => { onClose(); onOpenCloudSync() }}>cloud sync</button>
+                  onClick={() => { onClose(); onOpenCloudSync() }}>{t('cloudSync')}</button>
               )}
               {onOpenAutoBackup && (
                 <button className="btn"
                   style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-                  onClick={() => { onClose(); onOpenAutoBackup() }}>auto-backup</button>
+                  onClick={() => { onClose(); onOpenAutoBackup() }}>{t('autoBackup')}</button>
               )}
             </div>
           </div>
@@ -210,20 +213,20 @@ export default function SettingsModal({
 
         {/* ── Data / backup ─────────────────────────────────────────────── */}
         <div className="settings-section">
-          <div className="settings-label">data</div>
+          <div className="settings-label">{t('dataLabel')}</div>
           <div className="settings-backup-row">
             <button className="btn"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-              onClick={onExportImage}>export image</button>
+              onClick={onExportImage}>{t('exportImage')}</button>
             <button className="btn"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-              onClick={onSaveBackup}>save backup</button>
+              onClick={onSaveBackup}>{t('saveBackup')}</button>
             <button className="btn"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-              onClick={() => fileRef.current?.click()}>restore from file</button>
+              onClick={() => fileRef.current?.click()}>{t('restoreFromFile')}</button>
             <button className="btn"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-              onClick={() => icsFileRef.current?.click()}>import .ics</button>
+              onClick={() => icsFileRef.current?.click()}>{t('importIcs')}</button>
             <input ref={fileRef} type="file" accept=".json"
               style={{ display: 'none' }} onChange={handleFileChange} />
             <input ref={icsFileRef} type="file" accept=".ics"
@@ -232,17 +235,17 @@ export default function SettingsModal({
           {persisted === false && (
             <div className="settings-persist-notice">
               <span className="settings-note" style={{ marginTop: 0 }}>
-                allow persistent storage so the browser never silently clears your data.
+                {t('persistNotice')}
               </span>
               <button
                 className="btn"
                 style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', flexShrink: 0 }}
                 onClick={handleRequestPersist}
-              >allow persistent storage</button>
+              >{t('persistButton')}</button>
             </div>
           )}
           <p className="settings-note" style={{ marginTop: '0.5rem' }}>
-            .ics import supports all-day events only. Timed events are skipped — the import dialog shows a count of how many were omitted.
+            {t('icsNote')}
           </p>
         </div>
 
@@ -252,10 +255,10 @@ export default function SettingsModal({
           <div className="settings-section">
             <button className="btn" style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
               onClick={() => { onClose(); onOpenActivityLog() }}>
-              activity log
+              {t('activityLog')}
             </button>
             <p className="settings-note" style={{ marginTop: '0.4rem' }}>
-              press <kbd>L</kbd> to open at any time
+              {t('activityLogNote', { key: 'L' })}
             </p>
           </div>
         )}

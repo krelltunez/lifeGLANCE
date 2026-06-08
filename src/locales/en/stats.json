@@ -1,2 +1,15 @@
 {
+  "title": "timeline stats",
+  "noMilestones": "no milestones yet",
+  "milestones": "milestones",
+  "inThePast": "in the past",
+  "upcoming": "upcoming",
+  "timeTracked": "time tracked",
+  "longestGap": "longest gap",
+  "busiestYear": "busiest year",
+  "byDecade": "by decade",
+  "pastLabel": "← past",
+  "futureLabel": "future →",
+  "milestoneCount_one": "{{count}} milestone",
+  "milestoneCount_other": "{{count}} milestones"
 }

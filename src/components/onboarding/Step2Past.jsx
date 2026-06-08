@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import TypewriterText from '../ui/TypewriterText'
 import { buildDateFromParts } from '../../utils/dates'
-
-const PROMPT = "What's one of the happiest events you've experienced in your life so far?"
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -10,6 +9,9 @@ const MONTHS = [
 ]
 
 export default function Step2Past({ onSubmit, onSkip }) {
+  const { t } = useTranslation('onboarding')
+  const { t: tc } = useTranslation('common')
+
   const [promptDone, setPromptDone] = useState(false)
   const [title, setTitle]   = useState('')
   const [month, setMonth]   = useState('1')
@@ -26,7 +28,7 @@ export default function Step2Past({ onSubmit, onSkip }) {
 
     const date = buildDateFromParts(month, year, 'month')
     if (date >= new Date()) {
-      setError('This should be a past event.')
+      setError(t('errorPastEvent'))
       return
     }
 
@@ -48,13 +50,13 @@ export default function Step2Past({ onSubmit, onSkip }) {
           <div className="progress-dot" />
         </div>
         <div className="onboarding-eyebrow" style={{ marginTop: '0.5rem' }}>
-          step 2 of 4 — your past
+          {t('step2Eyebrow')}
         </div>
       </div>
 
       <div className="onboarding-prompt">
         <TypewriterText
-          text={PROMPT}
+          text={t('step2Prompt')}
           options={{ delay: 22, jitter: 18 }}
           onDone={() => setPromptDone(true)}
           hideCursorWhenDone
@@ -73,11 +75,11 @@ export default function Step2Past({ onSubmit, onSkip }) {
         }}
       >
         <div>
-          <label className="field-label">event name</label>
+          <label className="field-label">{tc('eventName')}</label>
           <input
             className="input"
             type="text"
-            placeholder="e.g. We got married"
+            placeholder={t('step2Placeholder')}
             value={title}
             onChange={e => setTitle(e.target.value)}
             autoComplete="off"
@@ -87,7 +89,7 @@ export default function Step2Past({ onSubmit, onSkip }) {
 
         <div className="field-row">
           <div style={{ flex: 2 }}>
-            <label className="field-label">month</label>
+            <label className="field-label">{tc('month')}</label>
             <select
               className="input"
               value={month}
@@ -100,7 +102,7 @@ export default function Step2Past({ onSubmit, onSkip }) {
             </select>
           </div>
           <div style={{ flex: 1 }}>
-            <label className="field-label">year</label>
+            <label className="field-label">{tc('year')}</label>
             <input
               className="input"
               type="number"
@@ -113,7 +115,7 @@ export default function Step2Past({ onSubmit, onSkip }) {
           </div>
         </div>
 
-        <div className="onboarding-helper">approximate is fine</div>
+        <div className="onboarding-helper">{t('approximateIsFine')}</div>
 
         {error && (
           <div style={{ fontSize: '0.78rem', color: '#E85D75' }}>{error}</div>
@@ -121,12 +123,12 @@ export default function Step2Past({ onSubmit, onSkip }) {
 
         <div className="onboarding-actions">
           <button type="submit" className="btn" disabled={!canSubmit || busy}>
-            {busy ? 'placing…' : 'place it on my timeline →'}
+            {busy ? tc('placing') : t('placeOnTimeline')}
           </button>
         </div>
       </form>
 
-      <button className="skip-link" onClick={onSkip}>skip</button>
+      <button className="skip-link" onClick={onSkip}>{tc('skip')}</button>
     </div>
   )
 }

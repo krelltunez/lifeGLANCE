@@ -1,34 +1,37 @@
 import React from 'react'
-
-const SHORTCUTS = [
-  { keys: ['←', '→'],        desc: 'cycle past / future milestones'        },
-  { keys: ['↑', '↓'],        desc: 'zoom out / in'                          },
-  { keys: ['1–9'],            desc: 'custom zoom to N years'                 },
-  { keys: ['C'],              desc: 'custom zoom (focus input)'              },
-  { keys: ['T'],              desc: 'jump to today'                          },
-  { keys: ['P'],              desc: 'past view'                              },
-  { keys: ['A'],              desc: 'all view'                               },
-  { keys: ['F'],              desc: 'future view'                            },
-  { keys: ['⌘Z', 'Ctrl+Z'],  desc: 'undo'                                   },
-  { keys: ['⌘⇧Z', 'Ctrl+Y'], desc: 'redo'                                   },
-  { keys: ['M'],              desc: 'mute / unmute sound'                    },
-  { keys: ['n'],              desc: 'new milestone'                          },
-  { keys: ['⇧N'],            desc: 'new chapter'                            },
-  { keys: ['E'],              desc: 'export image'                           },
-  { keys: ['/'],              desc: 'search milestones'                      },
-  { keys: ['L'],              desc: 'dayGLANCE activity log'                 },
-  { keys: ['S'],              desc: 'settings'                               },
-  { keys: ['?'],              desc: 'keyboard shortcuts'                     },
-  { keys: ['Esc'],            desc: 'close modal / exit chapter / exit input'},
-]
+import { useTranslation } from 'react-i18next'
 
 export default function KeyboardShortcutsModal({ onClose }) {
+  const { t } = useTranslation('help')
+
+  const SHORTCUTS = [
+    { keys: ['←', '→'],        desc: t('shortcutCycle')              },
+    { keys: ['↑', '↓'],        desc: t('shortcutZoom')               },
+    { keys: ['1–9'],            desc: t('shortcutCustomZoomN')        },
+    { keys: ['C'],              desc: t('shortcutCustomZoomFocus')    },
+    { keys: ['T'],              desc: t('shortcutJumpToday')          },
+    { keys: ['P'],              desc: t('shortcutPastView')           },
+    { keys: ['A'],              desc: t('shortcutAllView')            },
+    { keys: ['F'],              desc: t('shortcutFutureView')         },
+    { keys: ['⌘Z', 'Ctrl+Z'],  desc: t('shortcutUndo')               },
+    { keys: ['⌘⇧Z', 'Ctrl+Y'], desc: t('shortcutRedo')               },
+    { keys: ['M'],              desc: t('shortcutMute')               },
+    { keys: ['n'],              desc: t('shortcutNewMilestone')       },
+    { keys: ['⇧N'],            desc: t('shortcutNewChapter')         },
+    { keys: ['E'],              desc: t('shortcutExport')             },
+    { keys: ['/'],              desc: t('shortcutSearch')             },
+    { keys: ['L'],              desc: t('shortcutActivityLog')        },
+    { keys: ['S'],              desc: t('shortcutSettings')           },
+    { keys: ['?'],              desc: t('shortcutKeyboardShortcuts')  },
+    { keys: ['Esc'],            desc: t('shortcutClose')              },
+  ]
+
   return (
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="sheet kbd-sheet">
 
         <div className="sheet-header">
-          <span className="sheet-title">keyboard shortcuts</span>
+          <span className="sheet-title">{t('shortcutsTitle')}</span>
           <button className="sheet-close" onClick={onClose}>✕</button>
         </div>
 

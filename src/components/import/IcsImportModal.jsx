@@ -1,6 +1,9 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export default function IcsImportModal({ candidates, timedCount, categories, onImport, onClose }) {
+  const { t } = useTranslation('import')
+  const { t: tc } = useTranslation('common')
   const [rows, setRows] = useState(candidates)
 
   const selectedCount = rows.filter(r => r.selected).length
@@ -29,28 +32,27 @@ export default function IcsImportModal({ candidates, timedCount, categories, onI
       <div className="sheet ics-sheet">
 
         <div className="sheet-header">
-          <span className="sheet-title">import from calendar</span>
+          <span className="sheet-title">{t('title')}</span>
           <button className="sheet-close" onClick={onClose}>✕</button>
         </div>
 
         <p className="ics-notice">
-          Import is designed for life milestones — birthdays, graduations, trips.
-          Uncheck anything that doesn't belong.
+          {t('notice')}
         </p>
 
         <div className="ics-stats">
           <span>
-            {candidates.length} all-day event{candidates.length !== 1 ? 's' : ''} found
+            {t('allDayEventsFound', { count: candidates.length })}
           </span>
           {timedCount > 0 && (
             <span className="ics-stats-skipped">
-              · {timedCount} timed event{timedCount !== 1 ? 's' : ''} skipped
+              {t('timedEventsSkipped', { count: timedCount })}
             </span>
           )}
         </div>
 
         {candidates.length === 0 ? (
-          <p className="ics-empty">No all-day events were found in this file.</p>
+          <p className="ics-empty">{t('noEvents')}</p>
         ) : (
           <div className="ics-table-wrap">
             <table className="ics-table">
@@ -58,11 +60,11 @@ export default function IcsImportModal({ candidates, timedCount, categories, onI
                 <tr>
                   <th>
                     <input type="checkbox" checked={allSelected} onChange={toggleAll}
-                      title={allSelected ? 'deselect all' : 'select all'} />
+                      title={allSelected ? t('deselectAll') : t('selectAll')} />
                   </th>
-                  <th>date</th>
-                  <th>title</th>
-                  <th>category</th>
+                  <th>{tc('date')}</th>
+                  <th>{t('titleColumn')}</th>
+                  <th>{t('categoryColumn')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -77,7 +79,7 @@ export default function IcsImportModal({ candidates, timedCount, categories, onI
                     </td>
                     <td className="ics-col-title">
                       <span>{row.title}</span>
-                      {row.isRecurring && <span className="ics-annual-badge">annual</span>}
+                      {row.isRecurring && <span className="ics-annual-badge">{t('annual')}</span>}
                     </td>
                     <td className="ics-col-cat">
                       <select
@@ -98,13 +100,13 @@ export default function IcsImportModal({ candidates, timedCount, categories, onI
         )}
 
         <div className="ics-actions">
-          <button className="btn" onClick={onClose}>cancel</button>
+          <button className="btn" onClick={onClose}>{tc('cancel')}</button>
           <button
             className="btn btn-filled"
             disabled={selectedCount === 0}
             onClick={handleImport}
           >
-            import {selectedCount} milestone{selectedCount !== 1 ? 's' : ''}
+            {t('importButton', { count: selectedCount })}
           </button>
         </div>
 

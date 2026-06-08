@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTypewriter } from '../../utils/typewriter'
 
-const TAGLINE = 'Your life, at a glance.'
-
 export default function Step1Welcome({ onBegin, onSkip }) {
+  const { t } = useTranslation('onboarding')
+  const TAGLINE = t('tagline')
+
   // Phase: 'life' → 'glance' → 'tagline' → 'cta'
   const [phase, setPhase] = useState('life')
 
@@ -61,12 +63,12 @@ export default function Step1Welcome({ onBegin, onSkip }) {
         }}
       >
         <button className="btn" onClick={onBegin}>
-          begin →
+          {t('begin')}
         </button>
       </div>
 
       <button className="skip-link" onClick={onSkip}>
-        skip
+        {t('skip', { ns: 'common' })}
       </button>
     </div>
   )

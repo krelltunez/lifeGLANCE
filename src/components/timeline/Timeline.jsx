@@ -2,6 +2,7 @@ import React, {
   useRef, useState, useEffect, useCallback,
   useImperativeHandle, forwardRef,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 import { dateToX, getTimeRangeForView, getTickMarks, assignLanes, getMsPerPx } from '../../utils/timeline'
 import { relativeLabel, formatDateDisplay, ageAtDate } from '../../utils/dates'
 import { dbGetMedia } from '../../data/db'
@@ -69,6 +70,7 @@ const Timeline = forwardRef(function Timeline(
   { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
   ref
 ) {
+  const { t } = useTranslation('timeline')
   const remPx = REM_PX[textSize] || 22
 
   const CARD_W      = Math.round(remPx * 7.8)
@@ -397,7 +399,7 @@ const Timeline = forwardRef(function Timeline(
               const durText      = chapterSpan(chapter.start, chapter.end)
               const fullLabel    = chapter.end
                 ? `${chapter.title} · ${durText}`
-                : `${chapter.title} · ${durText} · ongoing`
+                : `${chapter.title} · ${durText} · ${t('ongoing')}`
               const labelText    = labelMaxCh > 2
                 ? (fullLabel.length <= labelMaxCh
                     ? fullLabel
@@ -507,7 +509,7 @@ const Timeline = forwardRef(function Timeline(
               <text x={todayX} y={10} textAnchor="middle"
                 fill="#C8A96E" fontSize="0.65em"
                 fontFamily="'Courier Prime', monospace"
-                opacity={centered ? 1 : 0.90}>today</text>
+                opacity={centered ? 1 : 0.90}>{t('today')}</text>
               <text x={todayX} y={22} textAnchor="middle"
                 fill="#C8A96E" fontSize="0.60em"
                 fontFamily="'Courier Prime', monospace"
@@ -524,7 +526,7 @@ const Timeline = forwardRef(function Timeline(
                 <text x={todayX} y={61} textAnchor="middle"
                   fill="#C8A96E" fontSize="0.60em"
                   fontFamily="'Courier Prime', monospace"
-                  opacity={centered ? 0.80 : 0.55}>{todayAge} y.o.</text>
+                  opacity={centered ? 0.80 : 0.55}>{todayAge} {t('yearsOldSuffix')}</text>
               )}
             </g>
           )
@@ -665,7 +667,7 @@ const Timeline = forwardRef(function Timeline(
                   <text x={cardX + 10} y={yAge}
                     fill="rgba(200,169,110,0.52)"
                     fontSize="0.52em" fontFamily="'Courier Prime', monospace"
-                  >{age} y.o.</text>
+                  >{age} {t('yearsOldSuffix')}</text>
                 ) : null
               })()}
 
@@ -882,7 +884,7 @@ const Timeline = forwardRef(function Timeline(
             {chapterTip.chapter.title}
           </div>
           <div style={{ fontSize: '0.55rem', color: 'rgba(232,224,208,0.55)', marginTop: 2 }}>
-            {chapterSpan(chapterTip.chapter.start, chapterTip.chapter.end)}{!chapterTip.chapter.end && ' · ongoing'}
+            {chapterSpan(chapterTip.chapter.start, chapterTip.chapter.end)}{!chapterTip.chapter.end && ` · ${t('ongoing')}`}
           </div>
         </div>
       )}

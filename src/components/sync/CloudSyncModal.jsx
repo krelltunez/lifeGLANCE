@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getSyncEngine } from '../../sync/engine'
 
 const PROXY = '/api/webdav-proxy'
 
-// Recursively MKCOL a directory path, creating parents as needed.
-// Tolerates 405 (already exists) and 201 (created) as success.
 async function mkdirp(url, username, password) {
   const auth = username ? { Authorization: 'Basic ' + btoa(`${username}:${password}`) } : {}
   const res = await fetch(PROXY, { method: 'MKCOL', headers: { ...auth, 'X-WebDAV-Url': url } })
-  if (res.status === 201 || res.status === 405) return           // created or already exists
+  if (res.status === 201 || res.status === 405) return
   if (res.status === 403 || res.status === 409 || res.status === 404) {
     const parent = url.replace(/\/+$/, '').replace(/\/[^/]+$/, '/')
     if (parent && parent !== url) {
@@ -18,8 +17,6 @@ async function mkdirp(url, username, password) {
   }
 }
 
-// Resolves the full WebDAV base URL for the given provider/username combo.
-// For Nextcloud, appends /remote.php/dav/files/{username}/ if not already present.
 function resolveWebdavBase(provider, url, username) {
   const base = url.replace(/\/+$/, '')
   if (provider === 'nextcloud' && !base.includes('/remote.php/dav')) {
@@ -57,6 +54,8 @@ function SyncDot({ syncStatus, syncError, syncHalted }) {
 }
 
 export default function CloudSyncModal({ syncStatus, syncError, syncHalted, lastSynced, onClose }) {
+  const { t } = useTranslation('sync')
+  const { t: tc } = useTranslation('common')
   const engine = getSyncEngine()
   const existingConfig = engine?.getConfig() ?? null
 
@@ -69,7 +68,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   const [passphrase,  setPassphrase]  = useState('')
   const [confirmPass, setConfirmPass] = useState('')
   const [testing,     setTesting]     = useState(false)
-  const [testResult,  setTestResult]  = useState(null) // null | { ok, message }
+  const [testResult,  setTestResult]  = useState(null)
   const [saving,      setSaving]      = useState(false)
 
   const isExisting = !!existingConfig
@@ -78,17 +77,16 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setTesting(true)
     setTestResult(null)
     try {
-      // Build a temporary config to test
       const webdavBase = resolveWebdavBase(provider, url, username)
       const config = { provider, url, username, password, folder, enabled: true,
         webdavUrl: webdavBase, nextcloudUrl: url, appPassword: password }
       const result = await engine?.test?.(config)
       if (!result) throw new Error('Sync engine not initialized.')
       setTestResult(result.success
-        ? { ok: true, message: 'Connection successful.' }
-        : { ok: false, message: result.error ?? 'Connection failed. Check your credentials and URL.' })
+        ? { ok: true, message: t('connectionSuccessful') }
+        : { ok: false, message: result.error ?? t('connectionFailed') })
     } catch (err) {
-      setTestResult({ ok: false, message: `Connection failed: ${err.message}` })
+      setTestResult({ ok: false, message: t('connectionFailedError', { message: err.message }) })
     } finally {
       setTesting(false)
     }
@@ -97,7 +95,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   async function handleSave() {
     if (!isExisting && encrypt && !passphrase) return
     if (!isExisting && encrypt && passphrase !== confirmPass) {
-      setTestResult({ ok: false, message: 'Passphrases do not match.' })
+      setTestResult({ ok: false, message: t('passphraseMismatch') })
       return
     }
     setSaving(true)
@@ -119,13 +117,11 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
           const { initSessionKey } = await import('@glance-apps/sync')
           const ok = await initSessionKey(cryptoConfig)
           if (!ok) {
-            setTestResult({ ok: false, message: 'Enter your passphrase to activate encryption.' })
+            setTestResult({ ok: false, message: t('enterPassphraseToActivate') })
             setSaving(false)
             return
           }
         }
-        // Key is loaded — persist config with encryptionEnabled and immediately
-        // upload so the plaintext file on the server is overwritten encrypted.
         engine?.setConfig({ ...baseConfig, encryptionEnabled: true })
         await engine?.upload()
       } else {
@@ -137,7 +133,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
       onClose()
     } catch (err) {
       console.error('[sync] save failed:', err)
-      setTestResult({ ok: false, message: `Save failed: ${err.message}` })
+      setTestResult({ ok: false, message: t('saveFailed', { message: err.message }) })
     } finally {
       setSaving(false)
     }
@@ -154,7 +150,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
         <div className="sheet-header">
           <span className="sheet-title" style={{ display: 'flex', alignItems: 'center' }}>
             <SyncDot syncStatus={syncStatus} syncError={syncError} syncHalted={syncHalted} />
-            cloud sync
+            {t('title')}
           </span>
           <button className="sheet-close" onClick={onClose}>&#x2715;</button>
         </div>
@@ -170,7 +166,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
             color: '#E85D75',
             fontSize: '0.82rem',
           }}>
-            <strong>Sync halted:</strong> {syncError.message}
+            <strong>{t('syncHalted')}</strong> {syncError.message}
             {syncError.code && <span style={{ opacity: 0.7, marginLeft: '0.5rem' }}>[{syncError.code}]</span>}
           </div>
         )}
@@ -192,7 +188,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
 
         {/* Provider */}
         <div className="settings-section">
-          <div className="settings-label">provider</div>
+          <div className="settings-label">{t('providerLabel')}</div>
           <select
             className="input"
             value={provider}
@@ -207,11 +203,11 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
 
         {/* URL */}
         <div className="settings-section">
-          <div className="settings-label">server url</div>
+          <div className="settings-label">{t('serverUrlLabel')}</div>
           <input
             className="input"
             type="url"
-            placeholder={provider === 'koofr' ? 'https://app.koofr.net (auto-filled)' : 'https://your-nextcloud.example.com'}
+            placeholder={provider === 'koofr' ? t('koofrPlaceholder') : t('nextcloudPlaceholder')}
             value={url}
             onChange={e => setUrl(e.target.value)}
             style={{ width: '100%' }}
@@ -220,11 +216,11 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
 
         {/* Username */}
         <div className="settings-section">
-          <div className="settings-label">username</div>
+          <div className="settings-label">{t('usernameLabel')}</div>
           <input
             className="input"
             type="text"
-            placeholder="your username"
+            placeholder={t('usernamePlaceholder')}
             value={username}
             onChange={e => setUsername(e.target.value)}
             style={{ width: '100%' }}
@@ -233,11 +229,11 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
 
         {/* App Password */}
         <div className="settings-section">
-          <div className="settings-label">app password</div>
+          <div className="settings-label">{t('appPasswordLabel')}</div>
           <input
             className="input"
             type="password"
-            placeholder="app-specific password"
+            placeholder={t('appPasswordPlaceholder')}
             value={password}
             onChange={e => setPassword(e.target.value)}
             style={{ width: '100%' }}
@@ -246,7 +242,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
 
         {/* Sync folder */}
         <div className="settings-section">
-          <div className="settings-label">sync folder</div>
+          <div className="settings-label">{t('folderLabel')}</div>
           <input
             className="input"
             type="text"
@@ -259,9 +255,9 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
 
         {/* Encryption */}
         <div className="settings-section">
-          <div className="settings-label">encryption</div>
+          <div className="settings-label">{t('encryptionLabel')}</div>
           <label className="settings-toggle-row">
-            <span className="settings-toggle-label">encrypt sync data</span>
+            <span className="settings-toggle-label">{t('encryptSyncData')}</span>
             <input
               type="checkbox"
               className="settings-toggle"
@@ -272,18 +268,18 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
 
           {encrypt && isExisting && (
             <p className="settings-note" style={{ color: '#D4A800', marginTop: '0.5rem' }}>
-              Encryption already configured. Leave passphrase blank to keep existing key, or re-enter to re-authenticate on this device.
+              {t('encryptionAlreadyConfigured')}
             </p>
           )}
 
           {encrypt && (
             <>
               <div style={{ marginTop: '0.75rem' }}>
-                <div className="settings-label">passphrase</div>
+                <div className="settings-label">{t('passphraseLabel')}</div>
                 <input
                   className="input"
                   type="password"
-                  placeholder={isExisting ? '(leave blank to keep existing)' : 'enter passphrase'}
+                  placeholder={isExisting ? t('passphrasePlaceholderExisting') : t('passphrasePlaceholderNew')}
                   value={passphrase}
                   onChange={e => setPassphrase(e.target.value)}
                   style={{ width: '100%' }}
@@ -291,11 +287,11 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
               </div>
               {!isExisting && (
                 <div style={{ marginTop: '0.5rem' }}>
-                  <div className="settings-label">confirm passphrase</div>
+                  <div className="settings-label">{t('confirmPassphraseLabel')}</div>
                   <input
                     className="input"
                     type="password"
-                    placeholder="confirm passphrase"
+                    placeholder={t('confirmPassphraseLabel')}
                     value={confirmPass}
                     onChange={e => setConfirmPass(e.target.value)}
                     style={{ width: '100%' }}
@@ -324,7 +320,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
         {/* Last synced */}
         {lastSynced && (
           <p className="settings-note" style={{ marginBottom: '0.75rem' }}>
-            last synced: {new Date(lastSynced).toLocaleString()}
+            {t('lastSynced')} {new Date(lastSynced).toLocaleString()}
           </p>
         )}
 
@@ -336,7 +332,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
             onClick={handleTest}
             disabled={testing || !url || !username}
           >
-            {testing ? 'testing...' : 'test connection'}
+            {testing ? t('testing') : t('testConnection')}
           </button>
 
           <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
@@ -345,7 +341,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
               onClick={onClose}
             >
-              cancel
+              {tc('cancel')}
             </button>
             {isExisting && (
               <button
@@ -353,7 +349,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
                 style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
                 onClick={handleDisable}
               >
-                disable
+                {t('disable')}
               </button>
             )}
             <button
@@ -362,7 +358,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
               onClick={handleSave}
               disabled={saving || !url || !username || !password}
             >
-              {saving ? 'saving...' : isExisting ? 'save' : 'save & enable'}
+              {saving ? t('saving') : isExisting ? tc('save') : t('saveAndEnable')}
             </button>
           </div>
         </div>

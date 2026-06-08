@@ -1,15 +1,18 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { loadIntentsConfig, saveIntentsConfig, enableIntentsEncryption } from '../../lib/intentsTransport.js'
 import { loadIntentsRootKey } from '../../lib/intentsKeyStore.js'
 
 const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy'
 
 export default function IntegrationSettings() {
+  const { t } = useTranslation('dayglance')
+  const { t: ts } = useTranslation('sync')
   const [cfg, setCfg] = useState(loadIntentsConfig)
-  const [testStatus, setTestStatus] = useState(null) // null | 'testing' | 'ok' | 'error'
+  const [testStatus, setTestStatus] = useState(null)
   const [testMsg,    setTestMsg]    = useState('')
   const [passphrase, setPassphrase] = useState('')
-  const [encStatus,  setEncStatus]  = useState(null) // null | 'saving' | 'ok' | 'error'
+  const [encStatus,  setEncStatus]  = useState(null)
   const [encMsg,     setEncMsg]     = useState('')
 
   function update(partial) {
@@ -41,17 +44,17 @@ export default function IntegrationSettings() {
       })
       if (res.ok || res.status === 207) {
         setTestStatus('ok')
-        setTestMsg('Connected - events directory is reachable.')
+        setTestMsg(t('connectionOk'))
       } else if (res.status === 404) {
         setTestStatus('error')
-        setTestMsg(`Events directory not found (404). Create it first: ${cfg.eventsPath}`)
+        setTestMsg(t('directoryNotFound', { path: cfg.eventsPath }))
       } else {
         setTestStatus('error')
-        setTestMsg(`Unexpected response: ${res.status} ${res.statusText}`)
+        setTestMsg(t('unexpectedResponse', { status: res.status, statusText: res.statusText }))
       }
     } catch (err) {
       setTestStatus('error')
-      setTestMsg(`Connection failed: ${err.message}`)
+      setTestMsg(t('connectionFailed', { message: err.message }))
     }
   }
 
@@ -62,7 +65,6 @@ export default function IntegrationSettings() {
       setEncMsg('')
       return
     }
-    // Turning on — need a passphrase to derive/verify the root key
     update({ encryptionEnabled: true })
   }
 
@@ -75,22 +77,21 @@ export default function IntegrationSettings() {
       setCfg(loadIntentsConfig())
       setPassphrase('')
       setEncStatus('ok')
-      setEncMsg('Encryption enabled. Passphrase not stored — not needed again on this device.')
+      setEncMsg(t('encryptionEnabled'))
     } catch (err) {
       setEncStatus('error')
-      setEncMsg(`Setup failed: ${err.message}`)
+      setEncMsg(t('setupFailed', { message: err.message }))
     }
   }
 
-  const hasUrl      = !!cfg.webdavUrl.trim()
-  const keyReady    = cfg.encryptionEnabled  // we check IDB async; flag is sufficient for UI
+  const hasUrl   = !!cfg.webdavUrl.trim()
 
   return (
     <div className="settings-section">
-      <div className="settings-label">dayGLANCE integration</div>
+      <div className="settings-label">{t('integrationTitle')}</div>
 
       <label className="settings-toggle-row">
-        <span className="settings-toggle-label">enable Goal↔Milestone linking</span>
+        <span className="settings-toggle-label">{t('enableLinking')}</span>
         <input
           type="checkbox"
           className="settings-toggle"
@@ -103,7 +104,7 @@ export default function IntegrationSettings() {
         <>
           <div className="settings-intents-field">
             <label className="field-label" style={{ fontSize: '0.72rem' }}>
-              WebDAV base URL
+              {t('webdavUrl')}
             </label>
             <input
               className="input input-sm"
@@ -117,7 +118,7 @@ export default function IntegrationSettings() {
 
           <div className="settings-intents-row">
             <div className="settings-intents-field" style={{ flex: 1 }}>
-              <label className="field-label" style={{ fontSize: '0.72rem' }}>Username</label>
+              <label className="field-label" style={{ fontSize: '0.72rem' }}>{t('username')}</label>
               <input
                 className="input input-sm"
                 type="text"
@@ -128,7 +129,7 @@ export default function IntegrationSettings() {
               />
             </div>
             <div className="settings-intents-field" style={{ flex: 1 }}>
-              <label className="field-label" style={{ fontSize: '0.72rem' }}>Password / token</label>
+              <label className="field-label" style={{ fontSize: '0.72rem' }}>{t('passwordToken')}</label>
               <input
                 className="input input-sm"
                 type="password"
@@ -142,7 +143,7 @@ export default function IntegrationSettings() {
 
           <div className="settings-intents-field">
             <label className="field-label" style={{ fontSize: '0.72rem' }}>
-              Events path <span className="settings-note" style={{ marginTop: 0 }}>(default: /GLANCE/events/)</span>
+              {t('eventsPath')} <span className="settings-note" style={{ marginTop: 0 }}>{t('eventsPathDefault')}</span>
             </label>
             <input
               className="input input-sm"
@@ -161,7 +162,7 @@ export default function IntegrationSettings() {
               disabled={!hasUrl || testStatus === 'testing'}
               onClick={handleTest}
             >
-              {testStatus === 'testing' ? 'testing…' : 'test connection'}
+              {testStatus === 'testing' ? t('testing') : ts('testConnection')}
             </button>
             {testStatus && testStatus !== 'testing' && (
               <span className={`settings-note ${testStatus === 'ok' ? 'intents-test-ok' : 'intents-test-err'}`}
@@ -173,7 +174,7 @@ export default function IntegrationSettings() {
 
           <div className="settings-intents-field" style={{ marginTop: '0.5rem' }}>
             <label className="field-label" style={{ fontSize: '0.72rem' }}>
-              Poll interval (minutes)
+              {t('pollInterval')}
             </label>
             <input
               className="input input-sm"
@@ -188,7 +189,7 @@ export default function IntegrationSettings() {
 
           {/* Encryption */}
           <label className="settings-toggle-row" style={{ marginTop: '0.5rem' }}>
-            <span className="settings-toggle-label">encrypt intent events</span>
+            <span className="settings-toggle-label">{t('encryptEvents')}</span>
             <input
               type="checkbox"
               className="settings-toggle"
@@ -200,13 +201,13 @@ export default function IntegrationSettings() {
           {cfg.encryptionEnabled && (
             <div className="settings-intents-field" style={{ marginTop: '0.25rem' }}>
               <p className="settings-note" style={{ marginTop: 0, marginBottom: '0.4rem' }}>
-                Uses your cloud sync passphrase. Set up once; remains active across sessions.
+                {t('encryptionNote')}
               </p>
               <div className="settings-intents-row" style={{ alignItems: 'center', gap: '0.5rem' }}>
                 <input
                   className="input input-sm"
                   type="password"
-                  placeholder="enter passphrase to activate"
+                  placeholder={t('enterPassphrase')}
                   value={passphrase}
                   onChange={e => setPassphrase(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSetupEncryption()}
@@ -219,7 +220,7 @@ export default function IntegrationSettings() {
                   disabled={!passphrase || encStatus === 'saving'}
                   onClick={handleSetupEncryption}
                 >
-                  {encStatus === 'saving' ? 'activating…' : 'activate'}
+                  {encStatus === 'saving' ? t('activating') : t('activate')}
                 </button>
               </div>
               {encStatus && encStatus !== 'saving' && (
@@ -232,9 +233,7 @@ export default function IntegrationSettings() {
           )}
 
           <p className="settings-note" style={{ marginTop: '0.5rem' }}>
-            lifeGLANCE and dayGLANCE must point at the same WebDAV endpoint and
-            events path. Milestones you mark "track as dayGLANCE Goal" will appear
-            as goals in dayGLANCE; Goal completions and date changes sync back here.
+            {t('integrationNote')}
           </p>
         </>
       )}

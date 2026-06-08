@@ -1,7 +1,9 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { formatDateDisplay } from '../../utils/dates'
 
 export default function OnThisDayModal({ items, onClose, onSelect }) {
+  const { t } = useTranslation('timeline')
   const today     = new Date()
   const todayYear = today.getFullYear()
 
@@ -9,7 +11,7 @@ export default function OnThisDayModal({ items, onClose, onSelect }) {
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="sheet">
         <div className="sheet-header">
-          <span className="sheet-title">on this day</span>
+          <span className="sheet-title">{t('onThisDay')}</span>
           <button className="sheet-close" onClick={onClose}>✕</button>
         </div>
 
@@ -29,7 +31,7 @@ export default function OnThisDayModal({ items, onClose, onSelect }) {
                       </span>
                     )}
                     {m.date_precision === 'month' && (
-                      <span className="otd-approx"> (approx.)</span>
+                      <span className="otd-approx"> {t('approx')}</span>
                     )}
                   </div>
                 </div>

@@ -1,2 +1,16 @@
 {
+  "title": "import from calendar",
+  "notice": "Import is designed for life milestones — birthdays, graduations, trips. Uncheck anything that doesn't belong.",
+  "allDayEventsFound_one": "{{count}} all-day event found",
+  "allDayEventsFound_other": "{{count}} all-day events found",
+  "timedEventsSkipped_one": "· {{count}} timed event skipped",
+  "timedEventsSkipped_other": "· {{count}} timed events skipped",
+  "noEvents": "No all-day events were found in this file.",
+  "deselectAll": "deselect all",
+  "selectAll": "select all",
+  "titleColumn": "title",
+  "categoryColumn": "category",
+  "annual": "annual",
+  "importButton_one": "import {{count}} milestone",
+  "importButton_other": "import {{count}} milestones"
 }

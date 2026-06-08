@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { formatDateDisplay, relativeLabel } from '../../utils/dates'
 
 export default function SearchModal({ milestones, chapters = [], onSelect, onClose }) {
+  const { t } = useTranslation('search')
   const [query,       setQuery]       = useState('')
   const [highlighted, setHighlighted] = useState(0)
   const inputRef = useRef(null)
@@ -41,7 +43,7 @@ export default function SearchModal({ milestones, chapters = [], onSelect, onClo
           <input
             ref={inputRef}
             className="search-input"
-            placeholder="search milestones..."
+            placeholder={t('placeholder')}
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -89,7 +91,7 @@ export default function SearchModal({ milestones, chapters = [], onSelect, onClo
         )}
 
         {trimmed && results.length === 0 && (
-          <div className="search-empty">no results</div>
+          <div className="search-empty">{t('noResults')}</div>
         )}
 
       </div>

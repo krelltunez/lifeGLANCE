@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import TypewriterText from '../ui/TypewriterText'
 import { buildDateFromParts } from '../../utils/dates'
-
-const PROMPT = "What's the one thing you're most looking forward to in the future?"
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -10,6 +9,9 @@ const MONTHS = [
 ]
 
 export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
+  const { t } = useTranslation('onboarding')
+  const { t: tc } = useTranslation('common')
+
   const [promptDone, setPromptDone] = useState(false)
   const [title, setTitle] = useState('')
   const [month, setMonth] = useState('1')
@@ -27,7 +29,7 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
 
     const date = buildDateFromParts(month, year, 'month')
     if (date <= new Date()) {
-      setError('This should be a future event.')
+      setError(t('errorFutureEvent'))
       return
     }
 
@@ -49,13 +51,13 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
           <div className="progress-dot" />
         </div>
         <div className="onboarding-eyebrow" style={{ marginTop: '0.5rem' }}>
-          step 3 of 4 — your future
+          {t('step3Eyebrow')}
         </div>
       </div>
 
       <div className="onboarding-prompt">
         <TypewriterText
-          text={PROMPT}
+          text={t('step3Prompt')}
           options={{ delay: 22, jitter: 18 }}
           onDone={() => setPromptDone(true)}
           hideCursorWhenDone
@@ -74,11 +76,11 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
         }}
       >
         <div>
-          <label className="field-label">event name</label>
+          <label className="field-label">{tc('eventName')}</label>
           <input
             className="input"
             type="text"
-            placeholder="e.g. Trip to Japan"
+            placeholder={t('step3Placeholder')}
             value={title}
             onChange={e => setTitle(e.target.value)}
             autoComplete="off"
@@ -88,7 +90,7 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
 
         <div className="field-row">
           <div style={{ flex: 2 }}>
-            <label className="field-label">month</label>
+            <label className="field-label">{tc('month')}</label>
             <select
               className="input"
               value={month}
@@ -101,7 +103,7 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
             </select>
           </div>
           <div style={{ flex: 1 }}>
-            <label className="field-label">year</label>
+            <label className="field-label">{tc('year')}</label>
             <input
               className="input"
               type="number"
@@ -113,7 +115,7 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
           </div>
         </div>
 
-        <div className="onboarding-helper">approximate is fine</div>
+        <div className="onboarding-helper">{t('approximateIsFine')}</div>
 
         {error && (
           <div style={{ fontSize: '0.78rem', color: '#E85D75' }}>{error}</div>
@@ -121,12 +123,12 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
 
         <div className="onboarding-actions">
           <button type="submit" className="btn" disabled={!canSubmit || busy}>
-            {busy ? 'placing…' : 'place it on my timeline →'}
+            {busy ? tc('placing') : t('placeOnTimeline')}
           </button>
         </div>
       </form>
 
-      <button className="skip-link" onClick={onSkip}>skip</button>
+      <button className="skip-link" onClick={onSkip}>{tc('skip')}</button>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { loadActivityLog, clearActivityLog } from '../../lib/intentsActivityLog.js'
 
 function formatTs(iso) {
@@ -7,16 +8,17 @@ function formatTs(iso) {
   return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
-function entryLabel(entry) {
+function entryLabel(entry, t) {
   const title = entry.payload?.title ?? entry.payload?.task_id ?? entry.action
-  if (entry.type === 'sent') return `Sent "${title}" to dayGLANCE`
+  if (entry.type === 'sent') return t('logSent', { title })
   const event = entry.payload?.event
-  if (event === 'completed') return `"${title}" completed in dayGLANCE`
-  if (event === 'rescheduled') return `"${title}" rescheduled in dayGLANCE`
-  return `Received "${title}" from dayGLANCE`
+  if (event === 'completed') return t('logCompleted', { title })
+  if (event === 'rescheduled') return t('logRescheduled', { title })
+  return t('logReceived', { title })
 }
 
 export default function ActivityLogModal({ onClose }) {
+  const { t } = useTranslation('dayglance')
   const [entries, setEntries] = useState(loadActivityLog)
 
   const handleRefresh = useCallback(() => setEntries(loadActivityLog()), [])
@@ -31,14 +33,14 @@ export default function ActivityLogModal({ onClose }) {
       <div className="sheet settings-sheet">
         <div className="sheet-header">
           <span className="sheet-title" style={{ letterSpacing: '0.08em', fontSize: '0.8rem' }}>
-            ACTIVITY LOG
+            {t('activityLogTitle')}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <button className="btn" style={{ fontSize: '0.75rem', padding: '0.3rem 0.7rem' }} onClick={handleRefresh}>
-              ↻ Refresh
+              {t('refresh')}
             </button>
             <button className="btn" style={{ fontSize: '0.75rem', padding: '0.3rem 0.7rem' }} onClick={handleClear}>
-              Clear
+              {t('clear')}
             </button>
             <button className="sheet-close" onClick={onClose}>&#x2715;</button>
           </div>
@@ -46,7 +48,7 @@ export default function ActivityLogModal({ onClose }) {
 
         {entries.length === 0 ? (
           <p className="settings-note" style={{ marginTop: '1rem', textAlign: 'center' }}>
-            No activity yet.
+            {t('noActivity')}
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -66,9 +68,9 @@ export default function ActivityLogModal({ onClose }) {
                   background: e.type === 'sent' ? '#2a3a6e' : '#0f2a1a',
                   color:      e.type === 'sent' ? '#7aadff'  : '#34D399',
                 }}>
-                  {e.type === 'sent' ? 'SENT' : 'RECEIVED'}
+                  {e.type === 'sent' ? t('sent') : t('received')}
                 </span>
-                <span style={{ color: 'var(--text-main)' }}>{entryLabel(e)}</span>
+                <span style={{ color: 'var(--text-main)' }}>{entryLabel(e, t)}</span>
               </div>
             ))}
           </div>

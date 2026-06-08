@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Timeline          from './Timeline'
 import StatsPanel        from '../stats/StatsPanel'
 import AddMilestoneSheet from '../milestone/AddMilestoneSheet'
@@ -45,6 +46,7 @@ const TEXT_SIZES = {
 const ZOOM_ANIM_MS = 420
 
 export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, onOpenCloudSync }) {
+  const { t } = useTranslation('timeline')
   const [zoom,          setZoom]          = useState('years')
   const [zoomAnim,      setZoomAnim]      = useState('')
   const [filter,        setFilter]        = useState(new Set())
@@ -1248,9 +1250,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               <button className="drill-breadcrumb-close" onClick={() => exitDrillIn()} title="exit chapter view">✕</button>
             </div>
             <div className="drill-breadcrumb-meta">
-              <span>{fmtChapterDate(drilledChapter.start)} – {drilledChapter.end ? fmtChapterDate(drilledChapter.end) : 'ongoing'}</span>
+              <span>{fmtChapterDate(drilledChapter.start)} – {drilledChapter.end ? fmtChapterDate(drilledChapter.end) : t('ongoing')}</span>
               <span className="drill-breadcrumb-dot">·</span>
-              <span>{drilledChapter.milestoneIds.length} member{drilledChapter.milestoneIds.length !== 1 ? 's' : ''}</span>
+              <span>{t('memberCount', { count: drilledChapter.milestoneIds.length })}</span>
               {drilledChapter.description && <>
                 <span className="drill-breadcrumb-dot">·</span>
                 <span className="drill-breadcrumb-desc">{drilledChapter.description}</span>
@@ -1527,11 +1529,11 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
         {onThisDayItems.length > 0 && (
           <button className="today-btn otd-btn" onClick={() => setOnThisDayOpen(true)}>
-            on this day
+            {t('onThisDay')}
           </button>
         )}
         <button className="today-btn" onClick={handleJumpToToday}>
-          jump to today
+          {t('jumpToToday')}
         </button>
       </div>
 

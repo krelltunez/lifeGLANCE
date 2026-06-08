@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import TypewriterText from '../ui/TypewriterText'
 import { useCountUp } from '../../utils/typewriter'
 import { getYearsMonths } from '../../utils/dates'
 
-const PROMPT = "Here's your life, at a glance."
-
 export default function Step4Reveal({ onComplete, pastMilestone, futureMilestone }) {
+  const { t } = useTranslation('onboarding')
   const [phase, setPhase] = useState('typing') // typing → row1 → row2 → cta
 
   // Derived time distances
@@ -63,13 +63,13 @@ export default function Step4Reveal({ onComplete, pastMilestone, futureMilestone
           <div className="progress-dot active" />
         </div>
         <div className="onboarding-eyebrow" style={{ marginTop: '0.5rem' }}>
-          step 4 of 4 — your timeline
+          {t('step4Eyebrow')}
         </div>
       </div>
 
       <div className="onboarding-prompt">
         <TypewriterText
-          text={PROMPT}
+          text={t('step4Prompt')}
           options={{ delay: 40, jitter: 20, startDelay: 300 }}
           onDone={handleTypingDone}
           hideCursorWhenDone
@@ -81,22 +81,22 @@ export default function Step4Reveal({ onComplete, pastMilestone, futureMilestone
       <div className="stat-reveal-rows">
         {/* Past stat */}
         <div className={`stat-reveal-row ${phase !== 'typing' ? 'visible' : ''}`}>
-          <div className="stat-reveal-label">looking back</div>
+          <div className="stat-reveal-label">{t('lookingBack')}</div>
           <div className="stat-reveal-value">
             {pastMilestone
               ? <>{pastMilestone.title} — <em>{formatPastTime()}</em></>
-              : <span style={{ color: 'var(--text-muted)' }}>no past event added</span>
+              : <span style={{ color: 'var(--text-muted)' }}>{t('noPastEvent')}</span>
             }
           </div>
         </div>
 
         {/* Future stat */}
         <div className={`stat-reveal-row ${phase === 'row2' || phase === 'cta' ? 'visible' : ''}`}>
-          <div className="stat-reveal-label">looking ahead</div>
+          <div className="stat-reveal-label">{t('lookingAhead')}</div>
           <div className="stat-reveal-value">
             {futureMilestone
               ? <>{futureMilestone.title} — <em>{formatFutureTime()}</em></>
-              : <span style={{ color: 'var(--text-muted)' }}>no future event added</span>
+              : <span style={{ color: 'var(--text-muted)' }}>{t('noFutureEvent')}</span>
             }
           </div>
         </div>
@@ -114,10 +114,12 @@ export default function Step4Reveal({ onComplete, pastMilestone, futureMilestone
         }}
       >
         <button className="btn btn-filled" onClick={onComplete}>
-          open my timeline →
+          {t('openTimeline')}
         </button>
         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: "'Courier Prime', monospace" }}>
-          press <kbd style={{ fontSize: '0.85em', padding: '0.1em 0.35em', borderRadius: 3, border: '1px solid var(--border)', color: 'var(--text-dim)' }}>?</kbd> anytime for keyboard shortcuts
+          <Trans ns="onboarding" i18nKey="keyboardShortcutHint"
+            components={{ kbd: <kbd style={{ fontSize: '0.85em', padding: '0.1em 0.35em', borderRadius: 3, border: '1px solid var(--border)', color: 'var(--text-dim)' }}>?</kbd> }}
+          />
         </div>
       </div>
     </div>

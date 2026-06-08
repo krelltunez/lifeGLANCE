@@ -1,2 +1,22 @@
 {
+  "skip": "skip",
+  "cancel": "cancel",
+  "save": "save",
+  "saveChanges": "save changes",
+  "delete": "delete",
+  "edit": "edit",
+  "add": "add",
+  "remove": "remove",
+  "replace": "replace",
+  "month": "month",
+  "year": "year",
+  "day": "day",
+  "date": "date",
+  "settings": "settings",
+  "eventName": "event name",
+  "placing": "placing…",
+  "saving": "saving…",
+  "deleting": "deleting…",
+  "loading": "Loading...",
+  "testing": "testing…"
 }

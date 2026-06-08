@@ -1,10 +1,12 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { dateToX, getTimeRange } from '../../utils/timeline'
 
 const HEIGHT = 72
 const AXIS_Y = 36
 
 export default function TimelinePreview({ milestones = [] }) {
+  const { t } = useTranslation('timeline')
   const [width, setWidth] = React.useState(600)
   const ref = React.useRef(null)
 
@@ -53,7 +55,7 @@ export default function TimelinePreview({ milestones = [] }) {
           fontFamily="'Courier Prime', monospace"
           opacity={0.7}
         >
-          today
+          {t('today')}
         </text>
 
         {/* Milestone dots */}

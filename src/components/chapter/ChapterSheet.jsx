@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 import { buildDateFromParts } from '../../utils/dates'
 
 const CHAPTER_COLORS = [
@@ -30,7 +31,6 @@ function fmtDate(m) {
   return d.toLocaleString('default', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 }
 
-// Parse a stored ISO string into display parts (UTC to avoid timezone shift).
 function parseIso(iso) {
   if (!iso) return { month: '1', day: '', year: '' }
   const d = new Date(iso)
@@ -42,6 +42,8 @@ function parseIso(iso) {
 }
 
 export default function ChapterSheet({ onSave, onClose, onDelete, existing, milestones = [] }) {
+  const { t } = useTranslation('chapter')
+  const { t: tc } = useTranslation('common')
   const isEdit = !!existing
 
   const initStart = parseIso(existing?.start)
@@ -65,17 +67,14 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
   const [dateError,      setDateError]      = useState(null)
   const [busy,           setBusy]           = useState(false)
 
-  // Build Date objects from parts; null when year is not yet filled in.
   const startDate = startYear.length >= 4
     ? buildDateFromParts(startMonth, startYear, startPrecision, startDay) : null
   const endDate = endYear.length >= 4
     ? buildDateFromParts(endMonth, endYear, endPrecision, endDay) : null
 
-  // ISO strings used for comparison and saving.
   const startIso = startDate ? startDate.toISOString() : null
   const endIso   = endDate   ? endDate.toISOString()   : null
 
-  // Milestones whose dates fall within [startDate, effectiveEndDate]
   const effectiveEndDate = ongoing ? new Date() : endDate
   const inRange = useMemo(() => {
     if (!startDate || !effectiveEndDate) return []
@@ -87,17 +86,11 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
 
   const inRangeIds = useMemo(() => new Set(inRange.map(m => m.id)), [inRange])
 
-  // Create mode: auto-check all in-range milestones when the range changes.
-  // Edit mode: existing memberships are controlled only by the user.
   useEffect(() => {
     if (isEdit) return
     setCheckedIds(new Set(inRange.map(m => m.id)))
   }, [inRange, isEdit])
 
-  // Display list:
-  //   create — milestones in range (auto-checked by default)
-  //   edit   — union of in-range milestones (appear unchecked if not members) and
-  //            currently-checked members (preserved even if outside the new range)
   const displayMilestones = useMemo(() => {
     if (!isEdit) return inRange
     return milestones
@@ -116,25 +109,25 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
   function clearDateError() { setDateError(null) }
 
   function validateDates() {
-    if (!startIso) { setDateError('start date is required'); return false }
+    if (!startIso) { setDateError(t('errorStartRequired')); return false }
     if (startPrecision === 'day' && startYear.length >= 4) {
       const maxDay = new Date(Number(startYear), Number(startMonth), 0).getDate()
       if (Number(startDay) < 1 || Number(startDay) > maxDay) {
-        setDateError(`start day must be between 1 and ${maxDay} for the selected month`)
+        setDateError(t('errorStartDayRange', { max: maxDay }))
         return false
       }
     }
     if (!ongoing) {
-      if (!endIso) { setDateError('end date is required, or mark this chapter as ongoing'); return false }
+      if (!endIso) { setDateError(t('errorEndRequired')); return false }
       if (endPrecision === 'day' && endYear.length >= 4) {
         const maxDay = new Date(Number(endYear), Number(endMonth), 0).getDate()
         if (Number(endDay) < 1 || Number(endDay) > maxDay) {
-          setDateError(`end day must be between 1 and ${maxDay} for the selected month`)
+          setDateError(t('errorEndDayRange', { max: maxDay }))
           return false
         }
       }
       if (new Date(startIso) >= new Date(endIso)) {
-        setDateError('end date must be after start date')
+        setDateError(t('errorEndAfterStart'))
         return false
       }
     }
@@ -182,17 +175,17 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
 
         {/* Header */}
         <div className="sheet-header">
-          <span className="sheet-title">{isEdit ? 'edit chapter' : 'add chapter'}</span>
+          <span className="sheet-title">{isEdit ? t('editTitle') : t('addTitle')}</span>
           <button type="button" className="sheet-close" onClick={onClose}>✕</button>
         </div>
 
         {/* Title */}
         <div className="sheet-field">
-          <label className="field-label">chapter name</label>
+          <label className="field-label">{t('nameLabel')}</label>
           <input
             className="input"
             type="text"
-            placeholder="e.g. College years"
+            placeholder={t('namePlaceholder')}
             value={title}
             onChange={e => setTitle(e.target.value)}
             autoFocus
@@ -203,14 +196,14 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
 
         {/* Date range */}
         <div className="sheet-field">
-          <label className="field-label">date range</label>
+          <label className="field-label">{t('dateRange')}</label>
 
           {/* Start date */}
-          <label className="field-label" style={{ marginTop: '0.5rem' }}>from</label>
+          <label className="field-label" style={{ marginTop: '0.5rem' }}>{t('from')}</label>
           <div className="date-grid">
             {startPrecision !== 'year' && (
               <div>
-                <label className="field-label">month</label>
+                <label className="field-label">{tc('month')}</label>
                 <select
                   className="input input-sm"
                   value={startMonth}
@@ -223,7 +216,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
             )}
             {startPrecision === 'day' && (
               <div>
-                <label className="field-label">day</label>
+                <label className="field-label">{tc('day')}</label>
                 <input
                   className="input input-sm"
                   type="number"
@@ -235,7 +228,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
               </div>
             )}
             <div>
-              <label className="field-label">year</label>
+              <label className="field-label">{tc('year')}</label>
               <input
                 className="input input-sm"
                 type="number"
@@ -257,7 +250,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
 
           {/* Ongoing toggle */}
           <label className="settings-toggle-row" style={{ marginTop: '0.75rem' }}>
-            <span className="field-label" style={{ marginBottom: 0 }}>ongoing (no end date)</span>
+            <span className="field-label" style={{ marginBottom: 0 }}>{t('ongoing')}</span>
             <input
               type="checkbox"
               className="settings-toggle"
@@ -271,7 +264,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
               <div className="date-grid">
                 {endPrecision !== 'year' && (
                   <div>
-                    <label className="field-label">month</label>
+                    <label className="field-label">{tc('month')}</label>
                     <select
                       className="input input-sm"
                       value={endMonth}
@@ -284,7 +277,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
                 )}
                 {endPrecision === 'day' && (
                   <div>
-                    <label className="field-label">day</label>
+                    <label className="field-label">{tc('day')}</label>
                     <input
                       className="input input-sm"
                       type="number"
@@ -296,7 +289,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
                   </div>
                 )}
                 <div>
-                  <label className="field-label">year</label>
+                  <label className="field-label">{tc('year')}</label>
                   <input
                     className="input input-sm"
                     type="number"
@@ -323,7 +316,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
 
         {/* Color */}
         <div className="sheet-field">
-          <label className="field-label">color</label>
+          <label className="field-label">{t('colorLabel')}</label>
           <div className="chapter-color-row">
             {CHAPTER_COLORS.map(c => (
               <button
@@ -340,11 +333,11 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
 
         {/* Description */}
         <div className="sheet-field">
-          <label className="field-label">description (optional)</label>
+          <label className="field-label">{t('descriptionLabel')}</label>
           <textarea
             className="input"
             rows={2}
-            placeholder="A short description of this chapter…"
+            placeholder={t('descriptionPlaceholder')}
             value={desc}
             onChange={e => setDesc(e.target.value)}
             maxLength={300}
@@ -356,7 +349,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
         <div className="sheet-field">
           <label className="settings-toggle-row">
             <span className="field-label" style={{ marginBottom: 0 }}>
-              hide members from main timeline by default
+              {t('hideByDefault')}
             </span>
             <input
               type="checkbox"
@@ -370,20 +363,20 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
         {/* Member milestones */}
         <div className="sheet-field">
           <label className="field-label">
-            milestones in this chapter
+            {t('membersLabel')}
             {displayMilestones.length > 0 && (
-              <span className="chapter-member-count"> — {[...checkedIds].filter(id => displayMilestones.some(m => m.id === id)).length} selected</span>
+              <span className="chapter-member-count">
+                {t('membersSelected', { count: [...checkedIds].filter(id => displayMilestones.some(m => m.id === id)).length })}
+              </span>
             )}
           </label>
           {!startIso || (!ongoing && !endIso) ? (
-            <div className="chapter-members-empty">set a date range above to see milestones</div>
+            <div className="chapter-members-empty">{t('membersEmpty')}</div>
           ) : displayMilestones.length === 0 ? (
-            <div className="chapter-members-empty">no milestones in this date range</div>
+            <div className="chapter-members-empty">{t('membersNoMilestones')}</div>
           ) : (
             <div className="chapter-members-list">
               {displayMilestones.map(m => {
-                // Endpoint: milestone date matches the chapter's start or end (day-level comparison).
-                // Only checked members can be endpoints — unchecked milestones aren't members yet.
                 const mDay        = m.date?.slice(0, 10)
                 const sDay        = startDate?.toISOString().slice(0, 10)
                 const eDay        = ongoing ? null : endDate?.toISOString().slice(0, 10)
@@ -408,9 +401,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
                     {isDateMatch && (
                       <span
                         className={`chapter-member-endpoint${isEndpoint ? '' : ' chapter-member-endpoint-dim'}`}
-                        title={isEndpoint
-                          ? 'endpoint — always shown on main timeline'
-                          : 'matches chapter boundary — add to make it an endpoint'}
+                        title={isEndpoint ? t('endpointTooltip') : t('endpointDimTooltip')}
                       >⚓</span>
                     )}
                     <span className="chapter-member-date">{fmtDate(m)}</span>
@@ -426,13 +417,17 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
           confirmDelete ? (
             <div className="detail-confirm">
               <div className="detail-confirm-msg">
-                delete <strong style={{ color: 'var(--text)' }}>{existing.title}</strong>?
-                milestones in this chapter will not be deleted — they will simply no longer
-                be part of this chapter.
+                <Trans
+                  ns="chapter"
+                  i18nKey="deleteConfirmTitle"
+                  values={{ title: existing.title }}
+                  components={{ strong: <strong style={{ color: 'var(--text)' }} /> }}
+                />
+                {' '}{t('deleteConfirmMsg')}
               </div>
               <div className="detail-confirm-actions">
                 <button type="button" className="btn" onClick={() => setConfirmDelete(false)}>
-                  cancel
+                  {tc('cancel')}
                 </button>
                 <button
                   type="button"
@@ -440,7 +435,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
                   onClick={handleDelete}
                   disabled={busy}
                 >
-                  {busy ? 'deleting…' : 'yes, delete chapter'}
+                  {busy ? tc('deleting') : t('confirmDelete')}
                 </button>
               </div>
             </div>
@@ -452,7 +447,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
                 style={{ alignSelf: 'flex-start', fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
                 onClick={() => setConfirmDelete(true)}
               >
-                delete chapter
+                {t('deleteButton')}
               </button>
             </div>
           )
@@ -468,7 +463,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
               onClick={onClose}
               style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}
             >
-              cancel
+              {tc('cancel')}
             </button>
             <button
               type="submit"
@@ -476,7 +471,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
               disabled={!canSave || busy}
               style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}
             >
-              {busy ? 'saving…' : isEdit ? 'save changes' : 'add chapter'}
+              {busy ? tc('saving') : isEdit ? tc('saveChanges') : t('addTitle')}
             </button>
           </div>
         </div>

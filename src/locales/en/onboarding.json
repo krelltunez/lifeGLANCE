@@ -1,2 +1,22 @@
 {
+  "tagline": "Your life, at a glance.",
+  "begin": "begin →",
+  "step2Eyebrow": "step 2 of 4 — your past",
+  "step2Prompt": "What's one of the happiest events you've experienced in your life so far?",
+  "step2Placeholder": "e.g. We got married",
+  "step3Eyebrow": "step 3 of 4 — your future",
+  "step3Prompt": "What's the one thing you're most looking forward to in the future?",
+  "step3Placeholder": "e.g. Trip to Japan",
+  "step4Eyebrow": "step 4 of 4 — your timeline",
+  "step4Prompt": "Here's your life, at a glance.",
+  "approximateIsFine": "approximate is fine",
+  "errorPastEvent": "This should be a past event.",
+  "errorFutureEvent": "This should be a future event.",
+  "placeOnTimeline": "place it on my timeline →",
+  "lookingBack": "looking back",
+  "lookingAhead": "looking ahead",
+  "noPastEvent": "no past event added",
+  "noFutureEvent": "no future event added",
+  "openTimeline": "open my timeline →",
+  "keyboardShortcutHint": "press <kbd>?</kbd> anytime for keyboard shortcuts"
 }

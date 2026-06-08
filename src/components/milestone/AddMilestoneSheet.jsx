@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DEFAULT_CATEGORIES } from '../../utils/colors'
 import { buildDateFromParts } from '../../utils/dates'
 import { dbGetPhoto } from '../../data/db'
@@ -13,6 +14,8 @@ const MONTHS = [
 ]
 
 export default function AddMilestoneSheet({ onSave, onClose, existing, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() }, drilledChapter = null }) {
+  const { t } = useTranslation('milestone')
+  const { t: tc } = useTranslation('common')
   const isEdit = !!existing
 
   const [title,      setTitle]      = useState(existing?.title     ?? '')
@@ -24,15 +27,14 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
   const [note,       setNote]       = useState(existing?.note       ?? '')
   const [url,        setUrl]        = useState(existing?.url        ?? '')
 
-  // Photo state — File object for new selection; objectUrl for preview
   const [photoFile,       setPhotoFile]       = useState(null)
-  const [photoObjectUrl,  setPhotoObjectUrl]  = useState(null)  // new photo preview
-  const [existingPhotoUrl, setExistingPhotoUrl] = useState(null) // loaded from IDB for edit
+  const [photoObjectUrl,  setPhotoObjectUrl]  = useState(null)
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState(null)
   const [photoRemoved,    setPhotoRemoved]    = useState(false)
 
-  const [mediaFile,     setMediaFile]     = useState(null)   // new File selected this session
-  const [mediaRemoved,  setMediaRemoved]  = useState(false)  // user cleared existing media
-  const [mediaObjectUrl, setMediaObjectUrl] = useState(null) // transient preview URL
+  const [mediaFile,     setMediaFile]     = useState(null)
+  const [mediaRemoved,  setMediaRemoved]  = useState(false)
+  const [mediaObjectUrl, setMediaObjectUrl] = useState(null)
   const [recurrence,      setRecurrence]      = useState(false)
   const [recEndYear,      setRecEndYear]      = useState('')
   const [visibility,      setVisibility]      = useState(existing?.mainTimelineVisibility ?? 'inherit')
@@ -42,8 +44,6 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
   const photoRef = useRef(null)
   const mediaRef = useRef(null)
 
-  // Chapter membership suggestion (create mode only).
-  // Recomputes whenever the date changes; defaults the drilled chapter checked if it overlaps.
   const overlappingChapters = React.useMemo(() => {
     if (isEdit || year.length < 4) return []
     const date = buildDateFromParts(month, year, precision, day)
@@ -53,8 +53,6 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
 
   const [selectedChapterIds, setSelectedChapterIds] = React.useState(() => new Set())
 
-  // When the overlapping set changes, reset selection: check only the drilled chapter
-  // (if it overlaps), leave everything else unchecked.
   React.useEffect(() => {
     if (isEdit) return
     const overlapIds = new Set(overlappingChapters.map(c => c.id))
@@ -73,8 +71,6 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
     })
   }
 
-  // Ongoing chapters that this milestone's date could close (date >= chapter.start, chapter.end === null).
-  // Only in create mode; unchecked by default.
   const closableChapters = React.useMemo(() => {
     if (isEdit || year.length < 4) return []
     const date = buildDateFromParts(month, year, precision, day)
@@ -84,7 +80,6 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
 
   const [closeChapterIds, setCloseChapterIds] = React.useState(() => new Set())
 
-  // Reset close selections when the date changes
   React.useEffect(() => {
     if (isEdit) return
     setCloseChapterIds(new Set())
@@ -98,15 +93,12 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
     })
   }
 
-  // Compute visibility status for the edit-mode info panel. Re-runs when
-  // visibility setting changes (existing.date stays constant during a session).
   const visInfo = React.useMemo(() => {
     if (!isEdit || !existing) return null
     const provisional = { ...existing, mainTimelineVisibility: visibility }
     return getMilestoneVisibility(provisional, chapters, visibilityPrecomputed, 'main')
   }, [isEdit, existing, visibility, chapters, visibilityPrecomputed])
 
-  // Load existing photo blob from IndexedDB for edit mode
   React.useEffect(() => {
     if (!isEdit || !existing?.has_photo) return
     let objectUrl
@@ -118,18 +110,14 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
     return () => { if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Revoke new-photo preview URL on change or unmount
   React.useEffect(() => {
     return () => { if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl) }
   }, [photoObjectUrl])
 
-  // Revoke media preview URL on change or unmount
   React.useEffect(() => {
     return () => { if (mediaObjectUrl) URL.revokeObjectURL(mediaObjectUrl) }
   }, [mediaObjectUrl])
 
-  // Pre-fill date from existing — use UTC methods so the form shows the same
-  // calendar date that was stored, regardless of the user's local UTC offset.
   React.useEffect(() => {
     if (existing?.date) {
       const d = new Date(existing.date)
@@ -139,7 +127,6 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep the recurrence end-year default in sync with the base year
   React.useEffect(() => {
     if (recurrence && year.length >= 4) {
       const base = Number(year)
@@ -157,7 +144,6 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
   )
   const canSave = title.trim() && year.length >= 4 && dayValid
 
-  // Determine what to show in the photo section
   const previewUrl    = photoFile ? photoObjectUrl : (!photoRemoved ? existingPhotoUrl : null)
   const hasExisting   = !photoRemoved && !!existing?.has_photo && !photoFile
 
@@ -224,17 +210,17 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <form className="sheet" onSubmit={handleSubmit}>
         <div className="sheet-header">
-          <span className="sheet-title">{isEdit ? 'edit milestone' : 'add milestone'}</span>
+          <span className="sheet-title">{isEdit ? t('editTitle') : t('addTitle')}</span>
           <button type="button" className="sheet-close" onClick={onClose}>✕</button>
         </div>
 
         {/* Title */}
         <div className="sheet-field">
-          <label className="field-label">event name</label>
+          <label className="field-label">{tc('eventName')}</label>
           <input
             className="input"
             type="text"
-            placeholder="e.g. Moved to Portland"
+            placeholder={t('eventPlaceholder')}
             value={title}
             onChange={e => setTitle(e.target.value)}
             autoComplete="off"
@@ -245,11 +231,11 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
 
         {/* Date */}
         <div className="sheet-field">
-          <label className="field-label">date</label>
+          <label className="field-label">{tc('date')}</label>
           <div className="date-grid">
             {precision !== 'year' && (
               <div>
-                <label className="field-label">month</label>
+                <label className="field-label">{tc('month')}</label>
                 <select
                   className="input input-sm"
                   value={month}
@@ -265,7 +251,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
 
             {precision === 'day' && (
               <div>
-                <label className="field-label">day</label>
+                <label className="field-label">{tc('day')}</label>
                 <input
                   className="input input-sm"
                   type="number"
@@ -278,7 +264,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
             )}
 
             <div>
-              <label className="field-label">year</label>
+              <label className="field-label">{tc('year')}</label>
               <input
                 className="input input-sm"
                 type="number"
@@ -308,7 +294,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
 
         {/* Category */}
         <div className="sheet-field">
-          <label className="field-label">category</label>
+          <label className="field-label">{t('category')}</label>
           <div className="category-grid">
             {categories.map(cat => (
               <div
@@ -325,10 +311,10 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
 
         {/* Note */}
         <div className="sheet-field">
-          <label className="field-label">note (optional)</label>
+          <label className="field-label">{t('noteLabel')}</label>
           <textarea
             className="input"
-            placeholder="Any details you want to remember…"
+            placeholder={t('notePlaceholder')}
             value={note}
             onChange={e => setNote(e.target.value)}
             rows={3}
@@ -339,7 +325,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
 
         {/* URL */}
         <div className="sheet-field">
-          <label className="field-label">link (optional)</label>
+          <label className="field-label">{t('linkLabel')}</label>
           <input
             className="input"
             type="url"
@@ -352,32 +338,31 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
 
         {/* Photo */}
         <div className="sheet-field">
-          <label className="field-label">photo (optional)</label>
+          <label className="field-label">{t('photoLabel')}</label>
           {previewUrl ? (
             <div className="photo-preview-wrap">
               <img src={previewUrl} className="photo-preview" alt="milestone" />
               <button type="button" className="photo-remove" onClick={handlePhotoRemove}>
-                remove
+                {tc('remove')}
               </button>
             </div>
           ) : hasExisting ? (
-            // Existing photo not yet loaded from IDB — show placeholder while loading
             <div className="audio-attached-row">
-              <span className="audio-attached-label">photo attached</span>
+              <span className="audio-attached-label">{t('photoAttached')}</span>
               <button type="button" className="btn-ghost" style={{ fontSize: '0.72rem' }}
                 onClick={() => photoRef.current?.click()}>
-                replace
+                {tc('replace')}
               </button>
               <button type="button" className="btn-ghost" style={{ fontSize: '0.72rem' }}
                 onClick={handlePhotoRemove}>
-                remove
+                {tc('remove')}
               </button>
             </div>
           ) : (
             <button type="button" className="btn"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', alignSelf: 'flex-start' }}
               onClick={() => photoRef.current?.click()}>
-              attach photo
+              {t('attachPhoto')}
             </button>
           )}
           <input
@@ -389,9 +374,8 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
 
         {/* Media (audio / video) */}
         <div className="sheet-field">
-          <label className="field-label">audio / video (optional)</label>
+          <label className="field-label">{t('mediaLabel')}</label>
           {mediaFile && mediaObjectUrl ? (
-            // New file selected this session — show inline preview
             <div className="media-preview-wrap">
               {mediaFile.type.startsWith('video/')
                 ? <video controls src={mediaObjectUrl} className="media-preview" />
@@ -403,29 +387,28 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
                   setMediaObjectUrl(null)
                   if (mediaRef.current) mediaRef.current.value = ''
                 }}>
-                remove
+                {tc('remove')}
               </button>
             </div>
           ) : existing?.media_type && !mediaRemoved ? (
-            // Existing media — show indicator with replace/remove
             <div className="audio-attached-row">
               <span className="audio-attached-label">
-                {existing.media_type === 'video' ? '▶ video attached' : '♪ audio attached'}
+                {existing.media_type === 'video' ? t('videoAttached') : t('audioAttached')}
               </span>
               <button type="button" className="btn-ghost" style={{ fontSize: '0.72rem' }}
                 onClick={() => mediaRef.current?.click()}>
-                replace
+                {tc('replace')}
               </button>
               <button type="button" className="btn-ghost" style={{ fontSize: '0.72rem' }}
                 onClick={() => { setMediaRemoved(true); setMediaFile(null) }}>
-                remove
+                {tc('remove')}
               </button>
             </div>
           ) : (
             <button type="button" className="btn"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', alignSelf: 'flex-start' }}
               onClick={() => mediaRef.current?.click()}>
-              attach audio / video
+              {t('attachMedia')}
             </button>
           )}
           <input
@@ -445,7 +428,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
         {!isEdit && (
           <div className="sheet-field">
             <label className="recurrence-toggle-row">
-              <span className="field-label" style={{ marginBottom: 0 }}>repeats annually</span>
+              <span className="field-label" style={{ marginBottom: 0 }}>{t('repeatsAnnually')}</span>
               <input type="checkbox" className="settings-toggle"
                 checked={recurrence}
                 onChange={e => { setRecurrence(e.target.checked); setRecEndYear('') }} />
@@ -477,7 +460,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
                     max={maxYear}
                   />
                   <span className="recurrence-range-count">
-                    {count} instance{count !== 1 ? 's' : ''}
+                    {t('recurrenceCount', { count })}
                   </span>
                 </div>
               )
@@ -486,27 +469,24 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
         )}
         {isEdit && existing?.recurrence === 'annual' && (
           <div className="sheet-field">
-            <div className="detail-recurrence-warn">↻ repeats annually — editing this instance only</div>
+            <div className="detail-recurrence-warn">{t('repeatsAnnuallyEditWarning')}</div>
           </div>
         )}
 
         {/* Visibility (edit mode only) */}
         {isEdit && (
           <div className="sheet-field">
-            <label className="field-label">main timeline visibility</label>
+            <label className="field-label">{t('visibilityLabel')}</label>
 
-            {/* Endpoint override notice — shown when a chapter's start/end anchors this milestone */}
             {visInfo?.reason === 'endpoint' && (
               <div className="vis-endpoint-notice">
                 <span className="vis-endpoint-icon">⚓</span>
                 <span>
-                  endpoint of {visInfo.endpointChapters.map(t => `'${t}'`).join(', ')} —
-                  always shown regardless of setting below
+                  {t('endpointNotice', { chapters: visInfo.endpointChapters.map(ch => `'${ch}'`).join(', ') })}
                 </span>
               </div>
             )}
 
-            {/* Three-way toggle: inherit / shown / hidden */}
             <div className="vis-toggle-row">
               {['inherit', 'shown', 'hidden'].map(v => (
                 <button
@@ -520,36 +500,21 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
               ))}
             </div>
 
-            {/* Status line — explains the resolved behavior */}
             {visInfo && (
               <div className={`vis-status ${visInfo.visible ? 'vis-status-shown' : 'vis-status-hidden'}`}>
-                {visInfo.reason === 'endpoint' && (
-                  'shown (endpoint floor — overrides setting above)'
-                )}
-                {visInfo.reason === 'milestone-shown' && (
-                  'shown (set explicitly)'
-                )}
-                {visInfo.reason === 'milestone-hidden' && (
-                  'hidden (set explicitly)'
-                )}
-                {visInfo.reason === 'cascade-shown' && (
-                  `shown (inheriting — ${visInfo.inheritSource})`
-                )}
-                {visInfo.reason === 'cascade-hidden' && (
-                  `hidden (inheriting — ${visInfo.inheritSource})`
-                )}
-                {visInfo.reason === 'no-chapters' && (
-                  'shown (inheriting — not a member of any chapter)'
-                )}
+                {visInfo.reason === 'endpoint' && t('visEndpoint')}
+                {visInfo.reason === 'milestone-shown' && t('visShownExplicit')}
+                {visInfo.reason === 'milestone-hidden' && t('visHiddenExplicit')}
+                {visInfo.reason === 'cascade-shown' && t('visInheritShown', { source: visInfo.inheritSource })}
+                {visInfo.reason === 'cascade-hidden' && t('visInheritHidden', { source: visInfo.inheritSource })}
+                {visInfo.reason === 'no-chapters' && t('visNoChapters')}
               </div>
             )}
           </div>
         )}
 
-        {/* dayGLANCE Goal tracking — shown when integration is enabled */}
+        {/* dayGLANCE Goal tracking */}
         {integrationActive && (() => {
-          // Show in edit mode for future-dated or already-linked milestones,
-          // and in create mode whenever a future year is entered.
           const isFuture = isEdit
             ? (existing?.direction === 'future' || existing?.dayglance_linked)
             : (year.length >= 4 && Number(year) >= new Date().getFullYear())
@@ -558,7 +523,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
             <div className="sheet-field">
               <label className="recurrence-toggle-row">
                 <span className="field-label" style={{ marginBottom: 0 }}>
-                  track as dayGLANCE Goal
+                  {t('trackAsDayglance')}
                 </span>
                 <input
                   type="checkbox"
@@ -569,18 +534,17 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
               </label>
               {trackAsDg && (
                 <p className="settings-note" style={{ marginTop: '0.35rem' }}>
-                  A task will be created in dayGLANCE. Date changes and Goal
-                  completions sync back here via your WebDAV events directory.
+                  {t('trackAsDayglanceNote')}
                 </p>
               )}
             </div>
           )
         })()}
 
-        {/* Chapter membership suggestion — create mode only */}
+        {/* Chapter membership suggestion */}
         {!isEdit && overlappingChapters.length > 0 && (
           <div className="sheet-field">
-            <label className="field-label">add to chapters</label>
+            <label className="field-label">{t('addToChapters')}</label>
             <div className="chapter-members-list">
               {overlappingChapters.map(ch => (
                 <label key={ch.id} className="chapter-member-row">
@@ -598,10 +562,10 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
           </div>
         )}
 
-        {/* Close ongoing chapters at this milestone's date — create mode only, unchecked by default */}
+        {/* Close ongoing chapters */}
         {!isEdit && closableChapters.length > 0 && (
           <div className="sheet-field">
-            <label className="field-label">close ongoing chapter at this date</label>
+            <label className="field-label">{t('closeChapterLabel')}</label>
             <div className="chapter-members-list">
               {closableChapters.map(ch => (
                 <label key={ch.id} className="chapter-member-row">
@@ -624,10 +588,10 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
           <span />
           <div className="sheet-actions-right">
             <button type="button" className="btn" onClick={onClose} style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
-              cancel
+              {tc('cancel')}
             </button>
             <button type="submit" className="btn btn-filled" disabled={!canSave || busy} style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
-              {busy ? 'saving…' : isEdit ? 'save changes' : 'add to timeline'}
+              {busy ? tc('saving') : isEdit ? tc('saveChanges') : t('addToTimeline')}
             </button>
           </div>
         </div>

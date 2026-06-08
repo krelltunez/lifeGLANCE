@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { version as VERSION } from '../../../package.json'
 
 function fmtBytes(n) {
@@ -30,6 +31,7 @@ function ExternalLinkIcon() {
 }
 
 export default function HelpModal({ onClose, onOpenShortcuts }) {
+  const { t } = useTranslation('help')
   const idbEst = useIndexedDBEstimate()
 
   const now = new Date()
@@ -48,14 +50,14 @@ export default function HelpModal({ onClose, onOpenShortcuts }) {
               <path d="M9.5 9.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5c0 1.5-1.5 2-2.5 2.5v.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
               <circle cx="12" cy="16.5" r="0.75" fill="currentColor"/>
             </svg>
-            <span className="sheet-title">help &amp; feedback</span>
+            <span className="sheet-title">{t('title')}</span>
           </div>
           <button className="sheet-close" onClick={onClose}>✕</button>
         </div>
 
         {/* ── Contact & Issues ─────────────────────────────────────────────── */}
         <div className="settings-section">
-          <div className="settings-label">contact &amp; issues</div>
+          <div className="settings-label">{t('contactTitle')}</div>
           <div className="help-links">
             <a
               className="help-ext-link"
@@ -73,7 +75,7 @@ export default function HelpModal({ onClose, onOpenShortcuts }) {
               rel="noreferrer"
             >
               <ExternalLinkIcon />
-              Report an issue on GitHub
+              {t('reportIssue')}
             </a>
           </div>
         </div>
@@ -82,7 +84,7 @@ export default function HelpModal({ onClose, onOpenShortcuts }) {
         <div className="help-footer">
           <div className="help-footer-storage">
             <span className="help-footer-meta">
-              Storage:&ensp;
+              {t('storage')}&ensp;
               <span className="help-footer-value">
                 {idbEst ? `${fmtBytes(idbEst.usage)} / ~${fmtBytes(idbEst.quota)}` : '…'}
               </span>
@@ -97,7 +99,7 @@ export default function HelpModal({ onClose, onOpenShortcuts }) {
             onClick={() => { onClose(); onOpenShortcuts() }}
           >
             <kbd className="help-kbd">?</kbd>
-            shortcuts
+            {t('shortcuts')}
           </button>
         </div>
 
