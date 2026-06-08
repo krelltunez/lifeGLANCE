@@ -11,8 +11,8 @@ export default function SyncPassphraseModal({ onClose, onUnlocked }) {
     setLoading(true)
     setError(null)
     try {
-      const { setupEncryptionKey } = await import('@glance-apps/sync')
-      await setupEncryptionKey(passphrase)
+      const { setSyncPassphrase } = await import('@glance-apps/sync')
+      setSyncPassphrase(passphrase)
       onUnlocked()
     } catch (err) {
       setError('Incorrect passphrase. Please try again.')

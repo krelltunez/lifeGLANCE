@@ -105,7 +105,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setSaving(true)
     try {
       const webdavBase = resolveWebdavBase(provider, url, username)
-      const config = { provider, url, username, password, folder, encrypt, enabled: true,
+      const config = { provider, url, username, password, folder, encrypt, encryptionEnabled: encrypt, enabled: true,
         webdavUrl: webdavBase, nextcloudUrl: url, appPassword: password }
       engine?.setConfig(config)
       const dirUrl = `${webdavBase}/${folder}/`

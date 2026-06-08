@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useEffect } from 'react'
 import { formatDateDisplay } from '../../utils/dates'
 
 function formatSpan(ms) {
@@ -12,6 +12,12 @@ function formatSpan(ms) {
 }
 
 export default function SummaryModal({ milestones, onClose }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
   const stats = useMemo(() => {
     if (!milestones.length) return null
 
