@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useTranslation, Trans } from 'react-i18next'
 import { saveCategories } from '../../utils/colors'
 import { isMuted, setMuted } from '../../utils/audio'
 import IntegrationSettings from '../dayglance/IntegrationSettings'
@@ -264,7 +264,7 @@ export default function SettingsModal({
               {t('activityLog')}
             </button>
             <p className="settings-note" style={{ marginTop: '0.4rem' }}>
-              {t('activityLogNote', { key: 'L' })}
+              <Trans ns="settings" i18nKey="activityLogNote" components={{ kbd: <kbd /> }} />
             </p>
           </div>
         )}
