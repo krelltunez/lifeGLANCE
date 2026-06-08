@@ -267,6 +267,14 @@ function HistoryTab() {
 export default function AutoBackupModal({ onClose }) {
   const { t } = useTranslation('sync')
   const { t: tc } = useTranslation('common')
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+
   const [tab, setTab] = useState('settings')
 
   return (

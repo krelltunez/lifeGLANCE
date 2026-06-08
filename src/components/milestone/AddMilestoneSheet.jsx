@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_CATEGORIES } from '../../utils/colors'
 import { buildDateFromParts } from '../../utils/dates'
@@ -52,6 +52,13 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
   }, [isEdit, month, day, year, precision, chapters])
 
   const [selectedChapterIds, setSelectedChapterIds] = React.useState(() => new Set())
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
 
   React.useEffect(() => {
     if (isEdit) return

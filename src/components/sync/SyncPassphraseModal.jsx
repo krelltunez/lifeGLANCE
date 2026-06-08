@@ -1,8 +1,16 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export default function SyncPassphraseModal({ onClose, onUnlocked }) {
   const { t } = useTranslation('sync')
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+
   const [passphrase, setPassphrase] = useState('')
   const [error,      setError]      = useState(null)
   const [loading,    setLoading]    = useState(false)

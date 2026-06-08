@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export default function KeyboardShortcutsModal({ onClose }) {
@@ -25,6 +25,12 @@ export default function KeyboardShortcutsModal({ onClose }) {
     { keys: ['?'],              desc: t('shortcutKeyboardShortcuts')  },
     { keys: ['Esc'],            desc: t('shortcutClose')              },
   ]
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
 
   return (
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>

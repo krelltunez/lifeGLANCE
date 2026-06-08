@@ -73,6 +73,12 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
 
   const isExisting = !!existingConfig
 
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
   async function handleTest() {
     setTesting(true)
     setTestResult(null)

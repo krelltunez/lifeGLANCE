@@ -1,9 +1,17 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatDateDisplay } from '../../utils/dates'
 
 export default function OnThisDayModal({ items, onClose, onSelect }) {
   const { t } = useTranslation('timeline')
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+
   const today     = new Date()
   const todayYear = today.getFullYear()
 

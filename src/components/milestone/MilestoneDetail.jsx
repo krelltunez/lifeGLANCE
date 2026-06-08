@@ -11,6 +11,12 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
   const [confirm,   setConfirm]   = useState(null)
 
   useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+  useEffect(() => {
     if (!m.media_type) return
     let objectUrl
     dbGetMedia(m.id).then(result => {

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { loadActivityLog, clearActivityLog } from '../../lib/intentsActivityLog.js'
 
@@ -19,6 +19,14 @@ function entryLabel(entry, t) {
 
 export default function ActivityLogModal({ onClose }) {
   const { t } = useTranslation('dayglance')
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+
   const [entries, setEntries] = useState(loadActivityLog)
 
   const handleRefresh = useCallback(() => setEntries(loadActivityLog()), [])

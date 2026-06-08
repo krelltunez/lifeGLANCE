@@ -1,9 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export default function IcsImportModal({ candidates, timedCount, categories, onImport, onClose }) {
   const { t } = useTranslation('import')
   const { t: tc } = useTranslation('common')
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+
   const [rows, setRows] = useState(candidates)
 
   const selectedCount = rows.filter(r => r.selected).length

@@ -87,6 +87,13 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
   const inRangeIds = useMemo(() => new Set(inRange.map(m => m.id)), [inRange])
 
   useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+
+  useEffect(() => {
     if (isEdit) return
     setCheckedIds(new Set(inRange.map(m => m.id)))
   }, [inRange, isEdit])

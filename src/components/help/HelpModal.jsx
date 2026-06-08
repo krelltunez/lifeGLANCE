@@ -32,6 +32,14 @@ function ExternalLinkIcon() {
 
 export default function HelpModal({ onClose, onOpenShortcuts }) {
   const { t } = useTranslation('help')
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+
+
   const idbEst = useIndexedDBEstimate()
 
   const now = new Date()
