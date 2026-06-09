@@ -1496,7 +1496,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         <button className="add-milestone-btn" onClick={() => setAddOpen(true)}>
           {ultraCompact ? t('addMilestoneShort') : t('addMilestone')}
         </button>
-        <button className="add-chapter-btn" onClick={openChapterCreate}>
+        <button className="add-milestone-btn add-chapter-btn" onClick={openChapterCreate}>
           {ultraCompact ? t('addChapterShort') : t('addChapter')}
         </button>
 
