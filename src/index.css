@@ -518,12 +518,16 @@ button, input, select, textarea {
   align-items: center;
   gap: 0.45rem;
   padding: 0.45rem 0.9rem;
+  margin: 0;
   background: transparent;
   font-family: var(--font);
   font-size: 0.8rem;
   line-height: 1;
   cursor: pointer;
   letter-spacing: 0.03em;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .add-milestone-btn {
   border: 1px solid var(--amber);
