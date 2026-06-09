@@ -512,20 +512,23 @@ button, input, select, textarea {
   min-height: 0;
 }
 
-.add-milestone-btn {
+.add-milestone-btn,
+.add-chapter-btn {
   display: flex;
   align-items: center;
   gap: 0.45rem;
   padding: 0.45rem 0.9rem;
   background: transparent;
-  border: 1px solid var(--amber);
-  color: var(--amber);
   font-family: var(--font);
   font-size: 0.8rem;
   line-height: 1;
   cursor: pointer;
-  transition: background 0.15s;
   letter-spacing: 0.03em;
+}
+.add-milestone-btn {
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  transition: background 0.15s;
 }
 .add-milestone-btn:hover { background: rgba(200, 169, 110, 0.1); }
 
@@ -2017,19 +2020,9 @@ button, input, select, textarea {
 /* ─── Chapter sheet ──────────────────────────────────────────────────────────── */
 
 .add-chapter-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 0.9rem;
-  background: transparent;
   border: 1px solid rgba(200, 169, 110, 0.45);
   color: rgba(200, 169, 110, 0.75);
-  font-family: var(--font);
-  font-size: 0.8rem;
-  line-height: 1;
-  cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
-  letter-spacing: 0.03em;
 }
 .add-chapter-btn:hover {
   background: rgba(200, 169, 110, 0.08);
