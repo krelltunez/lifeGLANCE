@@ -522,6 +522,7 @@ button, input, select, textarea {
   color: var(--amber);
   font-family: var(--font);
   font-size: 0.8rem;
+  line-height: 1;
   cursor: pointer;
   transition: background 0.15s;
   letter-spacing: 0.03em;
@@ -2025,6 +2026,7 @@ button, input, select, textarea {
   color: rgba(200, 169, 110, 0.75);
   font-family: var(--font);
   font-size: 0.8rem;
+  line-height: 1;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   letter-spacing: 0.03em;
