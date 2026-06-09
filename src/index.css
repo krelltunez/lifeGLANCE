@@ -1916,6 +1916,7 @@ button, input, select, textarea {
   .timeline-header { padding: 0.18rem 0.8rem; }
   .action-link     { font-size: 0.5rem; }
   .action-sep      { font-size: 0.6rem; }
+  .minimap-bar     { display: none; }
 
   /* ── Compact bottom bar for landscape phones ── */
   .timeline-bottom {
