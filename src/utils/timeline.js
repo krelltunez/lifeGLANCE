@@ -138,43 +138,80 @@ export function applyRecurFilter(ms, mode) {
   return [...nonRec, ...picked]
 }
 
-// Assign above/below lanes to sorted milestones.
+// Assign above/below lanes to sorted milestones using a force-directed simulation.
 //   maxLane      – max lane index that fits in the container (caller computes)
 //   cardTimeSpan – ms equivalent of one card width at current zoom (for overlap detection)
 //
-// Two independent hash values per milestone:
-//   laneRand – drives lane preference (~55% chance of preferring lane 1)
-//   connRand – drives connector-length jitter in the renderer (0 → 60% extra)
+// Each card starts at lane 0, then repulsion forces from temporally-close neighbours
+// push overlapping cards apart while a centering force pulls every card back toward
+// lane 0. After the simulation the fractional lane is snapped to the nearest integer.
+//
+// connRand (independent seeded hash) drives connector-length jitter in the renderer.
 export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0, forceAbove = false) {
   const sorted = [...milestones].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
   )
 
-  const placed = { above: [], below: [] }
-
-  return sorted.map((m, i) => {
+  // Split into above/below groups and simulate each independently
+  const groups = { above: [], below: [] }
+  sorted.forEach((m, i) => {
     const above = forceAbove || i % 2 === 0
-    const side  = above ? 'above' : 'below'
-    const mMs   = new Date(m.date).getTime()
-
-    // Two independent seeds so lane choice and connector length don't correlate
-    const laneRand = seededHash(String(m.id) + String(m.date).slice(0, 10))
     const connRand = seededHash(String(m.id) + '~conn')
-
-    const hasConflict = (l) =>
-      cardTimeSpan > 0 &&
-      placed[side].some(p => p.lane === l && Math.abs(p.ms - mMs) < cardTimeSpan)
-
-    // ~55% of milestones spontaneously prefer lane 1 for visual variety
-    const preferLane = (maxLane >= 1 && laneRand < 0.55) ? 1 : 0
-
-    let lane = preferLane
-    if (hasConflict(lane)) {
-      lane = 0
-      while (lane < maxLane && hasConflict(lane)) lane++
-    }
-
-    placed[side].push({ ms: mMs, lane })
-    return { ...m, above, lane, connRand }
+    groups[above ? 'above' : 'below'].push({
+      m, above, connRand,
+      ms: new Date(m.date).getTime(),
+      pos: 0,   // fractional lane position
+      vel: 0,
+    })
   })
+
+  const K_CENTER  = 0.2   // pull toward lane 0
+  const K_REPEL   = 1.2   // push apart overlapping cards
+  const DAMPING   = 0.75
+  const ITERATIONS = 60
+
+  for (const cards of Object.values(groups)) {
+    if (cards.length === 0) continue
+    for (let iter = 0; iter < ITERATIONS; iter++) {
+      for (let i = 0; i < cards.length; i++) {
+        const ci = cards[i]
+        let force = -K_CENTER * ci.pos  // centering: always pulls toward 0
+
+        if (cardTimeSpan > 0) {
+          for (let j = 0; j < cards.length; j++) {
+            if (i === j) continue
+            const cj = cards[j]
+            if (Math.abs(ci.ms - cj.ms) >= cardTimeSpan) continue
+            // Temporal overlap — repel in lane space
+            const delta = ci.pos - cj.pos
+            const dist  = Math.abs(delta)
+            // Full repulsion within 1 lane, tapers off beyond
+            if (dist < 1.5) {
+              const sign = delta >= 0 ? 1 : -1
+              force += sign * K_REPEL * (1.5 - dist) / 1.5
+            }
+          }
+        }
+
+        ci.vel = (ci.vel + force) * DAMPING
+      }
+      // Apply velocities
+      for (const c of cards) c.pos += c.vel
+      // Clamp to valid lane range
+      for (const c of cards) c.pos = Math.max(0, Math.min(maxLane, c.pos))
+    }
+  }
+
+  // Snap fractional positions to integer lanes and attach to milestones
+  const result = []
+  for (const cards of Object.values(groups)) {
+    for (const c of cards) {
+      const lane = Math.min(maxLane, Math.max(0, Math.round(c.pos)))
+      result.push({ ...c.m, above: c.above, lane, connRand: c.connRand })
+    }
+  }
+
+  // Restore original date-sorted order so the caller's rendering is stable
+  result.sort((a, b) => new Date(a.date) - new Date(b.date))
+  return result
 }
