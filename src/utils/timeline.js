@@ -178,19 +178,21 @@ export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0, forceAbov
         let force = -K_CENTER * ci.pos  // centering: always pulls toward 0
 
         if (cardTimeSpan > 0) {
-          for (let j = 0; j < cards.length; j++) {
-            if (i === j) continue
-            const cj = cards[j]
-            if (Math.abs(ci.ms - cj.ms) >= cardTimeSpan) continue
-            // Temporal overlap — repel in lane space
+          // Collect overlapping neighbours first so we can normalise by count.
+          // Without normalisation a card surrounded by N neighbours gets N×K_REPEL
+          // of total force, causing blow-up at dense zoom levels (e.g. 30yr view).
+          const neighbours = cards.filter((cj, j) =>
+            j !== i && Math.abs(ci.ms - cj.ms) < cardTimeSpan
+          )
+          const norm = neighbours.length > 0 ? 1 / neighbours.length : 1
+          for (let ni = 0; ni < neighbours.length; ni++) {
+            const cj = neighbours[ni]
+            const j  = cards.indexOf(cj)
             const delta = ci.pos - cj.pos
             const dist  = Math.abs(delta)
-            // Full repulsion within 1 lane, tapers off beyond.
-            // When cards are at the same position use index to break the tie
-            // so they're pushed in opposite directions rather than together.
             if (dist < 1.5) {
               const sign = dist > 0.001 ? (delta > 0 ? 1 : -1) : (i > j ? 1 : -1)
-              force += sign * K_REPEL * (1.5 - dist) / 1.5
+              force += sign * K_REPEL * norm * (1.5 - dist) / 1.5
             }
           }
         }
