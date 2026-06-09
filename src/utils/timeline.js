@@ -138,13 +138,14 @@ export function applyRecurFilter(ms, mode) {
   return [...nonRec, ...picked]
 }
 
-// Assign above/below lanes to sorted milestones using a force-directed simulation.
+// Assign above/below lanes to sorted milestones.
 //   maxLane      – max lane index that fits in the container (caller computes)
 //   cardTimeSpan – ms equivalent of one card width at current zoom (for overlap detection)
 //
-// Each card starts at lane 0, then repulsion forces from temporally-close neighbours
-// push overlapping cards apart while a centering force pulls every card back toward
-// lane 0. After the simulation the fractional lane is snapped to the nearest integer.
+// Uses force-directed simulation when cards are sparse enough for it to converge
+// cleanly (avg neighbours < DENSITY_THRESHOLD). Falls back to greedy interval
+// packing when nearly every card overlaps every other (e.g. 30yr zoom), where
+// force-directed produces worse results than a simple sequential scan.
 //
 // connRand (independent seeded hash) drives connector-length jitter in the renderer.
 export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0, forceAbove = false) {
@@ -152,70 +153,83 @@ export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0, forceAbov
     (a, b) => new Date(a.date) - new Date(b.date)
   )
 
-  // Split into above/below groups and simulate each independently
-  const groups = { above: [], below: [] }
-  sorted.forEach((m, i) => {
-    const above = forceAbove || i % 2 === 0
-    const connRand = seededHash(String(m.id) + '~conn')
-    groups[above ? 'above' : 'below'].push({
-      m, above, connRand,
-      ms: new Date(m.date).getTime(),
-      pos: 0,   // fractional lane position
-      vel: 0,
+  // Build per-card metadata shared by both algorithms
+  const cards = sorted.map((m, i) => ({
+    m,
+    above: forceAbove || i % 2 === 0,
+    connRand: seededHash(String(m.id) + '~conn'),
+    ms: new Date(m.date).getTime(),
+  }))
+
+  // Measure average temporal-neighbour count to choose algorithm
+  const DENSITY_THRESHOLD = 3  // avg neighbours per card before switching to greedy
+  let totalNeighbours = 0
+  if (cardTimeSpan > 0 && cards.length > 1) {
+    for (let i = 0; i < cards.length; i++)
+      for (let j = 0; j < cards.length; j++)
+        if (i !== j && Math.abs(cards[i].ms - cards[j].ms) < cardTimeSpan)
+          totalNeighbours++
+  }
+  const avgNeighbours = cards.length > 0 ? totalNeighbours / cards.length : 0
+  const useForceSim   = avgNeighbours < DENSITY_THRESHOLD
+
+  // ── Force-directed simulation (sparse views) ──────────────────────────────
+  if (useForceSim) {
+    const groups = { above: [], below: [] }
+    cards.forEach((c, i) => {
+      groups[c.above ? 'above' : 'below'].push({ ...c, idx: i, pos: 0, vel: 0 })
     })
-  })
 
-  const K_CENTER  = 0.2   // pull toward lane 0
-  const K_REPEL   = 1.2   // push apart overlapping cards
-  const DAMPING   = 0.75
-  const ITERATIONS = 60
+    const K_CENTER  = 0.2
+    const K_REPEL   = 1.2
+    const DAMPING   = 0.75
+    const ITERATIONS = 60
 
-  for (const cards of Object.values(groups)) {
-    if (cards.length === 0) continue
-    for (let iter = 0; iter < ITERATIONS; iter++) {
-      for (let i = 0; i < cards.length; i++) {
-        const ci = cards[i]
-        let force = -K_CENTER * ci.pos  // centering: always pulls toward 0
-
-        if (cardTimeSpan > 0) {
-          // Collect overlapping neighbours first so we can normalise by count.
-          // Without normalisation a card surrounded by N neighbours gets N×K_REPEL
-          // of total force, causing blow-up at dense zoom levels (e.g. 30yr view).
-          const neighbours = cards.filter((cj, j) =>
-            j !== i && Math.abs(ci.ms - cj.ms) < cardTimeSpan
-          )
-          const norm = neighbours.length > 0 ? 1 / neighbours.length : 1
-          for (let ni = 0; ni < neighbours.length; ni++) {
-            const cj = neighbours[ni]
-            const j  = cards.indexOf(cj)
-            const delta = ci.pos - cj.pos
-            const dist  = Math.abs(delta)
-            if (dist < 1.5) {
-              const sign = dist > 0.001 ? (delta > 0 ? 1 : -1) : (i > j ? 1 : -1)
-              force += sign * K_REPEL * norm * (1.5 - dist) / 1.5
+    for (const group of Object.values(groups)) {
+      if (group.length === 0) continue
+      for (let iter = 0; iter < ITERATIONS; iter++) {
+        for (let i = 0; i < group.length; i++) {
+          const ci = group[i]
+          let force = -K_CENTER * ci.pos
+          if (cardTimeSpan > 0) {
+            for (let j = 0; j < group.length; j++) {
+              if (i === j) continue
+              const cj = group[j]
+              if (Math.abs(ci.ms - cj.ms) >= cardTimeSpan) continue
+              const delta = ci.pos - cj.pos
+              const dist  = Math.abs(delta)
+              if (dist < 1.5) {
+                const sign = dist > 0.001 ? (delta > 0 ? 1 : -1) : (i > j ? 1 : -1)
+                force += sign * K_REPEL * (1.5 - dist) / 1.5
+              }
             }
           }
+          ci.vel = (ci.vel + force) * DAMPING
         }
-
-        ci.vel = (ci.vel + force) * DAMPING
+        for (const c of group) c.pos = Math.max(0, Math.min(maxLane, c.pos + c.vel))
       }
-      // Apply velocities
-      for (const c of cards) c.pos += c.vel
-      // Clamp to valid lane range
-      for (const c of cards) c.pos = Math.max(0, Math.min(maxLane, c.pos))
     }
+
+    const result = []
+    for (const group of Object.values(groups))
+      for (const c of group)
+        result.push({ ...c.m, above: c.above, lane: Math.round(Math.max(0, Math.min(maxLane, c.pos))), connRand: c.connRand })
+    result.sort((a, b) => new Date(a.date) - new Date(b.date))
+    return result
   }
 
-  // Snap fractional positions to integer lanes and attach to milestones
-  const result = []
-  for (const cards of Object.values(groups)) {
-    for (const c of cards) {
-      const lane = Math.min(maxLane, Math.max(0, Math.round(c.pos)))
-      result.push({ ...c.m, above: c.above, lane, connRand: c.connRand })
-    }
-  }
-
-  // Restore original date-sorted order so the caller's rendering is stable
-  result.sort((a, b) => new Date(a.date) - new Date(b.date))
-  return result
+  // ── Greedy interval packing (dense views) ─────────────────────────────────
+  const placed = { above: [], below: [] }
+  return cards.map(({ m, above, connRand, ms }) => {
+    const side = above ? 'above' : 'below'
+    const hasConflict = (l) =>
+      cardTimeSpan > 0 &&
+      placed[side].some(p => p.lane === l && Math.abs(p.ms - ms) < cardTimeSpan)
+    let lane = 0
+    while (lane < maxLane && hasConflict(lane)) lane++
+    placed[side].push({ ms, lane })
+    return { ...m, above, lane, connRand }
+  })
 }
+
+
