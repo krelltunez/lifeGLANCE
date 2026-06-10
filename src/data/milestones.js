@@ -23,6 +23,10 @@ export function buildMilestone({
   note           = '',
   has_photo      = false,
   media_type     = null,   // null | 'audio' | 'video'
+  // GLANCEvault forward-compat slots — null until a blob store is wired up
+  media_id       = null,   // stable ref for the audio/video blob
+  photo_id       = null,   // stable ref for the photo blob
+  thumbnail_id   = null,   // reserved; no thumbnail generation yet
   url            = '',
   recurrence     = null,   // null | 'annual'
   recurrence_id  = null,   // UUID shared across instances of a series
@@ -48,6 +52,9 @@ export function buildMilestone({
     note,
     has_photo,
     media_type,
+    media_id,
+    photo_id,
+    thumbnail_id,
     url,
     recurrence,
     recurrence_id,
