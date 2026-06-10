@@ -507,21 +507,24 @@ button, input, select, textarea {
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--bg);
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+  min-height: 0;
 }
 
-.add-milestone-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
+.add-milestone-btn,
+.add-chapter-btn {
   padding: 0.45rem 0.9rem;
   background: transparent;
-  border: 1px solid var(--amber);
-  color: var(--amber);
   font-family: var(--font);
   font-size: 0.8rem;
   cursor: pointer;
-  transition: background 0.15s;
   letter-spacing: 0.03em;
+}
+.add-milestone-btn {
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  transition: background 0.15s;
 }
 .add-milestone-btn:hover { background: rgba(200, 169, 110, 0.1); }
 
@@ -1914,6 +1917,22 @@ button, input, select, textarea {
   .action-link     { font-size: 0.5rem; }
   .action-sep      { font-size: 0.6rem; }
 
+  /* ── Compact bottom bar for landscape phones ── */
+  .timeline-bottom {
+    padding: 0.25rem 0.6rem;
+    padding-bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.3rem;
+  }
+  .add-milestone-btn,
+  .add-chapter-btn {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.7rem;
+  }
+  .today-btn {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.62rem;
+  }
+
   /* Onboarding: compress everything for landscape phones, push content down from edge */
   .onboarding         { justify-content: flex-start; padding: 1.5rem 1.5rem 4rem; }
   /* Step 1 has no preview strip — keep it vertically centred */
@@ -1926,6 +1945,13 @@ button, input, select, textarea {
 }
 
 /* ─── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 400px),
+       (max-height: 380px) {
+  /* Very small phones: iPhone SE (375px landscape height) and Z Fold portrait
+     (344px wide). Most modern phones are ≥390px in their small dimension. */
+  .minimap-bar { display: none; }
+}
+
 @media (max-width: 480px) {
   /* Onboarding: reduce gaps and reserved prompt height on portrait phones */
   .onboarding         { padding: 1.5rem 1.25rem 3.5rem; }
@@ -1997,18 +2023,9 @@ button, input, select, textarea {
 /* ─── Chapter sheet ──────────────────────────────────────────────────────────── */
 
 .add-chapter-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 0.9rem;
-  background: transparent;
   border: 1px solid rgba(200, 169, 110, 0.45);
   color: rgba(200, 169, 110, 0.75);
-  font-family: var(--font);
-  font-size: 0.8rem;
-  cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
-  letter-spacing: 0.03em;
 }
 .add-chapter-btn:hover {
   background: rgba(200, 169, 110, 0.08);

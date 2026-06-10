@@ -1494,10 +1494,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       {/* ── Bottom bar ─────────────────────────────────────────────────────── */}
       <div className="timeline-bottom">
         <button className="add-milestone-btn" onClick={() => setAddOpen(true)}>
-          {t('addMilestone')}
+          {ultraCompact ? t('addMilestoneShort') : t('addMilestone')}
         </button>
         <button className="add-chapter-btn" onClick={openChapterCreate}>
-          {t('addChapter')}
+          {ultraCompact ? t('addChapterShort') : t('addChapter')}
         </button>
 
         {presentCategories.length > 0 && (

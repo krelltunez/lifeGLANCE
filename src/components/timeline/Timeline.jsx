@@ -812,9 +812,9 @@ const Timeline = forwardRef(function Timeline(
               {/* Axis dot */}
               <circle cx={avgX} cy={msAxisY} r={5}
                 fill="#0D0F16" stroke="rgba(200,169,110,0.55)" strokeWidth={1.2} />
-              {/* Badge circle */}
+              {/* Badge circle — fully opaque so it cleanly covers any card behind it */}
               <circle cx={avgX} cy={badgeCy} r={R}
-                fill="rgba(13,15,22,0.94)" stroke="rgba(200,169,110,0.4)" strokeWidth={1} />
+                fill="#0D0F16" stroke="rgba(200,169,110,0.4)" strokeWidth={1} />
               {/* Count */}
               <text x={avgX} y={badgeCy + 4}
                 textAnchor="middle"
