@@ -23,6 +23,10 @@ export function buildMilestone({
   note           = '',
   has_photo      = false,
   media_type     = null,   // null | 'audio' | 'video'
+  // GLANCEvault forward-compat slots — null until a blob store is wired up
+  media_id       = null,   // stable ref for the audio/video blob
+  photo_id       = null,   // stable ref for the photo blob
+  thumbnail_id   = null,   // reserved; no thumbnail generation yet
   url            = '',
   recurrence     = null,   // null | 'annual'
   recurrence_id  = null,   // UUID shared across instances of a series
@@ -48,6 +52,9 @@ export function buildMilestone({
     note,
     has_photo,
     media_type,
+    media_id,
+    photo_id,
+    thumbnail_id,
     url,
     recurrence,
     recurrence_id,
@@ -67,6 +74,10 @@ export async function loadMilestones() {
 
 export async function addMilestone(data) {
   const m = buildMilestone(data)
+  // Stamp reference IDs to match the local blob-key convention so the eventual
+  // GLANCEvault cutover is a transport swap with no entity migration.
+  if (m.media_type && m.media_id  == null) m.media_id  = m.id
+  if (m.has_photo  && m.photo_id  == null) m.photo_id  = `${m.id}-photo`
   await dbAdd(m)
   return m
 }
@@ -93,6 +104,28 @@ export async function updateMilestone(id, updates, existing) {
   }
   await dbPut(m)
   return m
+}
+
+// One-time backfill: stamp media_id / photo_id on existing milestones that
+// pre-date the schema addition. Skips milestones that already have values or
+// have no media. thumbnail_id intentionally left null for all records.
+//
+// updated_at is deliberately NOT bumped. Each device runs this backfill
+// independently at startup and derives the same deterministic IDs, so sync
+// propagation is unnecessary. Bumping would cause a one-time churn where
+// every media milestone appears "newer" and triggers a full re-upload.
+export async function backfillMediaIds() {
+  const all = await dbGetAll()
+  for (const m of all) {
+    const needsMedia = m.media_type && m.media_id  == null
+    const needsPhoto = m.has_photo  && m.photo_id  == null
+    if (!needsMedia && !needsPhoto) continue
+    await dbPut({
+      ...m,
+      ...(needsMedia ? { media_id: m.id }             : {}),
+      ...(needsPhoto ? { photo_id: `${m.id}-photo` }  : {}),
+    })
+  }
 }
 
 export async function deleteMilestone(id) {

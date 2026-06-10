@@ -717,7 +717,13 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         const hasPhoto  = photoFile    ? true
                         : photoRemoved ? false
                         : (existing.has_photo ?? false)
-        const updated = await updateMilestone(existing.id, { ...milestoneData, media_type: mediaType, has_photo: hasPhoto }, existing)
+        const mediaId   = mediaFile    ? existing.id
+                        : mediaRemoved ? null
+                        : (existing.media_id ?? (existing.media_type ? existing.id : null))
+        const photoId   = photoFile    ? `${existing.id}-photo`
+                        : photoRemoved ? null
+                        : (existing.photo_id ?? (existing.has_photo ? `${existing.id}-photo` : null))
+        const updated = await updateMilestone(existing.id, { ...milestoneData, media_type: mediaType, has_photo: hasPhoto, media_id: mediaId, photo_id: photoId }, existing)
         if (mediaFile)    await dbPutMedia(updated.id, mediaFile, mediaFile.type)
         if (photoFile)    await dbPutPhoto(updated.id, photoFile, photoFile.type)
         if (photoRemoved) await dbDeletePhoto(updated.id)

@@ -5,6 +5,7 @@ import TimelineView from './components/timeline/TimelineView'
 import CloudSyncModal from './components/sync/CloudSyncModal'
 import SyncPassphraseModal from './components/sync/SyncPassphraseModal'
 import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
+import { backfillMediaIds } from './data/milestones'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
 
 export default function App() {
@@ -42,7 +43,7 @@ export default function App() {
       .then(() => {
         if (import.meta.env.DEV) import('./data/devtools').then(m => m.registerDevtools())
         navigator.storage?.persist?.()
-        return Promise.all([dbGetAll(), dbGetAllChapters()])
+        return backfillMediaIds().then(() => Promise.all([dbGetAll(), dbGetAllChapters()]))
       })
       .then(([all, allChapters]) => {
         setMilestones(all)
