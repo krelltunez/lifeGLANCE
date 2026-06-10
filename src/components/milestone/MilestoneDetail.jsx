@@ -119,9 +119,6 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
         )}
         {m.media_type && !audioUrl && (
           <div className="detail-audio-wrap detail-media-unavailable">
-            <span className="detail-media-unavailable-icon">
-              {m.media_type === 'video' ? '&#127916;' : '&#127911;'}
-            </span>
             <span className="detail-media-unavailable-label">{t('mediaSyncedFromDevice')}</span>
           </div>
         )}
