@@ -109,6 +109,11 @@ export async function updateMilestone(id, updates, existing) {
 // One-time backfill: stamp media_id / photo_id on existing milestones that
 // pre-date the schema addition. Skips milestones that already have values or
 // have no media. thumbnail_id intentionally left null for all records.
+//
+// updated_at is deliberately NOT bumped. Each device runs this backfill
+// independently at startup and derives the same deterministic IDs, so sync
+// propagation is unnecessary. Bumping would cause a one-time churn where
+// every media milestone appears "newer" and triggers a full re-upload.
 export async function backfillMediaIds() {
   const all = await dbGetAll()
   for (const m of all) {
