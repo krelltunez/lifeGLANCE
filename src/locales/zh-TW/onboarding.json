@@ -1,0 +1,22 @@
+{
+  "tagline": "你的生命故事，於此一眼展開",
+  "begin": "踏出第1步，啟程 →",
+  "step2Eyebrow": "第2步: 回首來時路",
+  "step2Prompt": "至今為止，您生命中最美好的一刻是什麼?",
+  "step2Placeholder": "譬如: 我們結婚了",
+  "step3Eyebrow": "第3步: 遠眺將行處",
+  "step3Prompt": "未來即至，您最期盼的一件事是什麼?",
+  "step3Placeholder": "例如：一起去外國旅行",
+  "step4Eyebrow": "第4步: 輕輕展卷，生命的時光長軸",
+  "step4Prompt": "人生如畫，如河，如星圖，漫漫無際……",
+  "approximateIsFine": "約略即可",
+  "errorPastEvent": "此事應在昔日之期",
+  "errorFutureEvent": "此事應在未來之期",
+  "placeOnTimeline": "輕落一筆 →",
+  "lookingBack": "回望來路",
+  "lookingAhead": "遠眺前程",
+  "noPastEvent": "過往未有留痕"",
+  "noFutureEvent": "前程未落一筆",
+  "openTimeline": "展開我的歲月長卷 →",
+  "keyboardShortcutHint": "按下 <kbd>?</kbd>，即可使用鍵盤熱鍵"
+}
