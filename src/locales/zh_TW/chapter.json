@@ -24,5 +24,5 @@
   "colorLabel": "顏色",
   "deleteConfirmTitle": "刪除 <strong>{{title}}</strong>?",
   "endpointTooltip": "端點—總是顯示在主時間線上",
-  "endpointDimTooltip": "匹配章節邊界—添加以使其成為終點"
+  "endpointDimTooltip": "匹配章節邊界—添加以使其成為端點"
 }
