@@ -6,8 +6,21 @@
     <meta name="theme-color" content="#0F1117" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="lifeGLANCE" />
+    <script>
+      // On the installed iOS/iPadOS home-screen app only (navigator.standalone
+      // exists ONLY on iOS WebKit — undefined on Android/desktop), drop
+      // viewport-fit=cover. Edge-to-edge makes content bleed under the status bar
+      // and leaves the status-bar region as dead black space on iPad. Without it,
+      // iOS gives the status bar its own space and content fills the rest — no
+      // overlap, no bottom bar. Android/desktop keep the original cover meta.
+      (function () {
+        if (window.navigator.standalone !== true) return;
+        var vp = document.querySelector('meta[name="viewport"]');
+        if (vp) vp.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+      })();
+    </script>
     <title>lifeGLANCE</title>
     <link rel="manifest" href="/manifest.json" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
