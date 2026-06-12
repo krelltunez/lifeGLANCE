@@ -1,6 +1,3 @@
-
-{ "Tagline": "Nǐ wǒ mìng lǐ de zhāng huí, yú cǐ yīshùn pūzhǎn", "begin": "Chū zhāng, qǐchéng ￫", "step2Eyebrow": "Cì zhāng: Yuè zhào lái shí lù", "step2Prompt": "Xíng zhìcǐ shí, nín shēngmìng zhòng zuì měihǎo de shì nǎ yīkè?", "Step2Placeholder": "Pìrú: Wǒmen jiéhūnle", "step3Eyebrow": "Cān zhāng: Yún kāi qiánshān tíng", "step3Prompt": "Wèilái jiāng zhì, nín xīnzhōng zuì qī pàn de yī jiàn shì shì shénme?", "Step3Placeholder": "Lìrú: Gòng yóu wàidì fēngguāng", "step4Eyebrow": "Sì zhāng: Huǎn huǎn zhǎn juǎn, shēngmìng de suìyuè cháng zhóu", "step4Prompt": "Rénshēng rú huà, rú jiānghé, rú xīng tú, mànmàn wújì……", "approximateIsFine": "Yuēlüè jí kě", "errorPastEvent": "Cǐ shì yīng zài xīrì zhī qī", "errorFutureEvent": "Cǐ shì yīng zài wèilái zhī qī", "placeOnTimeline": "Qīng qīng luòbǐ ￫", "lookingBack": "Huí wàng lái lù", "lookingAhead": "Wàng xiàng míngrì", "noPastEvent": "Guòwǎng shàngwèi zhuóbǐ", "noFutureEvent": "Míngrì shàng dài tí bǐ", "openTimeline": "Zhǎnkāi wǒ de suìyuè cháng juǎn ￫", "keyboardShortcutHint": "Àn xià <kbd>?</Kbd>, huànqǐ jiànpán rè jiàn" }
-663
 {
 "tagline": "你我命里的章回，于此一瞬铺展",
 "begin": "初章，启程 →",
