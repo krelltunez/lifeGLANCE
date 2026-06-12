@@ -1,0 +1,23 @@
+{
+  "skip": "跳过",
+  "cancel": "取消",
+  "save": "保存",
+  "saveChanges": "保存更改",
+  "delete": "刪除",
+  "edit": "编辑",
+  "add": "添加",
+  "remove": "移除",
+  "replace": "替換",
+  "month": "月",
+  "year": "年",
+  "day": "日",
+  "date": "日期",
+  "settings": "设置",
+  "eventName": "事件名称",
+  "placing": "放置中…",
+  "saving": "保存中…",
+  "deleting": "刪除中…",
+  "loading": "读取中...",
+  "testing": "测试中…",
+  "portraitMessage": "竖屏:请旋转您的装置以获得最佳体验"
+}

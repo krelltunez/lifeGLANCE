@@ -1,0 +1,16 @@
+{
+  "title": "从日历汇入",
+  "notice": "导入功能适用于人生重要事件，例如生日、毕业典礼和旅行。请取消勾选任何不属于此范围的项目。",
+  "allDayEventsFound_one": "找到{{count}}个全天事件",
+  "allDayEventsFound_other": "找到{{count}}个全天事件",
+  "timedEventsSkipped_one": "·跳过{{count}}个定時事件",
+  "timedEventsSkipped_other": "·跳过{{count}}个定時事件",
+  "noEvents": "文件中並无找到全天事件",
+  "deselectAll": "取消全选",
+  "selectAll": "全选",
+  "titleColumn": "标题",
+  "categoryColumn": "范畴",
+  "annual": "年度",
+  "importButton_one": "導入{{count}} 个里程碑",
+  "importButton_other": "導入{{count}} 个里程碑"
+}
