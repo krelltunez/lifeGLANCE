@@ -2,6 +2,18 @@ import { useEffect, useRef, useCallback } from 'react'
 import { pollEvents, isIntegrationEnabled } from '../lib/intentsTransport.js'
 import { ACTIONS, SOURCE_APPS } from '@glance-apps/intents'
 
+// Whether an inbound envelope is something lifeGLANCE actually handles:
+//   - a Goal that dayGLANCE pushed to us (create), or
+//   - a state-change notify about a task that originated here.
+// The sibling apps (dayGLANCE, lastGLANCE) share the same WebDAV events
+// directory, so we also see their traffic — e.g. lastGLANCE chore events.
+// Those aren't actionable here and shouldn't clutter the activity log.
+export function isRelevantInboundEvent({ action, emitted_by, payload } = {}) {
+  if (action === ACTIONS.CREATE && emitted_by === SOURCE_APPS.DAYGLANCE) return true
+  if (action === ACTIONS.NOTIFY && payload?.source_app === SOURCE_APPS.LIFEGLANCE) return true
+  return false
+}
+
 // Polls the WebDAV events directory while the component is mounted (foreground).
 // Calls the appropriate handler for each inbound event:
 //   onInboundCreate(payload)  — dayGLANCE pushed a new Goal → create milestone
@@ -28,6 +40,12 @@ export function useIntentPoller({
 
     await pollEvents(async (envelope) => {
       const { action, payload, event_id, emitted_by } = envelope
+
+      // Skip events from sibling apps that share the events directory (e.g.
+      // lastGLANCE chores) — they're not actionable here. The cursor still
+      // advances for them inside pollEvents; we just don't surface them.
+      if (!isRelevantInboundEvent(envelope)) return
+
       activityRef.current?.({ type: 'received', event_id, action, emitted_by, payload })
 
       if (action === ACTIONS.CREATE && emitted_by === SOURCE_APPS.DAYGLANCE) {
