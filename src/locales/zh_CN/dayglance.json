@@ -28,6 +28,7 @@
   "enterPassphrase": "输入密码短语启动",
   "activating": "正在启动…",
   "activate": "启动",
+  "encryptionEnabled": "已启用加密。未存储密码短语——此设备上不再需要密码短语。",
   "encryptionEnabl设定失败: {{message}}",
   "integrationNote": "lifeGLANCE and dayGLANCE 必须指向相同的 WebDAV endpoint and events path. \"标记为 dayGLANCE Goal\"的里程碑将显示为goals于 dayGLANCE; Goal 的狀态更改及完成日期将会同步回此处.",
   "toastGoalAdded": "dayGLANCE Goal 已新增: \"{{title}}\"",

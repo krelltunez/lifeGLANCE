@@ -6,7 +6,7 @@
   "dateRange": "日期范畴",
   "from": "起始于",
   "ongoing": "持续续行中(无结束日期)",
-  "descriptionLabel": "描述 (选填)",
+  "descriptionLabel": "描述(选填)",
   "descriptionPlaceholder": "本章节的简短描述…",
   "hideByDefault": "预设在主时间轴里，隐藏隶属的成员(里程碑)",
   "membersLabel": "设置属于该章节的里程碑",
