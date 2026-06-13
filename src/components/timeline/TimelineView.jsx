@@ -1605,7 +1605,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                     height: '8px',
                     borderRadius: '50%',
                     marginRight: '4px',
-                    background: syncHalted || syncError ? 'var(--rose)' : syncStatus === 'syncing' ? 'var(--amber-bright)' : 'var(--success)',
+                    background: syncHalted || syncError ? 'var(--rose)' : syncStatus === 'syncing' ? 'var(--amber-bright)' : lastSynced ? 'var(--success)' : 'var(--text-muted)',
                   }}
                 />
                 {t('syncBtn')}
