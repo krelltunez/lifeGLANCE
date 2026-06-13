@@ -1,9 +1,9 @@
 {
   "title": "雲端同步",
-  "autoBackupTitle": "自动备份",
+  "autoBackupTitle": "自动備份",
   "syncHalted": "同步已停止:",
   "providerLabel": "云端類型",
-  "serverUrlLabel": "服务器 URL",
+  "serverUrlLabel": "服务器 URL"",
   "usernameLabel": "用戶名",
   "appPasswordLabel": "APP專用密碼",
   "folderLabel": "同步文件夾",
