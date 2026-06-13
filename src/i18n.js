@@ -80,6 +80,45 @@ import ptStats from './locales/pt/stats.json'
 import ptImport from './locales/pt/import.json'
 import ptDayglance from './locales/pt/dayglance.json'
 
+import zhCNCommon from './locales/zh_CN/common.json'
+import zhCNOnboarding from './locales/zh_CN/onboarding.json'
+import zhCNMilestone from './locales/zh_CN/milestone.json'
+import zhCNChapter from './locales/zh_CN/chapter.json'
+import zhCNSettings from './locales/zh_CN/settings.json'
+import zhCNSync from './locales/zh_CN/sync.json'
+import zhCNTimeline from './locales/zh_CN/timeline.json'
+import zhCNSearch from './locales/zh_CN/search.json'
+import zhCNHelp from './locales/zh_CN/help.json'
+import zhCNStats from './locales/zh_CN/stats.json'
+import zhCNImport from './locales/zh_CN/import.json'
+import zhCNDayglance from './locales/zh_CN/dayglance.json'
+
+import zhTWCommon from './locales/zh_TW/common.json'
+import zhTWOnboarding from './locales/zh_TW/onboarding.json'
+import zhTWMilestone from './locales/zh_TW/milestone.json'
+import zhTWChapter from './locales/zh_TW/chapter.json'
+import zhTWSettings from './locales/zh_TW/settings.json'
+import zhTWSync from './locales/zh_TW/sync.json'
+import zhTWTimeline from './locales/zh_TW/timeline.json'
+import zhTWSearch from './locales/zh_TW/search.json'
+import zhTWHelp from './locales/zh_TW/help.json'
+import zhTWStats from './locales/zh_TW/stats.json'
+import zhTWImport from './locales/zh_TW/import.json'
+import zhTWDayglance from './locales/zh_TW/dayglance.json'
+
+import zhHKCommon from './locales/zh_HK/common.json'
+import zhHKOnboarding from './locales/zh_HK/onboarding.json'
+import zhHKMilestone from './locales/zh_HK/milestone.json'
+import zhHKChapter from './locales/zh_HK/chapter.json'
+import zhHKSettings from './locales/zh_HK/settings.json'
+import zhHKSync from './locales/zh_HK/sync.json'
+import zhHKTimeline from './locales/zh_HK/timeline.json'
+import zhHKSearch from './locales/zh_HK/search.json'
+import zhHKHelp from './locales/zh_HK/help.json'
+import zhHKStats from './locales/zh_HK/stats.json'
+import zhHKImport from './locales/zh_HK/import.json'
+import zhHKDayglance from './locales/zh_HK/dayglance.json'
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -184,6 +223,48 @@ i18n
         stats: ptStats,
         import: ptImport,
         dayglance: ptDayglance,
+      },
+      'zh-CN': {
+        common: zhCNCommon,
+        onboarding: zhCNOnboarding,
+        milestone: zhCNMilestone,
+        chapter: zhCNChapter,
+        settings: zhCNSettings,
+        sync: zhCNSync,
+        timeline: zhCNTimeline,
+        search: zhCNSearch,
+        help: zhCNHelp,
+        stats: zhCNStats,
+        import: zhCNImport,
+        dayglance: zhCNDayglance,
+      },
+      'zh-TW': {
+        common: zhTWCommon,
+        onboarding: zhTWOnboarding,
+        milestone: zhTWMilestone,
+        chapter: zhTWChapter,
+        settings: zhTWSettings,
+        sync: zhTWSync,
+        timeline: zhTWTimeline,
+        search: zhTWSearch,
+        help: zhTWHelp,
+        stats: zhTWStats,
+        import: zhTWImport,
+        dayglance: zhTWDayglance,
+      },
+      'zh-HK': {
+        common: zhHKCommon,
+        onboarding: zhHKOnboarding,
+        milestone: zhHKMilestone,
+        chapter: zhHKChapter,
+        settings: zhHKSettings,
+        sync: zhHKSync,
+        timeline: zhHKTimeline,
+        search: zhHKSearch,
+        help: zhHKHelp,
+        stats: zhHKStats,
+        import: zhHKImport,
+        dayglance: zhHKDayglance,
       },
     },
     interpolation: {

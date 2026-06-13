@@ -1,0 +1,15 @@
+{
+  "title": "时间线统计",
+  "noMilestones": "未创建里程碑",
+  "milestones": "里程碑",
+  "inThePast": "昔日",
+  "upcoming": "即将到來",
+  "timeTracked": "已追踪时间",
+  "longestGap": "最长间隔",
+  "busiestYear": "最活跃的年份",
+  "byDecade": "年代(10年)",
+  "pastLabel": "← 昔日",
+  "futureLabel": "未來 →",
+  "milestoneCount_one": "{{count}} 里程碑",
+  "milestoneCount_other": "{{count}} 里程碑"
+}
