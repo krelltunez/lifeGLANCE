@@ -118,7 +118,7 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
         <div className="onboarding-helper">{t('approximateIsFine')}</div>
 
         {error && (
-          <div style={{ fontSize: '0.78rem', color: '#E85D75' }}>{error}</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--rose)' }}>{error}</div>
         )}
 
         <div className="onboarding-actions">

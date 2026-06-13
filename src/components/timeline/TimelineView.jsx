@@ -1053,7 +1053,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       bg.setAttribute('y', String(-topInset))
       bg.setAttribute('width', String(w))
       bg.setAttribute('height', String(h + topInset))
-      bg.setAttribute('fill', '#0F1117')
+      bg.setAttribute('fill', 'var(--bg)')
       clone.insertBefore(bg, clone.firstChild)
 
       // Embed Courier Prime — fetch the Google Fonts CSS, then each woff2 file,
@@ -1106,10 +1106,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       ctx.textBaseline = 'alphabetic'
       ctx.font = `400 70px 'Courier Prime', 'Courier New', monospace`
       const lifeW = ctx.measureText('life').width
-      ctx.fillStyle = '#E8E0D0'
+      ctx.fillStyle = 'var(--text)'
       ctx.fillText('life', brandPad, brandY)
       ctx.font = `bold italic 75px 'Courier Prime', 'Courier New', monospace`
-      ctx.fillStyle = '#3D3580'
+      ctx.fillStyle = 'var(--indigo)'
       ctx.fillText('GLANCE', brandPad + lifeW, brandY)
       ctx.restore()
 
@@ -1605,7 +1605,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                     height: '8px',
                     borderRadius: '50%',
                     marginRight: '4px',
-                    background: syncHalted || syncError ? '#E85D75' : syncStatus === 'syncing' ? '#D4A800' : '#34D399',
+                    background: syncHalted || syncError ? 'var(--rose)' : syncStatus === 'syncing' ? 'var(--amber-bright)' : 'var(--success)',
                   }}
                 />
                 {t('syncBtn')}

@@ -64,7 +64,7 @@ export default function ActivityLogModal({ onClose }) {
               <div key={i} style={{
                 display: 'flex', alignItems: 'center', gap: '0.75rem',
                 padding: '0.65rem 0',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
+                borderBottom: '1px solid rgba(var(--hilite-rgb), 0.06)',
                 fontSize: '0.82rem',
               }}>
                 <span style={{ color: 'var(--text-dim)', minWidth: '8rem', fontSize: '0.75rem' }}>
@@ -73,8 +73,8 @@ export default function ActivityLogModal({ onClose }) {
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em',
                   padding: '0.15rem 0.5rem', borderRadius: '3px', flexShrink: 0,
-                  background: e.type === 'sent' ? '#2a3a6e' : '#0f2a1a',
-                  color:      e.type === 'sent' ? '#7aadff'  : '#34D399',
+                  background: e.type === 'sent' ? 'var(--accent-blue-bg)' : 'var(--success-bg)',
+                  color:      e.type === 'sent' ? 'var(--accent-blue-bright)'  : 'var(--success)',
                 }}>
                   {e.type === 'sent' ? t('sent') : t('received')}
                 </span>

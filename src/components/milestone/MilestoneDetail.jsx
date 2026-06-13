@@ -57,7 +57,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
         )}
         {m.has_photo && !photoUrl && (
           <div className="detail-photo-wrap detail-media-unavailable">
-            <span className="detail-media-unavailable-icon">&#128247;</span>
+            <span className="detail-media-unavailable-icon">&var(--success-accent);</span>
             <span className="detail-media-unavailable-label">{t('photoSyncedFromDevice')}</span>
           </div>
         )}

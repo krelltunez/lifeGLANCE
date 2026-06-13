@@ -55,7 +55,7 @@ export default function SyncPassphraseModal({ onClose, onUnlocked }) {
           />
 
           {error && (
-            <p style={{ color: '#E85D75', fontSize: '0.82rem', marginBottom: '0.75rem' }}>
+            <p style={{ color: 'var(--rose)', fontSize: '0.82rem', marginBottom: '0.75rem' }}>
               {error}
             </p>
           )}

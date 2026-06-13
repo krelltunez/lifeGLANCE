@@ -112,14 +112,14 @@ export default function MinimapBar({ milestones, chapters = [], panMs, onPanDire
 
         {/* Axis */}
         <line x1={0} y1={H / 2} x2={w} y2={H / 2}
-          stroke="rgba(232,224,208,0.07)" strokeWidth={1} />
+          stroke="rgba(var(--text-rgb), 0.07)" strokeWidth={1} />
 
         {/* Viewport rect */}
         {vx2 > vx1 && (
           <rect
             x={vx1} y={2} width={Math.max(2, vx2 - vx1)} height={H - 4}
-            fill="rgba(200,169,110,0.07)"
-            stroke="#C8A96E" strokeWidth={1} strokeOpacity={0.28}
+            fill="rgba(var(--amber-rgb), 0.07)"
+            stroke="var(--amber)" strokeWidth={1} strokeOpacity={0.28}
             rx={2}
           />
         )}
@@ -142,7 +142,7 @@ export default function MinimapBar({ milestones, chapters = [], panMs, onPanDire
         {/* Today marker */}
         {todayX >= 0 && todayX <= w && (
           <line x1={todayX} y1={5} x2={todayX} y2={H - 5}
-            stroke="#C8A96E" strokeWidth={1.5} strokeDasharray="3 3" opacity={0.65} />
+            stroke="var(--amber)" strokeWidth={1.5} strokeDasharray="3 3" opacity={0.65} />
         )}
 
       </svg>

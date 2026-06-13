@@ -7,10 +7,10 @@ import IntegrationSettings from '../dayglance/IntegrationSettings'
 const TEXT_SIZES_ALL = ['small', 'normal', 'big', 'bigger']
 
 const COLOR_PALETTE = [
-  '#9370DB', '#A78BFA', '#6366F1', '#3D3580',
-  '#4A90D9', '#60A5FA', '#38B2AC', '#34D399',
-  '#5CAD6E', '#C8A96E', '#FB923C', '#D4A800',
-  '#E85D75', '#F472B6', '#E879F9', '#F87171',
+  'var(--purple)', 'var(--cat-violet)', 'var(--cat-indigo)', 'var(--indigo)',
+  'var(--accent-blue)', 'var(--cat-blue)', 'var(--teal)', 'var(--success)',
+  'var(--success-muted)', 'var(--amber)', 'var(--cat-orange)', 'var(--amber-bright)',
+  'var(--rose)', 'var(--cat-pink)', 'var(--cat-magenta)', 'var(--cat-red)',
 ]
 
 function slugify(str) {

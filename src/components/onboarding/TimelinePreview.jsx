@@ -27,30 +27,30 @@ export default function TimelinePreview({ milestones = [] }) {
       <svg width={width} height={HEIGHT} style={{ display: 'block', fontSize: '1rem' }}>
         <defs>
           <linearGradient id="prev-left"  x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0"   stopColor="#0F1117" stopOpacity="1" />
-            <stop offset="1"   stopColor="#0F1117" stopOpacity="0" />
+            <stop offset="0"   stopColor="var(--bg)" stopOpacity="1" />
+            <stop offset="1"   stopColor="var(--bg)" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="prev-right" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0"   stopColor="#0F1117" stopOpacity="0" />
-            <stop offset="1"   stopColor="#0F1117" stopOpacity="1" />
+            <stop offset="0"   stopColor="var(--bg)" stopOpacity="0" />
+            <stop offset="1"   stopColor="var(--bg)" stopOpacity="1" />
           </linearGradient>
         </defs>
 
         {/* Axis */}
         <line
           x1={0} y1={AXIS_Y} x2={width} y2={AXIS_Y}
-          stroke="rgba(232,224,208,0.12)" strokeWidth={1}
+          stroke="rgba(var(--text-rgb), 0.12)" strokeWidth={1}
         />
 
         {/* Today marker */}
         <line
           x1={todayX} y1={8} x2={todayX} y2={HEIGHT - 8}
-          stroke="#C8A96E" strokeWidth={1.5} strokeDasharray="3 3" opacity={0.7}
+          stroke="var(--amber)" strokeWidth={1.5} strokeDasharray="3 3" opacity={0.7}
         />
         <text
           x={todayX} y={6}
           textAnchor="middle"
-          fill="#C8A96E"
+          fill="var(--amber)"
           fontSize="0.5em"
           fontFamily="'Courier Prime', monospace"
           opacity={0.7}
@@ -76,7 +76,7 @@ export default function TimelinePreview({ milestones = [] }) {
               <text
                 x={x} y={above ? y - 7 : y + 13}
                 textAnchor="middle"
-                fill="rgba(232,224,208,0.7)"
+                fill="rgba(var(--text-rgb), 0.7)"
                 fontSize="0.44em"
                 fontFamily="'Courier Prime', monospace"
               >

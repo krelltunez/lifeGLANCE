@@ -33,10 +33,10 @@ const PROVIDERS = [
 
 function SyncDot({ syncStatus, syncError, syncHalted }) {
   const color = syncHalted || syncError
-    ? '#E85D75'
+    ? 'var(--rose)'
     : syncStatus === 'syncing'
-      ? '#D4A800'
-      : '#34D399'
+      ? 'var(--amber-bright)'
+      : 'var(--success)'
   return (
     <span
       className="sync-dot"
@@ -164,12 +164,12 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
         {/* Hard-stop error banner */}
         {syncHalted && syncError && (
           <div style={{
-            background: '#3a1a1a',
-            border: '1px solid #E85D75',
+            background: 'var(--danger-bg-soft)',
+            border: '1px solid var(--rose)',
             borderRadius: '6px',
             padding: '0.75rem 1rem',
             marginBottom: '1rem',
-            color: '#E85D75',
+            color: 'var(--rose)',
             fontSize: '0.82rem',
           }}>
             <strong>{t('syncHalted')}</strong> {syncError.message}
@@ -180,12 +180,12 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
         {/* Non-hard-stop error */}
         {syncError && !syncHalted && (
           <div style={{
-            background: '#2a1a1a',
-            border: '1px solid #E85D7588',
+            background: 'var(--danger-bg-dim)',
+            border: '1px solid rgba(var(--rose-rgb), 0.533)',
             borderRadius: '6px',
             padding: '0.6rem 1rem',
             marginBottom: '0.75rem',
-            color: '#E85D75',
+            color: 'var(--rose)',
             fontSize: '0.8rem',
           }}>
             {syncError.message}
@@ -273,7 +273,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
           </label>
 
           {encrypt && isExisting && (
-            <p className="settings-note" style={{ color: '#D4A800', marginTop: '0.5rem' }}>
+            <p className="settings-note" style={{ color: 'var(--amber-bright)', marginTop: '0.5rem' }}>
               {t('encryptionAlreadyConfigured')}
             </p>
           )}
@@ -315,9 +315,9 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
             borderRadius: '6px',
             marginBottom: '0.75rem',
             fontSize: '0.82rem',
-            background: testResult.ok ? '#0f2a1a' : '#2a1010',
-            color: testResult.ok ? '#34D399' : '#E85D75',
-            border: `1px solid ${testResult.ok ? '#34D39944' : '#E85D7544'}`,
+            background: testResult.ok ? 'var(--success-bg)' : 'var(--danger-bg)',
+            color: testResult.ok ? 'var(--success)' : 'var(--rose)',
+            border: `1px solid ${testResult.ok ? 'rgba(var(--success-rgb), 0.267)' : 'rgba(var(--rose-rgb), 0.267)'}`,
           }}>
             {testResult.message}
           </div>

@@ -1,16 +1,76 @@
 /* ─── Variables ────────────────────────────────────────────────────────────── */
+/* Colours are a small base palette. Channel tokens (--x-rgb) hold the raw
+   "r, g, b" so call sites compose any opacity via rgba(var(--x-rgb), a). A light
+   theme can later be added by overriding these tokens under a selector such as
+   [data-theme="light"] — call sites don't need to change. */
 :root {
+  /* Base colour channels (r, g, b) for alpha composition */
+  --bg-rgb: 15, 17, 23;
+  --bg-deep-rgb: 13, 15, 22;
+  --text-rgb: 232, 224, 208;
+  --amber-rgb: 200, 169, 110;
+  --rose-rgb: 232, 93, 117;
+  --success-rgb: 52, 211, 153;
+  --success-soft-rgb: 100, 200, 120;
+  --danger-strong-rgb: 220, 80, 80;
+  --danger-muted-rgb: 200, 100, 100;
+  --shadow-rgb: 0, 0, 0;
+  --hilite-rgb: 255, 255, 255;
+
+  /* Surfaces */
   --bg: #0F1117;
   --bg-elevated: #13151F;
+  --bg-deep: #0D0F16;
+  --bg-gradient-top: #16192a;
+
+  /* Brand / accent */
   --amber: #C8A96E;
-  --amber-dim: rgba(200, 169, 110, 0.4);
+  --amber-bright: #D4A800;
+  --amber-light: #D4B880;
+  --amber-dim: rgba(var(--amber-rgb), 0.4);
+  --amber-bg: #2A1F10;
   --indigo: #3D3580;
   --purple: #9370DB;
   --teal: #38B2AC;
+
+  /* Text */
   --text: #E8E0D0;
-  --text-dim: rgba(232, 224, 208, 0.7);
-  --text-muted: rgba(232, 224, 208, 0.4);
-  --border: rgba(200, 169, 110, 0.18);
+  --text-dim: rgba(var(--text-rgb), 0.7);
+  --text-muted: rgba(var(--text-rgb), 0.4);
+
+  /* Borders */
+  --border: rgba(var(--amber-rgb), 0.18);
+
+  /* Status: danger / rose */
+  --rose: #E85D75;
+  --rose-light: #F08080;
+  --rose-soft: #E8748A;
+  --danger-bg: #2A1010;
+  --danger-bg-strong: #2D1010;
+  --danger-bg-soft: #3A1A1A;
+  --danger-bg-dim: #2A1A1A;
+
+  /* Status: success / green */
+  --success: #34D399;
+  --success-bright: #4ADE80;
+  --success-muted: #5CAD6E;
+  --success-deep: #2D6A35;
+  --success-accent: #128247;
+  --success-bg: #0F2A1A;
+
+  /* Category / chart accents */
+  --cat-red: #F87171;
+  --cat-orange: #FB923C;
+  --cat-magenta: #E879F9;
+  --cat-pink: #F472B6;
+  --cat-blue: #60A5FA;
+  --cat-violet: #A78BFA;
+  --cat-indigo: #6366F1;
+  --accent-blue: #4A90D9;
+  --accent-blue-bright: #7AADFF;
+  --accent-blue-bg: #2A3A6E;
+
+  /* Typography */
   --font: 'Courier Prime', 'Courier New', monospace;
 }
 
@@ -34,7 +94,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Subtle depth: very dim radial glow toward the top-center */
-  background: radial-gradient(ellipse at 50% 20%, #16192a 0%, var(--bg) 68%);
+  background: radial-gradient(ellipse at 50% 20%, var(--bg-gradient-top) 0%, var(--bg) 68%);
 }
 
 /* Film-grain noise overlay — pointer-events off so it never blocks clicks */
@@ -169,7 +229,7 @@ button, input, select, textarea {
   letter-spacing: 0.02em;
   line-height: 1;
 }
-.btn:hover { background: rgba(200, 169, 110, 0.12); }
+.btn:hover { background: rgba(var(--amber-rgb), 0.12); }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .btn:disabled:hover { background: transparent; }
 
@@ -177,7 +237,7 @@ button, input, select, textarea {
   background: var(--amber);
   color: var(--bg);
 }
-.btn-filled:hover { background: #D4B880; }
+.btn-filled:hover { background: var(--amber-light); }
 .btn-filled:disabled { background: var(--amber); }
 
 /* ─── Inputs ───────────────────────────────────────────────────────────────── */
@@ -260,7 +320,7 @@ button, input, select, textarea {
   transition: background 0.3s;
 }
 .progress-dot.active { background: var(--amber); }
-.progress-dot.done   { background: rgba(200, 169, 110, 0.4); }
+.progress-dot.done   { background: rgba(var(--amber-rgb), 0.4); }
 
 .onboarding-prompt {
   font-size: 1.3rem;
@@ -311,7 +371,7 @@ button, input, select, textarea {
   right: 0;
   height: 72px;
   border-top: 1px solid var(--border);
-  background: rgba(15, 17, 23, 0.97);
+  background: rgba(var(--bg-rgb), 0.97);
   backdrop-filter: blur(8px);
   overflow: hidden;
 }
@@ -401,8 +461,8 @@ button, input, select, textarea {
   letter-spacing: 0.04em;
 }
 .zoom-tab:first-child { border-left: none; }
-.zoom-tab:hover { color: var(--text-dim); background: rgba(200, 169, 110, 0.06); }
-.zoom-tab.active { color: var(--amber); background: rgba(200, 169, 110, 0.1); }
+.zoom-tab:hover { color: var(--text-dim); background: rgba(var(--amber-rgb), 0.06); }
+.zoom-tab.active { color: var(--amber); background: rgba(var(--amber-rgb), 0.1); }
 
 /* ─── View mode toggle ─────────────────────────────────────────────────────── */
 .view-tabs {
@@ -424,8 +484,8 @@ button, input, select, textarea {
   white-space: nowrap;
 }
 .view-tab:first-child { border-left: none; }
-.view-tab:hover { color: var(--text-dim); background: rgba(200, 169, 110, 0.06); }
-.view-tab.active { color: var(--amber); background: rgba(200, 169, 110, 0.1); }
+.view-tab:hover { color: var(--text-dim); background: rgba(var(--amber-rgb), 0.06); }
+.view-tab.active { color: var(--amber); background: rgba(var(--amber-rgb), 0.1); }
 
 .view-tabs-row {
   display: flex;
@@ -445,8 +505,8 @@ button, input, select, textarea {
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
-.recur-filter-btn:hover { color: var(--text-dim); background: rgba(200, 169, 110, 0.06); }
-.recur-filter-btn.active { color: var(--amber); background: rgba(200, 169, 110, 0.1); border-color: rgba(200, 169, 110, 0.3); }
+.recur-filter-btn:hover { color: var(--text-dim); background: rgba(var(--amber-rgb), 0.06); }
+.recur-filter-btn.active { color: var(--amber); background: rgba(var(--amber-rgb), 0.1); border-color: rgba(var(--amber-rgb), 0.3); }
 
 /* Single-row compact controls: zoom ▾  |  past ↺  |  rec: next */
 .compact-controls-row {
@@ -526,7 +586,7 @@ button, input, select, textarea {
   color: var(--amber);
   transition: background 0.15s;
 }
-.add-milestone-btn:hover { background: rgba(200, 169, 110, 0.1); }
+.add-milestone-btn:hover { background: rgba(var(--amber-rgb), 0.1); }
 
 .today-btn {
   padding: 0.45rem 0.9rem;
@@ -575,8 +635,8 @@ button, input, select, textarea {
   white-space: nowrap;
 }
 .zoom-dropdown-item:first-child { border-top: none; }
-.zoom-dropdown-item:hover { color: var(--text-dim); background: rgba(200,169,110,0.06); }
-.zoom-dropdown-item.active { color: var(--amber); background: rgba(200,169,110,0.1); }
+.zoom-dropdown-item:hover { color: var(--text-dim); background: rgba(var(--amber-rgb), 0.06); }
+.zoom-dropdown-item.active { color: var(--amber); background: rgba(var(--amber-rgb), 0.1); }
 
 /* ─── Watch-mode theme menu (header) ─────────────────────────────────────────── */
 .watch-menu-wrap { position: relative; }
@@ -590,7 +650,7 @@ button, input, select, textarea {
   background: var(--bg);
   border: 1px solid var(--border);
   z-index: 50;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(var(--shadow-rgb), 0.4);
 }
 .watch-menu-item {
   display: flex;
@@ -609,7 +669,7 @@ button, input, select, textarea {
   text-align: left;
 }
 .watch-menu-item:first-child { border-top: none; }
-.watch-menu-item:hover:not(:disabled) { color: var(--text-dim); background: rgba(200,169,110,0.06); }
+.watch-menu-item:hover:not(:disabled) { color: var(--text-dim); background: rgba(var(--amber-rgb), 0.06); }
 .watch-menu-item:disabled { opacity: 0.35; cursor: default; }
 .watch-menu-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .watch-menu-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -699,7 +759,7 @@ button, input, select, textarea {
 }
 .filter-compact > .filter-chip.active {   /* all button when active */
   color: var(--amber);
-  background: rgba(200, 169, 110, 0.1);
+  background: rgba(var(--amber-rgb), 0.1);
   border-right-color: var(--border);      /* keep divider dim */
 }
 .filter-dropdown-wrap {
@@ -712,7 +772,7 @@ button, input, select, textarea {
 }
 .filter-compact .filter-dropdown-btn.active {
   color: var(--amber);
-  background: rgba(200, 169, 110, 0.1);
+  background: rgba(var(--amber-rgb), 0.1);
 }
 .filter-dropdown {
   position: absolute;
@@ -741,7 +801,7 @@ button, input, select, textarea {
   white-space: nowrap;
 }
 .filter-dropdown-item:first-child { border-top: none; }
-.filter-dropdown-item:hover { color: var(--text-dim); background: rgba(200,169,110,0.06); }
+.filter-dropdown-item:hover { color: var(--text-dim); background: rgba(var(--amber-rgb), 0.06); }
 .filter-dropdown-item.active { color: var(--amber); }
 .filter-check { margin-left: auto; font-size: 0.65rem; opacity: 0.8; }
 
@@ -763,7 +823,7 @@ button, input, select, textarea {
   font-size: 0.7rem;
   max-width: 155px;
   line-height: 1.5;
-  background: rgba(13, 15, 22, 0.92);
+  background: rgba(var(--bg-deep-rgb), 0.92);
   border: 1px solid var(--border);
   padding: 0.55rem 0.65rem;
 }
@@ -824,13 +884,13 @@ button, input, select, textarea {
   transition: color 0.15s;
 }
 .action-link:hover { color: var(--amber); }
-.action-sep { color: rgba(200,169,110,0.35); font-size: 0.75rem; line-height: 1; }
+.action-sep { color: rgba(var(--amber-rgb), 0.35); font-size: 0.75rem; line-height: 1; }
 
 /* ─── Sheet / Drawer ───────────────────────────────────────────────────────── */
 .sheet-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(var(--shadow-rgb), 0.65);
   z-index: 100;
   backdrop-filter: blur(3px);
   display: flex;
@@ -913,7 +973,7 @@ button, input, select, textarea {
   letter-spacing: 0.04em;
 }
 .precision-tab:first-child { border-left: none; }
-.precision-tab.active { color: var(--amber); background: rgba(200, 169, 110, 0.1); }
+.precision-tab.active { color: var(--amber); background: rgba(var(--amber-rgb), 0.1); }
 
 .category-grid {
   display: flex;
@@ -964,7 +1024,7 @@ button, input, select, textarea {
   transition: color 0.15s;
   letter-spacing: 0.03em;
 }
-.btn-ghost:hover { color: #E85D75; }
+.btn-ghost:hover { color: var(--rose); }
 
 /* ─── Milestone detail ─────────────────────────────────────────────────────── */
 .detail-photo-wrap {
@@ -996,7 +1056,7 @@ button, input, select, textarea {
   position: absolute;
   top: 0.4rem;
   right: 0.4rem;
-  background: rgba(13, 15, 22, 0.82);
+  background: rgba(var(--bg-deep-rgb), 0.82);
   border: 1px solid var(--border);
   color: var(--text-muted);
   font-family: var(--font);
@@ -1060,7 +1120,7 @@ button, input, select, textarea {
 }
 .detail-date-raw  { font-size: 0.85rem; color: var(--text-dim); }
 .detail-relative  { font-size: 0.8rem;  color: var(--amber); }
-.detail-age       { font-size: 0.75rem; color: rgba(200,169,110,0.55); font-family: 'Courier Prime', monospace; }
+.detail-age       { font-size: 0.75rem; color: rgba(var(--amber-rgb), 0.55); font-family: 'Courier Prime', monospace; }
 .detail-category  {
   display: flex;
   align-items: center;
@@ -1098,7 +1158,7 @@ button, input, select, textarea {
 }
 .detail-recurrence-warn {
   font-size: 0.72rem;
-  color: #E85D75;
+  color: var(--rose);
   letter-spacing: 0.04em;
   opacity: 0.85;
 }
@@ -1110,7 +1170,7 @@ button, input, select, textarea {
 }
 .detail-delete-series {
   font-size: 0.72rem;
-  color: #E85D75 !important;
+  color: var(--rose) !important;
   opacity: 0.8;
 }
 .detail-delete-series:hover { opacity: 1; }
@@ -1132,13 +1192,13 @@ button, input, select, textarea {
   justify-content: flex-end;
 }
 .btn-danger {
-  color: #E85D75;
-  border-color: rgba(232, 93, 117, 0.35);
+  color: var(--rose);
+  border-color: rgba(var(--rose-rgb), 0.35);
 }
 .btn-danger:hover {
-  background: rgba(232, 93, 117, 0.1);
-  border-color: rgba(232, 93, 117, 0.6);
-  color: #E85D75;
+  background: rgba(var(--rose-rgb), 0.1);
+  border-color: rgba(var(--rose-rgb), 0.6);
+  color: var(--rose);
 }
 
 /* ─── Add milestone sheet — recurrence ─────────────────────────────────────── */
@@ -1248,7 +1308,7 @@ button, input, select, textarea {
 .summary-decade-track {
   flex: 1;
   height: 4px;
-  background: rgba(232,224,208,0.07);
+  background: rgba(var(--text-rgb), 0.07);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -1278,13 +1338,13 @@ button, input, select, textarea {
   align-items: flex-start;
   gap: 0.7rem;
   padding: 0.6rem 0;
-  border-bottom: 1px solid rgba(232,224,208,0.06);
+  border-bottom: 1px solid rgba(var(--text-rgb), 0.06);
   cursor: pointer;
   transition: background 0.12s;
   border-radius: 3px;
   padding-left: 0.3rem;
 }
-.otd-item:hover { background: rgba(232,224,208,0.04); }
+.otd-item:hover { background: rgba(var(--text-rgb), 0.04); }
 .otd-item:last-child { border-bottom: none; }
 .otd-dot {
   width: 7px;
@@ -1343,7 +1403,7 @@ button, input, select, textarea {
 .minimap-bar {
   height: 40px;
   flex-shrink: 0;
-  background: rgba(13,15,22,0.7);
+  background: rgba(var(--bg-deep-rgb), 0.7);
   border-top: 1px solid var(--border);
   cursor: crosshair;
   user-select: none;
@@ -1404,8 +1464,8 @@ button, input, select, textarea {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at center, rgba(13,15,22,0.15) 0%, rgba(13,15,22,0.62) 100%),
-    linear-gradient(to bottom, rgba(13,15,22,0.5) 0%, rgba(13,15,22,0.3) 42%, rgba(13,15,22,0.72) 100%);
+    radial-gradient(ellipse at center, rgba(var(--bg-deep-rgb), 0.15) 0%, rgba(var(--bg-deep-rgb), 0.62) 100%),
+    linear-gradient(to bottom, rgba(var(--bg-deep-rgb), 0.5) 0%, rgba(var(--bg-deep-rgb), 0.3) 42%, rgba(var(--bg-deep-rgb), 0.72) 100%);
 }
 
 /* Top-left brand + exit hint — aligned with where the header logo sits. */
@@ -1438,7 +1498,7 @@ button, input, select, textarea {
   padding: 0.55rem 1.1rem;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(13, 15, 22, 0.78);
+  background: rgba(var(--bg-deep-rgb), 0.78);
   backdrop-filter: blur(8px);
   animation: idle-caption-in 0.6s ease;
 }
@@ -1479,7 +1539,7 @@ button, input, select, textarea {
   color: var(--text-muted);
   font-size: 0.78rem;
 }
-.idle-meta-sep { color: rgba(200, 169, 110, 0.4); }
+.idle-meta-sep { color: rgba(var(--amber-rgb), 0.4); }
 
 /* Tour progress bar along the bottom edge. */
 .idle-progress {
@@ -1488,7 +1548,7 @@ button, input, select, textarea {
   right: 0;
   bottom: 0;
   height: 2px;
-  background: rgba(232, 224, 208, 0.08);
+  background: rgba(var(--text-rgb), 0.08);
 }
 .idle-progress-fill {
   height: 100%;
@@ -1638,7 +1698,7 @@ button, input, select, textarea {
   width: 2.2rem;
   height: 1.2rem;
   border-radius: 1rem;
-  background: rgba(232,224,208,0.12);
+  background: rgba(var(--text-rgb), 0.12);
   border: 1px solid var(--border);
   position: relative;
   cursor: pointer;
@@ -1658,7 +1718,7 @@ button, input, select, textarea {
   transition: left 0.2s, background 0.2s;
 }
 .settings-toggle:checked {
-  background: rgba(200,169,110,0.25);
+  background: rgba(var(--amber-rgb), 0.25);
   border-color: var(--amber);
 }
 .settings-toggle:checked::after {
@@ -1886,8 +1946,8 @@ button, input, select, textarea {
   font-size: 0.58rem;
   margin-top: 0.35rem;
   color: var(--text-dim);
-  background: rgba(232, 224, 208, 0.06);
-  border: 1px solid rgba(232, 224, 208, 0.14);
+  background: rgba(var(--text-rgb), 0.06);
+  border: 1px solid rgba(var(--text-rgb), 0.14);
   border-radius: 4px;
   padding: 0.2rem 0.4rem 0.2rem 0.3rem;
   cursor: pointer;
@@ -1896,7 +1956,7 @@ button, input, select, textarea {
   flex-shrink: 0;
 }
 .help-shortcuts-btn:hover {
-  background: rgba(232, 224, 208, 0.1);
+  background: rgba(var(--text-rgb), 0.1);
   color: var(--text);
 }
 .help-shortcuts-btn .help-kbd {
@@ -1924,8 +1984,8 @@ button, input, select, textarea {
   font-family: var(--font);
   font-size: 0.65rem;
   color: var(--text);
-  background: rgba(232, 224, 208, 0.07);
-  border: 1px solid rgba(232, 224, 208, 0.22);
+  background: rgba(var(--text-rgb), 0.07);
+  border: 1px solid rgba(var(--text-rgb), 0.22);
   border-bottom-width: 2px;
   border-radius: 4px;
   padding: 0.15em 0.45em;
@@ -1942,7 +2002,7 @@ button, input, select, textarea {
 .search-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(var(--shadow-rgb), 0.6);
   backdrop-filter: blur(3px);
   z-index: 200;
   display: flex;
@@ -1957,7 +2017,7 @@ button, input, select, textarea {
   border-radius: 6px;
   width: 480px;
   max-width: 92vw;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  box-shadow: 0 8px 40px rgba(var(--shadow-rgb), 0.7);
   overflow: hidden;
 }
 
@@ -2014,7 +2074,7 @@ button, input, select, textarea {
   transition: background 0.1s;
 }
 .search-result.active {
-  background: rgba(200,169,110,0.07);
+  background: rgba(var(--amber-rgb), 0.07);
   border-left-color: var(--amber);
 }
 
@@ -2095,7 +2155,7 @@ button, input, select, textarea {
   align-items: center;
   gap: 0.25rem;
   padding: 0.2rem 0.5rem;
-  background: rgba(13, 15, 22, 0.82);
+  background: rgba(var(--bg-deep-rgb), 0.82);
   border: 1px solid var(--border);
   color: var(--amber);
   font-family: var(--font);
@@ -2106,8 +2166,8 @@ button, input, select, textarea {
   user-select: none;
   -webkit-user-select: none;
 }
-.stat-pill:hover  { background: rgba(200, 169, 110, 0.08); }
-.stat-pill-active { background: rgba(200, 169, 110, 0.1);  }
+.stat-pill:hover  { background: rgba(var(--amber-rgb), 0.08); }
+.stat-pill-active { background: rgba(var(--amber-rgb), 0.1);  }
 
 .stat-panel-popup {
   margin-top: 0.35rem;
@@ -2211,9 +2271,9 @@ button, input, select, textarea {
   animation: toast-in 0.2s ease;
 }
 .toast-error {
-  background: #2D1010;
-  border: 1px solid rgba(220, 80, 80, 0.4);
-  color: #F08080;
+  background: var(--danger-bg-strong);
+  border: 1px solid rgba(var(--danger-strong-rgb), 0.4);
+  color: var(--rose-light);
 }
 .toast-info {
   background: var(--bg-elevated);
@@ -2228,12 +2288,12 @@ button, input, select, textarea {
 /* ─── Chapter sheet ──────────────────────────────────────────────────────────── */
 
 .add-chapter-btn {
-  border: 1px solid rgba(200, 169, 110, 0.45);
-  color: rgba(200, 169, 110, 0.75);
+  border: 1px solid rgba(var(--amber-rgb), 0.45);
+  color: rgba(var(--amber-rgb), 0.75);
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .add-chapter-btn:hover {
-  background: rgba(200, 169, 110, 0.08);
+  background: rgba(var(--amber-rgb), 0.08);
   color: var(--amber);
   border-color: var(--amber);
 }
@@ -2257,7 +2317,7 @@ button, input, select, textarea {
 }
 .chapter-date-error {
   font-size: 0.7rem;
-  color: #E85D75;
+  color: var(--rose);
   letter-spacing: 0.02em;
   margin-top: 0.1rem;
 }
@@ -2312,7 +2372,7 @@ button, input, select, textarea {
   padding: 0.2rem 0.1rem;
   border-radius: 2px;
 }
-.chapter-member-row:hover { background: rgba(232,224,208,0.04); }
+.chapter-member-row:hover { background: rgba(var(--text-rgb), 0.04); }
 .chapter-member-check {
   accent-color: var(--amber);
   cursor: pointer;
@@ -2369,9 +2429,9 @@ button, input, select, textarea {
   border-right: 1px solid var(--border);
 }
 .vis-tab:last-child { border-right: none; }
-.vis-tab:hover { color: var(--text-dim); background: rgba(232,224,208,0.06); }
+.vis-tab:hover { color: var(--text-dim); background: rgba(var(--text-rgb), 0.06); }
 .vis-tab.active {
-  background: rgba(200,169,110,0.15);
+  background: rgba(var(--amber-rgb), 0.15);
   color: var(--amber);
 }
 .vis-status {
@@ -2380,16 +2440,16 @@ button, input, select, textarea {
   opacity: 0.85;
   line-height: 1.4;
 }
-.vis-status-shown { color: rgba(100,200,120,0.9); }
-.vis-status-hidden { color: rgba(200,100,100,0.9); }
+.vis-status-shown { color: rgba(var(--success-soft-rgb), 0.9); }
+.vis-status-hidden { color: rgba(var(--danger-muted-rgb), 0.9); }
 .vis-endpoint-notice {
   display: flex;
   align-items: flex-start;
   gap: 0.4rem;
   font-size: 0.68rem;
   color: var(--amber);
-  background: rgba(200,169,110,0.08);
-  border: 1px solid rgba(200,169,110,0.2);
+  background: rgba(var(--amber-rgb), 0.08);
+  border: 1px solid rgba(var(--amber-rgb), 0.2);
   border-radius: 4px;
   padding: 0.35rem 0.5rem;
   margin-bottom: 0.5rem;
@@ -2485,8 +2545,8 @@ button, input, select, textarea {
 
 /* Toast variants */
 .toast-success {
-  background: #2d6a35;
-  border-left: 3px solid #4ade80;
+  background: var(--success-deep);
+  border-left: 3px solid var(--success-bright);
 }
 
 /* Milestone detail — dayGLANCE link badge */
@@ -2495,12 +2555,12 @@ button, input, select, textarea {
   align-items: center;
   gap: 0.35rem;
   font-size: 0.72rem;
-  color: var(--accent, #60a5fa);
+  color: var(--accent, var(--cat-blue));
   margin: 0.2rem 0;
   opacity: 0.9;
 }
 .detail-dg-badge--done {
-  color: #4ade80;
+  color: var(--success-bright);
 }
 .detail-dg-icon {
   font-size: 0.75rem;
@@ -2522,5 +2582,5 @@ button, input, select, textarea {
   gap: 0.75rem;
   flex-wrap: wrap;
 }
-.intents-test-ok  { color: #4ade80; }
-.intents-test-err { color: #f87171; }
+.intents-test-ok  { color: var(--success-bright); }
+.intents-test-err { color: var(--cat-red); }

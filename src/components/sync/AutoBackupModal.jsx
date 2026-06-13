@@ -76,8 +76,8 @@ function SettingsTab({ onClose }) {
           borderRadius: '6px',
           marginBottom: '0.75rem',
           fontSize: '0.82rem',
-          background: '#2a1f10',
-          color: '#D4A800',
+          background: 'var(--amber-bg)',
+          color: 'var(--amber-bright)',
         }}>
           {t('cloudSyncRequired')}
         </div>
@@ -171,8 +171,8 @@ function SettingsTab({ onClose }) {
           borderRadius: '6px',
           marginTop: '0.75rem',
           fontSize: '0.82rem',
-          background: result.ok ? '#0f2a1a' : '#2a1010',
-          color: result.ok ? '#34D399' : '#E85D75',
+          background: result.ok ? 'var(--success-bg)' : 'var(--danger-bg)',
+          color: result.ok ? 'var(--success)' : 'var(--rose)',
         }}>
           {result.message}
         </div>
@@ -253,7 +253,7 @@ function HistoryTab() {
           display: 'flex',
           justifyContent: 'space-between',
           padding: '0.5rem 0',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid rgba(var(--hilite-rgb), 0.06)',
           fontSize: '0.82rem',
         }}>
           <span style={{ opacity: 0.7 }}>{r.frequency ?? 'backup'}</span>

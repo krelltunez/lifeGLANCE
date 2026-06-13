@@ -296,12 +296,12 @@ const Timeline = forwardRef(function Timeline(
       >
         <defs>
           <linearGradient id="tl-left" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stopColor="#0F1117" stopOpacity="1" />
-            <stop offset="1" stopColor="#0F1117" stopOpacity="0" />
+            <stop offset="0" stopColor="var(--bg)" stopOpacity="1" />
+            <stop offset="1" stopColor="var(--bg)" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="tl-right" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stopColor="#0F1117" stopOpacity="0" />
-            <stop offset="1" stopColor="#0F1117" stopOpacity="1" />
+            <stop offset="0" stopColor="var(--bg)" stopOpacity="0" />
+            <stop offset="1" stopColor="var(--bg)" stopOpacity="1" />
           </linearGradient>
         </defs>
 
@@ -311,14 +311,14 @@ const Timeline = forwardRef(function Timeline(
             <line
               x1={tick.x} y1={axisY - (tick.major ? 7 : 3)}
               x2={tick.x} y2={axisY + (tick.major ? 7 : 3)}
-              stroke={tick.major ? 'rgba(232,224,208,0.25)' : 'rgba(232,224,208,0.1)'}
+              stroke={tick.major ? 'rgba(var(--text-rgb), 0.25)' : 'rgba(var(--text-rgb), 0.1)'}
               strokeWidth={1}
             />
             {tick.label && (
               <text
                 x={tick.x} y={axisY + 20}
                 textAnchor="middle"
-                fill={tick.major ? 'rgba(232,224,208,0.35)' : 'rgba(232,224,208,0.18)'}
+                fill={tick.major ? 'rgba(var(--text-rgb), 0.35)' : 'rgba(var(--text-rgb), 0.18)'}
                 fontSize={tick.major ? '0.69em' : '0.56em'}
                 fontFamily="'Courier Prime', monospace"
               >{tick.label}</text>
@@ -328,17 +328,17 @@ const Timeline = forwardRef(function Timeline(
 
         {/* ── Axis line ───────────────────────────────────────────────────── */}
         <line x1={0} y1={axisY} x2={w} y2={axisY}
-          stroke="rgba(232,224,208,0.18)" strokeWidth={1} />
+          stroke="rgba(var(--text-rgb), 0.18)" strokeWidth={1} />
 
         {/* ── Chapter ribbon band ──────────────────────────────────────────── */}
         {chaptersBandH > 0 && (
           <g>
             {/* Subtle band background to give the band visual definition */}
             <rect x={0} y={msAxisY} width={w} height={chaptersBandH}
-              fill="rgba(232,224,208,0.016)" />
+              fill="rgba(var(--text-rgb), 0.016)" />
             {/* Top separator: visual boundary between milestone cards and band */}
             <line x1={0} y1={msAxisY} x2={w} y2={msAxisY}
-              stroke="rgba(232,224,208,0.08)" strokeWidth={1} />
+              stroke="rgba(var(--text-rgb), 0.08)" strokeWidth={1} />
 
             {/* Gradient defs for ongoing chapter fade-out past today */}
             <defs>
@@ -500,31 +500,31 @@ const Timeline = forwardRef(function Timeline(
           const lineY1   = todayAge !== null ? 68 : 54
           return (
             <g style={{
-              filter:     centered ? 'drop-shadow(0 0 6px #C8A96E) drop-shadow(0 0 14px #C8A96E55)' : 'none',
+              filter:     centered ? 'drop-shadow(0 0 6px var(--amber)) drop-shadow(0 0 14px rgba(var(--amber-rgb), 0.333))' : 'none',
               transition: 'filter 0.35s ease',
             }}>
               <line x1={todayX} y1={lineY1} x2={todayX} y2={h - 14}
-                stroke="#C8A96E" strokeWidth={centered ? 2 : 1.5} strokeDasharray="4 4"
+                stroke="var(--amber)" strokeWidth={centered ? 2 : 1.5} strokeDasharray="4 4"
                 opacity={centered ? 1 : 0.75} />
               <text x={todayX} y={10} textAnchor="middle"
-                fill="#C8A96E" fontSize="0.65em"
+                fill="var(--amber)" fontSize="0.65em"
                 fontFamily="'Courier Prime', monospace"
                 opacity={centered ? 1 : 0.90}>{t('today')}</text>
               <text x={todayX} y={22} textAnchor="middle"
-                fill="#C8A96E" fontSize="0.60em"
+                fill="var(--amber)" fontSize="0.60em"
                 fontFamily="'Courier Prime', monospace"
                 opacity={centered ? 1 : 0.70}>{tDay}</text>
               <text x={todayX} y={34} textAnchor="middle"
-                fill="#C8A96E" fontSize="0.60em"
+                fill="var(--amber)" fontSize="0.60em"
                 fontFamily="'Courier Prime', monospace"
                 opacity={centered ? 1 : 0.70}>{tDate}</text>
               <text x={todayX} y={47} textAnchor="middle"
-                fill="#C8A96E" fontSize="0.65em" fontWeight="bold"
+                fill="var(--amber)" fontSize="0.65em" fontWeight="bold"
                 fontFamily="'Courier Prime', monospace"
                 opacity={centered ? 1 : 0.85}>{tYear}</text>
               {todayAge !== null && (
                 <text x={todayX} y={61} textAnchor="middle"
-                  fill="#C8A96E" fontSize="0.60em"
+                  fill="var(--amber)" fontSize="0.60em"
                   fontFamily="'Courier Prime', monospace"
                   opacity={centered ? 0.80 : 0.55}>{todayAge} {t('yearsOldSuffix')}</text>
               )}
@@ -631,7 +631,7 @@ const Timeline = forwardRef(function Timeline(
               <rect
                 x={cardX} y={cardY}
                 width={CARD_W} height={cardH}
-                fill="rgba(13,15,22,0.96)"
+                fill="rgba(var(--bg-deep-rgb), 0.96)"
                 stroke={m.color}
                 strokeOpacity={borderOpacity}
                 strokeWidth={borderWidth}
@@ -646,18 +646,18 @@ const Timeline = forwardRef(function Timeline(
               {titleLines.map((line, li) => (
                 <text key={li}
                   x={cardX + 10} y={li === 0 ? yT1 : yT2}
-                  fill="rgba(232,224,208,0.95)"
+                  fill="rgba(var(--text-rgb), 0.95)"
                   fontSize="0.6em" fontFamily="'Courier Prime', monospace" fontWeight="bold"
                 >{line}</text>
               ))}
 
               <text x={cardX + 10} y={yMeta}
-                fill="rgba(232,224,208,0.45)"
+                fill="rgba(var(--text-rgb), 0.45)"
                 fontSize="0.52em" fontFamily="'Courier Prime', monospace"
               >{dateStr}</text>
 
               <text x={cardX + 10} y={yRel}
-                fill="#C8A96E"
+                fill="var(--amber)"
                 fontSize="0.52em" fontFamily="'Courier Prime', monospace"
               >{relStr}</text>
 
@@ -665,7 +665,7 @@ const Timeline = forwardRef(function Timeline(
                 const age = ageAtDate(birthday, m.date)
                 return age !== null ? (
                   <text x={cardX + 10} y={yAge}
-                    fill="rgba(200,169,110,0.52)"
+                    fill="rgba(var(--amber-rgb), 0.52)"
                     fontSize="0.52em" fontFamily="'Courier Prime', monospace"
                   >{age} {t('yearsOldSuffix')}</text>
                 ) : null
@@ -687,7 +687,7 @@ const Timeline = forwardRef(function Timeline(
                   if (type === 'dayglance') return (
                     <text key="dayglance"
                       x={ix + 7} y={iy + 10}
-                      fill={m.dayglance_completed ? '#34D399' : m.color}
+                      fill={m.dayglance_completed ? 'var(--success)' : m.color}
                       fontSize="0.55em" fontFamily="'Courier Prime', monospace"
                       textAnchor="middle" opacity={isHL ? 0.9 : 0.7}
                     >{m.dayglance_completed ? '✓' : '◈'}</text>
@@ -808,17 +808,17 @@ const Timeline = forwardRef(function Timeline(
                onClick={() => onClusterClick?.(clCenterMs)}>
               {/* Dashed connector */}
               <line x1={avgX} y1={msAxisY - 5} x2={avgX} y2={badgeCy + R}
-                stroke="rgba(200,169,110,0.22)" strokeWidth={1} strokeDasharray="2 3" />
+                stroke="rgba(var(--amber-rgb), 0.22)" strokeWidth={1} strokeDasharray="2 3" />
               {/* Axis dot */}
               <circle cx={avgX} cy={msAxisY} r={5}
-                fill="#0D0F16" stroke="rgba(200,169,110,0.55)" strokeWidth={1.2} />
+                fill="var(--bg-deep)" stroke="rgba(var(--amber-rgb), 0.55)" strokeWidth={1.2} />
               {/* Badge circle — fully opaque so it cleanly covers any card behind it */}
               <circle cx={avgX} cy={badgeCy} r={R}
-                fill="#0D0F16" stroke="rgba(200,169,110,0.4)" strokeWidth={1} />
+                fill="var(--bg-deep)" stroke="rgba(var(--amber-rgb), 0.4)" strokeWidth={1} />
               {/* Count */}
               <text x={avgX} y={badgeCy + 4}
                 textAnchor="middle"
-                fill="rgba(200,169,110,0.9)"
+                fill="rgba(var(--amber-rgb), 0.9)"
                 fontSize="0.58em" fontFamily="'Courier Prime', monospace" fontWeight="bold"
               >{count}</text>
               {/* Category colour dots above badge */}
@@ -832,7 +832,7 @@ const Timeline = forwardRef(function Timeline(
               {/* Date range — above colour dots */}
               <text x={avgX} y={badgeCy - R - 17}
                 textAnchor="middle"
-                fill="rgba(232,224,208,0.55)"
+                fill="rgba(var(--text-rgb), 0.55)"
                 fontSize="0.5em" fontFamily="'Courier Prime', monospace"
               >{rangeLabel}</text>
             </g>
@@ -859,8 +859,8 @@ const Timeline = forwardRef(function Timeline(
             maxHeight: 180,
             objectFit: 'cover',
             borderRadius: 4,
-            border: '1px solid rgba(200,169,110,0.35)',
-            boxShadow: '0 6px 24px rgba(0,0,0,0.7)',
+            border: '1px solid rgba(var(--amber-rgb), 0.35)',
+            boxShadow: '0 6px 24px rgba(var(--shadow-rgb), 0.7)',
           }} />
         </div>
       )}
@@ -873,7 +873,7 @@ const Timeline = forwardRef(function Timeline(
           transform:     'translate(-50%, calc(-100% - 10px))',
           pointerEvents: 'none',
           zIndex:        9999,
-          background:    'rgba(13,15,22,0.95)',
+          background:    'rgba(var(--bg-deep-rgb), 0.95)',
           border:        `1px solid ${chapterTip.chapter.color}55`,
           borderLeft:    `2px solid ${chapterTip.chapter.color}`,
           padding:       '5px 9px',
@@ -883,7 +883,7 @@ const Timeline = forwardRef(function Timeline(
           <div style={{ fontSize: '0.65rem', color: chapterTip.chapter.color, fontWeight: 'bold' }}>
             {chapterTip.chapter.title}
           </div>
-          <div style={{ fontSize: '0.55rem', color: 'rgba(232,224,208,0.55)', marginTop: 2 }}>
+          <div style={{ fontSize: '0.55rem', color: 'rgba(var(--text-rgb), 0.55)', marginTop: 2 }}>
             {chapterSpan(chapterTip.chapter.start, chapterTip.chapter.end)}{!chapterTip.chapter.end && ` · ${t('ongoing')}`}
           </div>
         </div>
