@@ -20,9 +20,9 @@
   "saveBackup": "下載備份檔",
   "restoreFromFile": "從備份還原",
   "importIcs": "導出為.ics",
-  "persistNotice": "允許持久性存儲，這樣瀏覽器就不會在後台靜默清除您的資料。",
+  "persistNotice": "允許持久性存儲，使瀏覽器不會在後台靜默清除您的資料。",
   "persistButton": "允許持久性儲存",
   "icsNote": ".ics 導入僅支援全天事件。定時事件將被跳過－導入對話方塊會顯示已跳過的事件數量。",
-  "activityLog": "活動日誌",
+  "activityLog": "活動日志",
   "activityLogNote": "按下 <kbd>L</kbd> 開啟"
 }
