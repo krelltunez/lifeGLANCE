@@ -20,7 +20,7 @@
   "saveBackup": "下载备份档",
   "restoreFromFile": "從备份还原",
   "importIcs": "导出为.ics",
-  "persistNotice": "允许持久性存储，这样浏览器就不会在后台静默清除您的资料。",
+  "persistNotice": "允许持久性存储，使浏览器不会在后台静默清除您的资料。",
   "persistButton": "允許持久性储存",
   "icsNote": ".ics 导入仅支援全天事件。定时事件将被跳过－导入对话方块会显示已跳过的事件数量。",
   "activityLog": "活动日志",

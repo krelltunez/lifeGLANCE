@@ -11,6 +11,6 @@
   "titleColumn": "标题",
   "categoryColumn": "范畴",
   "annual": "年度",
-  "importButton_one": "導入{{count}} 个里程碑",
-  "importButton_other": "導入{{count}} 个里程碑"
+  "importButton_one": "导入{{count}}个里程碑",
+  "importButton_other": "导入{{count}}个里程碑"
 }
