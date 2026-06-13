@@ -32,6 +32,7 @@ import { useIdleMode } from '../../hooks/useIdleMode.js'
 import { relativeLabel, ageAtDate } from '../../utils/dates'
 import { useIntentPoller } from '../../hooks/useIntentPoller.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
+import { isSyncing } from '../../sync/status.js'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
 import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
 import { EVENTS } from '@glance-apps/intents'
@@ -1595,7 +1596,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               <button
                 className="action-link sync-status-btn"
                 onClick={onOpenCloudSync}
-                title={syncHalted ? t('syncErrorTitle') : syncStatus === 'syncing' ? t('syncingTitle') : syncError ? t('syncErrorSimple') : t('cloudSyncTitle')}
+                title={syncHalted ? t('syncErrorTitle') : isSyncing(syncStatus) ? t('syncingTitle') : syncError ? t('syncErrorSimple') : t('cloudSyncTitle')}
               >
                 <span
                   className="sync-dot"
@@ -1605,7 +1606,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                     height: '8px',
                     borderRadius: '50%',
                     marginRight: '4px',
-                    background: syncHalted || syncError ? 'var(--rose)' : syncStatus === 'syncing' ? 'var(--amber-bright)' : lastSynced ? 'var(--success)' : 'var(--text-muted)',
+                    background: syncHalted || syncError ? 'var(--rose)' : isSyncing(syncStatus) ? 'var(--amber-bright)' : lastSynced ? 'var(--success)' : 'var(--text-muted)',
                   }}
                 />
                 {t('syncBtn')}

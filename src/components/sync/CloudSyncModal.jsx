@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getSyncEngine } from '../../sync/engine'
+import { isSyncing } from '../../sync/status'
 
 const PROXY = '/api/webdav-proxy'
 
@@ -34,7 +35,7 @@ const PROVIDERS = [
 function SyncDot({ syncStatus, syncError, syncHalted }) {
   const color = syncHalted || syncError
     ? 'var(--rose)'
-    : syncStatus === 'syncing'
+    : isSyncing(syncStatus)
       ? 'var(--amber-bright)'
       : 'var(--success)'
   return (

@@ -38,10 +38,12 @@ export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setC
 
     onStatusChange: (status) => {
       setSyncStatus(status)
-      if (status === 'synced' || status === 'idle') setSyncError(null)
+      if (status === 'success' || status === 'idle') setSyncError(null)
     },
     onError: (msg, code, isHardStop) => {
-      setSyncError({ message: msg, code, isHardStop });
+      // The engine calls onError(null, …) to clear a previous error; only treat
+      // a real message as an error so the dot doesn't show rose during a sync.
+      setSyncError(msg ? { message: msg, code, isHardStop } : null);
       if (isHardStop) setSyncHalted(true);
     },
     onLastSyncedChange: setLastSynced,
