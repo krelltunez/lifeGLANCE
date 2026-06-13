@@ -42,9 +42,11 @@ export default function HelpModal({ onClose, onOpenShortcuts }) {
 
   const idbEst = useIndexedDBEstimate()
 
-  const now = new Date()
-  const dateStr = now.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
-  const timeStr = now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  // Build timestamp injected by Vite (see vite.config.js). Falls back to now if
+  // the constant isn't defined (e.g. outside a Vite build).
+  const built = new Date(typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : Date.now())
+  const dateStr = built.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+  const timeStr = built.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 
   return (
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>

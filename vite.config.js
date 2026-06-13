@@ -39,6 +39,11 @@ function webdavProxyPlugin() {
 }
 
 export default defineConfig({
+  // Captured at build time (and at dev-server start) so the help modal can show
+  // when this bundle was built rather than the current wall-clock time.
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     webdavProxyPlugin(),
     react(),
