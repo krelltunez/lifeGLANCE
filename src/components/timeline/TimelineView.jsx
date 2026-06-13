@@ -29,6 +29,7 @@ import { dbPutMedia, dbPutPhoto, dbDeletePhoto, dbGetPhoto, dbPut } from '../../
 import { parseIcs }      from '../../utils/icsParser'
 import * as audio from '../../utils/audio'
 import { useIdleMode } from '../../hooks/useIdleMode.js'
+import { enterFullscreen, exitFullscreen, isFullscreen } from '../../utils/fullscreen.js'
 import { relativeLabel, ageAtDate } from '../../utils/dates'
 import { useIntentPoller } from '../../hooks/useIntentPoller.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
@@ -1315,10 +1316,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     return opts
   }, [filteredMilestones, chapters, t])
 
+  // True only while watch mode owns the fullscreen it requested, so we exit the
+  // user's own fullscreen alone.
+  const enteredFsRef = useRef(false)
+
   function startWatchTheme(key) {
     setWatchTheme(key)
     setWatchMenuOpen(false)
     setWatchStartToken(n => n + 1)   // fires the start effect even if the theme is unchanged
+    // Request fullscreen here, inside the click gesture, so the browser grants it
+    // (it won't from the deferred start effect or an idle auto-start).
+    enterFullscreen().then(ok => { enteredFsRef.current = ok })
   }
   const anyModalOpen =
     addOpen || !!detail || settingsOpen || helpOpen || kbdOpen || searchOpen ||
@@ -1379,6 +1387,27 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     if (watchStartToken === 0) return
     idle.start(true)
   }, [watchStartToken]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When the tour ends, drop the fullscreen it requested.
+  useEffect(() => {
+    if (!idle.active && enteredFsRef.current) {
+      exitFullscreen()
+      enteredFsRef.current = false
+    }
+  }, [idle.active])
+
+  // If the user leaves fullscreen during the tour (e.g. Esc), end the tour too.
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!isFullscreen() && enteredFsRef.current && idle.active) idle.stop()
+    }
+    document.addEventListener('fullscreenchange', onFsChange)
+    document.addEventListener('webkitfullscreenchange', onFsChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange)
+      document.removeEventListener('webkitfullscreenchange', onFsChange)
+    }
+  }, [idle.active, idle.stop])
 
   // Close the watch menu on any outside click.
   useEffect(() => {
