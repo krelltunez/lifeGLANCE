@@ -27,7 +27,7 @@
   "endpointNotice": "endpoint of {{chapters}} — 無論下列設定如何，始終顯示",
   "endpointTooltip": "endpoint — 始終顯示於主時間線",
   "endpointDimTooltip": "匹配章節邊界 — 添加為端點",
-  "trackAsDayglance": "設為 dayGLANCE 追蹤目標",
+  "trackAsDayglance": "設為 dayGLANCE 追蹤目標"",
   "trackAsDayglanceNote": "將在 dayGLANCE 中建立任務。goals的狀態更改及完成日期，透過您的WebDAV events path同步回此處。",
   "addToChapters": "新增至章節",
   "closeChapterLabel": "在此日期關閉正在進行的章節",
