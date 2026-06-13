@@ -1,8 +1,8 @@
 {
   "today": "今天",
   "ongoing": "进行中",
-  "onThisDay": "在这天",
-  "approx": "(approx.)",
+  "onThisDay": "当年今日",
+  "approx": "(大約)",
   "yearsOldSuffix": "岁",
   "jumpToToday": "回到今天",
   "memberCount_one": "{{count}} 成员",
