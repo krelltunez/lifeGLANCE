@@ -2,11 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import * as audio from '../utils/audio'
 import { acquireWakeLock, releaseWakeLock } from '../utils/wakeLock'
 
-// User input that resets the idle timer and (while playing) exits idle mode.
+// User input that resets the idle timer (so watch mode doesn't auto-start while
+// the mouse is in use).
 const ACTIVITY_EVENTS = [
   'mousemove', 'mousedown', 'pointerdown',
   'keydown', 'wheel', 'touchstart', 'touchmove', 'scroll',
 ]
+
+// Deliberate interactions that EXIT watch mode once it's running. Passive
+// mousemove is intentionally excluded — a drifting cursor shouldn't kick you
+// out ("tap anywhere to exit").
+const EXIT_EVENTS = ACTIVITY_EVENTS.filter(e => e !== 'mousemove')
 
 // After idle starts, ignore input briefly so the initiating click/tap (and the
 // natural mouse-away that follows it) doesn't immediately cancel it.
@@ -106,9 +112,10 @@ export function useIdleMode({
         start(false)
       }, timeoutRef.current)
     }
-    function onActivity() {
+    function onActivity(e) {
       if (activeRef.current) {
         if (guardRef.current) return   // ignore the start gesture + mouse-away
+        if (!EXIT_EVENTS.includes(e.type)) return   // passive mousemove: stay in watch mode
         stop()
       }
       scheduleIdle()

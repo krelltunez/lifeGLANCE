@@ -1498,6 +1498,14 @@ button, input, select, textarea {
   opacity: 0;
 }
 
+/* Watch mode is a hands-off ambient display: hide the cursor so it isn't a
+   distraction. Paired with not exiting on mousemove, a drifting cursor now
+   stays fully out of the way. */
+.timeline-view.idle-active,
+.timeline-view.idle-active * {
+  cursor: none;
+}
+
 .idle-overlay {
   position: absolute;
   inset: 0;
