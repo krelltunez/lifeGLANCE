@@ -47,7 +47,7 @@
   "backupFailed": "備份失敗: {{message}}",
   "backingUp": "正在備份…",
   "backupNow": "立即備份",
-  "backupNote": "僅可在一台設備上啟用。如果您使用多台設備，請使用雲端同步保持它們同步，並只在您的主設備上設定遠端備份。",
-  "noBackupsYet": "尚無備份。",
+  "backupNote": "僅限於一台設備上啟用。若您使用多台裝置，請透過雲端同步保持它們同步，並僅在主裝置上設定遠端備份。",
+  "noBackupsYet": "尚無備份 — 晴空萬里，未見一片雲",
   "historyTab": "歷史記錄"
 }
