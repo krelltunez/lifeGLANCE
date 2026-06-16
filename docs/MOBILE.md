@@ -54,6 +54,19 @@ device, and produce signed release builds for the stores.
   The `--android --ios` flags are intentional: they keep the generator from
   rewriting the web PWA's `public/manifest.json` and icons.
 
+## Orientation
+
+lifeGLANCE is a landscape-first timeline, so the native apps are locked to
+landscape (both apps still flip between landscape-left and landscape-right):
+
+- **Android** — `android:screenOrientation="sensorLandscape"` on `MainActivity`
+  in `AndroidManifest.xml`.
+- **iOS** — `UISupportedInterfaceOrientations` (and the `~ipad` variant) list
+  only the two landscape orientations in `Info.plist`.
+
+This is enforced by the OS, so the web app's portrait-mode warning never needs
+to appear inside the native apps.
+
 ## Store accounts (one-time, non-code)
 
 - **Apple:** Apple Developer Program — $99/year. Required to run on a physical
