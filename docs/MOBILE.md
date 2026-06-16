@@ -67,6 +67,26 @@ landscape (both apps still flip between landscape-left and landscape-right):
 This is enforced by the OS, so the web app's portrait-mode warning never needs
 to appear inside the native apps.
 
+## WebDAV sync on native (CapacitorHttp)
+
+A native WebView enforces CORS exactly like a browser, and sync is built around
+a server-side CORS proxy whose URL resolves to `localhost` inside the shell. So
+on native, WebDAV requests bypass the proxy and hit the server directly through
+the native HTTP stack via `CapacitorHttp.request()`.
+
+- `src/sync/nativeHttp.js` — shared CapacitorHttp bridge (iOS **and** Android),
+  with adapters for the sync engine and for the intents transport.
+- `src/sync/engine.js` — passes the bridge to `@glance-apps/sync` via the
+  `electronProxyFetch` slot, which the engine prefers over the proxy.
+- `src/lib/intentsTransport.js` and the connection test in
+  `src/components/dayglance/IntegrationSettings.jsx` use a direct
+  `Authorization` header instead of the proxy's `X-WebDAV-Url` routing.
+
+Everything is gated on `Capacitor.isNativePlatform()`, so the browser/PWA build
+is byte-for-byte unchanged. `CapacitorHttp.request()` is called directly rather
+than enabling its global `fetch` patch (the patch alone wouldn't help, since the
+sync code constructs *relative* proxy URLs that resolve to `localhost`).
+
 ## Store accounts (one-time, non-code)
 
 - **Apple:** Apple Developer Program — $99/year. Required to run on a physical
