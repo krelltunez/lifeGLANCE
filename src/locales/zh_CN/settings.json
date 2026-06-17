@@ -25,7 +25,7 @@
   "exportImage": "导出为展示图片",
   "saveBackup": "导出为本地备份",
   "restoreFromFile": "从本地备份还原",
-  "importIcs": "导出为 .ics文件",
+  "importIcs": "导出为.ics文件",
   "persistNotice": "激活持久性存储，暂停浏览器在后台静默清除您的数据。",
   "persistButton": "激活持久性保存",
   "icsNote": "导入.ics文件仅支持全天事件。定时事件将被跳过－导入对话框将显示已跳过事件数量。",
