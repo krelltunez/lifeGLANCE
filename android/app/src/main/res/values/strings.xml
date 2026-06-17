@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">lifeGLANCE</string>
     <string name="title_activity_main">lifeGLANCE</string>
-    <string name="package_name">app.lifeglance</string>
-    <string name="custom_url_scheme">app.lifeglance</string>
+    <string name="package_name">com.lifeglance.app</string>
+    <string name="custom_url_scheme">com.lifeglance.app</string>
 </resources>

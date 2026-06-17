@@ -1,4 +1,4 @@
-package app.lifeglance;
+package com.lifeglance.app;
 
 import com.getcapacitor.BridgeActivity;
 
