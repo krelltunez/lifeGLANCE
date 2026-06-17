@@ -6,7 +6,7 @@
   "step2Placeholder": "譬如: 我們結婚了",
   "step3Eyebrow": "參章: 雲開前山亭",
   "step3Prompt": "未來將至，您心中最期盼的一件事是什麼?",
-  "step3Placeholder": "設想：攜手共遊外地風光",
+  "step3Placeholder": "設想：共遊外地風光，携手相守",
   "step4Eyebrow": "肆章: 緩緩展卷，生命的時光長軸",
   "step4Prompt": "人生如畫，如江河，如星圖，漫漫延伸……",
   "approximateIsFine": "約略即可",
@@ -18,5 +18,5 @@
   "noPastEvent": "過往未及落筆作念",
   "noFutureEvent": "未來尚待揮墨成畫",
   "openTimeline": "展開我們的歲月長卷 →",
-  "keyboardShortcutHint": "按下 <kbd>?</kbd>，喚起鍵盤熱鍵"
+  "keyboardShortcutHint": "按下<kbd>?</kbd>，喚起鍵盤熱鍵"
 }
