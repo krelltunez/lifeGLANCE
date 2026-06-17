@@ -35,6 +35,18 @@ npm run ios            # build:mobile, then open the project in Xcode
 From Android Studio / Xcode you can run on a simulator/emulator or a connected
 device, and produce signed release builds for the stores.
 
+For Android command-line builds there is `build.sh` at the repo root:
+
+```bash
+./build.sh             # web build + debug APK, then adb install on a device
+./build.sh --release   # web build + release APK + AAB into outputs/
+./build.sh --clean     # gradlew clean + wipe dist first (combine with --release)
+```
+
+`outputs/` is git-ignored. Release artifacts are **unsigned** until a
+`signingConfig` is added to `android/app/build.gradle` (with a `key.properties`
+keystore), which is required before publishing to Play.
+
 ## Configuration
 
 - `capacitor.config.json` — app id (`app.lifeglance`), app name, and `webDir`.

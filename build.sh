@@ -1,0 +1,87 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ANDROID_DIR="$SCRIPT_DIR/android"
+OUT_DIR="$SCRIPT_DIR/outputs"
+
+# Flags
+FULL_CLEAN=false
+RELEASE=false
+for arg in "$@"; do
+  case "$arg" in
+    --clean)   FULL_CLEAN=true ;;
+    --release) RELEASE=true ;;
+    *) echo "Unknown flag: $arg (valid flags: --clean, --release)" && exit 1 ;;
+  esac
+done
+
+# ── Clean ──────────────────────────────────────────────────────────────────
+if $FULL_CLEAN; then
+  echo "==> Full clean..."
+  cd "$ANDROID_DIR" && ./gradlew clean
+  cd "$SCRIPT_DIR"
+  rm -rf dist
+else
+  # Vite produces a new content-hashed bundle on every build, so Gradle's
+  # incremental asset pipeline accumulates stale .jar files for the old
+  # hashes and then fails with "already contains entry". Wipe just that
+  # intermediates directory — it is cheap and rebuilt every assembleDebug.
+  STALE_ASSETS="$ANDROID_DIR/app/build/intermediates/compressed_assets"
+  if [ -d "$STALE_ASSETS" ]; then
+    echo "==> Clearing stale asset intermediates..."
+    rm -rf "$STALE_ASSETS"
+  fi
+fi
+
+mkdir -p "$OUT_DIR"
+
+if $RELEASE; then
+  # ── Android release ────────────────────────────────────────────────────
+  # NOTE: the Android project has no signing config yet, so assembleRelease /
+  # bundleRelease produce UNSIGNED artifacts. Add a signingConfig in
+  # android/app/build.gradle (+ key.properties) before publishing to Play.
+  echo "==> Building web assets..."
+  cd "$SCRIPT_DIR"
+  npm run build:mobile
+
+  echo "==> Building release APK + AAB..."
+  cd "$ANDROID_DIR"
+  ./gradlew assembleRelease bundleRelease
+
+  # assembleRelease emits app-release-unsigned.apk until signing is configured,
+  # and app-release.apk once it is — copy whichever exists.
+  APK_REL_DIR="app/build/outputs/apk/release"
+  if [ -f "$APK_REL_DIR/app-release.apk" ]; then
+    cp "$APK_REL_DIR/app-release.apk" "$OUT_DIR/lifeglance.apk"
+    echo "    APK → outputs/lifeglance.apk (signed)"
+  else
+    cp "$APK_REL_DIR/app-release-unsigned.apk" "$OUT_DIR/lifeglance-unsigned.apk"
+    echo "    APK → outputs/lifeglance-unsigned.apk (UNSIGNED — configure signing to publish)"
+  fi
+
+  cp "app/build/outputs/bundle/release/app-release.aab" "$OUT_DIR/lifeglance.aab"
+  echo "    AAB → outputs/lifeglance.aab"
+
+  echo ""
+  echo "==> Android release build complete. outputs/:"
+  ls -lh "$OUT_DIR"
+
+else
+  # ── Debug APK + install ────────────────────────────────────────────────
+  echo "==> Building web assets..."
+  cd "$SCRIPT_DIR"
+  npm run build:mobile
+
+  APK_SRC="$ANDROID_DIR/app/build/outputs/apk/debug/app-debug.apk"
+  APK_DEST="$OUT_DIR/lifeglance-debug.apk"
+
+  echo "==> Building debug APK..."
+  cd "$ANDROID_DIR"
+  ./gradlew assembleDebug
+
+  cp "$APK_SRC" "$APK_DEST"
+  echo "==> Installing on connected device..."
+  adb install -r "$APK_DEST"
+  echo "==> Done! App installed."
+fi
