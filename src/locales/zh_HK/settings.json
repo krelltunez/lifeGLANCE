@@ -25,7 +25,7 @@
   "exportImage": "導出為展示圖片",
   "saveBackup": "導出為本地備份",
   "restoreFromFile": "從本地備份還原",
-  "importIcs": "導出為 .ics檔案",
+  "importIcs": "導出為.ics檔案",
   "persistNotice": "啟用持久性存儲，暫停瀏覽器在後台靜默清除您的資料。",
   "persistButton": "啟用持久性儲存",
   "icsNote": "導入.ics檔案僅支援全天事件。定時事件將被跳過－導入對話框將顯示已跳過事件數量。",
