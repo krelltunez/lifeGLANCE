@@ -5,9 +5,9 @@
   "step2Prompt": "行至此时，您生命中最美好的是哪一刻?",
   "step2Placeholder": "譬如: 我们结婚了",
   "step3Eyebrow": "参章: 云开前山亭",
-  "step3Prompt": "未来将至，您心中最期盼的一件事是什么?",
-  "step3Placeholder": "设想：携手共游外地風光",
-  "step4Eyebrow": "肆章: 缓缓展卷，生命的岁月长轴",
+  "step3Prompt": "未来将至，您心中最期盼的一件事是什麽?",
+  "step3Placeholder": "设想：共游外地风光，携手相守",
+  "step4Eyebrow": "肆章: 缓缓展卷，生命的时光长轴",
   "step4Prompt": "人生如画，如江河，如星图，漫漫延伸……",
   "approximateIsFine": "约略即可",
   "errorPastEvent": "此事应在昔日之期",
@@ -18,5 +18,5 @@
   "noPastEvent": "过往未及落笔作念",
   "noFutureEvent": "未来尚待挥墨成画",
   "openTimeline": "展开我们的岁月长卷 →",
-  "keyboardShortcutHint": "按下 <kbd>?</kbd>，唤起键盘热键"
+  "keyboardShortcutHint": "按下<kbd>?</kbd>，唤起键盘热键"
 }
