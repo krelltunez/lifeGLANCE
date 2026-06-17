@@ -16,6 +16,7 @@ import {
   MalformedEnvelopeError,
 } from '@glance-apps/intents'
 import { loadIntentsRootKey, setupIntentsEncryption, makeDeriveFn } from './intentsKeyStore.js'
+import { isNativePlatform, nativeWebdavResponse } from '../sync/nativeHttp.js'
 
 const CONFIG_KEY = 'lifeglance-intents-config'
 const CURSOR_KEY = 'lifeglance-intents-cursor'
@@ -68,11 +69,17 @@ function targetUrl(cfg, filename = '') {
 }
 
 // Routes a fetch through the shared Vercel proxy (X-WebDAV-Url header).
+// On native shells, hits the WebDAV server directly via the native HTTP stack
+// (the WebView enforces CORS and the proxy URL resolves to localhost).
 function proxyFetch(cfg, filename, method, extraHeaders = {}, body) {
   const target = targetUrl(cfg, filename)
   const authHeader = cfg.webdavUser
     ? { Authorization: 'Basic ' + btoa(`${cfg.webdavUser}:${cfg.webdavPass}`) }
     : {}
+
+  if (isNativePlatform()) {
+    return nativeWebdavResponse(method, target, { ...authHeader, ...extraHeaders }, body)
+  }
 
   if (PROXY_URL) {
     return fetch(PROXY_URL, {
