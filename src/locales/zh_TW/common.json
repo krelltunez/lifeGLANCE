@@ -1,5 +1,5 @@
 {
-  "skip": "略過",
+  "skip": "跳過",
   "cancel": "取消",
   "save": "保存",
   "saveChanges": "保存更改",
@@ -13,11 +13,11 @@
   "day": "日",
   "date": "日期",
   "settings": "設置",
-  "eventName": "事件標題",
+  "eventName": "事件名稱",
   "placing": "放置中…",
   "saving": "保存中…",
   "deleting": "刪除中…",
   "loading": "讀取中...",
   "testing": "測試中…",
-  "portraitMessage": "目前豎屏:請旋轉裝置，獲得最佳體驗。"
+  "portraitMessage": "豎屏:請旋轉您的裝置以獲得最佳體驗"
 }
