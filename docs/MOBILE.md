@@ -43,9 +43,19 @@ For Android command-line builds there is `build.sh` at the repo root:
 ./build.sh --clean     # gradlew clean + wipe dist first (combine with --release)
 ```
 
-`outputs/` is git-ignored. Release artifacts are **unsigned** until a
-`signingConfig` is added to `android/app/build.gradle` (with a `key.properties`
-keystore), which is required before publishing to Play.
+`outputs/` is git-ignored.
+
+### Android release signing
+
+Release builds (`./build.sh --release`) are signed automatically when
+`android/key.properties` exists. Copy `android/key.properties.example` to
+`android/key.properties` (git-ignored) and fill in your keystore path,
+passwords, and key alias (`lifeglance`). Gradle reads it and signs
+`assembleRelease` / `bundleRelease`, so `outputs/lifeglance.apk` and
+`outputs/lifeglance.aab` are store-ready.
+
+Without `key.properties` (e.g. CI), the release falls back to an **unsigned**
+APK (`outputs/lifeglance-unsigned.apk`) and the build still succeeds.
 
 ## Configuration
 

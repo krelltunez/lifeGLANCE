@@ -16,6 +16,11 @@ for arg in "$@"; do
   esac
 done
 
+# ── Dependencies ────────────────────────────────────────────────────────────
+echo "==> Installing npm dependencies..."
+cd "$SCRIPT_DIR"
+npm install
+
 # ── Clean ──────────────────────────────────────────────────────────────────
 if $FULL_CLEAN; then
   echo "==> Full clean..."
@@ -38,9 +43,8 @@ mkdir -p "$OUT_DIR"
 
 if $RELEASE; then
   # ── Android release ────────────────────────────────────────────────────
-  # NOTE: the Android project has no signing config yet, so assembleRelease /
-  # bundleRelease produce UNSIGNED artifacts. Add a signingConfig in
-  # android/app/build.gradle (+ key.properties) before publishing to Play.
+  # Release builds are signed when android/key.properties is present (see
+  # android/key.properties.example); without it they fall back to UNSIGNED.
   echo "==> Building web assets..."
   cd "$SCRIPT_DIR"
   npm run build:mobile
