@@ -7,7 +7,7 @@
   "received": "已接收",
   "logSent": "\"{{title}}\" 已发送至dayGLANCE",
   "logCompleted": "\"{{title}}\" 已完成于dayGLANCE",
-  "logRescheduled": "\"{{title}}\" 已重新调度於dayGLANCE",
+  "logRescheduled": "\"{{title}}\" 已重新排程於dayGLANCE",
   "logReceived": " \"{{title}}\" 已接收，来自dayGLANCE",
   "integrationTitle": "dayGLANCE整合",
   "enableLinking": "激活Goal↔Milestone链接",
