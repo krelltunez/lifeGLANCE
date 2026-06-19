@@ -5,7 +5,8 @@ import { isNativePlatform, nativeWebdavFetch } from './nativeHttp.js';
 let engine = null;
 
 export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setChapters,
-  setSyncStatus, setSyncError, setSyncHalted, setLastSynced, setShowPassphraseModal }) => {
+  setSyncStatus, setSyncError, setSyncHalted, setLastSynced, setShowPassphraseModal,
+  setVaultSkipped }) => {
 
   const savedSyncConfig = (() => {
     try { return JSON.parse(localStorage.getItem('lifeglance-cloud-sync-config') || 'null') } catch { return null }
@@ -48,10 +49,33 @@ export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setC
       if (status === 'success' || status === 'idle') setSyncError(null)
     },
     onError: (msg, code, isHardStop) => {
+      // ACCOUNT_ID_REQUIRED (GLANCEvault transport): a sync cycle ran before the
+      // account id was populated — a benign startup race. It's retryable and
+      // self-heals on the next cycle, so we treat it as "not ready yet" and never
+      // surface a scary red error for it.
+      if (code === 'ACCOUNT_ID_REQUIRED') {
+        if (import.meta.env.DEV) console.debug('[sync] account id not ready yet; will retry next cycle');
+        return;
+      }
       // The engine calls onError(null, …) to clear a previous error; only treat
       // a real message as an error so the dot doesn't show rose during a sync.
+      // Typed codes (KEY_MISMATCH, VERIFIER_UNSUPPORTED) are mapped to friendly,
+      // translatable messages at the display layer (CloudSyncModal / TimelineView)
+      // via syncErrorText() so the raw crypto/server text is never shown. The
+      // engine has already aborted before any upload on a KEY_MISMATCH, so the
+      // account is never polluted with poison rows.
       setSyncError(msg ? { message: msg, code, isHardStop } : null);
       if (isHardStop) setSyncHalted(true);
+    },
+    // Per-row quarantine (GLANCEvault transport): fired once per cycle that
+    // skipped undecryptable rows. We call engine.sync() directly (never compose
+    // our own pull/push cycle), so this config callback fires for us — we just
+    // surface the count. A transient toast + a durable amber note in the sync
+    // settings read from this state.
+    onRowsSkipped: (count, entityIds) => {
+      if (count > 0) {
+        setVaultSkipped?.({ count, entityIds: entityIds ?? [], at: Date.now() });
+      }
     },
     onLastSyncedChange: setLastSynced,
     onPassphraseRequired: () => setShowPassphraseModal(true),

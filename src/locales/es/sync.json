@@ -49,5 +49,9 @@
   "backupNow": "hacer copia ahora",
   "backupNote": "Activa esta opción solo en un dispositivo. Si usas varios dispositivos, usa la sincronización en la nube y configura las copias de seguridad remotas solo en tu dispositivo principal.",
   "noBackupsYet": "Aún no hay copias de seguridad.",
-  "historyTab": "historial"
+  "historyTab": "historial",
+  "wrongPassphrase": "Frase de contraseña de sincronización incorrecta — debe coincidir exactamente con la usada en tus otros dispositivos.",
+  "vaultSkippedToast": "{{count}} elemento(s) no se pudieron leer — revisa los ajustes de sincronización en la nube.",
+  "vaultSkippedNote": "{{count}} elemento(s) no se pudieron leer en este dispositivo y se omitieron. Se reintentarán automáticamente en la próxima sincronización — esto suele indicar una frase de contraseña de sincronización distinta.",
+  "verifierUnsupported": "Tu servidor de sincronización debe actualizarse para admitir la verificación de clave."
 }

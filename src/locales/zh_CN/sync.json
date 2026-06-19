@@ -49,5 +49,9 @@
   "backupNow": "立即备份",
   "backupNote": "僅可在一台設备上启用。如果您使用多台設备，请使用云端同步保持它們同步，並只在您的主設备上设定远端备份。",
   "noBackupsYet": "尚无备份。",
-  "historyTab": "历史记录"
+  "historyTab": "历史记录",
+  "wrongPassphrase": "同步口令错误——必须与你在其他设备上使用的口令完全一致。",
+  "vaultSkippedToast": "有 {{count}} 个条目无法读取——请查看云端同步设置。",
+  "vaultSkippedNote": "本设备上有 {{count}} 个条目无法读取并已跳过。将在下次同步时自动重试——这通常表示同步口令不一致。",
+  "verifierUnsupported": "你的同步服务器需要更新以支持密钥验证。"
 }

@@ -17,6 +17,9 @@ export default function App() {
   const [syncError,   setSyncError]   = useState(null)
   const [syncHalted,  setSyncHalted]  = useState(false)
   const [lastSynced,  setLastSynced]  = useState(null)
+  // Per-row quarantine signal from the sync engine: { count, entityIds, at } | null.
+  // Drives a transient toast (TimelineView) and a durable amber note (CloudSyncModal).
+  const [vaultSkipped, setVaultSkipped] = useState(null)
   const [showPassphraseModal, setShowPassphraseModal] = useState(false)
   const [cloudSyncOpen, setCloudSyncOpen] = useState(false)
 
@@ -61,6 +64,7 @@ export default function App() {
           setSyncHalted,
           setLastSynced,
           setShowPassphraseModal,
+          setVaultSkipped,
         })
 
         // Restore encryption session key from IDB so the passphrase prompt
@@ -148,6 +152,7 @@ export default function App() {
       syncError={syncError}
       syncHalted={syncHalted}
       lastSynced={lastSynced}
+      vaultSkipped={vaultSkipped}
       onOpenCloudSync={() => setCloudSyncOpen(true)}
     />
   )
@@ -173,6 +178,7 @@ export default function App() {
           syncError={syncError}
           syncHalted={syncHalted}
           lastSynced={lastSynced}
+          vaultSkipped={vaultSkipped}
           onClose={() => setCloudSyncOpen(false)}
         />
       )}
