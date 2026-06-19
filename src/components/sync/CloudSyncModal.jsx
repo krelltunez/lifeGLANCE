@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getSyncEngine } from '../../sync/engine'
-import { isSyncing } from '../../sync/status'
+import { isSyncing, syncErrorText, SYNC_ERROR_I18N_KEYS } from '../../sync/status'
 
 const PROXY = '/api/webdav-proxy'
 
@@ -74,12 +74,10 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
 
   const isExisting = !!existingConfig
 
-  // KEY_MISMATCH (wrong sync passphrase/salt) is surfaced with a clear, actionable
-  // message instead of the raw crypto text. The engine aborts before any upload on
-  // this code, so the account is never polluted.
-  const errorText = syncError
-    ? (syncError.code === 'KEY_MISMATCH' ? t('wrongPassphrase') : syncError.message)
-    : null
+  // Typed engine error codes (KEY_MISMATCH, VERIFIER_UNSUPPORTED) are surfaced with
+  // clear, actionable messages instead of raw crypto/server text. The engine aborts
+  // before any upload on KEY_MISMATCH, so the account is never polluted.
+  const errorText = syncErrorText(syncError, t)
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -147,13 +145,14 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
       onClose()
     } catch (err) {
       console.error('[sync] save failed:', err)
-      if (err?.code === 'KEY_MISMATCH') {
-        // Enabling/bootstrapping with the wrong passphrase: the engine verifies the
-        // derived key before uploading anything, so nothing was written remotely.
-        // Roll back to the prior config so we don't leave sync half-enabled, and
-        // show the clear message instead of the raw crypto error.
+      const mappedKey = SYNC_ERROR_I18N_KEYS[err?.code]
+      if (mappedKey) {
+        // Wrong passphrase (KEY_MISMATCH) or a server too old for the key verifier
+        // (VERIFIER_UNSUPPORTED): the engine verifies/aborts before uploading, so
+        // nothing was written remotely. Roll back to the prior config so we don't
+        // leave sync half-enabled, and show the clear message instead of raw text.
         try { engine?.setConfig(existingConfig) } catch { /* best-effort rollback */ }
-        setTestResult({ ok: false, message: t('wrongPassphrase') })
+        setTestResult({ ok: false, message: t(mappedKey) })
       } else {
         setTestResult({ ok: false, message: t('saveFailed', { message: err.message }) })
       }

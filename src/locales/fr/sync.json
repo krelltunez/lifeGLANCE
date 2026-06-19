@@ -52,5 +52,6 @@
   "historyTab": "historique",
   "wrongPassphrase": "Phrase secrète de synchronisation incorrecte — elle doit correspondre exactement à celle utilisée sur vos autres appareils.",
   "vaultSkippedToast": "{{count}} élément(s) illisible(s) — vérifiez les réglages de synchronisation cloud.",
-  "vaultSkippedNote": "{{count}} élément(s) n'ont pas pu être lus sur cet appareil et ont été ignorés. Ils seront réessayés automatiquement lors de la prochaine synchronisation — cela indique généralement une phrase secrète de synchronisation différente."
+  "vaultSkippedNote": "{{count}} élément(s) n'ont pas pu être lus sur cet appareil et ont été ignorés. Ils seront réessayés automatiquement lors de la prochaine synchronisation — cela indique généralement une phrase secrète de synchronisation différente.",
+  "verifierUnsupported": "Votre serveur de synchronisation doit être mis à jour pour prendre en charge la vérification de clé."
 }

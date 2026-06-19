@@ -52,5 +52,6 @@
   "historyTab": "history",
   "wrongPassphrase": "Wrong sync passphrase — it must exactly match the passphrase used on your other devices.",
   "vaultSkippedToast": "{{count}} item(s) couldn't be read — check cloud sync settings.",
-  "vaultSkippedNote": "{{count}} item(s) couldn't be read on this device and were skipped. They'll be retried automatically on the next sync — this usually means a sync passphrase mismatch."
+  "vaultSkippedNote": "{{count}} item(s) couldn't be read on this device and were skipped. They'll be retried automatically on the next sync — this usually means a sync passphrase mismatch.",
+  "verifierUnsupported": "Your sync server needs to be updated to support key verification."
 }

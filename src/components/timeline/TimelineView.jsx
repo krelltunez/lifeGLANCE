@@ -33,7 +33,7 @@ import { enterFullscreen, exitFullscreen, isFullscreen } from '../../utils/fulls
 import { relativeLabel, ageAtDate } from '../../utils/dates'
 import { useIntentPoller } from '../../hooks/useIntentPoller.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
-import { isSyncing } from '../../sync/status.js'
+import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
 import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
 import { EVENTS } from '@glance-apps/intents'
@@ -1636,7 +1636,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               <button
                 className="action-link sync-status-btn"
                 onClick={onOpenCloudSync}
-                title={syncHalted ? t('syncErrorTitle') : isSyncing(syncStatus) ? t('syncingTitle') : syncError ? (syncError.code === 'KEY_MISMATCH' ? ts('wrongPassphrase') : t('syncErrorSimple')) : t('cloudSyncTitle')}
+                title={syncHalted ? t('syncErrorTitle') : isSyncing(syncStatus) ? t('syncingTitle') : syncError ? (SYNC_ERROR_I18N_KEYS[syncError.code] ? ts(SYNC_ERROR_I18N_KEYS[syncError.code]) : t('syncErrorSimple')) : t('cloudSyncTitle')}
               >
                 <span
                   className="sync-dot"

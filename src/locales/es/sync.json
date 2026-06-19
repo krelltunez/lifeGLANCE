@@ -52,5 +52,6 @@
   "historyTab": "historial",
   "wrongPassphrase": "Frase de contraseña de sincronización incorrecta — debe coincidir exactamente con la usada en tus otros dispositivos.",
   "vaultSkippedToast": "{{count}} elemento(s) no se pudieron leer — revisa los ajustes de sincronización en la nube.",
-  "vaultSkippedNote": "{{count}} elemento(s) no se pudieron leer en este dispositivo y se omitieron. Se reintentarán automáticamente en la próxima sincronización — esto suele indicar una frase de contraseña de sincronización distinta."
+  "vaultSkippedNote": "{{count}} elemento(s) no se pudieron leer en este dispositivo y se omitieron. Se reintentarán automáticamente en la próxima sincronización — esto suele indicar una frase de contraseña de sincronización distinta.",
+  "verifierUnsupported": "Tu servidor de sincronización debe actualizarse para admitir la verificación de clave."
 }

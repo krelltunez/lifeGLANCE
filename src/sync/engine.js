@@ -49,12 +49,21 @@ export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setC
       if (status === 'success' || status === 'idle') setSyncError(null)
     },
     onError: (msg, code, isHardStop) => {
+      // ACCOUNT_ID_REQUIRED (GLANCEvault transport): a sync cycle ran before the
+      // account id was populated — a benign startup race. It's retryable and
+      // self-heals on the next cycle, so we treat it as "not ready yet" and never
+      // surface a scary red error for it.
+      if (code === 'ACCOUNT_ID_REQUIRED') {
+        if (import.meta.env.DEV) console.debug('[sync] account id not ready yet; will retry next cycle');
+        return;
+      }
       // The engine calls onError(null, …) to clear a previous error; only treat
       // a real message as an error so the dot doesn't show rose during a sync.
-      // The KEY_MISMATCH code is mapped to a friendly, translatable message at
-      // the display layer (CloudSyncModal / TimelineView) so the raw crypto text
-      // is never shown. The engine has already aborted before any upload on a
-      // KEY_MISMATCH, so the account is never polluted with poison rows.
+      // Typed codes (KEY_MISMATCH, VERIFIER_UNSUPPORTED) are mapped to friendly,
+      // translatable messages at the display layer (CloudSyncModal / TimelineView)
+      // via syncErrorText() so the raw crypto/server text is never shown. The
+      // engine has already aborted before any upload on a KEY_MISMATCH, so the
+      // account is never polluted with poison rows.
       setSyncError(msg ? { message: msg, code, isHardStop } : null);
       if (isHardStop) setSyncHalted(true);
     },
