@@ -7,6 +7,8 @@ import SyncPassphraseModal from './components/sync/SyncPassphraseModal'
 import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
+import { buildWidgetSnapshot } from './utils/widgetSnapshot'
+import { pushWidgetSnapshot } from './native/widgetBridge'
 
 export default function App() {
   const { t } = useTranslation('common')
@@ -17,6 +19,9 @@ export default function App() {
   const [syncError,   setSyncError]   = useState(null)
   const [syncHalted,  setSyncHalted]  = useState(false)
   const [lastSynced,  setLastSynced]  = useState(null)
+  // Per-row quarantine signal from the sync engine: { count, entityIds, at } | null.
+  // Drives a transient toast (TimelineView) and a durable amber note (CloudSyncModal).
+  const [vaultSkipped, setVaultSkipped] = useState(null)
   const [showPassphraseModal, setShowPassphraseModal] = useState(false)
   const [cloudSyncOpen, setCloudSyncOpen] = useState(false)
 
@@ -61,6 +66,7 @@ export default function App() {
           setSyncHalted,
           setLastSynced,
           setShowPassphraseModal,
+          setVaultSkipped,
         })
 
         // Restore encryption session key from IDB so the passphrase prompt
@@ -127,6 +133,33 @@ export default function App() {
     return () => clearTimeout(uploadTimerRef.current)
   }, [milestones, chapters, screen])
 
+  // Push a render-ready snapshot to the native home-screen widgets. Debounced on
+  // data changes (parallel to the sync upload above), and flushed immediately when
+  // the app backgrounds so the widget reflects the latest state by the time the
+  // user is looking at the home screen. No-op on web. Reading birthday from
+  // localStorage here keeps this independent of TimelineView's local copy.
+  const widgetTimerRef = useRef(null)
+  useEffect(() => {
+    if (screen !== 'timeline') return
+
+    const flush = () => {
+      const birthday = localStorage.getItem('lifeglance-birthday') || null
+      pushWidgetSnapshot(
+        buildWidgetSnapshot(milestonesRef.current, chaptersRef.current, birthday)
+      )
+    }
+
+    if (widgetTimerRef.current) clearTimeout(widgetTimerRef.current)
+    widgetTimerRef.current = setTimeout(flush, 1_000)
+
+    const onHide = () => { if (document.visibilityState === 'hidden') flush() }
+    document.addEventListener('visibilitychange', onHide)
+    return () => {
+      clearTimeout(widgetTimerRef.current)
+      document.removeEventListener('visibilitychange', onHide)
+    }
+  }, [milestones, chapters, screen])
+
   function handleOnboardingComplete(initial) {
     setMilestones(initial)
     setScreen('timeline')
@@ -148,6 +181,7 @@ export default function App() {
       syncError={syncError}
       syncHalted={syncHalted}
       lastSynced={lastSynced}
+      vaultSkipped={vaultSkipped}
       onOpenCloudSync={() => setCloudSyncOpen(true)}
     />
   )
@@ -173,6 +207,7 @@ export default function App() {
           syncError={syncError}
           syncHalted={syncHalted}
           lastSynced={lastSynced}
+          vaultSkipped={vaultSkipped}
           onClose={() => setCloudSyncOpen(false)}
         />
       )}

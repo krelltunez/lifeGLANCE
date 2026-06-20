@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getSyncEngine } from '../../sync/engine'
-import { isSyncing } from '../../sync/status'
+import { isSyncing, syncErrorText, SYNC_ERROR_I18N_KEYS } from '../../sync/status'
 
 const PROXY = '/api/webdav-proxy'
 
@@ -54,7 +54,7 @@ function SyncDot({ syncStatus, syncError, syncHalted }) {
   )
 }
 
-export default function CloudSyncModal({ syncStatus, syncError, syncHalted, lastSynced, onClose }) {
+export default function CloudSyncModal({ syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onClose }) {
   const { t } = useTranslation('sync')
   const { t: tc } = useTranslation('common')
   const engine = getSyncEngine()
@@ -73,6 +73,11 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   const [saving,      setSaving]      = useState(false)
 
   const isExisting = !!existingConfig
+
+  // Typed engine error codes (KEY_MISMATCH, VERIFIER_UNSUPPORTED) are surfaced with
+  // clear, actionable messages instead of raw crypto/server text. The engine aborts
+  // before any upload on KEY_MISMATCH, so the account is never polluted.
+  const errorText = syncErrorText(syncError, t)
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -140,7 +145,17 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
       onClose()
     } catch (err) {
       console.error('[sync] save failed:', err)
-      setTestResult({ ok: false, message: t('saveFailed', { message: err.message }) })
+      const mappedKey = SYNC_ERROR_I18N_KEYS[err?.code]
+      if (mappedKey) {
+        // Wrong passphrase (KEY_MISMATCH) or a server too old for the key verifier
+        // (VERIFIER_UNSUPPORTED): the engine verifies/aborts before uploading, so
+        // nothing was written remotely. Roll back to the prior config so we don't
+        // leave sync half-enabled, and show the clear message instead of raw text.
+        try { engine?.setConfig(existingConfig) } catch { /* best-effort rollback */ }
+        setTestResult({ ok: false, message: t(mappedKey) })
+      } else {
+        setTestResult({ ok: false, message: t('saveFailed', { message: err.message }) })
+      }
     } finally {
       setSaving(false)
     }
@@ -173,7 +188,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
             color: 'var(--rose)',
             fontSize: '0.82rem',
           }}>
-            <strong>{t('syncHalted')}</strong> {syncError.message}
+            <strong>{t('syncHalted')}</strong> {errorText}
             {syncError.code && <span style={{ opacity: 0.7, marginLeft: '0.5rem' }}>[{syncError.code}]</span>}
           </div>
         )}
@@ -189,7 +204,24 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
             color: 'var(--rose)',
             fontSize: '0.8rem',
           }}>
-            {syncError.message}
+            {errorText}
+          </div>
+        )}
+
+        {/* Per-row quarantine — durable amber note that some rows couldn't be read
+            (e.g. a partial key mismatch). Persists after the transient toast dismisses.
+            The engine retries quarantined rows automatically on later sync cycles. */}
+        {vaultSkipped?.count > 0 && (
+          <div style={{
+            background: 'var(--danger-bg-dim)',
+            border: '1px solid var(--amber-bright)',
+            borderRadius: '6px',
+            padding: '0.6rem 1rem',
+            marginBottom: '0.75rem',
+            color: 'var(--amber-bright)',
+            fontSize: '0.8rem',
+          }}>
+            {t('vaultSkippedNote', { count: vaultSkipped.count })}
           </div>
         )}
 

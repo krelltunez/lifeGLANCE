@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { loadIntentsConfig, saveIntentsConfig, enableIntentsEncryption } from '../../lib/intentsTransport.js'
 import { loadIntentsRootKey } from '../../lib/intentsKeyStore.js'
+import { isNativePlatform, nativeWebdavResponse } from '../../sync/nativeHttp.js'
 
 const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy'
 
@@ -34,14 +35,16 @@ export default function IntegrationSettings() {
         ? { Authorization: 'Basic ' + btoa(`${cfg.webdavUser}:${cfg.webdavPass}`) }
         : {}
       const extraHeaders = { ...authHeader, 'Depth': '0', 'Content-Type': 'application/xml' }
-      const fetchHeaders = PROXY_URL
-        ? { ...extraHeaders, 'X-WebDAV-Url': target }
-        : extraHeaders
-      const res = await fetch(PROXY_URL || target, {
-        method:  'PROPFIND',
-        headers: fetchHeaders,
-        body:    '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>',
-      })
+      const propfindBody = '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>'
+      // Native shells hit the WebDAV server directly; the browser/PWA path keeps
+      // routing through the CORS proxy (X-WebDAV-Url header).
+      const res = isNativePlatform()
+        ? await nativeWebdavResponse('PROPFIND', target, extraHeaders, propfindBody)
+        : await fetch(PROXY_URL || target, {
+            method:  'PROPFIND',
+            headers: PROXY_URL ? { ...extraHeaders, 'X-WebDAV-Url': target } : extraHeaders,
+            body:    propfindBody,
+          })
       if (res.ok || res.status === 207) {
         setTestStatus('ok')
         setTestMsg(t('connectionOk'))

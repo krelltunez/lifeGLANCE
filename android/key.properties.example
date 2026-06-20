@@ -1,0 +1,13 @@
+# Release signing config for Android.
+#
+# Copy this file to android/key.properties (which is gitignored) and fill in
+# your values. android/app/build.gradle reads it to sign release builds; if the
+# file is absent, release builds are produced UNSIGNED.
+#
+# storeFile: absolute path to your keystore is safest. A relative path resolves
+# against android/app/.
+
+storeFile=/absolute/path/to/your.keystore
+storePassword=your-keystore-password
+keyAlias=lifeglance
+keyPassword=your-key-password

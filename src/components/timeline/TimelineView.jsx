@@ -32,8 +32,9 @@ import { useIdleMode } from '../../hooks/useIdleMode.js'
 import { enterFullscreen, exitFullscreen, isFullscreen } from '../../utils/fullscreen.js'
 import { relativeLabel, ageAtDate } from '../../utils/dates'
 import { useIntentPoller } from '../../hooks/useIntentPoller.js'
+import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
-import { isSyncing } from '../../sync/status.js'
+import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
 import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
 import { EVENTS } from '@glance-apps/intents'
@@ -58,10 +59,11 @@ const IDLE_TIMEOUT_OPTIONS = [
   { ms: 600000, label: '10m' },
 ]
 
-export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, onOpenCloudSync }) {
+export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync }) {
   const { t } = useTranslation('timeline')
   const { t: tdg } = useTranslation('dayglance')
   const { t: tc } = useTranslation('common')
+  const { t: ts } = useTranslation('sync')
 
   // Computed display labels (stable within a render, i18next t is referentially stable)
   const ZOOM_LABELS = {
@@ -157,6 +159,16 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const customInputRef = useRef(null)
   const historyRef     = useRef(null)   // { stack: Milestone[][], idx: number }
   const toastTimerRef  = useRef(null)
+  const lastVaultSkipAtRef = useRef(null)
+
+  // Per-row quarantine: when the sync engine skips undecryptable rows, surface a
+  // transient toast. The durable count lives in the cloud sync settings panel.
+  // Edge-triggered on the cycle timestamp so re-renders don't re-toast.
+  useEffect(() => {
+    if (!vaultSkipped?.at || vaultSkipped.at === lastVaultSkipAtRef.current) return
+    lastVaultSkipAtRef.current = vaultSkipped.at
+    showToast(ts('vaultSkippedToast', { count: vaultSkipped.count }), 'error')
+  }, [vaultSkipped])
 
   // Apply font size globally
   useEffect(() => {
@@ -459,6 +471,27 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       if (futureI !== -1) setFutureIdx(futureI)
     }
   }
+
+  // ── Widget deep-link ──────────────────────────────────────────────────────────
+  // A home-screen widget tap launches the app with a pending milestone target.
+  // Consume it on mount and on every resume (the native side clears it once read),
+  // then center and open that milestone's detail. (milestonesRef is declared above.)
+  useEffect(() => {
+    const handleTarget = async () => {
+      const target = await consumeWidgetLaunchTarget()
+      if (!target) return
+      const m = milestonesRef.current.find(x => x.id === target.milestoneId)
+      if (!m) return
+      setSelectedId(m.id)
+      setHighlightsActive(true)
+      timelineRef.current?.panToMs(new Date(m.date).getTime())
+      setDetail(m)
+    }
+    handleTarget()
+    const onShow = () => { if (document.visibilityState === 'visible') handleTarget() }
+    document.addEventListener('visibilitychange', onShow)
+    return () => document.removeEventListener('visibilitychange', onShow)
+  }, [])
 
   // ── View mode ────────────────────────────────────────────────────────────────
   function handleViewMode(mode) {
@@ -1625,7 +1658,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               <button
                 className="action-link sync-status-btn"
                 onClick={onOpenCloudSync}
-                title={syncHalted ? t('syncErrorTitle') : isSyncing(syncStatus) ? t('syncingTitle') : syncError ? t('syncErrorSimple') : t('cloudSyncTitle')}
+                title={syncHalted ? t('syncErrorTitle') : isSyncing(syncStatus) ? t('syncingTitle') : syncError ? (SYNC_ERROR_I18N_KEYS[syncError.code] ? ts(SYNC_ERROR_I18N_KEYS[syncError.code]) : t('syncErrorSimple')) : t('cloudSyncTitle')}
               >
                 <span
                   className="sync-dot"
@@ -1975,6 +2008,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           syncError={syncError}
           syncHalted={syncHalted}
           lastSynced={lastSynced}
+          vaultSkipped={vaultSkipped}
           onClose={() => setCloudSyncOpen(false)}
         />
       )}
