@@ -19,7 +19,7 @@
   "testing": "测试中…",
   "testConnection": "测试连接",
   "connectionOk": "已连接 - Events path可存取。",
-  "directoryNotFound": "找不到Events path (404)。 请先创建它: {{path}}",
+  "directoryNotFound": "找不到Events path (404)。请先创建它: {{path}}",
   "unexpectedResponse": "意外回应: {{status}} {{statusText}}",
   "connectionFailed": "连接失败: {{message}}",
   "pollInterval": "轮询间隔分钟)",
