@@ -9,9 +9,9 @@
   "descriptionLabel": "描述(选填)",
   "descriptionPlaceholder": "为这段岁月章节写点注脚…",
   "hideByDefault": "[时间主线]默认隐藏所属里程碑", 
-  "membersLabel": "设置属於本章节的里程碑",
+  "membersLabel": "设置属于本章节的里程碑",
   "membersSelected": "— {{count}}已选",
-  "membersEmpty": "先设置日期范围，再安置属於它的里程碑",
+  "membersEmpty": "先设置日期范围，再安置属于它的里程碑",
   "membersNoMilestones": "这段岁月平淡，静待添一笔里程碑",
   "deleteButton": "删除章节",
   "deleteConfirmMsg": "删去的只有章节卷目。那些里程碑依旧在这，静候新篇章来诉说。",
@@ -23,6 +23,6 @@
   "errorEndAfterStart": "“结束日期”须在“起始日期”之后 — 世间美好，时光只向前",
   "colorLabel": "颜色",
   "deleteConfirmTitle": "删除<strong>{{title}}</strong>章节?",
-  "endpointTooltip": "端点—始终显示於[时间主线]",
+  "endpointTooltip": "端点—始终显示于[时间主线]",
   "endpointDimTooltip": "贴合章节边缘—设为端点"
 }
