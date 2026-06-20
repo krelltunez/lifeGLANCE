@@ -32,6 +32,7 @@ import { useIdleMode } from '../../hooks/useIdleMode.js'
 import { enterFullscreen, exitFullscreen, isFullscreen } from '../../utils/fullscreen.js'
 import { relativeLabel, ageAtDate } from '../../utils/dates'
 import { useIntentPoller } from '../../hooks/useIntentPoller.js'
+import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
 import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
@@ -470,6 +471,27 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       if (futureI !== -1) setFutureIdx(futureI)
     }
   }
+
+  // ── Widget deep-link ──────────────────────────────────────────────────────────
+  // A home-screen widget tap launches the app with a pending milestone target.
+  // Consume it on mount and on every resume (the native side clears it once read),
+  // then center and open that milestone's detail. (milestonesRef is declared above.)
+  useEffect(() => {
+    const handleTarget = async () => {
+      const target = await consumeWidgetLaunchTarget()
+      if (!target) return
+      const m = milestonesRef.current.find(x => x.id === target.milestoneId)
+      if (!m) return
+      setSelectedId(m.id)
+      setHighlightsActive(true)
+      timelineRef.current?.panToMs(new Date(m.date).getTime())
+      setDetail(m)
+    }
+    handleTarget()
+    const onShow = () => { if (document.visibilityState === 'visible') handleTarget() }
+    document.addEventListener('visibilitychange', onShow)
+    return () => document.removeEventListener('visibilitychange', onShow)
+  }, [])
 
   // ── View mode ────────────────────────────────────────────────────────────────
   function handleViewMode(mode) {

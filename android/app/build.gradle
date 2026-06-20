@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
 // Derive versionName/versionCode from package.json (e.g. 1.8.4 -> 10804).
 // Assumes a clean x.y.z version (no -beta suffix) and minor/patch < 100.
@@ -48,6 +50,21 @@ android {
             signingConfig keystorePropsFile.exists() ? signingConfigs.release : null
         }
     }
+    compileOptions {
+        // Desugaring lets us use java.time (LocalDate/Period) for the widget's
+        // relative-date math down to minSdk 24.
+        coreLibraryDesugaringEnabled true
+        // Java level is forced to 21 by capacitor.build.gradle (applied below);
+        // keep Kotlin's jvmTarget in sync to avoid a JVM-target mismatch.
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = '21'
+    }
+    buildFeatures {
+        compose true
+    }
 }
 
 repositories {
@@ -62,6 +79,12 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+
+    // Home-screen widgets (Jetpack Glance, Kotlin/Compose)
+    implementation "androidx.glance:glance-appwidget:$rootProject.ext.glanceVersion"
+    implementation "androidx.work:work-runtime-ktx:2.9.1"
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.2"
+
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
