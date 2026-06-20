@@ -50,8 +50,8 @@
   "backupNote": "僅限於一台設備上啟用。若您使用多台裝置，請透過雲端同步保持它們同步，並僅在主裝置上設定遠端備份。",
   "noBackupsYet": "尚無備份 — 晴空萬里，未見一片雲",
   "historyTab": "歷史記錄",
-  "wrongPassphrase": "同步通關密語錯誤——必須與你在其他裝置上使用的完全一致。",
-  "vaultSkippedToast": "有 {{count}} 個項目無法讀取——請查看雲端同步設定。",
-  "vaultSkippedNote": "本裝置上有 {{count}} 個項目無法讀取並已略過。將在下次同步時自動重試——這通常表示同步通關密語不一致。",
+  "wrongPassphrase": "密碼短語錯誤——必須與其他裝置上使用的密碼短語完全一致。",
+  "vaultSkippedToast": "有{{count}}個項目無法讀取——請查看雲端同步設定。",
+  "vaultSkippedNote": "本裝置上有{{count}}個項目無法讀取並已略過。將在下次同步時自動重試——這通常表示密碼短語不一致。",
   "verifierUnsupported": "你的同步伺服器需要更新以支援金鑰驗證。"
 }
