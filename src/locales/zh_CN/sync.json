@@ -29,7 +29,7 @@
   "testConnection": "测试连接",
   "disable": "停用",
   "saving": "正在保存…",
-  "saveAndEnable": "保存并激活",
+  "saveAndEnable": "保存并启用",
   "passphraseModalTitle": "输入同步密码短语",
   "passphraseModalNote": "您的数据已加密。请输入您的同步密码短语以继续下一步。",
   "incorrectPassphrase": "密码短语错误。请重试。",
@@ -37,7 +37,7 @@
   "unlock": "解锁",
   "cloudSyncRequired": "必须先设置云端同步。自动备份上传到同一台服务器。",
   "remoteBackupsLabel": "远程备份",
-  "enableRemoteBackups": "激活自动远程备份",
+  "enableRemoteBackups": "启用自动远程备份",
   "passwordLabel": "密码",
   "frequencyLabel": "频率",
   "settingsSaved": "设置已保存",
@@ -47,7 +47,7 @@
   "backupFailed": "备份失败: {{message}}",
   "backingUp": "正在备份…",
   "backupNow": "立即备份",
-  "backupNote": "仅限于一台设备上激活。若您使用多台设备，请透过云端同步保持它们同步，并仅在主设备上设置远程备份。",
+  "backupNote": "仅限于一台设备上启用。若您使用多台设备，请透过云端同步保持它们同步，并仅在主设备上设置远程备份。",
   "noBackupsYet": "尚无备份 — 晴空万里，未见一片云",
   "historyTab": "历史记录"
 }
