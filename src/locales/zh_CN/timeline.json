@@ -51,7 +51,7 @@
   "emptyFiltered_one": "该范畴未见里程碑创建",
   "emptyFiltered_other": "这些范畴未见里程碑创建",
   "mediaLargeFile": "文件较大",
-  "mediaFileSize": "文件大小为{{size}}.",
+  "mediaFileSize": "文件大小为{{size}}。",
   "mediaStorageRemaining": "保存空间剩余{{size}}。",
   "mediaAttachAnyway": "attach anyway"
 }
