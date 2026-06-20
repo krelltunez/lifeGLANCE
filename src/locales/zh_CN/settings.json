@@ -6,7 +6,7 @@
   "themeLabel": "外观",
   "theme_dark": "深色背景",
   "theme_light": "浅色背景",
-  "clustering": "自动合并邻近的里程碑",
+  "clustering": "自动合併邻近的里程碑",
   "soundEffects": "打开音效",
   "idleAutoStart": "“游览模式”在闲置时激活",
   "idleTimeout": "当闲置:",
