@@ -1,7 +1,7 @@
 package com.lifeglance.app.widget
 
+import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
@@ -9,6 +9,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -36,6 +38,10 @@ private val TEXT = Color(0xFFE8E0D0)
 private val AMBER = Color(0xFFC8A96E)
 private val MUTED = Color(0xFF8A8270)
 
+// Glance delivers ActionParameters to the launched activity as Intent extras keyed
+// by the parameter key's name, so MainActivity reads it as EXTRA_WIDGET_MILESTONE_ID.
+private val MILESTONE_KEY = ActionParameters.Key<String>(MainActivity.EXTRA_WIDGET_MILESTONE_ID)
+
 class NextMilestoneWidget : GlanceAppWidget() {
     // Two breakpoints: compact (countdown + title) and a taller layout that also
     // surfaces the most recently passed milestone.
@@ -62,7 +68,7 @@ class NextMilestoneWidget : GlanceAppWidget() {
                 .background(ColorProvider(BG))
                 .cornerRadius(16.dp)
                 .padding(16.dp)
-                .clickable(actionStartActivity(launchIntent(context, next?.id))),
+                .clickable(openAppAction(context, next?.id)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (next == null) {
@@ -106,12 +112,15 @@ class NextMilestoneWidget : GlanceAppWidget() {
         }
     }
 
-    // Opens the app, carrying the tapped milestone id so the web layer can focus it.
-    private fun launchIntent(context: Context, milestoneId: String?): Intent =
-        Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            if (milestoneId != null) putExtra(MainActivity.EXTRA_WIDGET_MILESTONE_ID, milestoneId)
-        }
+    // Opens the app, carrying the tapped milestone id (when present) so the web
+    // layer can focus it. The id rides along as an ActionParameter, which Glance
+    // surfaces to MainActivity as an Intent extra.
+    private fun openAppAction(context: Context, milestoneId: String?) =
+        actionStartActivity(
+            ComponentName(context, MainActivity::class.java),
+            if (milestoneId != null) actionParametersOf(MILESTONE_KEY to milestoneId)
+            else actionParametersOf(),
+        )
 }
 
 class NextMilestoneReceiver : GlanceAppWidgetReceiver() {

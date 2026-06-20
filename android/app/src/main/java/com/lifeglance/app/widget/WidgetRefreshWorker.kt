@@ -1,6 +1,9 @@
 package com.lifeglance.app.widget
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -18,13 +21,26 @@ class WidgetRefreshWorker(context: Context, params: WorkerParameters) :
     CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        NextMilestoneWidget().updateAll(applicationContext)
+        refreshWidgets(applicationContext)
         schedule(applicationContext)
         return Result.success()
     }
 
     companion object {
         private const val WORK_NAME = "lifeglance_widget_daily_refresh"
+
+        // Broadcast an update to all placed widgets, which makes GlanceAppWidgetReceiver
+        // recompose and re-read the snapshot (recomputing relative labels for the new day).
+        private fun refreshWidgets(context: Context) {
+            val mgr = AppWidgetManager.getInstance(context)
+            val ids = mgr.getAppWidgetIds(ComponentName(context, NextMilestoneReceiver::class.java))
+            if (ids.isEmpty()) return
+            val intent = Intent(context, NextMilestoneReceiver::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+            }
+            context.sendBroadcast(intent)
+        }
 
         // Enqueues a one-shot refresh for the next local midnight. KEEP avoids
         // piling up duplicates when called repeatedly (e.g. on every app start).
