@@ -6,7 +6,7 @@
   "serverUrlLabel": "服务器URL",
   "usernameLabel": "用户名",
   "appPasswordLabel": "APP专用密码",
-  "folderLabel": "同步文档夹",
+  "folderLabel": "同步文件夾",
   "encryptionLabel": "加密",
   "encryptSyncData": "加密同步数据",
   "encryptionAlreadyConfigured": "已设置加密。密码留空可保留现有密钥，或重新输入以重新验证此设备。",
