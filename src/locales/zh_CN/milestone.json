@@ -31,7 +31,7 @@
   "trackAsDayglanceNote": "将会在dayGLANCE中创建任务。Goals的状态更改及完成日期，将透过您的WebDAV events path同步回此处。",
   "addToChapters": "收录于章节:",
   "closeChapterLabel": "进行中的章节将于此日期关闭",
-  "addToTimeline": "落笔作念",
+  "addToTimeline": "存入時光",
   "recurrenceCount_one": "{{count}}回周期之约",
   "recurrenceCount_other": "{{count}}回周期之约",
   "deleteConfirm": "删除里程碑\"{{title}}\"?",
