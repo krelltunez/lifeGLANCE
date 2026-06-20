@@ -2,7 +2,7 @@
   "activityLogTitle": "活动日志",
   "refresh": "↻ 刷新",
   "clear": "清除",
-  "noActivity": "暂无活动。",
+  "noActivity": "暂无活动",
   "sent": "已发送",
   "received": "已接收",
   "logSent": "\"{{title}}\" 已发送至dayGLANCE",
