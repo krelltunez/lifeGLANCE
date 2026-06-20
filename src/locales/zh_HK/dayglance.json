@@ -2,7 +2,7 @@
   "activityLogTitle": "活動日誌",
   "refresh": "↻ 刷新",
   "clear": "清除",
-  "noActivity": "暫無活動.",
+  "noActivity": "暫無活動。",
   "sent": "已發送",
   "received": "已接收",
   "logSent": "\"{{title}}\" 已發送至dayGLANCE",
@@ -18,8 +18,8 @@
   "eventsPathDefault": "(預設: /GLANCE/events/)",
   "testing": "測試中…",
   "testConnection": "測試連接",
-  "connectionOk": "已連接 - Events path可存取.",
-  "directoryNotFound": "找不到Events path (404). 請先建立它: {{path}}",
+  "connectionOk": "已連接 - Events path可存取。",
+  "directoryNotFound": "找不到Events path (404)。請先建立它: {{path}}",
   "unexpectedResponse": "意外回應: {{status}} {{statusText}}",
   "connectionFailed": "連線失敗: {{message}}",
   "pollInterval": "輪詢間隔(分鐘)",
@@ -33,5 +33,5 @@
   "integrationNote": "lifeGLANCE及dayGLANCE必須指向相同的WebDAV endpoint及events path。標記為\" dayGLANCE Goal\"的里程碑將顯示為dayGLANCE里的Goals; Goal的完成狀態及日期更改將會同步回此處。",
   "toastGoalAdded": "已新增dayGLANCE Goal: \"{{title}}\"",
   "toastGoalCompleted": "已完成dayGLANCE Goal: \"{{title}}\"",
-  "toastGoalDeleted": "已刪除dayGLANCE Goal — \"{{title}}\"仍會保存於此處."
+  "toastGoalDeleted": "已刪除dayGLANCE Goal — \"{{title}}\"仍會保存於此處。"
 }
