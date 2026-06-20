@@ -15,7 +15,7 @@
   "username": "Username",
   "passwordToken": "Password / token",
   "eventsPath": "Events path",
-  "eventsPathDefault": "(缺省: /GLANCE/events/)",
+  "eventsPathDefault": "(预设: /GLANCE/events/)",
   "testing": "测试中…",
   "testConnection": "测试连接",
   "connectionOk": "已连接 - Events path可存取.",
