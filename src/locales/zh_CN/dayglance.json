@@ -22,7 +22,7 @@
   "directoryNotFound": "找不到Events path (404). 请先创建它: {{path}}",
   "unexpectedResponse": "意外回应: {{status}} {{statusText}}",
   "connectionFailed": "连接失败: {{message}}",
-  "pollInterval": "轮询间隔(分锺)",
+  "pollInterval": "轮询间隔分钟)",
   "encryptEvents": "encrypt intent events",
   "encryptionNote": "使用您的云端同步密码。设置一次；跨会话保持有效。",
   "enterPassphrase": "输入密码短语启动",
