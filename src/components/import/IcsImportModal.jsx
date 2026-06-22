@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 export default function IcsImportModal({ candidates, timedCount, categories, onImport, onClose }) {
-  const { t } = useTranslation('import')
+  const { t, i18n } = useTranslation('import')
   const { t: tc } = useTranslation('common')
 
   useEffect(() => {
@@ -83,7 +83,7 @@ export default function IcsImportModal({ candidates, timedCount, categories, onI
                         onChange={() => toggleRow(row.key)} />
                     </td>
                     <td className="ics-col-date">
-                      {row.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {row.date.toLocaleDateString(i18n.language, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
                     <td className="ics-col-title">
                       <span>{row.title}</span>

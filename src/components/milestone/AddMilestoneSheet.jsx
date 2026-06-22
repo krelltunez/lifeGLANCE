@@ -1,21 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DEFAULT_CATEGORIES } from '../../utils/colors'
-import { buildDateFromParts } from '../../utils/dates'
+import { buildDateFromParts, dateFieldOrder, monthNames } from '../../utils/dates'
 import { dbGetPhoto } from '../../data/db'
 import { getMilestoneVisibility } from '../../utils/visibility'
 import { isIntegrationEnabled } from '../../lib/intentsTransport.js'
 
-const MONTHS = [
-  { v: '1',  l: 'Jan' }, { v: '2',  l: 'Feb' }, { v: '3',  l: 'Mar' },
-  { v: '4',  l: 'Apr' }, { v: '5',  l: 'May' }, { v: '6',  l: 'Jun' },
-  { v: '7',  l: 'Jul' }, { v: '8',  l: 'Aug' }, { v: '9',  l: 'Sep' },
-  { v: '10', l: 'Oct' }, { v: '11', l: 'Nov' }, { v: '12', l: 'Dec' },
-]
-
 export default function AddMilestoneSheet({ onSave, onClose, existing, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() }, drilledChapter = null }) {
   const { t } = useTranslation('milestone')
   const { t: tc } = useTranslation('common')
+  const { i18n } = useTranslation()
+  const months = monthNames(i18n.language, 'short')
   const isEdit = !!existing
 
   const [title,      setTitle]      = useState(existing?.title     ?? '')
@@ -240,48 +235,58 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, categorie
         <div className="sheet-field">
           <label className="field-label">{tc('date')}</label>
           <div className="date-grid">
-            {precision !== 'year' && (
-              <div>
-                <label className="field-label">{tc('month')}</label>
-                <select
-                  className="input input-sm"
-                  value={month}
-                  onChange={e => setMonth(e.target.value)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {MONTHS.map(m => (
-                    <option key={m.v} value={m.v}>{m.l}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {precision === 'day' && (
-              <div>
-                <label className="field-label">{tc('day')}</label>
-                <input
-                  className="input input-sm"
-                  type="number"
-                  placeholder="15"
-                  value={day}
-                  onChange={e => setDay(e.target.value)}
-                  min="1" max="31"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="field-label">{tc('year')}</label>
-              <input
-                className="input input-sm"
-                type="number"
-                placeholder="2020"
-                value={year}
-                onChange={e => setYear(e.target.value)}
-                min="1900"
-                max="2100"
-              />
-            </div>
+            {(() => {
+              const fields = {
+                month: (
+                  <div key="month">
+                    <label className="field-label">{tc('month')}</label>
+                    <select
+                      className="input input-sm"
+                      value={month}
+                      onChange={e => setMonth(e.target.value)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {months.map((m, i) => (
+                        <option key={i + 1} value={i + 1}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                ),
+                day: (
+                  <div key="day">
+                    <label className="field-label">{tc('day')}</label>
+                    <input
+                      className="input input-sm"
+                      type="number"
+                      placeholder="15"
+                      value={day}
+                      onChange={e => setDay(e.target.value)}
+                      min="1" max="31"
+                    />
+                  </div>
+                ),
+                year: (
+                  <div key="year">
+                    <label className="field-label">{tc('year')}</label>
+                    <input
+                      className="input input-sm"
+                      type="number"
+                      placeholder="2020"
+                      value={year}
+                      onChange={e => setYear(e.target.value)}
+                      min="1900"
+                      max="2100"
+                    />
+                  </div>
+                ),
+              }
+              const visible = precision === 'year'  ? ['year']
+                            : precision === 'month' ? ['month', 'year']
+                            : ['month', 'day', 'year']
+              return dateFieldOrder(i18n.language)
+                .filter(f => visible.includes(f))
+                .map(f => fields[f])
+            })()}
           </div>
 
           {/* Precision toggle */}

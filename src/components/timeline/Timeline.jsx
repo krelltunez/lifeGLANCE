@@ -70,7 +70,7 @@ const Timeline = forwardRef(function Timeline(
   { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, highlightScale = 1.06, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
   ref
 ) {
-  const { t } = useTranslation('timeline')
+  const { t, i18n } = useTranslation('timeline')
   const remPx = REM_PX[textSize] || 22
 
   const CARD_W      = Math.round(remPx * 7.8)
@@ -222,7 +222,7 @@ const Timeline = forwardRef(function Timeline(
   const today    = new Date()
   const centerMs = today.getTime() + panMs
   const { startMs, endMs } = getTimeRangeForView(zoom, centerMs, viewMode, customHalfMs)
-  const ticks    = getTickMarks(zoom, startMs, endMs, w)
+  const ticks    = getTickMarks(zoom, startMs, endMs, w, i18n.language)
   const todayX   = dateToX(today.getTime(), startMs, endMs, w)
   const msPerPx  = getMsPerPx(zoom, w, customHalfMs)
   const daysPerPx = msPerPx / 86400000
@@ -491,8 +491,8 @@ const Timeline = forwardRef(function Timeline(
 
         {/* ── Today marker ────────────────────────────────────────────────── */}
         {todayX > -10 && todayX < w + 10 && (() => {
-          const tDay     = today.toLocaleDateString('en-US', { weekday: 'long'  }).toLowerCase()
-          const tDate    = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toLowerCase()
+          const tDay     = new Intl.DateTimeFormat(i18n.language, { weekday: 'long' }).format(today).toLowerCase()
+          const tDate    = new Intl.DateTimeFormat(i18n.language, { month: 'long', day: 'numeric' }).format(today).toLowerCase()
           const tYear    = today.getFullYear()
           const centered = Math.abs(panMs) < 1
           const todayLocalDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`

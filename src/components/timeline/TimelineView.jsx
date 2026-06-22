@@ -61,7 +61,7 @@ const IDLE_TIMEOUT_OPTIONS = [
 ]
 
 export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync }) {
-  const { t } = useTranslation('timeline')
+  const { t, i18n } = useTranslation('timeline')
   const { t: tdg } = useTranslation('dayglance')
   const { t: tc } = useTranslation('common')
   const { t: ts } = useTranslation('sync')
@@ -1339,7 +1339,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const drillHighlighted = highlightedIds
 
   function fmtChapterDate(iso) {
-    return new Date(iso).toLocaleString('default', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+    return new Date(iso).toLocaleString(i18n.language, { month: 'short', year: 'numeric', timeZone: 'UTC' })
   }
 
   // ── Idle / "watch" mode ───────────────────────────────────────────────────────

@@ -31,7 +31,7 @@ function ExternalLinkIcon() {
 }
 
 export default function HelpModal({ onClose, onOpenShortcuts }) {
-  const { t } = useTranslation('help')
+  const { t, i18n } = useTranslation('help')
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -45,8 +45,8 @@ export default function HelpModal({ onClose, onOpenShortcuts }) {
   // Build timestamp injected by Vite (see vite.config.js). Falls back to now if
   // the constant isn't defined (e.g. outside a Vite build).
   const built = new Date(typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : Date.now())
-  const dateStr = built.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
-  const timeStr = built.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  const dateStr = built.toLocaleDateString(i18n.language, { year: 'numeric', month: 'long', day: 'numeric' })
+  const timeStr = built.toLocaleTimeString(i18n.language, { hour: 'numeric', minute: '2-digit' })
 
   return (
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>

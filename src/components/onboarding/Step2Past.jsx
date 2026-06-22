@@ -1,16 +1,13 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import TypewriterText from '../ui/TypewriterText'
-import { buildDateFromParts } from '../../utils/dates'
-
-const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
-]
+import { buildDateFromParts, dateFieldOrder, monthNames } from '../../utils/dates'
 
 export default function Step2Past({ onSubmit }) {
   const { t } = useTranslation('onboarding')
   const { t: tc } = useTranslation('common')
+  const { i18n } = useTranslation()
+  const months = monthNames(i18n.language, 'long')
 
   const [promptDone, setPromptDone] = useState(false)
   const [title, setTitle]   = useState('')
@@ -88,31 +85,42 @@ export default function Step2Past({ onSubmit }) {
         </div>
 
         <div className="field-row">
-          <div style={{ flex: 2 }}>
-            <label className="field-label">{tc('month')}</label>
-            <select
-              className="input"
-              value={month}
-              onChange={e => setMonth(e.target.value)}
-              style={{ cursor: 'pointer' }}
-            >
-              {MONTHS.map((m, i) => (
-                <option key={m} value={i + 1}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label className="field-label">{tc('year')}</label>
-            <input
-              className="input"
-              type="number"
-              placeholder="2015"
-              value={year}
-              onChange={e => setYear(e.target.value)}
-              min="1900"
-              max={new Date().getFullYear()}
-            />
-          </div>
+          {(() => {
+            const fields = {
+              month: (
+                <div key="month" style={{ flex: 2 }}>
+                  <label className="field-label">{tc('month')}</label>
+                  <select
+                    className="input"
+                    value={month}
+                    onChange={e => setMonth(e.target.value)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {months.map((m, i) => (
+                      <option key={i + 1} value={i + 1}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+              ),
+              year: (
+                <div key="year" style={{ flex: 1 }}>
+                  <label className="field-label">{tc('year')}</label>
+                  <input
+                    className="input"
+                    type="number"
+                    placeholder="2015"
+                    value={year}
+                    onChange={e => setYear(e.target.value)}
+                    min="1900"
+                    max={new Date().getFullYear()}
+                  />
+                </div>
+              ),
+            }
+            return dateFieldOrder(i18n.language)
+              .filter(f => f === 'month' || f === 'year')
+              .map(f => fields[f])
+          })()}
         </div>
 
         <div className="onboarding-helper">{t('approximateIsFine')}</div>

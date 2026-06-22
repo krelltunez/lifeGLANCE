@@ -52,8 +52,9 @@ function autoStyle(startMs, endMs) {
   return 'weeks'
 }
 
-// Generate tick marks for the current view
-export function getTickMarks(zoom, startMs, endMs, width) {
+// Generate tick marks for the current view. `locale` (BCP-47) localizes the
+// short month labels; callers pass the app's selected language.
+export function getTickMarks(zoom, startMs, endMs, width, locale) {
   // 'custom' auto-selects its visual style; '30yr' uses the same style as 'decades'
   const style = zoom === 'custom' ? autoStyle(startMs, endMs)
               : zoom === '30yr'   ? 'decades'
@@ -85,7 +86,7 @@ export function getTickMarks(zoom, startMs, endMs, width) {
         const major = d.getMonth() === 0
         const label = major
           ? String(d.getFullYear())
-          : d.toLocaleString('default', { month: 'short' })
+          : d.toLocaleString(locale, { month: 'short' })
         ticks.push({ x, label, major })
       }
       d = new Date(d.getFullYear(), d.getMonth() + 1, 1)
@@ -98,7 +99,7 @@ export function getTickMarks(zoom, startMs, endMs, width) {
       if (x >= -2 && x <= width + 2) {
         const isFirst = d.getDate() <= 7
         const label = isFirst
-          ? d.toLocaleString('default', { month: 'short', year: 'numeric' })
+          ? d.toLocaleString(locale, { month: 'short', year: 'numeric' })
           : ''
         ticks.push({ x, label, major: isFirst })
       }

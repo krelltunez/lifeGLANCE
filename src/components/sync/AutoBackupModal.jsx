@@ -218,7 +218,7 @@ function SettingsTab({ onClose }) {
 }
 
 function HistoryTab() {
-  const { t } = useTranslation('sync')
+  const { t, i18n } = useTranslation('sync')
   const { t: tc } = useTranslation('common')
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
@@ -257,7 +257,7 @@ function HistoryTab() {
           fontSize: '0.82rem',
         }}>
           <span style={{ opacity: 0.7 }}>{r.frequency ?? 'backup'}</span>
-          <span>{new Date(r.timestamp).toLocaleString()}</span>
+          <span>{new Date(r.timestamp).toLocaleString(i18n.language)}</span>
         </div>
       ))}
     </div>

@@ -2,10 +2,10 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { loadActivityLog, clearActivityLog } from '../../lib/intentsActivityLog.js'
 
-function formatTs(iso) {
+function formatTs(iso, locale) {
   if (!iso) return ''
   const d = new Date(iso)
-  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  return d.toLocaleString(locale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 function entryLabel(entry, t) {
@@ -18,7 +18,7 @@ function entryLabel(entry, t) {
 }
 
 export default function ActivityLogModal({ onClose }) {
-  const { t } = useTranslation('dayglance')
+  const { t, i18n } = useTranslation('dayglance')
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -68,7 +68,7 @@ export default function ActivityLogModal({ onClose }) {
                 fontSize: '0.82rem',
               }}>
                 <span style={{ color: 'var(--text-dim)', minWidth: '8rem', fontSize: '0.75rem' }}>
-                  {formatTs(e.timestamp)}
+                  {formatTs(e.timestamp, i18n.language)}
                 </span>
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em',
