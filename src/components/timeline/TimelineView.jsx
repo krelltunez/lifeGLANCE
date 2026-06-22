@@ -1199,6 +1199,37 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     URL.revokeObjectURL(url)
   }
 
+  // Categories changed in Settings (add / rename / recolor / delete). The list
+  // itself is already persisted by Settings; here we re-sync the colour cached on
+  // each milestone so an in-place recolour shows on the timeline immediately and
+  // survives reload. Milestone colour always tracks its category (no per-milestone
+  // colour), so this is safe.
+  async function handleCategoriesChange(updated) {
+    setCategories(updated)
+    const colorById = Object.fromEntries(updated.map(c => [c.id, c.color]))
+    const now = new Date().toISOString()
+    const changed = []
+    const next = milestones.map(m => {
+      const color = colorById[m.category]
+      if (color && color !== m.color) {
+        const nm = { ...m, color, updated_at: now }
+        changed.push(nm)
+        return nm
+      }
+      return m
+    })
+    if (changed.length === 0) return
+    setMilestones(next)
+    // Keep undo-history snapshots colour-consistent so an undo can't resurrect
+    // the old colour.
+    const h = historyRef.current
+    h.stack = h.stack.map(snap => snap.map(m => {
+      const color = colorById[m.category]
+      return color && color !== m.color ? { ...m, color } : m
+    }))
+    for (const m of changed) await dbPut(m)
+  }
+
   async function handleImportIcsFile(file) {
     try {
       const text = await file.text()
@@ -1944,7 +1975,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         <SettingsModal
           textSize={textSize}       onTextSizeChange={setTextSize}
           ultraCompact={ultraCompact}
-          categories={categories}   onCategoriesChange={setCategories}
+          categories={categories}   onCategoriesChange={handleCategoriesChange}
           clustering={clustering}   onClusteringChange={v => {
             setClustering(v)
             localStorage.setItem('lifeglance-clustering', String(v))

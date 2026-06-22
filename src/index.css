@@ -1758,6 +1758,20 @@ button, input, select, textarea {
 .settings-cat-del:hover:not(:disabled) { color: var(--amber); }
 .settings-cat-del:disabled { opacity: 0.2; cursor: default; }
 
+.settings-cat-edit {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.settings-cat-edit:hover { color: var(--amber); }
+
+.settings-cat-edit-block { padding: 0.25rem 0; }
+
 .settings-cat-add { display: flex; flex-direction: column; gap: 0.4rem; }
 
 .settings-cat-add-row {

@@ -37,6 +37,9 @@ export default function SettingsModal({
   const { t: tc } = useTranslation('common')
   const [newLabel,   setNewLabel]   = useState('')
   const [newColor,   setNewColor]   = useState(COLOR_PALETTE[0])
+  const [editingId,  setEditingId]  = useState(null)
+  const [editLabel,  setEditLabel]  = useState('')
+  const [editColor,  setEditColor]  = useState(COLOR_PALETTE[0])
   const [soundOn,    setSoundOn]    = useState(() => !isMuted())
   const [theme,      setThemeState] = useState(getTheme)
   const [persisted,  setPersisted]  = useState(null)
@@ -77,6 +80,25 @@ export default function SettingsModal({
     const updated = categories.filter(c => c.id !== id)
     saveCategories(updated)
     onCategoriesChange(updated)
+  }
+
+  function startEdit(cat) {
+    setEditingId(cat.id)
+    setEditLabel(cat.label)
+    setEditColor(cat.color)
+  }
+
+  function saveEdit() {
+    const label = editLabel.trim()
+    if (!label) return
+    // Categories are referenced by id, so renaming/recoloring updates every
+    // milestone automatically — no need to re-categorize.
+    const updated = categories.map(c =>
+      c.id === editingId ? { ...c, label: label.toLowerCase(), color: editColor } : c
+    )
+    saveCategories(updated)
+    onCategoriesChange(updated)
+    setEditingId(null)
   }
 
   async function handleFileChange(e) {
@@ -173,11 +195,54 @@ export default function SettingsModal({
           <div className="settings-cat-list">
             {categories.map(cat => {
               const inUse = usedIds.has(cat.id)
+              if (editingId === cat.id) {
+                return (
+                  <div key={cat.id} className="settings-cat-add settings-cat-edit-block">
+                    <div className="settings-cat-add-row">
+                      <input
+                        className="input input-sm"
+                        value={editLabel}
+                        onChange={e => setEditLabel(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveEdit() }}
+                        maxLength={30}
+                        autoFocus
+                        style={{ flex: 1, minWidth: 0 }}
+                      />
+                      <button
+                        className="btn btn-filled"
+                        style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', flexShrink: 0 }}
+                        disabled={!editLabel.trim()}
+                        onClick={saveEdit}
+                      >{tc('save')}</button>
+                      <button
+                        className="btn"
+                        style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', flexShrink: 0 }}
+                        onClick={() => setEditingId(null)}
+                      >{tc('cancel')}</button>
+                    </div>
+                    <div className="settings-palette">
+                      {COLOR_PALETTE.map(c => (
+                        <button
+                          key={c}
+                          className={`settings-swatch ${editColor === c ? 'selected' : ''}`}
+                          style={{ background: c }}
+                          onClick={() => setEditColor(c)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
               return (
                 <div key={cat.id} className="settings-cat-row">
                   <div className="settings-cat-dot" style={{ background: cat.color }} />
                   <span className="settings-cat-name">{cat.label}</span>
                   {inUse && <span className="settings-cat-inuse">{t('categoryInUse')}</span>}
+                  <button
+                    className="settings-cat-edit"
+                    title={tc('edit')}
+                    onClick={() => startEdit(cat)}
+                  >✎</button>
                   <button
                     className="settings-cat-del"
                     disabled={inUse}
