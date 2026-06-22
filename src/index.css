@@ -1633,9 +1633,11 @@ button, input, select, textarea {
   font-size: 0.9rem;
   line-height: 1.45;
   text-align: center;
-  /* Clamp long notes so they don't dominate the screen. */
+  white-space: pre-wrap;     /* preserve the note's own line breaks and wrap long lines */
+  overflow-wrap: anywhere;   /* break very long unbroken words / URLs */
+  /* Clamp very long notes so they don't dominate the screen. */
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 6;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

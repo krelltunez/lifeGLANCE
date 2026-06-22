@@ -1890,7 +1890,6 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                     {chapter.title}
                   </div>
                 )}
-                {ev.note && <div className="idle-caption-note">{ev.note}</div>}
                 <div className="idle-caption-meta">
                   {age != null && (
                     <span>{t(isPastEv ? 'idleAgeWas' : 'idleAgeWillBe', { age })}</span>
@@ -1898,6 +1897,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                   {age != null && <span className="idle-meta-sep">·</span>}
                   <span>{relativeLabel(ev.date, ev.date_precision)}</span>
                 </div>
+                {ev.note && <div className="idle-caption-note">{ev.note}</div>}
               </div>
             )
           })()}
