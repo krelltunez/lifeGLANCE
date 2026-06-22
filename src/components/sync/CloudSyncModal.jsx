@@ -55,7 +55,7 @@ function SyncDot({ syncStatus, syncError, syncHalted }) {
 }
 
 export default function CloudSyncModal({ syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onClose }) {
-  const { t } = useTranslation('sync')
+  const { t, i18n } = useTranslation('sync')
   const { t: tc } = useTranslation('common')
   const engine = getSyncEngine()
   const existingConfig = engine?.getConfig() ?? null
@@ -359,7 +359,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
         {/* Last synced */}
         {lastSynced && (
           <p className="settings-note" style={{ marginBottom: '0.75rem' }}>
-            {t('lastSynced')} {new Date(lastSynced).toLocaleString()}
+            {t('lastSynced')} {new Date(lastSynced).toLocaleString(i18n.language)}
           </p>
         )}
 

@@ -6,6 +6,9 @@ import { THEMES, getTheme, setTheme } from '../../utils/theme'
 import IntegrationSettings from '../dayglance/IntegrationSettings'
 
 const TEXT_SIZES_ALL = ['small', 'normal', 'big', 'bigger']
+const TEXT_SIZE_LABELS = {
+  small: 'textSizeSmall', normal: 'textSizeNormal', big: 'textSizeBig', bigger: 'textSizeBigger',
+}
 
 const COLOR_PALETTE = [
   'var(--purple)', 'var(--cat-violet)', 'var(--cat-indigo)', 'var(--indigo)',
@@ -132,7 +135,7 @@ export default function SettingsModal({
               {TEXT_SIZES_ALL.map(s => (
                 <button key={s}
                   className={`zoom-tab ${textSize === s ? 'active' : ''}`}
-                  onClick={() => onTextSizeChange(s)}>{s}</button>
+                  onClick={() => onTextSizeChange(s)}>{t(TEXT_SIZE_LABELS[s])}</button>
               ))}
             </div>
           )}
@@ -178,7 +181,7 @@ export default function SettingsModal({
                     {idleTimeoutOptions.map(opt => (
                       <button key={opt.ms}
                         className={`zoom-tab ${idleTimeoutMs === opt.ms ? 'active' : ''}`}
-                        onClick={() => onIdleTimeoutChange(opt.ms)}>{opt.label}</button>
+                        onClick={() => onIdleTimeoutChange(opt.ms)}>{tc('minutesShort', { m: opt.ms / 60000 })}</button>
                     ))}
                   </div>
                 </div>

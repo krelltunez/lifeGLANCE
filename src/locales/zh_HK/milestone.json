@@ -41,5 +41,9 @@
   "trackedInDayglance": "已在dayGLANCE中追蹤",
   "completedInDayglance": "已完成於dayGLANCE",
   "photoSyncedFromDevice": "📷 照片附件已儲存在源設備上",
-  "mediaSyncedFromDevice": "🎬 音訊/視訊附件已儲存在源設備上"
+  "mediaSyncedFromDevice": "🎬 音訊/視訊附件已儲存在源設備上",
+  "visTabInherit": "繼承",
+  "visTabShown": "顯示",
+  "visTabHidden": "隱藏",
+  "ageYearsOld": "{{age}} 歲"
 }

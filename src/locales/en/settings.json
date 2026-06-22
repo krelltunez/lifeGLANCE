@@ -30,5 +30,9 @@
   "persistButton": "allow persistent storage",
   "icsNote": ".ics import supports all-day events only. Timed events are skipped — the import dialog shows a count of how many were omitted.",
   "activityLog": "activity log",
-  "activityLogNote": "press <kbd>L</kbd> to open at any time"
+  "activityLogNote": "press <kbd>L</kbd> to open at any time",
+  "textSizeSmall": "small",
+  "textSizeNormal": "normal",
+  "textSizeBig": "big",
+  "textSizeBigger": "bigger"
 }

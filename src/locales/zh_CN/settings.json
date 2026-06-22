@@ -30,5 +30,9 @@
   "persistButton": "启用持久性保存",
   "icsNote": "导入.ics档案仅支持全天事件。定时事件将被跳过－导入对话框将显示已跳过事件数量。",
   "activityLog": "活动日志",
-  "activityLogNote": "按下<kbd>L</kbd>开启"
+  "activityLogNote": "按下<kbd>L</kbd>开启",
+  "textSizeSmall": "小",
+  "textSizeNormal": "正常",
+  "textSizeBig": "大",
+  "textSizeBigger": "更大"
 }

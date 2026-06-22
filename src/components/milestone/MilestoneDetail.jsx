@@ -4,7 +4,7 @@ import { formatDateDisplay, relativeLabel, ageAtDate } from '../../utils/dates'
 import { dbGetMedia, dbGetPhoto } from '../../data/db'
 
 export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, categories = [] }) {
-  const { t } = useTranslation('milestone')
+  const { t, i18n } = useTranslation('milestone')
   const { t: tc } = useTranslation('common')
   const [audioUrl,  setAudioUrl]  = useState(null)
   const [photoUrl,  setPhotoUrl]  = useState(null)
@@ -68,7 +68,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
         {/* Meta */}
         <div className="detail-meta">
           <div className="detail-date-raw">
-            {formatDateDisplay(m.date, m.date_precision)}
+            {formatDateDisplay(m.date, m.date_precision, i18n.language)}
           </div>
           <div className="detail-relative">
             {relativeLabel(m.date, m.date_precision)}
@@ -76,7 +76,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
           {(() => {
             const age = birthday ? ageAtDate(birthday, m.date) : null
             return age !== null ? (
-              <div className="detail-age">{age} y.o.</div>
+              <div className="detail-age">{t('ageYearsOld', { age })}</div>
             ) : null
           })()}
         </div>
@@ -103,7 +103,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
             <span className="detail-dg-icon">✓</span> {t('completedInDayglance')}
             {m.dayglance_completed_at && (
               <span className="detail-dg-when">
-                {' '}· {new Date(m.dayglance_completed_at).toLocaleDateString()}
+                {' '}· {new Date(m.dayglance_completed_at).toLocaleDateString(i18n.language)}
               </span>
             )}
           </div>

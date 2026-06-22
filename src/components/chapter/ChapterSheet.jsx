@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
-import { buildDateFromParts } from '../../utils/dates'
+import { buildDateFromParts, dateFieldOrder, monthNames } from '../../utils/dates'
 
 const CHAPTER_COLORS = [
   { hex: 'var(--amber)', label: 'amber'   },
@@ -15,20 +15,16 @@ const CHAPTER_COLORS = [
   { hex: 'var(--cat-red)', label: 'red'     },
 ]
 
-const MONTHS = [
-  { v: '1',  l: 'Jan' }, { v: '2',  l: 'Feb' }, { v: '3',  l: 'Mar' },
-  { v: '4',  l: 'Apr' }, { v: '5',  l: 'May' }, { v: '6',  l: 'Jun' },
-  { v: '7',  l: 'Jul' }, { v: '8',  l: 'Aug' }, { v: '9',  l: 'Sep' },
-  { v: '10', l: 'Oct' }, { v: '11', l: 'Nov' }, { v: '12', l: 'Dec' },
-]
-
-function fmtDate(m) {
+// Compact, locale-aware date for the member list (short month names to keep
+// rows narrow). Year precision shows only the year.
+function fmtDate(m, locale) {
   const d = new Date(m.date)
   if (m.date_precision === 'year')
     return String(d.getUTCFullYear())
-  if (m.date_precision === 'month')
-    return d.toLocaleString('default', { month: 'short', year: 'numeric', timeZone: 'UTC' })
-  return d.toLocaleString('default', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+  const opts = m.date_precision === 'month'
+    ? { month: 'short', year: 'numeric', timeZone: 'UTC' }
+    : { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }
+  return new Intl.DateTimeFormat(locale, opts).format(d)
 }
 
 function parseIso(iso) {
@@ -44,7 +40,62 @@ function parseIso(iso) {
 export default function ChapterSheet({ onSave, onClose, onDelete, existing, milestones = [] }) {
   const { t } = useTranslation('chapter')
   const { t: tc } = useTranslation('common')
+  const { i18n } = useTranslation()
+  const months = monthNames(i18n.language, 'short')
   const isEdit = !!existing
+
+  // Renders the month/day/year inputs for a date grid in the locale's field
+  // order, showing only the fields relevant to the given precision.
+  function renderDateGrid(precision, monthVal, dayVal, yearVal, setMonthFn, setDayFn, setYearFn, yearPlaceholder) {
+    const onWrap = setter => e => { setter(e.target.value); clearDateError() }
+    const fields = {
+      month: (
+        <div key="month">
+          <label className="field-label">{tc('month')}</label>
+          <select
+            className="input input-sm"
+            value={monthVal}
+            onChange={onWrap(setMonthFn)}
+            style={{ cursor: 'pointer' }}
+          >
+            {months.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+          </select>
+        </div>
+      ),
+      day: (
+        <div key="day">
+          <label className="field-label">{tc('day')}</label>
+          <input
+            className="input input-sm"
+            type="number"
+            placeholder="15"
+            value={dayVal}
+            onChange={onWrap(setDayFn)}
+            min="1" max="31"
+          />
+        </div>
+      ),
+      year: (
+        <div key="year">
+          <label className="field-label">{tc('year')}</label>
+          <input
+            className="input input-sm"
+            type="number"
+            placeholder={yearPlaceholder}
+            value={yearVal}
+            onChange={onWrap(setYearFn)}
+            min="1900" max="2100"
+          />
+        </div>
+      ),
+    }
+    const visible = precision === 'year'  ? ['year']
+                  : precision === 'month' ? ['month', 'year']
+                  : ['month', 'day', 'year']
+    return dateFieldOrder(i18n.language)
+      .filter(f => visible.includes(f))
+      .map(f => fields[f])
+  }
 
   const initStart = parseIso(existing?.start)
   const initEnd   = parseIso(existing?.end)
@@ -211,43 +262,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
           {/* Start date */}
           <label className="field-label" style={{ marginTop: '0.5rem' }}>{t('from')}</label>
           <div className="date-grid">
-            {startPrecision !== 'year' && (
-              <div>
-                <label className="field-label">{tc('month')}</label>
-                <select
-                  className="input input-sm"
-                  value={startMonth}
-                  onChange={e => { setStartMonth(e.target.value); clearDateError() }}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {MONTHS.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
-                </select>
-              </div>
-            )}
-            {startPrecision === 'day' && (
-              <div>
-                <label className="field-label">{tc('day')}</label>
-                <input
-                  className="input input-sm"
-                  type="number"
-                  placeholder="15"
-                  value={startDay}
-                  onChange={e => { setStartDay(e.target.value); clearDateError() }}
-                  min="1" max="31"
-                />
-              </div>
-            )}
-            <div>
-              <label className="field-label">{tc('year')}</label>
-              <input
-                className="input input-sm"
-                type="number"
-                placeholder="2020"
-                value={startYear}
-                onChange={e => { setStartYear(e.target.value); clearDateError() }}
-                min="1900" max="2100"
-              />
-            </div>
+            {renderDateGrid(startPrecision, startMonth, startDay, startYear, setStartMonth, setStartDay, setStartYear, '2020')}
           </div>
           <div className="precision-tabs">
             {['day', 'month', 'year'].map(p => (
@@ -272,43 +287,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
           {!ongoing && (
             <>
               <div className="date-grid">
-                {endPrecision !== 'year' && (
-                  <div>
-                    <label className="field-label">{tc('month')}</label>
-                    <select
-                      className="input input-sm"
-                      value={endMonth}
-                      onChange={e => { setEndMonth(e.target.value); clearDateError() }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {MONTHS.map(m => <option key={m.v} value={m.v}>{m.l}</option>)}
-                    </select>
-                  </div>
-                )}
-                {endPrecision === 'day' && (
-                  <div>
-                    <label className="field-label">{tc('day')}</label>
-                    <input
-                      className="input input-sm"
-                      type="number"
-                      placeholder="15"
-                      value={endDay}
-                      onChange={e => { setEndDay(e.target.value); clearDateError() }}
-                      min="1" max="31"
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="field-label">{tc('year')}</label>
-                  <input
-                    className="input input-sm"
-                    type="number"
-                    placeholder="2024"
-                    value={endYear}
-                    onChange={e => { setEndYear(e.target.value); clearDateError() }}
-                    min="1900" max="2100"
-                  />
-                </div>
+                {renderDateGrid(endPrecision, endMonth, endDay, endYear, setEndMonth, setEndDay, setEndYear, '2024')}
               </div>
               <div className="precision-tabs">
                 {['day', 'month', 'year'].map(p => (
@@ -420,7 +399,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
                         title={isEndpoint ? t('endpointTooltip') : t('endpointDimTooltip')}
                       >⚓</span>
                     )}
-                    <span className="chapter-member-date">{fmtDate(m)}</span>
+                    <span className="chapter-member-date">{fmtDate(m, i18n.language)}</span>
                   </label>
                 )
               })}

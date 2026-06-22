@@ -41,5 +41,9 @@
   "trackedInDayglance": "seguido en dayGLANCE",
   "completedInDayglance": "completado en dayGLANCE",
   "photoSyncedFromDevice": "📷 Foto almacenada en el dispositivo de origen",
-  "mediaSyncedFromDevice": "🎬 Audio/vídeo almacenado en el dispositivo de origen"
+  "mediaSyncedFromDevice": "🎬 Audio/vídeo almacenado en el dispositivo de origen",
+  "visTabInherit": "heredar",
+  "visTabShown": "visible",
+  "visTabHidden": "oculto",
+  "ageYearsOld": "{{age}} años"
 }

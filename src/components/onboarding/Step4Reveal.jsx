@@ -31,26 +31,38 @@ export default function Step4Reveal({ onComplete, pastMilestone, futureMilestone
     if (phase === 'row2') setTimeout(() => setPhase('cta'), 1400)
   }, [phase])
 
+  // Renders a relative-time phrase from the shared `common` keys, mapping the
+  // <0/> / <1/> number slots to the externally-animated count-up values. `Lit`
+  // ignores the interpolated children and renders its own animating value.
+  const Lit = ({ value }) => <>{value}</>
+  const relPhrase = (key, finalCount, comps, months = 0) => (
+    <Trans
+      i18nKey={key}
+      ns="common"
+      count={finalCount}
+      values={{ count: finalCount, months }}
+      components={comps}
+    />
+  )
+
   const formatFutureTime = () => {
     if (!futureInfo) return '—'
     if (futureInfo.years > 0) {
-      const yr = `${futureYears} yr${futureInfo.years !== 1 ? 's' : ''}`
       return futureInfo.months > 0
-        ? `in ${yr}, ${futureMonths} mo`
-        : `in ${yr}`
+        ? relPhrase('relFutureYrMo', futureInfo.years, [<Lit value={futureYears} />, <Lit value={futureMonths} />], futureInfo.months)
+        : relPhrase('relFutureYr', futureInfo.years, [<Lit value={futureYears} />])
     }
-    return `in ${futureDays} day${futureInfo.days !== 1 ? 's' : ''}`
+    return relPhrase('relFutureDay', futureInfo.days, [<Lit value={futureDays} />])
   }
 
   const formatPastTime = () => {
     if (!pastInfo) return '—'
     if (pastInfo.years > 0) {
-      const yr = `${pastYears} yr${pastInfo.years !== 1 ? 's' : ''}`
       return pastInfo.months > 0
-        ? `${yr}, ${pastMonths} mo ago`
-        : `${yr} ago`
+        ? relPhrase('relPastYrMo', pastInfo.years, [<Lit value={pastYears} />, <Lit value={pastMonths} />], pastInfo.months)
+        : relPhrase('relPastYr', pastInfo.years, [<Lit value={pastYears} />])
     }
-    return `${pastInfo.days} days ago`
+    return relPhrase('relPastDay', pastInfo.days, [<Lit value={pastInfo.days} />])
   }
 
   return (

@@ -30,5 +30,9 @@
   "persistButton": "啟用持久性儲存",
   "icsNote": "導入.ics檔案僅支援全天事件。定時事件將被跳過－導入對話框將顯示已跳過事件數量。",
   "activityLog": "活動日誌",
-  "activityLogNote": "按下<kbd>L</kbd>開啟"
+  "activityLogNote": "按下<kbd>L</kbd>開啟",
+  "textSizeSmall": "小",
+  "textSizeNormal": "正常",
+  "textSizeBig": "大",
+  "textSizeBigger": "更大"
 }

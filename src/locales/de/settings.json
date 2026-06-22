@@ -27,5 +27,9 @@
   "persistButton": "persistente Speicherung erlauben",
   "icsNote": ".ics-Import unterstützt nur ganztägige Ereignisse. Zeitgestempelte Ereignisse werden übersprungen — der Import-Dialog zeigt die Anzahl der ausgelassenen Einträge an.",
   "activityLog": "Aktivitätsprotokoll",
-  "activityLogNote": "drücke <kbd>L</kbd>, um es jederzeit zu öffnen"
+  "activityLogNote": "drücke <kbd>L</kbd>, um es jederzeit zu öffnen",
+  "textSizeSmall": "klein",
+  "textSizeNormal": "normal",
+  "textSizeBig": "groß",
+  "textSizeBigger": "größer"
 }

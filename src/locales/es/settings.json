@@ -27,5 +27,9 @@
   "persistButton": "permitir almacenamiento persistente",
   "icsNote": "La importación .ics solo admite eventos de día completo. Los eventos con marca de tiempo se omiten — el cuadro de diálogo de importación indica el número de elementos omitidos.",
   "activityLog": "registro de actividad",
-  "activityLogNote": "pulsa <kbd>L</kbd> para abrirlo en cualquier momento"
+  "activityLogNote": "pulsa <kbd>L</kbd> para abrirlo en cualquier momento",
+  "textSizeSmall": "pequeño",
+  "textSizeNormal": "normal",
+  "textSizeBig": "grande",
+  "textSizeBigger": "más grande"
 }

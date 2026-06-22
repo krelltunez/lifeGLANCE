@@ -27,5 +27,9 @@
   "persistButton": "consenti archiviazione persistente",
   "icsNote": "L'importazione .ics supporta solo gli eventi dell'intera giornata. Gli eventi con timestamp vengono ignorati — la finestra di importazione indica il numero di elementi omessi.",
   "activityLog": "registro attività",
-  "activityLogNote": "premi <kbd>L</kbd> per aprirlo in qualsiasi momento"
+  "activityLogNote": "premi <kbd>L</kbd> per aprirlo in qualsiasi momento",
+  "textSizeSmall": "piccolo",
+  "textSizeNormal": "normale",
+  "textSizeBig": "grande",
+  "textSizeBigger": "più grande"
 }

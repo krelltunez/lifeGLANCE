@@ -2,9 +2,16 @@ import {
   differenceInYears,
   differenceInMonths,
   differenceInDays,
-  format,
   isPast,
 } from 'date-fns'
+import i18n from '../i18n'
+
+// Resolve the locale to use for Intl formatting. Callers may pass an explicit
+// BCP-47 locale; otherwise we follow the APP's selected language (not the
+// browser's), falling back to English.
+function resolveLocale(locale) {
+  return locale || i18n.language || 'en'
+}
 
 // Returns the age (in whole years) at a given date, or null if birthday not set
 // or the target date precedes the birthday.
@@ -25,37 +32,64 @@ function toLocalNoon(dateStr) {
   return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0)
 }
 
-export function relativeLabel(dateStr, precision = 'day') {
+// Describes the relative distance from now to `dateStr` as a translation key
+// plus the numbers to interpolate. Shared by relativeLabel() (plain string) and
+// AnimatedRelLabel (count-up). The keys live in the `common` namespace and wrap
+// each number in a positional component tag (<0>{{count}}</0>, <1>{{months}}</1>)
+// so the same key serves both the string form (tags stripped) and the <Trans>
+// form (tags mapped to animated components).
+export function relativeParts(dateStr) {
   const date = toLocalNoon(dateStr)
   const now  = new Date()
   const past = isPast(date) && date < now
+  const from = past ? date : now
+  const to   = past ? now  : date
+  const tense  = past ? 'Past' : 'Future'
+  const years  = differenceInYears(to, from)
+  const months = differenceInMonths(to, from) % 12
+  const days   = differenceInDays(to, from)
 
-  if (past) {
-    const years  = differenceInYears(now, date)
-    const months = differenceInMonths(now, date) % 12
-    const days   = differenceInDays(now, date)
-    if (years > 0 && months > 0) return `${years} yr${years !== 1 ? 's' : ''}, ${months} mo ago`
-    if (years > 0)               return `${years} yr${years !== 1 ? 's' : ''} ago`
-    if (days > 30)               return `${Math.floor(days / 30)} mo ago`
-    if (days > 0)                return `${days} day${days !== 1 ? 's' : ''} ago`
-    return 'today'
-  } else {
-    const years  = differenceInYears(date, now)
-    const months = differenceInMonths(date, now) % 12
-    const days   = differenceInDays(date, now)
-    if (years > 0 && months > 0) return `in ${years} yr${years !== 1 ? 's' : ''}, ${months} mo`
-    if (years > 0)               return `in ${years} yr${years !== 1 ? 's' : ''}`
-    if (days > 30)               return `in ${Math.floor(days / 30)} mo`
-    if (days >= 0)               return `in ${days} day${days !== 1 ? 's' : ''}`
-    return 'today'
-  }
+  if (years > 0 && months > 0) return { key: `rel${tense}YrMo`, count: years, months }
+  if (years > 0)               return { key: `rel${tense}Yr`,   count: years }
+  if (days > 30)               return { key: `rel${tense}Mo`,   count: Math.floor(days / 30) }
+  if (past ? days > 0 : days >= 0) return { key: `rel${tense}Day`, count: days }
+  return { key: 'relToday', today: true }
 }
 
-export function formatDateDisplay(dateStr, precision = 'day') {
+export function relativeLabel(dateStr, precision = 'day') {
+  const { key, count = 0, months = 0 } = relativeParts(dateStr)
+  // Strip the <0></0> / <1></1> component tags used by the animated variant.
+  return i18n.t(key, { ns: 'common', count, months }).replace(/<\/?\d+>/g, '')
+}
+
+// Precision-aware, locale-aware date display. Intl handles field ordering,
+// month names, and numbering per locale (e.g. "June 14, 2025", "14. Juni 2025",
+// "2025年6月14日"). Locale defaults to the app's selected language.
+export function formatDateDisplay(dateStr, precision = 'day', locale) {
   const date = toLocalNoon(dateStr)
-  if (precision === 'year')  return format(date, 'yyyy')
-  if (precision === 'month') return format(date, 'MMMM yyyy')
-  return format(date, 'MMMM d, yyyy')
+  const loc  = resolveLocale(locale)
+  if (precision === 'year')  return new Intl.DateTimeFormat(loc, { year: 'numeric' }).format(date)
+  if (precision === 'month') return new Intl.DateTimeFormat(loc, { year: 'numeric', month: 'long' }).format(date)
+  return new Intl.DateTimeFormat(loc, { year: 'numeric', month: 'long', day: 'numeric' }).format(date)
+}
+
+// Returns the year/month/day field sequence for a locale, e.g.
+// ['month','day','year'] (en-US), ['day','month','year'] (de),
+// ['year','month','day'] (zh). Used to order date-input grids.
+export function dateFieldOrder(locale) {
+  const parts = new Intl.DateTimeFormat(resolveLocale(locale), {
+    year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC',
+  }).formatToParts(new Date(Date.UTC(2023, 0, 31)))
+  return parts
+    .filter(p => p.type === 'year' || p.type === 'month' || p.type === 'day')
+    .map(p => p.type)
+}
+
+// Localized month names (index 0 = January). `style` is an Intl month option:
+// 'long' (January), 'short' (Jan), 'narrow' (J).
+export function monthNames(locale, style = 'long') {
+  const fmt = new Intl.DateTimeFormat(resolveLocale(locale), { month: style, timeZone: 'UTC' })
+  return Array.from({ length: 12 }, (_, i) => fmt.format(new Date(Date.UTC(2023, i, 1))))
 }
 
 // Returns { years, months } elapsed/remaining for count-up animation
