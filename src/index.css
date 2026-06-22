@@ -417,21 +417,44 @@ button, input, select, textarea {
   gap: 1rem;
 }
 
-.skip-link {
+.onboarding-corner {
   position: fixed;
   bottom: 1.25rem;
   right: 1.5rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+/* thin vertical divider between the two controls */
+.onboarding-sep {
+  width: 1px;
+  height: 0.85rem;
+  background: var(--border);
+}
+
+/* matched icon/text links in the onboarding corner (theme toggle + skip) */
+.onboarding-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
   background: none;
   border: none;
   color: var(--text-muted);
   font-family: var(--font);
   font-size: 0.72rem;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
   letter-spacing: 0.04em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: color 0.15s;
 }
-.skip-link:hover { color: var(--text-dim); }
+.onboarding-link:hover { color: var(--text-dim); }
+.onboarding-link svg {
+  display: block;
+  width: 0.95rem;
+  height: 0.95rem;
+}
 
 /* ─── Timeline Preview Strip (onboarding) ──────────────────────────────────── */
 .timeline-preview {
@@ -1610,9 +1633,11 @@ button, input, select, textarea {
   font-size: 0.9rem;
   line-height: 1.45;
   text-align: center;
-  /* Clamp long notes so they don't dominate the screen. */
+  white-space: pre-wrap;     /* preserve the note's own line breaks and wrap long lines */
+  overflow-wrap: anywhere;   /* break very long unbroken words / URLs */
+  /* Clamp very long notes so they don't dominate the screen. */
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 6;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1734,6 +1759,20 @@ button, input, select, textarea {
 }
 .settings-cat-del:hover:not(:disabled) { color: var(--amber); }
 .settings-cat-del:disabled { opacity: 0.2; cursor: default; }
+
+.settings-cat-edit {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.settings-cat-edit:hover { color: var(--amber); }
+
+.settings-cat-edit-block { padding: 0.25rem 0; }
 
 .settings-cat-add { display: flex; flex-direction: column; gap: 0.4rem; }
 
@@ -2439,6 +2478,26 @@ button, input, select, textarea {
   letter-spacing: 0.03em;
   padding: 0.4rem 0;
 }
+.chapter-member-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.chapter-member-action {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.chapter-member-action:hover { color: var(--amber); }
+.chapter-member-action-sep { color: var(--text-muted); opacity: 0.4; font-size: 0.65rem; }
 .chapter-members-list {
   display: flex;
   flex-direction: column;

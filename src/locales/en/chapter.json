@@ -24,5 +24,7 @@
   "colorLabel": "color",
   "deleteConfirmTitle": "delete <strong>{{title}}</strong>?",
   "endpointTooltip": "endpoint — always shown on main timeline",
-  "endpointDimTooltip": "matches chapter boundary — add to make it an endpoint"
+  "endpointDimTooltip": "matches chapter boundary — add to make it an endpoint",
+  "selectAll": "select all",
+  "selectNone": "select none"
 }

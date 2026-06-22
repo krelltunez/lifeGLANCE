@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTypewriter } from '../../utils/typewriter'
 
-export default function Step1Welcome({ onBegin, onSkip }) {
+export default function Step1Welcome({ onBegin }) {
   const { t } = useTranslation('onboarding')
   const TAGLINE = t('tagline')
 
@@ -66,10 +66,6 @@ export default function Step1Welcome({ onBegin, onSkip }) {
           {t('begin')}
         </button>
       </div>
-
-      <button className="skip-link" onClick={onSkip}>
-        {t('skip', { ns: 'common' })}
-      </button>
     </div>
   )
 }

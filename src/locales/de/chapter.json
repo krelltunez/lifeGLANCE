@@ -24,5 +24,7 @@
   "errorEndDayRange": "Der Endtag muss zwischen 1 und {{max}} für den gewählten Monat liegen",
   "errorEndAfterStart": "Das Enddatum muss nach dem Startdatum liegen",
   "endpointTooltip": "Ankerpunkt — immer auf der Hauptzeitleiste angezeigt",
-  "endpointDimTooltip": "entspricht einer Kapitelgrenze — ankreuzen, um es zum Ankerpunkt zu machen"
+  "endpointDimTooltip": "entspricht einer Kapitelgrenze — ankreuzen, um es zum Ankerpunkt zu machen",
+  "selectAll": "alle auswählen",
+  "selectNone": "keine auswählen"
 }

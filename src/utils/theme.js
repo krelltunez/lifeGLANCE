@@ -29,3 +29,8 @@ export function setTheme(theme) {
   try { localStorage.setItem(KEY, t) } catch { /* ignore */ }
   return t
 }
+
+// Flip between dark and light, persist, and return the new theme.
+export function toggleTheme() {
+  return setTheme(getTheme() === 'light' ? 'dark' : 'light')
+}

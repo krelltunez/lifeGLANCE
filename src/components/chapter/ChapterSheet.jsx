@@ -113,6 +113,9 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
     })
   }
 
+  function selectAll()  { setCheckedIds(new Set(displayMilestones.map(m => m.id))) }
+  function selectNone() { setCheckedIds(new Set()) }
+
   function clearDateError() { setDateError(null) }
 
   function validateDates() {
@@ -382,6 +385,12 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
           ) : displayMilestones.length === 0 ? (
             <div className="chapter-members-empty">{t('membersNoMilestones')}</div>
           ) : (
+            <>
+            <div className="chapter-member-actions">
+              <button type="button" className="chapter-member-action" onClick={selectAll}>{t('selectAll')}</button>
+              <span className="chapter-member-action-sep" aria-hidden="true">·</span>
+              <button type="button" className="chapter-member-action" onClick={selectNone}>{t('selectNone')}</button>
+            </div>
             <div className="chapter-members-list">
               {displayMilestones.map(m => {
                 const mDay        = m.date?.slice(0, 10)
@@ -416,6 +425,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
                 )
               })}
             </div>
+            </>
           )}
         </div>
 

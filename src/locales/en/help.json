@@ -16,6 +16,7 @@
   "shortcutUndo": "undo",
   "shortcutRedo": "redo",
   "shortcutMute": "mute / unmute sound",
+  "shortcutTheme": "toggle dark / light theme",
   "shortcutNewMilestone": "new milestone",
   "shortcutNewChapter": "new chapter",
   "shortcutExport": "export image",

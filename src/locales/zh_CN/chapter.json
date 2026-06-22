@@ -24,5 +24,7 @@
   "colorLabel": "颜色",
   "deleteConfirmTitle": "删除<strong>{{title}}</strong>章节?",
   "endpointTooltip": "端点—始终显示于[时间主线]",
-  "endpointDimTooltip": "贴合章节边缘—设为端点"
+  "endpointDimTooltip": "贴合章节边缘—设为端点",
+  "selectAll": "全选",
+  "selectNone": "全不选"
 }

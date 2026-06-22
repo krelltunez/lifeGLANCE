@@ -8,7 +8,7 @@ const MONTHS = [
   'July','August','September','October','November','December',
 ]
 
-export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
+export default function Step3Future({ onSubmit, pastMilestone }) {
   const { t } = useTranslation('onboarding')
   const { t: tc } = useTranslation('common')
 
@@ -127,8 +127,6 @@ export default function Step3Future({ onSubmit, onSkip, pastMilestone }) {
           </button>
         </div>
       </form>
-
-      <button className="skip-link" onClick={onSkip}>{tc('skip')}</button>
     </div>
   )
 }

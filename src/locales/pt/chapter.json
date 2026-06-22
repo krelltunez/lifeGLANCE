@@ -24,5 +24,7 @@
   "errorEndDayRange": "o dia de fim deve estar entre 1 e {{max}} para o mês selecionado",
   "errorEndAfterStart": "a data de fim deve ser posterior à data de início",
   "endpointTooltip": "âncora — sempre exibido na linha do tempo principal",
-  "endpointDimTooltip": "corresponde a um limite de capítulo — marcar para torná-lo uma âncora"
+  "endpointDimTooltip": "corresponde a um limite de capítulo — marcar para torná-lo uma âncora",
+  "selectAll": "selecionar tudo",
+  "selectNone": "desmarcar tudo"
 }

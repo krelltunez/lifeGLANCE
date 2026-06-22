@@ -15,7 +15,7 @@ import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS, applyRecurFilter } from '../../utils/timeline'
 import { expandAnnualDates } from '../../utils/recurrence'
-import { loadCategories } from '../../utils/colors'
+import { loadCategories, saveCategories } from '../../utils/colors'
 import { getMilestoneVisibility, precomputeEndpoints } from '../../utils/visibility'
 import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones, uid } from '../../data/milestones'
 import { listChapters, restoreChapters, createChapter, updateChapter, deleteChapter } from '../../data/chapters'
@@ -30,6 +30,7 @@ import { parseIcs }      from '../../utils/icsParser'
 import * as audio from '../../utils/audio'
 import { useIdleMode } from '../../hooks/useIdleMode.js'
 import { enterFullscreen, exitFullscreen, isFullscreen } from '../../utils/fullscreen.js'
+import { toggleTheme } from '../../utils/theme'
 import { relativeLabel, ageAtDate } from '../../utils/dates'
 import { useIntentPoller } from '../../hooks/useIntentPoller.js'
 import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
@@ -695,6 +696,11 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           audio.toggleMuted()
           break
         }
+        case 'd': case 'D': {
+          if (anyModal) break
+          toggleTheme()
+          break
+        }
         case 'z': case 'Z': {
           if (anyModal) break
           if (e.metaKey || e.ctrlKey) {
@@ -1180,7 +1186,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     }
 
     const chapters = await listChapters()
-    const payload = { milestones, photos, chapters }
+    const payload = { milestones, photos, chapters, categories: loadCategories() }
     const json = JSON.stringify(payload, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const url  = URL.createObjectURL(blob)
@@ -1191,6 +1197,37 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     a.download = `lifeglance-${stamp}.json`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  // Categories changed in Settings (add / rename / recolor / delete). The list
+  // itself is already persisted by Settings; here we re-sync the colour cached on
+  // each milestone so an in-place recolour shows on the timeline immediately and
+  // survives reload. Milestone colour always tracks its category (no per-milestone
+  // colour), so this is safe.
+  async function handleCategoriesChange(updated) {
+    setCategories(updated)
+    const colorById = Object.fromEntries(updated.map(c => [c.id, c.color]))
+    const now = new Date().toISOString()
+    const changed = []
+    const next = milestones.map(m => {
+      const color = colorById[m.category]
+      if (color && color !== m.color) {
+        const nm = { ...m, color, updated_at: now }
+        changed.push(nm)
+        return nm
+      }
+      return m
+    })
+    if (changed.length === 0) return
+    setMilestones(next)
+    // Keep undo-history snapshots colour-consistent so an undo can't resurrect
+    // the old colour.
+    const h = historyRef.current
+    h.stack = h.stack.map(snap => snap.map(m => {
+      const color = colorById[m.category]
+      return color && color !== m.color ? { ...m, color } : m
+    }))
+    for (const m of changed) await dbPut(m)
   }
 
   async function handleImportIcsFile(file) {
@@ -1248,9 +1285,12 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       const items    = Array.isArray(parsed) ? parsed : (parsed.milestones ?? parsed)
       const photos   = (!Array.isArray(parsed) && parsed.photos) ? parsed.photos : {}
       const chapters = (!Array.isArray(parsed) && Array.isArray(parsed.chapters)) ? parsed.chapters : []
+      const restoredCategories = (!Array.isArray(parsed) && Array.isArray(parsed.categories) && parsed.categories.length > 0)
+        ? parsed.categories : null
 
       const restored = await restoreMilestones(items)
       await restoreChapters(chapters)
+      if (restoredCategories) saveCategories(restoredCategories)
 
       // Re-import photo blobs into the media store
       for (const m of restored) {
@@ -1276,6 +1316,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
       setMilestones([...restored])
       setChapters([...chapters])
+      if (restoredCategories) setCategories(restoredCategories)
       historyRef.current = { stack: [[...restored]], idx: 0 }
       setCanUndo(false)
       setCanRedo(false)
@@ -1849,7 +1890,6 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                     {chapter.title}
                   </div>
                 )}
-                {ev.note && <div className="idle-caption-note">{ev.note}</div>}
                 <div className="idle-caption-meta">
                   {age != null && (
                     <span>{t(isPastEv ? 'idleAgeWas' : 'idleAgeWillBe', { age })}</span>
@@ -1857,6 +1897,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                   {age != null && <span className="idle-meta-sep">·</span>}
                   <span>{relativeLabel(ev.date, ev.date_precision)}</span>
                 </div>
+                {ev.note && <div className="idle-caption-note">{ev.note}</div>}
               </div>
             )
           })()}
@@ -1934,7 +1975,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         <SettingsModal
           textSize={textSize}       onTextSizeChange={setTextSize}
           ultraCompact={ultraCompact}
-          categories={categories}   onCategoriesChange={setCategories}
+          categories={categories}   onCategoriesChange={handleCategoriesChange}
           clustering={clustering}   onClusteringChange={v => {
             setClustering(v)
             localStorage.setItem('lifeglance-clustering', String(v))

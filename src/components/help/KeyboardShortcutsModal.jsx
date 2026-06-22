@@ -16,6 +16,7 @@ export default function KeyboardShortcutsModal({ onClose }) {
     { keys: ['⌘Z', 'Ctrl+Z'],  desc: t('shortcutUndo')               },
     { keys: ['⌘⇧Z', 'Ctrl+Y'], desc: t('shortcutRedo')               },
     { keys: ['M'],              desc: t('shortcutMute')               },
+    { keys: ['D'],              desc: t('shortcutTheme')              },
     { keys: ['n'],              desc: t('shortcutNewMilestone')       },
     { keys: ['⇧N'],            desc: t('shortcutNewChapter')         },
     { keys: ['E'],              desc: t('shortcutExport')             },

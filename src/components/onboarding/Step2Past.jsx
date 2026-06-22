@@ -8,7 +8,7 @@ const MONTHS = [
   'July','August','September','October','November','December',
 ]
 
-export default function Step2Past({ onSubmit, onSkip }) {
+export default function Step2Past({ onSubmit }) {
   const { t } = useTranslation('onboarding')
   const { t: tc } = useTranslation('common')
 
@@ -127,8 +127,6 @@ export default function Step2Past({ onSubmit, onSkip }) {
           </button>
         </div>
       </form>
-
-      <button className="skip-link" onClick={onSkip}>{tc('skip')}</button>
     </div>
   )
 }

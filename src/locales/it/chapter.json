@@ -24,5 +24,7 @@
   "errorEndDayRange": "il giorno di fine deve essere tra 1 e {{max}} per il mese selezionato",
   "errorEndAfterStart": "la data di fine deve essere successiva alla data di inizio",
   "endpointTooltip": "punto di ancoraggio — sempre mostrato sulla timeline principale",
-  "endpointDimTooltip": "corrisponde a un limite di capitolo — spuntare per renderlo un punto di ancoraggio"
+  "endpointDimTooltip": "corrisponde a un limite di capitolo — spuntare per renderlo un punto di ancoraggio",
+  "selectAll": "seleziona tutto",
+  "selectNone": "deseleziona tutto"
 }

@@ -24,5 +24,7 @@
   "errorEndDayRange": "le jour de fin doit être compris entre 1 et {{max}} pour le mois sélectionné",
   "errorEndAfterStart": "la date de fin doit être postérieure à la date de début",
   "endpointTooltip": "ancrage — toujours affiché sur la frise principale",
-  "endpointDimTooltip": "correspond à une limite de chapitre — cocher pour en faire un ancrage"
+  "endpointDimTooltip": "correspond à une limite de chapitre — cocher pour en faire un ancrage",
+  "selectAll": "tout sélectionner",
+  "selectNone": "tout désélectionner"
 }
