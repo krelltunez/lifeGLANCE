@@ -3,7 +3,7 @@
   "cancel": "取消",
   "save": "保存",
   "saveChanges": "保存更改",
-  "delete": "删除",
+  "delete": "刪除",
   "edit": "编辑",
   "add": "添加",
   "remove": "移除",
@@ -16,11 +16,11 @@
   "eventName": "事件标题",
   "placing": "放置中…",
   "saving": "保存中…",
-  "deleting": "删除中…",
+  "deleting": "刪除中…",
   "loading": "读取中…",
   "testing": "测试中…",
-  "portraitMessage": "当前竖屏:请旋转设备，获得最佳体验。",
-  "relToday": "今天",
+  "portraitMessage": "為獲得最佳體驗，請將裝置轉為橫向。",
+  "relToday": "今日",
   "relPastYr_one": "<0>{{count}}</0> 年前",
   "relPastYr_other": "<0>{{count}}</0> 年前",
   "relPastMo_one": "<0>{{count}}</0> 个月前",
@@ -37,5 +37,5 @@
   "relFutureDay_other": "<0>{{count}}</0> 天后",
   "relFutureYrMo_one": "<0>{{count}}</0> 年 <1>{{months}}</1> 个月后",
   "relFutureYrMo_other": "<0>{{count}}</0> 年 <1>{{months}}</1> 个月后",
-  "minutesShort": "{{m}} 分钟"
+  "minutesShort": "{{m}}分钟"
 }

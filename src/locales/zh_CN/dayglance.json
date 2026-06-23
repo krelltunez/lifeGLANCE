@@ -10,7 +10,7 @@
   "logRescheduled": "\"{{title}}\" 已重新排程于dayGLANCE",
   "logReceived": " \"{{title}}\" 已接收，来自dayGLANCE",
   "integrationTitle": "dayGLANCE整合",
-  "enableLinking": "启用Goal↔Milestone链接",
+  "enableLinking": "启用Goal↔Milestone连接",
   "webdavUrl": "WebDAV base URL",
   "username": "Username",
   "passwordToken": "Password / token",
@@ -19,7 +19,7 @@
   "testing": "测试中…",
   "testConnection": "测试连接",
   "connectionOk": "已连接 - Events path可存取",
-  "directoryNotFound": "找不到Events path (404)。请先创建它: {{path}}",
+  "directoryNotFound": "找不到Events path (404)。请先建立它: {{path}}",
   "unexpectedResponse": "意外回应: {{status}} {{statusText}}",
   "connectionFailed": "连接失败: {{message}}",
   "pollInterval": "轮询间隔(分钟)",
@@ -29,9 +29,9 @@
   "activating": "正在启动…",
   "activate": "启动",
   "encryptionEnabled": "已启用加密。未保存密码短语－此设备上不再需要密码短语。",
-  "setupFailed": "设置失败: {{message}}",
+  "setupFailed": "设定失败: {{message}}",
   "integrationNote": "lifeGLANCE及dayGLANCE必须指向相同的WebDAV endpoint及events path。标记为\" dayGLANCE Goal\"的里程碑将显示为dayGLANCE里的Goals; Goal的完成状态及日期更改将会同步回此处。",
   "toastGoalAdded": "已添加dayGLANCE Goal: \"{{title}}\"",
   "toastGoalCompleted": "已完成dayGLANCE Goal: \"{{title}}\"",
-  "toastGoalDeleted": "已删除dayGLANCE Goal — \"{{title}}\"仍会保存于此处。"
+  "toastGoalDeleted": "已刪除dayGLANCE Goal — \"{{title}}\"仍会保存于此处。"
 }
