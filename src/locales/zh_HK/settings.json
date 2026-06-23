@@ -30,8 +30,8 @@
   "saveBackup": "導出為本地備份",
   "restoreFromFile": "從本地備份還原",
   "importIcs": "導入.ics行事曆",
-  "persistNotice": "啟用持久性存儲，暫停瀏覽器在後台靜默清除您的資料。",
-  "persistButton": "啟用持久性儲存",
+  "persistNotice": "啟用永久儲存，防止瀏覽器在後台靜默清除您的資料。",
+  "persistButton": "啟用永久儲存",
   "icsNote": "導入.ics檔案僅支援全天事件。定時事件將被跳過－導入對話框將顯示已跳過事件數量。",
   "activityLog": "活動日誌",
   "activityLogNote": "按下<kbd>L</kbd>開啟"

@@ -33,5 +33,5 @@
   "integrationNote": "lifeGLANCE及dayGLANCE必須指向相同的WebDAV endpoint及events path。標記為\" dayGLANCE Goal\"的里程碑將顯示為dayGLANCE里的Goals; Goal的完成狀態及日期更改將會同步回此處。",
   "toastGoalAdded": "已添加dayGLANCE Goal: \"{{title}}\"",
   "toastGoalCompleted": "已完成dayGLANCE Goal: \"{{title}}\"",
-  "toastGoalDeleted": "已刪除dayGLANCE Goal — \"{{title}}\"仍會保存於此處。"
+  "toastGoalDeleted": "已刪除dayGLANCE Goal — \"{{title}}\"仍會儲存於此處。"
 }
