@@ -15,14 +15,14 @@
   "shortcutFutureView": "[未來展望]視圖",
   "shortcutUndo": "撤銷",
   "shortcutRedo": "重做",
-  "shortcutMute": "靜音/打開音效",
+  "shortcutMute": "靜音/開啟音效",
   "shortcutTheme": "切換深色/淺色模式",
   "shortcutNewMilestone": "創建里程碑",
   "shortcutNewChapter": "新添章節",
   "shortcutExport": "將展示導出為圖片",
   "shortcutSearch": "搜索里程碑",
   "shortcutActivityLog": "dayGLANCE活動日誌",
-  "shortcutSettings": "打開設置",
-  "shortcutKeyboardShortcuts": "打開鍵盤熱鍵",
+  "shortcutSettings": "開啟設定",
+  "shortcutKeyboardShortcuts": "開啟鍵盤熱鍵",
   "shortcutClose": "退出章節/關閉對話框"
 }
