@@ -11,7 +11,7 @@
   "hideByDefault": "[時間主線]默認隱藏所屬里程碑",
   "membersLabel": "設置屬於本章節的里程碑",
   "membersSelected": "— {{count}}已選",
-  "membersEmpty": "先設置日期範圍，再安排屬於它的里程碑",
+  "membersEmpty": "先設置日期範圍，再让里程碑落定于此",
   "membersNoMilestones": "這段歲月靜好，把美好寫成一筆里程碑。",
   "deleteButton": "刪除章節",
   "deleteConfirmMsg": "刪去的只有章節卷目。那些里程碑依舊在這，靜候新章節來訴說。",
