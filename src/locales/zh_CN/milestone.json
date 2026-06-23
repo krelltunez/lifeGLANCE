@@ -43,7 +43,7 @@
   "deleteSeries": "刪除该系列",
   "trackedInDayglance": "已在dayGLANCE中追踪",
   "completedInDayglance": "已完成于dayGLANCE",
-  "photoSyncedFromDevice": "📷 照片附件已保存在源设备上",
-  "mediaSyncedFromDevice": "🎬 音频/视频附件已保存在源设备上",
+  "photoSyncedFromDevice": "📷 照片附件已保存在来源设备上",
+  "mediaSyncedFromDevice": "🎬 音频/视频附件已保存在来源设备上",
   "ageYearsOld": "{{age}} 岁"
 }

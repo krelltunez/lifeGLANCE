@@ -30,8 +30,8 @@
   "saveBackup": "导出为本地备份",
   "restoreFromFile": "从本地备份还原",
   "importIcs": "导入.ics行事历",
-  "persistNotice": "启用持久性存储，暂停浏览器在后台静默清除您的数据。",
-  "persistButton": "启用持久性保存",
+  "persistNotice": "启用永久存储，防止浏览器在后台静默清除您的数据。",
+  "persistButton": "启用永久保存",
   "icsNote": "导入.ics档案仅支持全天事件。定时事件将被跳过－导入对话框将显示已跳过事件数量。",
   "activityLog": "活动日志",
   "activityLogNote": "按下<kbd>L</kbd>开启"
