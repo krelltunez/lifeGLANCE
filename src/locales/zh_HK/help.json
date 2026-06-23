@@ -2,14 +2,14 @@
   "title": "幫助&意見",
   "contactTitle": "聯絡&問題",
   "reportIssue": "前往GitHub提交問題",
-  "storage": "數據存儲:",
+  "storage": "資料儲存:",
   "shortcuts": "熱鍵",
   "shortcutsTitle": "鍵盤熱鍵",
   "shortcutCycle": "檢視里程碑-昔日/未來",
   "shortcutZoom": "縮小/放大",
   "shortcutCustomZoomN": "自訂縮放為(N)年",
   "shortcutCustomZoomFocus": "自訂縮放(焦點輸入)",
-  "shortcutJumpToday": "回至今日",
+  "shortcutJumpToday": "回到今日",
   "shortcutPastView": "[回顧昔日]視圖",
   "shortcutAllView": "[全卷盡覽]視圖",
   "shortcutFutureView": "[未來展望]視圖",
@@ -24,5 +24,5 @@
   "shortcutActivityLog": "dayGLANCE活動日誌",
   "shortcutSettings": "打開設置",
   "shortcutKeyboardShortcuts": "打開鍵盤熱鍵",
-  "shortcutClose": "退出章節/關閉話框"
+  "shortcutClose": "退出章節/關閉對話框"
 }

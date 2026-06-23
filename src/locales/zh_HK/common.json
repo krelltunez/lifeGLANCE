@@ -19,7 +19,7 @@
   "deleting": "刪除中…",
   "loading": "讀取中...",
   "testing": "測試中…",
-  "portraitMessage": "目前豎屏:請旋轉裝置，獲得最佳體驗。",
+  "portraitMessage": "为获得最佳体验，请将装置转为横向。",
   "relToday": "今日",
   "relPastYr_one": "<0>{{count}}</0> 年前",
   "relPastYr_other": "<0>{{count}}</0> 年前",
@@ -37,5 +37,5 @@
   "relFutureDay_other": "<0>{{count}}</0> 天後",
   "relFutureYrMo_one": "<0>{{count}}</0> 年 <1>{{months}}</1> 個月後",
   "relFutureYrMo_other": "<0>{{count}}</0> 年 <1>{{months}}</1> 個月後",
-  "minutesShort": "{{m}} 分鐘"
+  "minutesShort": "{{m}}分鐘"
 }

@@ -1,7 +1,11 @@
 {
   "title": "設置",
   "textSizeLabel": "文字大小",
-  "textSizeUnavailable": "小屏幕上無法調整文字大小",
+  "textSizeSmall": "小",
+  "textSizeNormal": "正常",
+  "textSizeBig": "大",
+  "textSizeBigger": "更大",
+  "textSizeUnavailable": "此設定對小屏幕不生效",
   "displayLabel": "顯示",
   "themeLabel": "外觀",
   "theme_dark": "深色背景",
@@ -9,7 +13,7 @@
   "clustering": "自動合併鄰近的里程碑",
   "soundEffects": "打開音效",
   "idleAutoStart": "「遊覽模式」在閒置時啟用",
-  "idleTimeout": "當閒置:",
+  "idleTimeout": "閒置",
   "idleNote": "伴隨背景音樂下，「遊覽模式」讓你遊覽自己的歲月時光。\n點擊頂部「Watch」開啟；輕觸或按下鍵，退出該模式。",
   "categoriesLabel": "範疇",
   "categoryInUse": "使用中",
@@ -25,14 +29,10 @@
   "exportImage": "導出為展示圖片",
   "saveBackup": "導出為本地備份",
   "restoreFromFile": "從本地備份還原",
-  "importIcs": "導出為.ics檔案",
+  "importIcs": "導入.ics行事曆",
   "persistNotice": "啟用持久性存儲，暫停瀏覽器在後台靜默清除您的資料。",
   "persistButton": "啟用持久性儲存",
   "icsNote": "導入.ics檔案僅支援全天事件。定時事件將被跳過－導入對話框將顯示已跳過事件數量。",
   "activityLog": "活動日誌",
-  "activityLogNote": "按下<kbd>L</kbd>開啟",
-  "textSizeSmall": "小",
-  "textSizeNormal": "正常",
-  "textSizeBig": "大",
-  "textSizeBigger": "更大"
+  "activityLogNote": "按下<kbd>L</kbd>開啟"
 }
