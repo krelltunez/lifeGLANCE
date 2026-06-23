@@ -11,7 +11,7 @@
   "theme_dark": "深色背景",
   "theme_light": "浅色背景",
   "clustering": "自动合并邻近的里程碑",
-  "soundEffects": "打开音效",
+  "soundEffects": "开启音效",
   "idleAutoStart": "“游览模式”在闲置时启用",
   "idleTimeout": "闲置",
   "idleNote": "伴随背景音乐下，“游览模式”让你游览自己的岁月时光。\n点击顶部「Watch」开启；轻触或按下键，退出该模式。",
