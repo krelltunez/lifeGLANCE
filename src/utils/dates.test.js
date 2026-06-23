@@ -6,6 +6,7 @@ import {
   monthNames,
   relativeParts,
   relativeLabel,
+  formatDuration,
 } from './dates'
 import i18n from '../i18n'
 
@@ -169,6 +170,36 @@ describe('relativeLabel', () => {
     const label = relativeLabel(isoDaysFromNow(-7))
     expect(label).toContain('vor')
     expect(label).toContain('Tag')
+    await i18n.changeLanguage('en')
+  })
+})
+
+describe('formatDuration', () => {
+  beforeAll(async () => { await i18n.changeLanguage('en') })
+
+  it('formats a year + month span', () => {
+    expect(formatDuration({ years: 3, months: 6 })).toBe('3 yrs, 6 mo')
+  })
+
+  it('uses the singular form for a single year', () => {
+    expect(formatDuration({ years: 1 })).toBe('1 yr')
+  })
+
+  it('formats months only', () => {
+    expect(formatDuration({ months: 8 })).toBe('8 mo')
+  })
+
+  it('formats days only', () => {
+    expect(formatDuration({ days: 5 })).toBe('5 days')
+  })
+
+  it('falls back to a sub-month label when every unit is zero', () => {
+    expect(formatDuration({})).toBe('< 1 mo')
+  })
+
+  it('follows the selected app language', async () => {
+    await i18n.changeLanguage('zh-CN')
+    expect(formatDuration({ years: 3, months: 6 })).toBe('3年6个月')
     await i18n.changeLanguage('en')
   })
 })

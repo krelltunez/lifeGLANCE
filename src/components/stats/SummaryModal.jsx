@@ -1,15 +1,12 @@
 import React, { useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { formatDateDisplay } from '../../utils/dates'
+import { formatDuration } from '../../utils/dates'
 
 function formatSpan(ms) {
   const days   = ms / (24 * 3600 * 1000)
   const years  = Math.floor(days / 365.25)
   const months = Math.floor((days % 365.25) / 30.4)
-  if (years > 0 && months > 0) return `${years} yr${years !== 1 ? 's' : ''}, ${months} mo`
-  if (years > 0)               return `${years} yr${years !== 1 ? 's' : ''}`
-  if (months > 0)              return `${months} mo`
-  return `${Math.round(days)} day${Math.round(days) !== 1 ? 's' : ''}`
+  return formatDuration({ years, months, days: Math.round(days) })
 }
 
 export default function SummaryModal({ milestones, onClose }) {

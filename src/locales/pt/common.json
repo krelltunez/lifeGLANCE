@@ -37,5 +37,14 @@
   "relFutureDay_other": "em <0>{{count}}</0> dias",
   "relFutureYrMo_one": "em <0>{{count}}</0> ano, <1>{{months}}</1> meses",
   "relFutureYrMo_other": "em <0>{{count}}</0> anos, <1>{{months}}</1> meses",
-  "minutesShort": "{{m}} min"
+  "minutesShort": "{{m}} min",
+  "durYr_one": "{{count}} ano",
+  "durYr_other": "{{count}} anos",
+  "durMo_one": "{{count}} mês",
+  "durMo_other": "{{count}} meses",
+  "durDay_one": "{{count}} dia",
+  "durDay_other": "{{count}} dias",
+  "durYrMo_one": "{{count}} ano, {{months}} meses",
+  "durYrMo_other": "{{count}} anos, {{months}} meses",
+  "durLessThanMonth": "< 1 mês"
 }

@@ -35,7 +35,7 @@ export default function OnThisDayModal({ items, onClose, onSelect }) {
                     {formatDateDisplay(m.date, m.date_precision)}
                     {yearsAgo > 0 && (
                       <span className="otd-years">
-                        {' '}· {yearsAgo} year{yearsAgo !== 1 ? 's' : ''} ago
+                        {' '}· {t('yearsAgo', { count: yearsAgo })}
                       </span>
                     )}
                     {m.date_precision === 'month' && (

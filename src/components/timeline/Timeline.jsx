@@ -4,7 +4,7 @@ import React, {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { dateToX, getTimeRangeForView, getTickMarks, assignLanes, getMsPerPx } from '../../utils/timeline'
-import { relativeLabel, formatDateDisplay, ageAtDate } from '../../utils/dates'
+import { relativeLabel, formatDateDisplay, ageAtDate, formatDuration } from '../../utils/dates'
 import { dbGetMedia } from '../../data/db'
 
 // Map text-size labels → root px value (must match TimelineView TEXT_SIZES)
@@ -28,17 +28,12 @@ function assignChapterRows(chapters) {
   })
 }
 
-// Human-readable elapsed duration, e.g. "3 yrs, 6 mo" or "8 mo".
+// Human-readable elapsed duration, e.g. "3 yrs, 6 mo" or "8 mo", localized.
 // For ongoing chapters (endIso is null) uses today as the end.
 function chapterSpan(startIso, endIso) {
   const s = new Date(startIso), e = endIso ? new Date(endIso) : new Date()
   const totalMonths = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth())
-  const yrs = Math.floor(totalMonths / 12)
-  const mos = totalMonths % 12
-  if (yrs > 0 && mos > 0) return `${yrs} yr${yrs !== 1 ? 's' : ''}, ${mos} mo`
-  if (yrs > 0)             return `${yrs} yr${yrs !== 1 ? 's' : ''}`
-  if (mos > 0)             return `${mos} mo`
-  return '< 1 mo'
+  return formatDuration({ years: Math.floor(totalMonths / 12), months: totalMonths % 12 })
 }
 
 // Word-wrap title to at most 2 lines given a max-chars-per-line limit.

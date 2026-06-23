@@ -42,5 +42,7 @@
   "mediaLargeFile": "arquivo grande",
   "mediaFileSize": "Este arquivo tem {{size}}.",
   "mediaStorageRemaining": "Você tem {{size}} de armazenamento restante.",
-  "mediaAttachAnyway": "anexar mesmo assim"
+  "mediaAttachAnyway": "anexar mesmo assim",
+  "yearsAgo_one": "há {{count}} ano",
+  "yearsAgo_other": "há {{count}} anos"
 }

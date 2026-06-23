@@ -113,17 +113,20 @@ export function getMilestoneVisibility(milestone, chapters, precomputed, context
       reason: 'cascade-shown',
       endpointChapters: [],
       inheritedResolution: 'shown',
-      inheritSource: `member of '${shownChapter.title}'`,
+      // Bare chapter title; the visInheritShown label supplies the localized
+      // "member of '…'" framing so it translates instead of leaking English.
+      inheritSource: shownChapter.title,
     }
   }
 
-  // All member chapters are hidden-by-default
+  // All member chapters are hidden-by-default. inheritSource is the bare list of
+  // quoted titles; the visInheritHidden label supplies the localized framing.
   const hiddenNames = memberChapters.map(c => `'${c.title}'`).join(', ')
   return {
     visible: false,
     reason: 'cascade-hidden',
     endpointChapters: [],
     inheritedResolution: 'hidden',
-    inheritSource: `all member chapters set to hidden (${hiddenNames})`,
+    inheritSource: hiddenNames,
   }
 }
