@@ -18,7 +18,7 @@
   "repeatsAnnuallyIcon": "↻ 按每年重复",
   "repeatsAnnuallyEditWarning": "↻ 按每年重复—只编辑这回周期之约",
   "visibilityLabel": "[時間主线]可見性设置",
-  "visEndpoint": "始终显示(章节端点层—覆盖上述设置)",
+  "visEndpoint": "始终显示(章节端点—覆盖上述设置)",
   "visTabInherit": "继承",
   "visNoChapters": "显示(不属于任何章节)",
   "visInheritShown": "显示(继承{{source}}章节设置)",
