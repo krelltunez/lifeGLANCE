@@ -12,7 +12,7 @@
   "membersLabel": "设置属于本章节的里程碑",
   "membersSelected": "— {{count}}已选",
   "membersEmpty": "先设置日期范围，再让里程碑落定於此",
-  "membersNoMilestones": "这段岁月静好，把美好写成一笔里程碑。",
+  "membersNoMilestones": "这段岁月平淡，静待添一笔里程碑",
   "deleteButton": "刪除章节",
   "deleteConfirmMsg": "刪去的只有章节卷目。那些里程碑依旧在这，静候新章节来诉说。",
   "confirmDelete": "[确认]仅刪除章节卷目",
