@@ -29,7 +29,7 @@
   "activating": "正在启动…",
   "activate": "启动",
   "encryptionEnabled": "已启用加密。未保存密码短语－此设备上不再需要密码短语。",
-  "setupFailed": "设定失败: {{message}}",
+  "setupFailed": "设置失败: {{message}}",
   "integrationNote": "lifeGLANCE及dayGLANCE必须指向相同的WebDAV endpoint及events path。标记为\" dayGLANCE Goal\"的里程碑将显示为dayGLANCE里的Goals; Goal的完成状态及日期更改将会同步回此处。",
   "toastGoalAdded": "已添加dayGLANCE Goal: \"{{title}}\"",
   "toastGoalCompleted": "已完成dayGLANCE Goal: \"{{title}}\"",
