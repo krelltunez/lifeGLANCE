@@ -26,8 +26,8 @@ export default function AnimatedRelLabel({ dateStr }) {
       count={count}
       values={{ count, months }}
       components={[
-        <AnimatedNumber value={count} />,
-        <AnimatedNumber value={months} />,
+        <AnimatedNumber key="count" value={count} />,
+        <AnimatedNumber key="months" value={months} />,
       ]}
     />
   )

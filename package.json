@@ -12,6 +12,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "build:mobile": "vite build && cap sync",
     "build:ios": "npm run build && cap sync ios && node scripts/sync-ios-version.mjs",
     "sync:ios-version": "node scripts/sync-ios-version.mjs",
@@ -35,8 +37,14 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
+    "@eslint/js": "^9.39.4",
     "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.3",
     "fake-indexeddb": "^6.2.5",
+    "globals": "^17.7.0",
     "vite": "^8.0.8",
     "vite-plugin-pwa": "^0.19.8",
     "vitest": "^4.1.5"

@@ -49,20 +49,20 @@ export default function Step4Reveal({ onComplete, pastMilestone, futureMilestone
     if (!futureInfo) return '—'
     if (futureInfo.years > 0) {
       return futureInfo.months > 0
-        ? relPhrase('relFutureYrMo', futureInfo.years, [<Lit value={futureYears} />, <Lit value={futureMonths} />], futureInfo.months)
-        : relPhrase('relFutureYr', futureInfo.years, [<Lit value={futureYears} />])
+        ? relPhrase('relFutureYrMo', futureInfo.years, [<Lit key="y" value={futureYears} />, <Lit key="m" value={futureMonths} />], futureInfo.months)
+        : relPhrase('relFutureYr', futureInfo.years, [<Lit key="y" value={futureYears} />])
     }
-    return relPhrase('relFutureDay', futureInfo.days, [<Lit value={futureDays} />])
+    return relPhrase('relFutureDay', futureInfo.days, [<Lit key="d" value={futureDays} />])
   }
 
   const formatPastTime = () => {
     if (!pastInfo) return '—'
     if (pastInfo.years > 0) {
       return pastInfo.months > 0
-        ? relPhrase('relPastYrMo', pastInfo.years, [<Lit value={pastYears} />, <Lit value={pastMonths} />], pastInfo.months)
-        : relPhrase('relPastYr', pastInfo.years, [<Lit value={pastYears} />])
+        ? relPhrase('relPastYrMo', pastInfo.years, [<Lit key="y" value={pastYears} />, <Lit key="m" value={pastMonths} />], pastInfo.months)
+        : relPhrase('relPastYr', pastInfo.years, [<Lit key="y" value={pastYears} />])
     }
-    return relPhrase('relPastDay', pastInfo.days, [<Lit value={pastInfo.days} />])
+    return relPhrase('relPastDay', pastInfo.days, [<Lit key="d" value={pastInfo.days} />])
   }
 
   return (

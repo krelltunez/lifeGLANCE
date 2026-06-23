@@ -25,7 +25,7 @@ export function loadCategories() {
   try {
     const raw = localStorage.getItem(CAT_KEY)
     if (raw) return JSON.parse(raw)
-  } catch {}
+  } catch { /* fall back to defaults on parse/storage error */ }
   return DEFAULT_CATEGORIES
 }
 

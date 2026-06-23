@@ -222,8 +222,8 @@ function _fadeOutAmbient() {
       gainNd.gain.setValueAtTime(gainNd.gain.value, c.currentTime)
       gainNd.gain.linearRampToValueAtTime(0, c.currentTime + 1.2)
     }
-    try { osc.stop(c ? c.currentTime + 1.3 : 0) } catch {}
-    try { lfo.stop(c ? c.currentTime + 1.3 : 0) } catch {}
+    try { osc.stop(c ? c.currentTime + 1.3 : 0) } catch { /* already stopped */ }
+    try { lfo.stop(c ? c.currentTime + 1.3 : 0) } catch { /* already stopped */ }
   })
 }
 

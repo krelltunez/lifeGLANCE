@@ -24,9 +24,12 @@ npm install
 npm run dev        # Vite dev server at http://localhost:5173
 npm run build      # Production build to dist/
 npm run preview    # Preview production build locally
+npm run lint       # ESLint (lint errors fail CI; warnings are advisory)
+npm run lint:fix   # Auto-fix what ESLint can
+npm test           # Run the Vitest suite
 ```
 
-Node 20 or later is required.
+Node 20 or later is required. CI runs `npm run lint` on every push and PR, so run it locally before opening a PR.
 
 ## Pull Request Conventions
 

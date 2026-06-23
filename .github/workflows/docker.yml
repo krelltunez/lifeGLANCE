@@ -8,6 +8,26 @@ on:
     types: [published]
 
 jobs:
+  # Runs on every push and PR. Fails on lint errors; warnings are advisory and
+  # do not gate the build (see eslint.config.js).
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
   # Runs on every push and PR to verify the image builds and passes the
   # WebDAV round-trip test before anything reaches GHCR.
   test:
