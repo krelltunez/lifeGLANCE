@@ -24,7 +24,7 @@
   "connectionFailed": "連接失敗: {{message}}",
   "pollInterval": "輪詢間隔(分鐘)",
   "encryptEvents": "encrypt intent events",
-  "encryptionNote": "使用您的雲端同步密碼。設定一次；跨會話保持有效。",
+  "encryptionNote": "使用您的雲端同步密碼。設置一次；跨會話保持有效。",
   "enterPassphrase": "輸入密碼短語啟動",
   "activating": "正在啟動…",
   "activate": "啟動",
