@@ -53,5 +53,7 @@
   "mediaLargeFile": "large file",
   "mediaFileSize": "This file is {{size}}.",
   "mediaStorageRemaining": "You have {{size}} of storage remaining.",
-  "mediaAttachAnyway": "attach anyway"
+  "mediaAttachAnyway": "attach anyway",
+  "yearsAgo_one": "{{count}} year ago",
+  "yearsAgo_other": "{{count}} years ago"
 }

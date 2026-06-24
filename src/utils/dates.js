@@ -62,6 +62,18 @@ export function relativeLabel(dateStr, precision = 'day') {
   return i18n.t(key, { ns: 'common', count, months }).replace(/<\/?\d+>/g, '')
 }
 
+// Localized bare-duration label (no "ago"/"in" framing) such as "3 yrs, 6 mo",
+// "8 mo", "5 days", or "< 1 mo". Shares the `dur*` keys in the `common`
+// namespace so chapter spans and summary stats read consistently in every
+// language. Pass whole years/months/days; the largest-unit pair wins.
+export function formatDuration({ years = 0, months = 0, days = 0 }) {
+  if (years > 0 && months > 0) return i18n.t('durYrMo', { ns: 'common', count: years, months })
+  if (years > 0)               return i18n.t('durYr',   { ns: 'common', count: years })
+  if (months > 0)              return i18n.t('durMo',   { ns: 'common', count: months })
+  if (days > 0)                return i18n.t('durDay',  { ns: 'common', count: days })
+  return i18n.t('durLessThanMonth', { ns: 'common' })
+}
+
 // Precision-aware, locale-aware date display. Intl handles field ordering,
 // month names, and numbering per locale (e.g. "June 14, 2025", "14. Juni 2025",
 // "2025年6月14日"). Locale defaults to the app's selected language.

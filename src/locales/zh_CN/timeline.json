@@ -53,5 +53,7 @@
   "mediaLargeFile": "文件较大",
   "mediaFileSize": "文件大小为{{size}}",
   "mediaStorageRemaining": "可用空间剩余{{size}}",
-  "mediaAttachAnyway": "attach anyway"
+  "mediaAttachAnyway": "attach anyway",
+  "yearsAgo_one": "{{count}}年前",
+  "yearsAgo_other": "{{count}}年前"
 }

@@ -44,5 +44,7 @@
   "mediaLargeFile": "fichier volumineux",
   "mediaFileSize": "Ce fichier fait {{size}}.",
   "mediaStorageRemaining": "Il vous reste {{size}} d'espace de stockage.",
-  "mediaAttachAnyway": "joindre quand même"
+  "mediaAttachAnyway": "joindre quand même",
+  "yearsAgo_one": "il y a {{count}} an",
+  "yearsAgo_other": "il y a {{count}} ans"
 }

@@ -42,5 +42,7 @@
   "mediaLargeFile": "große Datei",
   "mediaFileSize": "Diese Datei ist {{size}} groß.",
   "mediaStorageRemaining": "Du hast noch {{size}} Speicherplatz.",
-  "mediaAttachAnyway": "trotzdem anhängen"
+  "mediaAttachAnyway": "trotzdem anhängen",
+  "yearsAgo_one": "vor {{count}} Jahr",
+  "yearsAgo_other": "vor {{count}} Jahren"
 }
