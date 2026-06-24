@@ -18,7 +18,7 @@
   "confirmDelete": "[确认]仅刪除章节卷目",
   "errorStartRequired": "请为这段岁月填写“起始日期”",
   "errorStartDayRange": "「起始日期」须在当月的1至{{max}}日之间",
-  "errorEndRequired": "请为这段岁月填写「结束日期」，或者设为持续进行(不设结束日期)",
+  "errorEndRequired": "请为这段岁月填写「结束日期」，或者设为持续进行(不设期限)",
   "errorEndDayRange": "「结束日期」须在当月的1至{{max}}日之间",
   "errorEndAfterStart": "「结束日期」须在「起始日期」之后 — 世间美好，时光只向前",
   "colorLabel": "章节颜色",
