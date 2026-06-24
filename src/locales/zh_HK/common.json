@@ -37,14 +37,5 @@
   "relFutureDay_other": "<0>{{count}}</0> 天後",
   "relFutureYrMo_one": "<0>{{count}}</0> 年 <1>{{months}}</1> 個月後",
   "relFutureYrMo_other": "<0>{{count}}</0> 年 <1>{{months}}</1> 個月後",
-  "minutesShort": "{{m}}分鐘",
-  "durYr_one": "{{count}}年",
-  "durYr_other": "{{count}}年",
-  "durMo_one": "{{count}}個月",
-  "durMo_other": "{{count}}個月",
-  "durDay_one": "{{count}}天",
-  "durDay_other": "{{count}}天",
-  "durYrMo_one": "{{count}}年{{months}}個月",
-  "durYrMo_other": "{{count}}年{{months}}個月",
-  "durLessThanMonth": "不足1個月"
+  "minutesShort": "{{m}}分鐘"
 }
