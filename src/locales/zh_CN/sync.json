@@ -19,7 +19,7 @@
   "usernamePlaceholder": "你的用户名",
   "appPasswordPlaceholder": "APP专用密码",
   "connectionSuccessful": "连线成功。",
-  "connectionFailed": "连线失败：请检查您的帐号密码与伺服器网址",
+  "connectionFailed": "连线失败: 请检查您的帐号密码与伺服器网址",
   "connectionFailedError": "连线失败:{{message}}",
   "passphraseMismatch": "密码短语不符",
   "enterPassphraseToActivate": "输入您的密码短语以启动加密。",
@@ -50,7 +50,7 @@
   "backupNote": "仅可在一台设备上启用。如果您使用多台设备，请使用云端同步保持它们同步，并只在您的主设备上设置远端备份。",
   "noBackupsYet": "尚无备份。",
   "historyTab": "历史记录",
-  "wrongPassphrase": "密码短语错误——必须与其他设备上使用的密码短语完全一致。",
+  "wrongPassphrase": "密码短语错误 - 请确认与其他装置上使用的密码短语一致",
   "vaultSkippedToast": "有{{count}}个条目无法读取——请查看云端同步设置。",
   "vaultSkippedNote": "本设备上有{{count}}个条目无法读取并已跳过。将在下次同步时自动重试——这通常表示密码短语不一致。",
   "verifierUnsupported": "你的同步服务器需要更新以支持密钥验证。"
