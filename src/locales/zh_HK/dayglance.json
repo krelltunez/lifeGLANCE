@@ -22,7 +22,7 @@
   "directoryNotFound": "404: Events path 不存在。請先建立: {{path}}",
   "unexpectedResponse": "連線異常: {{status}} {{statusText}}",
   "connectionFailed": "連線失敗: {{message}}",
-  "pollInterval": "數據刷新間隔(分鐘)",
+  "pollInterval": "數據更新間隔(分鐘)",
   "encryptEvents": "加密操作事件",
   "encryptionNote": "使用您的雲端同步密碼。設定一次，所有裝置通用。",
   "enterPassphrase": "輸入密碼短語啟動",

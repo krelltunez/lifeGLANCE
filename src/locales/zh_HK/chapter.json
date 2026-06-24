@@ -10,7 +10,7 @@
   "descriptionPlaceholder": "為「這段歲月」寫下章節題記…",
   "hideByDefault": "[時間主線] 默認隱藏所屬里程碑",
   "membersLabel": "請選擇本章節的里程碑",
-  "membersSelected": "— {{count}}已選",
+  "membersSelected": "- {{count}} 已選",
   "membersEmpty": "先設定日期範圍，再讓里程碑落定於此",
   "membersNoMilestones": "這段歲月平淡，靜待添一筆里程碑。",
   "deleteButton": "刪除章節",
