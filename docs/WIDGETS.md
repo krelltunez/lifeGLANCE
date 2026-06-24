@@ -105,22 +105,25 @@ for date math via **core library desugaring** (minSdk 24). Versions in
 
 Shipped in PR #166 (merged). Glance API fixes in PR #167.
 
+### ✅ Phase 3 — Today + Current Chapter widgets
+- `TodayWidget.kt` — weekday, date, age; larger size adds prev/next milestones and the
+  current chapter name. Branches on `LocalSize`.
+- `CurrentChapterWidget.kt` — active chapter name, elapsed time "in" the chapter, and
+  milestones passed/total. **Bounded** chapters show a time-elapsed progress bar;
+  **ongoing** chapters (no end) show elapsed time only.
+- `WidgetData` extended: full `currentChapter` + `birthday` parsing, and helpers
+  (`age`, `durationWords`, `progressFraction`, `weekday`/`todayLong`). New
+  `WidgetData.refreshAll()` broadcasts to **all** widget receivers; the bridge plugin
+  and midnight worker now call it so every widget refreshes together.
+- `WidgetTheme.kt` shared palette; two new manifest receivers + provider XML + strings.
+- No snapshot/bridge schema change — the existing snapshot already carried this data.
+
 > ⚠️ The Gradle/Kotlin compile cannot run in the Claude Code sandbox (Maven/Google
 > repos blocked). The native module must be built locally (`npm run android`).
 
 ---
 
 ## Roadmap
-
-### ⏳ Today widget
-Today's date, day of week, and age (from `lifeglance-birthday` via `ageAtDate`).
-**Largest size** also shows most-recently-passed + next-upcoming milestones and the
-current chapter name. Data already in the snapshot (`prev`, `next`, `currentChapter`,
-`birthday`).
-
-### ⏳ Current Chapter widget
-The chapter spanning today: name, how far into it you are (elapsed vs. total span),
-and milestones passed / total. Data already in the snapshot (`currentChapter`).
 
 ### ⏳ iOS widgets
 WidgetKit + a matching native bridge. The snapshot builder is platform-agnostic and
@@ -147,8 +150,9 @@ reusable; only the native widget layer differs.
 | Web hooks | `src/App.jsx`, `src/components/timeline/TimelineView.jsx` |
 | Capacitor plugin | `android/app/src/main/java/com/lifeglance/app/WidgetBridgePlugin.java` |
 | Activity wiring | `android/app/src/main/java/com/lifeglance/app/MainActivity.java` |
-| Widget | `android/app/src/main/java/com/lifeglance/app/widget/NextMilestoneWidget.kt` |
-| Data/format | `android/app/src/main/java/com/lifeglance/app/widget/WidgetData.kt` |
-| Refresh | `android/app/src/main/java/com/lifeglance/app/widget/WidgetRefreshWorker.kt` |
-| Manifest / provider | `AndroidManifest.xml`, `res/xml/next_milestone_widget_info.xml` |
+| Widgets | `widget/NextMilestoneWidget.kt`, `widget/TodayWidget.kt`, `widget/CurrentChapterWidget.kt` |
+| Shared theme | `android/app/src/main/java/com/lifeglance/app/widget/WidgetTheme.kt` |
+| Data/format/refresh | `android/app/src/main/java/com/lifeglance/app/widget/WidgetData.kt` |
+| Midnight tick | `android/app/src/main/java/com/lifeglance/app/widget/WidgetRefreshWorker.kt` |
+| Manifest / provider | `AndroidManifest.xml`, `res/xml/{next_milestone,today,current_chapter}_widget_info.xml` |
 | Build | `android/variables.gradle`, `android/build.gradle`, `android/app/build.gradle` |

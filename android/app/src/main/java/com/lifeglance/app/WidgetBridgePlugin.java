@@ -1,9 +1,6 @@
 package com.lifeglance.app;
 
-import android.appwidget.AppWidgetManager;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 
 import com.getcapacitor.JSObject;
@@ -11,7 +8,6 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.lifeglance.app.widget.NextMilestoneReceiver;
 import com.lifeglance.app.widget.WidgetData;
 import com.lifeglance.app.widget.WidgetRefreshWorker;
 
@@ -42,7 +38,7 @@ public class WidgetBridgePlugin extends Plugin {
             .edit()
             .putString(WidgetData.KEY_SNAPSHOT, json)
             .apply();
-        notifyWidgets(ctx);
+        WidgetData.refreshAll(ctx);
         call.resolve();
     }
 
@@ -58,15 +54,5 @@ public class WidgetBridgePlugin extends Plugin {
         JSObject ret = new JSObject();
         ret.put("milestoneId", target); // null when nothing is pending
         call.resolve(ret);
-    }
-
-    private void notifyWidgets(Context ctx) {
-        AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
-        ComponentName cn = new ComponentName(ctx, NextMilestoneReceiver.class);
-        int[] ids = mgr.getAppWidgetIds(cn);
-        Intent intent = new Intent(ctx, NextMilestoneReceiver.class);
-        intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
-        ctx.sendBroadcast(intent);
     }
 }

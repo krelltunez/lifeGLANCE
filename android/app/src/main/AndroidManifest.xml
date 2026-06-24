@@ -32,6 +32,7 @@
         <!-- Home-screen widget: next milestone / countdown -->
         <receiver
             android:name=".widget.NextMilestoneReceiver"
+            android:label="@string/widget_next_milestone_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -39,6 +40,32 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/next_milestone_widget_info" />
+        </receiver>
+
+        <!-- Home-screen widget: today (date, age, context) -->
+        <receiver
+            android:name=".widget.TodayWidgetReceiver"
+            android:label="@string/widget_today_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_widget_info" />
+        </receiver>
+
+        <!-- Home-screen widget: current chapter -->
+        <receiver
+            android:name=".widget.CurrentChapterReceiver"
+            android:label="@string/widget_current_chapter_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/current_chapter_widget_info" />
         </receiver>
     </application>
 
