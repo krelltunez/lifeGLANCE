@@ -9,7 +9,7 @@
   "logCompleted": "\"{{title}}\" 已完成於 dayGLANCE",
   "logRescheduled": "\"{{title}}\" 已重新排程於 dayGLANCE",
   "logReceived": " \"{{title}}\" 已接收，來自 dayGLANCE",
-  "integrationTitle": "dayGLANCE整合",
+  "integrationTitle": "dayGLANCE 整合",
   "enableLinking": "啟用 Goal↔Milestone 連接",
   "webdavUrl": "WebDAV base URL",
   "username": "Username",
