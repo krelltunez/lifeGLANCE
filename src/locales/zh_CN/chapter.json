@@ -5,7 +5,7 @@
   "namePlaceholder": "譬如:大学时光",
   "dateRange": "日期范围",
   "from": "起始于",
-  "ongoing": "设为永远进行(不设结束日期)",
+  "ongoing": "设为持续进行(不设期限)",
   "descriptionLabel": "描述(选填)",
   "descriptionPlaceholder": "为「这段岁月」写下章节题记…",
   "hideByDefault": "[时间主线]默认隐藏所属里程碑",
