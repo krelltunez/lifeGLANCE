@@ -30,7 +30,7 @@
   "endpointNotice": "「{{chapters}}」章節端點-始終顯示(覆蓋設定)",
   "endpointTooltip": "章節端點—[時間主線]始終顯示",
   "endpointDimTooltip": "貼合章節邊緣-設為章節端點",
-  "trackAsDayglance": "設為 dayGLANCE 的追蹤[Goal]",
+  "trackAsDayglance": "追蹤為 dayGLANCE Goal",
   "trackAsDayglanceNote": "將在 dayGLANCE 中建立 Goals，並透過 WebDAV events path 同步 Goals 的狀態變更及完成日期。",
   "addToChapters": "收錄於章節:",
   "closeChapterLabel": "進行中的章節將於此日期關閉",
