@@ -22,7 +22,7 @@
   "errorEndDayRange": "「結束日期」須在當月的1至{{max}}日之間",
   "errorEndAfterStart": "「結束日期」須在「起始日期」之後 — 世間美好，時光只向前",
   "colorLabel": "顏色",
-  "deleteConfirmTitle": "刪除[<strong>{{title}}</strong>]章節?",
+  "deleteConfirmTitle": "刪除「<strong>{{title}}</strong>」章節?",
   "endpointTooltip": "章節端點—始終顯示於[時間主線]",
   "endpointDimTooltip": "貼合章節邊緣—設為章節端點",
   "selectAll": "全選",
