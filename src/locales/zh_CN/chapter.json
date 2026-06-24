@@ -21,7 +21,7 @@
   "errorEndRequired": "请为这段岁月填写「结束日期」，或者设为持续进行(不设期限)",
   "errorEndDayRange": "「结束日期」须在当月的1至{{max}}日之间",
   "errorEndAfterStart": "「结束日期」须在「起始日期」之后 — 世间美好，时光只向前",
-  "colorLabel": "章节颜色",
+  "colorLabel": "颜色",
   "deleteConfirmTitle": "刪除[<strong>{{title}}</strong>]章节?",
   "endpointTooltip": "章节端点—[时间主线]始终显示",
   "endpointDimTooltip": "贴合章节边缘—设为章节端点",
