@@ -7,7 +7,7 @@
   "from": "起始于",
   "ongoing": "设为永远进行(不设结束日期)",
   "descriptionLabel": "描述(选填)",
-  "descriptionPlaceholder": "为这段岁月章节写点注脚…",
+  "descriptionPlaceholder": "为「这段岁月」写下章节题记…",
   "hideByDefault": "[时间主线]默认隐藏所属里程碑",
   "membersLabel": "请选择本章节的里程碑",
   "membersSelected": "— {{count}}已选",
