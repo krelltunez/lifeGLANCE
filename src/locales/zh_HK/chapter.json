@@ -7,7 +7,7 @@
   "from": "起始於",
   "ongoing": "設為持續進行(不設期限)",
   "descriptionLabel": "描述(選填)",
-  "descriptionPlaceholder": "為這段歲月章節寫點註腳…",
+  "descriptionPlaceholder": "為「這段歲月」寫下章節題記…",
   "hideByDefault": "[時間主線]默認隱藏所屬里程碑",
   "membersLabel": "設定屬於本章節的里程碑",
   "membersSelected": "— {{count}}已選",
