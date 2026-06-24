@@ -27,7 +27,7 @@
   "visShownExplicit": "显示(明确设置)",
   "visTabHidden": "隐藏",
   "visHiddenExplicit": "隐藏(明确设置)",
-  "endpointNotice": "「{{chapters}}」章节端点始终显示-(覆盖设置)",
+  "endpointNotice": "「{{chapters}}」章节端点-始终显示(覆盖设置)",
   "endpointTooltip": "章节端点—[时间主线]始终显示",
   "endpointDimTooltip": "贴合章节边缘—设为章节端点",
   "trackAsDayglance": "设为 dayGLANCE 的追踪 [Goal]",
