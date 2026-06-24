@@ -16,7 +16,7 @@
   "attachMedia": "添加音訊/視訊附件",
   "repeatsAnnually": "設為按每年重覆",
   "repeatsAnnuallyIcon": "↻ 按每年重覆",
-  "repeatsAnnuallyEditWarning": "↻ 按每年重覆—只編輯這回周期之約",
+  "repeatsAnnuallyEditWarning": "↻ 按每年重覆—只編輯這次周期之約",
   "visibilityLabel": "[時間主線]可見性設定",
   "visEndpoint": "始終顯示(章節端點—覆蓋上述設定)",
   "visTabInherit": "繼承",
