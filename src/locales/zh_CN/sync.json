@@ -19,7 +19,7 @@
   "usernamePlaceholder": "你的用户名",
   "appPasswordPlaceholder": "APP专用密码",
   "connectionSuccessful": "连线成功。",
-  "connectionFailed": "连线失败。请检查您的凭证和URL。",
+  "connectionFailed": "连线失败：请检查您的帐号密码与伺服器网址",
   "connectionFailedError": "连线失败:{{message}}",
   "passphraseMismatch": "密码短语不符",
   "enterPassphraseToActivate": "输入您的密码短语以启动加密。",
