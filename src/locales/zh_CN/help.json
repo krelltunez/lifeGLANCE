@@ -5,7 +5,7 @@
   "storage": "数据存储:",
   "shortcuts": "快捷键",
   "shortcutsTitle": "快捷键",
-  "shortcutCycle": "查看里程碑-昔日/未来",
+  "shortcutCycle": "切換里程碑",
   "shortcutZoom": "缩小/放大",
   "shortcutCustomZoomN": "自订缩放为(N)年",
   "shortcutCustomZoomFocus": "自订缩放(焦点输入)",
@@ -21,7 +21,7 @@
   "shortcutNewChapter": "新添章节",
   "shortcutExport": "将展示导出为图片",
   "shortcutSearch": "搜索里程碑",
-  "shortcutActivityLog": "dayGLANCE活动日志",
+  "shortcutActivityLog": "dayGLANCE 活动日志",
   "shortcutSettings": "开启设置",
   "shortcutKeyboardShortcuts": "查看所有快捷键",
   "shortcutClose": "退出章节/关闭对话框"
