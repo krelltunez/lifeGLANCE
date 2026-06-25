@@ -34,9 +34,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        // A widget tap opens lifeglance://milestone?id=<id>. Stash the id where the web
+        // layer reads it via WidgetBridge.consumeLaunchTarget() once it resumes. Kept
+        // self-contained (no shared-file dependency) so this compiles on its own.
+        handleWidgetDeepLink(url)
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
+    }
+
+    private func handleWidgetDeepLink(_ url: URL) {
+        guard url.scheme == "lifeglance", url.host == "milestone",
+              let comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let id = comps.queryItems?.first(where: { $0.name == "id" })?.value
+        else { return }
+        UserDefaults(suiteName: "group.com.lifeglance")?.set(id, forKey: "pending_target")
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {

@@ -1,10 +1,12 @@
 package com.lifeglance.app.widget
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import org.json.JSONObject
 import java.time.LocalDate
 import java.time.Period
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -24,6 +26,11 @@ object WidgetData {
     fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+    // optString yields "" for a missing key and (on Android's org.json) the literal
+    // "null" for a JSON null; treat both as absent.
+    private fun JSONObject.stringOrNull(key: String): String? =
+        optString(key).takeIf { it.isNotEmpty() && it != "null" }
+
     data class Milestone(
         val id: String,
         val title: String,
@@ -32,10 +39,21 @@ object WidgetData {
         val color: String?,
     )
 
+    data class Chapter(
+        val id: String,
+        val title: String,
+        val start: String,         // ISO 8601
+        val end: String?,          // ISO 8601, or null for an ongoing chapter
+        val color: String?,
+        val passedCount: Int,
+        val totalCount: Int,
+    )
+
     data class Snapshot(
         val next: Milestone?,
         val prev: Milestone?,
-        val currentChapterTitle: String?,
+        val currentChapter: Chapter?,
+        val birthday: String?,
         val pastCount: Int,
         val futureCount: Int,
     )
@@ -48,13 +66,30 @@ object WidgetData {
             Snapshot(
                 next = parseMilestone(obj.optJSONObject("next")),
                 prev = parseMilestone(obj.optJSONObject("prev")),
-                currentChapterTitle = obj.optJSONObject("currentChapter")?.optString("title"),
+                currentChapter = parseChapter(obj.optJSONObject("currentChapter")),
+                birthday = obj.stringOrNull("birthday"),
                 pastCount = counts?.optInt("past", 0) ?: 0,
                 futureCount = counts?.optInt("future", 0) ?: 0,
             )
         } catch (e: Exception) {
             null
         }
+    }
+
+    private fun parseChapter(obj: JSONObject?): Chapter? {
+        if (obj == null) return null
+        val id = obj.optString("id", "")
+        val start = obj.optString("start", "")
+        if (id.isEmpty() || start.isEmpty()) return null
+        return Chapter(
+            id = id,
+            title = obj.optString("title", ""),
+            start = start,
+            end = obj.stringOrNull("end"),
+            color = obj.stringOrNull("color"),
+            passedCount = obj.optInt("passedCount", 0),
+            totalCount = obj.optInt("totalCount", 0),
+        )
     }
 
     private fun parseMilestone(obj: JSONObject?): Milestone? {
@@ -67,14 +102,15 @@ object WidgetData {
             title = obj.optString("title", ""),
             date = date,
             datePrecision = obj.optString("datePrecision", "day"),
-            color = obj.optString("color").takeIf { it.isNotEmpty() },
+            color = obj.stringOrNull("color"),
         )
     }
 
-    // The calendar date the milestone falls on, read from the UTC components of the
-    // ISO string — matching the web app's toLocalNoon convention.
+    // The calendar date a value falls on. The leading "yyyy-MM-dd" is the UTC date for
+    // a full ISO instant ("2026-07-01T00:00:00.000Z" — matching the web's toLocalNoon
+    // convention) and is also the whole value for a date-only field like birthday.
     private fun localDateOf(iso: String): LocalDate? = try {
-        java.time.Instant.parse(iso).atZone(ZoneOffset.UTC).toLocalDate()
+        if (iso.length >= 10) LocalDate.parse(iso.substring(0, 10)) else null
     } catch (e: Exception) {
         null
     }
@@ -116,6 +152,72 @@ object WidgetData {
             else    -> "MMMM d, yyyy"
         }
         return date.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
+    }
+
+    /** Whole years between a birthday and today, or null if unset / not yet reached. */
+    fun age(birthdayIso: String?, today: LocalDate = LocalDate.now()): Int? {
+        val born = birthdayIso?.let { localDateOf(it) } ?: return null
+        if (today.isBefore(born)) return null
+        return Period.between(born, today).years
+    }
+
+    /**
+     * Coarse elapsed duration from a past date to today, e.g. "2 yrs, 3 mo",
+     * "4 mo", "9 days". Used for "how far into this chapter" — the caller adds
+     * any framing word like "in". Returns "just started" for today/future starts.
+     */
+    fun durationWords(fromIso: String, to: LocalDate = LocalDate.now()): String {
+        val from = localDateOf(fromIso) ?: return ""
+        if (!from.isBefore(to)) return "just started"
+        val p = Period.between(from, to)
+        val totalDays = ChronoUnit.DAYS.between(from, to)
+        return when {
+            p.years > 0 && p.months > 0 -> "${p.years} yr${plural(p.years)}, ${p.months} mo"
+            p.years > 0                 -> "${p.years} yr${plural(p.years)}"
+            totalDays > 30              -> "${totalDays / 30} mo"
+            else                        -> "$totalDays day${plural(totalDays)}"
+        }
+    }
+
+    /** Time-elapsed progress through a bounded chapter as 0..1, or null if ongoing. */
+    fun progressFraction(startIso: String, endIso: String?, today: LocalDate = LocalDate.now()): Float? {
+        if (endIso == null) return null
+        val start = localDateOf(startIso) ?: return null
+        val end = localDateOf(endIso) ?: return null
+        val total = ChronoUnit.DAYS.between(start, end).toDouble()
+        if (total <= 0) return null
+        val elapsed = ChronoUnit.DAYS.between(start, today).toDouble()
+        return (elapsed / total).coerceIn(0.0, 1.0).toFloat()
+    }
+
+    fun weekday(today: LocalDate = LocalDate.now()): String =
+        today.format(DateTimeFormatter.ofPattern("EEEE", Locale.getDefault()))
+
+    fun todayLong(today: LocalDate = LocalDate.now()): String =
+        today.format(DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault()))
+
+    /**
+     * Refreshes every placed lifeGLANCE widget by broadcasting an update, which makes
+     * each Glance receiver recompose and re-read the snapshot. Called from the bridge
+     * plugin (on data change) and the midnight worker. @JvmStatic so Java can call it.
+     */
+    @JvmStatic
+    fun refreshAll(context: Context) {
+        val receivers = listOf(
+            NextMilestoneReceiver::class.java,
+            TodayWidgetReceiver::class.java,
+            CurrentChapterReceiver::class.java,
+        )
+        val mgr = AppWidgetManager.getInstance(context)
+        for (cls in receivers) {
+            val ids = mgr.getAppWidgetIds(ComponentName(context, cls))
+            if (ids.isEmpty()) continue
+            val intent = Intent(context, cls).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+            }
+            context.sendBroadcast(intent)
+        }
     }
 
     private fun plural(n: Long) = if (n != 1L) "s" else ""

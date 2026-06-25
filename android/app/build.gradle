@@ -2,12 +2,36 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
-// Derive versionName/versionCode from package.json (e.g. 1.8.4 -> 10804).
+// Derive versionName/versionCode from package.json. The code packs the x.y.z version
+// into the high digits and reserves the low 3 digits for an interim build number, so
+// codes stay aligned with the marketing version while leaving room for test-track
+// uploads between releases:
+//   2.3.7           -> 20307000
+//   2.3.7 build 1   -> 20307001   (interim, internal test track)
+//   2.3.8           -> 20308000
 // Assumes a clean x.y.z version (no -beta suffix) and minor/patch < 100.
 def pkg = new groovy.json.JsonSlurper().parse(rootProject.file("../package.json"))
-def appVersionName = pkg.version as String
-def versionParts = appVersionName.tokenize('.')
-def appVersionCode = versionParts[0].toInteger() * 10000 + versionParts[1].toInteger() * 100 + versionParts[2].toInteger()
+def baseVersionName = pkg.version as String
+def versionParts = baseVersionName.tokenize('.')
+def baseVersionCode = (versionParts[0].toInteger() * 10000 + versionParts[1].toInteger() * 100 + versionParts[2].toInteger()) * 1000
+
+// Interim builds for the Play internal test track set a build number (1..999) via
+// -PbuildNumber=N or the LIFEGLANCE_BUILD_NUMBER env var (build.sh --build passes the
+// latter). It occupies the low 3 digits; release builds leave it at 0.
+def buildNumber = (project.findProperty('buildNumber') ?: System.getenv('LIFEGLANCE_BUILD_NUMBER') ?: '0').toString().trim().toInteger()
+if (buildNumber < 0 || buildNumber > 999) {
+    throw new GradleException("buildNumber must be 0..999 (got ${buildNumber}); it occupies the low 3 digits of the versionCode")
+}
+def appVersionCode = baseVersionCode + buildNumber
+
+// Optionally tag the version name (e.g. "2.3.7-rc1") so testers can identify interim
+// builds. Set with -PversionNameSuffix=rc1 or the LIFEGLANCE_VERSION_SUFFIX env var.
+def versionSuffix = project.findProperty('versionNameSuffix') ?: System.getenv('LIFEGLANCE_VERSION_SUFFIX')
+def appVersionName = versionSuffix ? "${baseVersionName}-${versionSuffix}" : baseVersionName
+
+if (buildNumber != 0 || versionSuffix) {
+    println "lifeGLANCE interim build → code ${appVersionCode}, name ${appVersionName}"
+}
 
 // Load release signing config from android/key.properties (gitignored) when
 // present. Absent (e.g. CI or a machine without the keystore) -> unsigned release.
