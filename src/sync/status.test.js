@@ -41,9 +41,25 @@ describe('syncErrorText', () => {
       .toBe('t:verifierUnsupported')
   })
 
+  it('maps the WebDAV file-tier codes to their friendly keys', () => {
+    const cases = {
+      AUTH_FAILURE: 'authFailed',
+      FORBIDDEN: 'forbidden',
+      LOCKED: 'locked',
+      NETWORK_ERROR: 'networkError',
+      PRECONDITION_FAILED: 'preconditionFailed',
+      PASSPHRASE_REQUIRED: 'passphraseRequired',
+      APP_ID_MISMATCH: 'appIdMismatch',
+      SCHEMA_FORWARD_INCOMPATIBLE: 'schemaForwardIncompatible',
+    }
+    for (const [code, key] of Object.entries(cases)) {
+      expect(syncErrorText({ message: 'raw engine text', code }, t)).toBe(`t:${key}`)
+    }
+  })
+
   it('falls back to the raw engine message for unmapped codes', () => {
-    expect(syncErrorText({ message: 'Network down', code: 'NETWORK_ERROR' }, t))
-      .toBe('Network down')
+    expect(syncErrorText({ message: 'Something unexpected', code: 'SOME_UNKNOWN_CODE' }, t))
+      .toBe('Something unexpected')
     expect(syncErrorText({ message: 'Just a message', code: null }, t))
       .toBe('Just a message')
   })

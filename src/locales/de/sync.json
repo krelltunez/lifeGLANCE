@@ -53,5 +53,13 @@
   "wrongPassphrase": "Falsche Synchronisierungs-Passphrase — sie muss exakt mit der auf deinen anderen Geräten verwendeten übereinstimmen.",
   "vaultSkippedToast": "{{count}} Element(e) konnten nicht gelesen werden — siehe Cloud-Sync-Einstellungen.",
   "vaultSkippedNote": "{{count}} Element(e) konnten auf diesem Gerät nicht gelesen werden und wurden übersprungen. Sie werden bei der nächsten Synchronisierung automatisch erneut versucht — meist liegt eine abweichende Sync-Passphrase vor.",
-  "verifierUnsupported": "Dein Sync-Server muss aktualisiert werden, um die Schlüsselverifizierung zu unterstützen."
+  "verifierUnsupported": "Dein Sync-Server muss aktualisiert werden, um die Schlüsselverifizierung zu unterstützen.",
+  "authFailed": "Authentication failed — check your username and password in sync settings.",
+  "forbidden": "Sync blocked (403) — your server may be blocking the request.",
+  "locked": "Sync is locked by another device — try again in a moment.",
+  "networkError": "Network error — check your connection and try again.",
+  "preconditionFailed": "Another device updated first — retrying.",
+  "passphraseRequired": "Enter your sync passphrase to continue.",
+  "appIdMismatch": "This sync data belongs to a different app.",
+  "schemaForwardIncompatible": "This sync data is from a newer app version — please update the app."
 }
