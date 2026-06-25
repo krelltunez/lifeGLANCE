@@ -1,6 +1,6 @@
 {
   "title": "设置",
-  "textSizeLabel": "字跡轻重",
+  "textSizeLabel": "字跡大小",
   "textSizeSmall": "小",
   "textSizeNormal": "标准",
   "textSizeBig": "大",
@@ -14,7 +14,7 @@
   "soundEffects": "开启音效",
   "idleAutoStart": "「游览模式」在闲置时启用",
   "idleTimeout": "闲置",
-  "idleNote": "伴随背景音乐，「游览模式」带你漫游岁月时光。\n点击顶部「游览」开启；轻触或按任意鍵即可退出。",
+  "idleNote": "伴随背景音乐，「游览模式」带你漫游岁月时光。\n点击顶部「游览」开启；轻触或按任意键即可退出。",
   "categoriesLabel": "卷宗",
   "categoryInUse": "使用中",
   "categoryCannotDelete": "无法刪除! — 该卷宗使用中",
