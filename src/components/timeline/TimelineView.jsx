@@ -1186,7 +1186,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     }
 
     const chapters = await listChapters()
-    const payload = { milestones, photos, chapters, categories: loadCategories() }
+    const payload = {
+      milestones,
+      photos,
+      chapters,
+      categories: loadCategories(),
+      categoriesUpdatedAt: localStorage.getItem('lifeglance-categories-updated-at') || '',
+      // Settings worth preserving across a restore (mirrors the cloud-sync payload
+      // in sync/adapter.js, which already carried these).
+      birthday: localStorage.getItem('lifeglance-birthday') || '',
+      birthdayUpdatedAt: localStorage.getItem('lifeglance-birthday-updated-at') || '',
+    }
     const json = JSON.stringify(payload, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const url  = URL.createObjectURL(blob)
@@ -1287,10 +1297,24 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       const chapters = (!Array.isArray(parsed) && Array.isArray(parsed.chapters)) ? parsed.chapters : []
       const restoredCategories = (!Array.isArray(parsed) && Array.isArray(parsed.categories) && parsed.categories.length > 0)
         ? parsed.categories : null
+      const restoredBirthday = (!Array.isArray(parsed) && typeof parsed.birthday === 'string' && parsed.birthday)
+        ? parsed.birthday : null
 
       const restored = await restoreMilestones(items)
       await restoreChapters(chapters)
-      if (restoredCategories) saveCategories(restoredCategories)
+      if (restoredCategories) {
+        saveCategories(restoredCategories)
+        if (!Array.isArray(parsed) && parsed.categoriesUpdatedAt) {
+          localStorage.setItem('lifeglance-categories-updated-at', parsed.categoriesUpdatedAt)
+        }
+      }
+      if (restoredBirthday) {
+        localStorage.setItem('lifeglance-birthday', restoredBirthday)
+        localStorage.setItem('lifeglance-birthday-updated-at',
+          parsed.birthdayUpdatedAt || new Date().toISOString())
+        setBirthday(restoredBirthday)
+        window.dispatchEvent(new Event('lifeglance:widget-refresh'))
+      }
 
       // Re-import photo blobs into the media store
       for (const m of restored) {
@@ -1993,6 +2017,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             setBirthday(v)
             localStorage.setItem('lifeglance-birthday', v)
             localStorage.setItem('lifeglance-birthday-updated-at', new Date().toISOString())
+            // Birthday isn't part of milestones/chapters, so nudge the widget snapshot
+            // to re-push (drives the Today widget's age line).
+            window.dispatchEvent(new Event('lifeglance:widget-refresh'))
           }}
           milestones={milestones}
           onExportImage={handleExportImage}

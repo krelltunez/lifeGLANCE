@@ -19,7 +19,7 @@ struct NextMilestoneWidget: Widget {
         }
         .configurationDisplayName("Next milestone")
         .description("Your next upcoming milestone, with a live countdown.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemMedium, .systemLarge])
     }
 }
 
@@ -30,7 +30,7 @@ struct TodayWidget: Widget {
         }
         .configurationDisplayName("Today")
         .description("Today's date and your age, with recent and upcoming milestones at larger sizes.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemMedium, .systemLarge])
     }
 }
 
@@ -41,6 +41,6 @@ struct CurrentChapterWidget: Widget {
         }
         .configurationDisplayName("Current chapter")
         .description("The chapter you're in now: how far along you are and milestones passed.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemMedium, .systemLarge])
     }
 }

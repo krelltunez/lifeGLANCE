@@ -154,9 +154,14 @@ export default function App() {
 
     const onHide = () => { if (document.visibilityState === 'hidden') flush() }
     document.addEventListener('visibilitychange', onHide)
+    // Settings that aren't part of milestones/chapters (e.g. birthday) dispatch this
+    // event so the widget snapshot re-pushes immediately rather than waiting for the
+    // next data change or app background.
+    window.addEventListener('lifeglance:widget-refresh', flush)
     return () => {
       clearTimeout(widgetTimerRef.current)
       document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('lifeglance:widget-refresh', flush)
     }
   }, [milestones, chapters, screen])
 

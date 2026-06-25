@@ -42,7 +42,9 @@ struct NextMilestoneView: View {
                 Text(next.title).font(mono(13)).foregroundColor(Palette.text).lineLimit(2)
                 Text(WidgetDate.formatDate(next.date, precision: next.datePrecision ?? "day"))
                     .font(mono(11)).foregroundColor(Palette.muted)
-                if family != .systemSmall, let prev = entry.snapshot?.prev {
+                // Large is the only family with extra vertical room (medium is the
+                // same height as small, just wider), so the secondary line lives there.
+                if family == .systemLarge, let prev = entry.snapshot?.prev {
                     Spacer().frame(height: 6)
                     Text("last · \(prev.title) (\(WidgetDate.relativeLabel(prev.date)))")
                         .font(mono(11)).foregroundColor(Palette.muted).lineLimit(1)
@@ -51,7 +53,7 @@ struct NextMilestoneView: View {
                 Text("No upcoming milestones").font(mono(13)).foregroundColor(Palette.muted)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(16)
         .widgetURL(milestoneURL(next?.id))
     }
@@ -72,7 +74,9 @@ struct TodayView: View {
                 Text("\(age) year\(age == 1 ? "" : "s") old")
                     .font(mono(12)).foregroundColor(Palette.muted)
             }
-            if family != .systemSmall {
+            // Only large has the vertical room for the context block (medium is the
+            // same height as small, just wider).
+            if family == .systemLarge {
                 Spacer().frame(height: 8)
                 if let next = entry.snapshot?.next {
                     ContextLine(label: "next", value: "\(next.title) · \(WidgetDate.relativeLabel(next.date))")
@@ -85,7 +89,7 @@ struct TodayView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(16)
         .widgetURL(URL(string: "lifeglance://open"))
     }
@@ -94,23 +98,28 @@ struct TodayView: View {
 // MARK: - Current chapter
 
 struct CurrentChapterView: View {
+    @Environment(\.widgetFamily) private var family
     let entry: SnapshotEntry
 
     var body: some View {
+        // Medium is the same height as small (just wider), so the milestone count and
+        // progress bar only fit on large.
+        let roomy = family == .systemLarge
         VStack(alignment: .leading, spacing: 2) {
             if let chapter = entry.snapshot?.currentChapter {
                 let accent = Color(hex: chapter.color, fallback: Palette.amber)
                 Text("CHAPTER").font(mono(10, .bold)).foregroundColor(accent)
-                Text(chapter.title).font(mono(17, .bold)).foregroundColor(Palette.text).lineLimit(2)
+                Text(chapter.title).font(mono(17, .bold)).foregroundColor(Palette.text)
+                    .lineLimit(roomy ? 2 : 1)
                 Text("\(WidgetDate.durationWords(chapter.start)) in")
                     .font(mono(12)).foregroundColor(Palette.muted)
-                if (chapter.totalCount ?? 0) > 0 {
+                if roomy, (chapter.totalCount ?? 0) > 0 {
                     Text("\(chapter.passedCount ?? 0)/\(chapter.totalCount ?? 0) milestones")
                         .font(mono(11)).foregroundColor(Palette.muted)
                 }
                 // Bounded chapters get a time-elapsed bar; ongoing chapters show elapsed
                 // time only, since there's no end to measure against.
-                if let fraction = WidgetDate.progressFraction(start: chapter.start, end: chapter.end) {
+                if roomy, let fraction = WidgetDate.progressFraction(start: chapter.start, end: chapter.end) {
                     Spacer().frame(height: 8)
                     ProgressView(value: fraction)
                         .progressViewStyle(.linear)
@@ -120,7 +129,7 @@ struct CurrentChapterView: View {
                 Text("No active chapter").font(mono(13)).foregroundColor(Palette.muted)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(16)
         .widgetURL(URL(string: "lifeglance://open"))
     }

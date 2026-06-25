@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 // Brand palette + helpers for the widget views, mirroring the web app's dark theme
 // tokens in src/index.css and the Android WidgetTheme.kt. Extension target only.
