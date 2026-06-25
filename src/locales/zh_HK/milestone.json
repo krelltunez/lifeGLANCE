@@ -33,7 +33,7 @@
   "trackAsDayglance": "追蹤為 dayGLANCE Goal",
   "trackAsDayglanceNote": "將在 dayGLANCE 中建立 Goals，並透過 WebDAV events path 同步 Goals 的狀態變更及完成日期。",
   "addToChapters": "收錄於章節:",
-  "closeChapterLabel": "進行中的章節將於此日結束",
+  "closeChapterLabel": "進行中的章節將於此日擱筆",
   "addToTimeline": "存入時光",
   "recurrenceCount_one": "{{count}}次週年約定",
   "recurrenceCount_other": "{{count}}次週年約定",
