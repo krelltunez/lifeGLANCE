@@ -69,6 +69,31 @@ App target (`ios/App/App/`):
 7. **Build & run**, then long-press the home screen → **＋** → search *lifeGLANCE* →
    add any of the three widgets.
 
+## Signing & distribution — do I need App Store Connect?
+
+**No new App Store Connect setup is required for the widgets.** Two different Apple
+sites are involved, and only the first matters here:
+
+- **Apple Developer portal** (developer.apple.com → *Certificates, Identifiers &
+  Profiles*) — where the extension's **App ID** (`com.lifeglance.LifeGlanceWidgets`) and
+  the **App Group** (`group.com.lifeglance`) are registered, with the App Group enabled
+  on **both** the app's and the extension's App IDs. With Xcode's *Automatically manage
+  signing* (the default), **Xcode does all of this for you** when you add the App Groups
+  capability in steps 2 and 4 — it registers the group, creates the extension App ID,
+  and regenerates provisioning profiles. You only touch the portal by hand if you use
+  **manual signing**, in which case register the App Group there and enable it on both
+  App IDs, then update the distribution profiles.
+
+- **App Store Connect** (appstoreconnect.apple.com) — app records, TestFlight, builds.
+  A widget extension is **embedded inside the existing app's build**, so there is **no
+  separate app or extension record to create** here. Nothing widget-specific to
+  configure. When you're ready to test on real devices beyond your own, upload a build
+  to **TestFlight** exactly as you would any release; the widget ships inside it.
+  (TestFlight is the iOS equivalent of Play's internal test track.)
+
+Local simulator / personal-device testing needs **none** of the above beyond the Xcode
+steps — automatic signing provisions the App Group on the fly.
+
 ## Notes
 
 - Widgets show empty states until the app has run once and pushed a snapshot.
