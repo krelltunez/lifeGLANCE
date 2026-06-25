@@ -16,7 +16,7 @@
   "deleteButton": "刪除章节",
   "deleteConfirmMsg": "刪去的只有章节卷目。那些里程碑依旧在这，静候新章节来诉说。",
   "confirmDelete": "[确认] 刪除章节卷目",
-  "errorStartRequired": "请为这段岁月填写“起始日期”",
+  "errorStartRequired": "请为这段岁月填写「起始日期」",
   "errorStartDayRange": "「起始日期」须在当月的1至{{max}}日之间",
   "errorEndRequired": "请为这段岁月填写「结束日期」，或者设为持续进行(不设期限)",
   "errorEndDayRange": "「结束日期」须在当月的1至{{max}}日之间",
