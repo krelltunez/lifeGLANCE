@@ -8,13 +8,35 @@ OUT_DIR="$SCRIPT_DIR/outputs"
 # Flags
 FULL_CLEAN=false
 RELEASE=false
-for arg in "$@"; do
-  case "$arg" in
-    --clean)   FULL_CLEAN=true ;;
-    --release) RELEASE=true ;;
-    *) echo "Unknown flag: $arg (valid flags: --clean, --release)" && exit 1 ;;
+VERSION_CODE=""
+VERSION_SUFFIX=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --clean)             FULL_CLEAN=true ;;
+    --release)           RELEASE=true ;;
+    --version-code)      shift; VERSION_CODE="$1" ;;
+    --version-code=*)    VERSION_CODE="${1#*=}" ;;
+    --version-suffix)    shift; VERSION_SUFFIX="$1" ;;
+    --version-suffix=*)  VERSION_SUFFIX="${1#*=}" ;;
+    *) echo "Unknown flag: $1 (valid flags: --clean, --release, --version-code N, --version-suffix S)" && exit 1 ;;
   esac
+  shift
 done
+
+# Interim builds for Play's internal test track: pass an explicit, strictly increasing
+# versionCode without bumping package.json. Plumbed to Gradle via env vars (see
+# android/app/build.gradle).
+if [ -n "$VERSION_CODE" ]; then
+  if ! [[ "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+    echo "--version-code must be a positive integer (got: $VERSION_CODE)" && exit 1
+  fi
+  export LIFEGLANCE_VERSION_CODE="$VERSION_CODE"
+  echo "==> Using interim versionCode: $VERSION_CODE"
+fi
+if [ -n "$VERSION_SUFFIX" ]; then
+  export LIFEGLANCE_VERSION_SUFFIX="$VERSION_SUFFIX"
+  echo "==> Using versionName suffix: -$VERSION_SUFFIX"
+fi
 
 # ── Dependencies ────────────────────────────────────────────────────────────
 echo "==> Installing npm dependencies..."

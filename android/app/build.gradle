@@ -5,9 +5,27 @@ apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 // Derive versionName/versionCode from package.json (e.g. 1.8.4 -> 10804).
 // Assumes a clean x.y.z version (no -beta suffix) and minor/patch < 100.
 def pkg = new groovy.json.JsonSlurper().parse(rootProject.file("../package.json"))
-def appVersionName = pkg.version as String
-def versionParts = appVersionName.tokenize('.')
-def appVersionCode = versionParts[0].toInteger() * 10000 + versionParts[1].toInteger() * 100 + versionParts[2].toInteger()
+def baseVersionName = pkg.version as String
+def versionParts = baseVersionName.tokenize('.')
+def derivedVersionCode = versionParts[0].toInteger() * 10000 + versionParts[1].toInteger() * 100 + versionParts[2].toInteger()
+
+// Interim builds for the Play internal test track need a unique, strictly increasing
+// versionCode without bumping package.json. Override it with -PplayVersionCode=NNNNN or
+// the LIFEGLANCE_VERSION_CODE env var (build.sh --version-code passes the latter).
+// Note: the derived scheme leaves no integer gap between patch releases (2.3.7 -> 20307,
+// 2.3.8 -> 20308), so pick an interim code deliberately — once Play sees a code it can
+// never be reused or undercut.
+def versionCodeOverride = project.findProperty('playVersionCode') ?: System.getenv('LIFEGLANCE_VERSION_CODE')
+def appVersionCode = versionCodeOverride ? versionCodeOverride.toString().trim().toInteger() : derivedVersionCode
+
+// Optionally tag the version name (e.g. "2.3.7-rc1") so testers can identify interim
+// builds. Set with -PversionNameSuffix=rc1 or the LIFEGLANCE_VERSION_SUFFIX env var.
+def versionSuffix = project.findProperty('versionNameSuffix') ?: System.getenv('LIFEGLANCE_VERSION_SUFFIX')
+def appVersionName = versionSuffix ? "${baseVersionName}-${versionSuffix}" : baseVersionName
+
+if (versionCodeOverride || versionSuffix) {
+    println "lifeGLANCE version override → code ${appVersionCode}, name ${appVersionName}"
+}
 
 // Load release signing config from android/key.properties (gitignored) when
 // present. Absent (e.g. CI or a machine without the keystore) -> unsigned release.
