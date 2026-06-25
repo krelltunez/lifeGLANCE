@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.LocalSize
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -71,6 +72,10 @@ class CurrentChapterWidget : GlanceAppWidget() {
                 return@Column
             }
 
+            // The smallest size only has room for the headline; the milestone count and
+            // progress bar are shown once the widget is tall enough so they never clip.
+            val tall = LocalSize.current.height >= 110.dp
+
             val accent = WidgetTheme.parseColor(chapter.color)
             Text(
                 text = "CHAPTER",
@@ -79,7 +84,7 @@ class CurrentChapterWidget : GlanceAppWidget() {
             Spacer(GlanceModifier.height(4.dp))
             Text(
                 text = chapter.title,
-                maxLines = 2,
+                maxLines = if (tall) 2 else 1,
                 style = TextStyle(color = ColorProvider(WidgetTheme.TEXT), fontFamily = FontFamily.Monospace, fontSize = 18.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(2.dp))
@@ -88,7 +93,7 @@ class CurrentChapterWidget : GlanceAppWidget() {
                 style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 12.sp),
             )
 
-            if (chapter.totalCount > 0) {
+            if (tall && chapter.totalCount > 0) {
                 Text(
                     text = "${chapter.passedCount}/${chapter.totalCount} milestones",
                     style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 11.sp),
@@ -96,9 +101,9 @@ class CurrentChapterWidget : GlanceAppWidget() {
             }
 
             // Bounded chapters get a time-elapsed progress bar; ongoing ones don't,
-            // since there's no end to measure against.
+            // since there's no end to measure against. Hidden at the smallest size.
             val fraction = WidgetData.progressFraction(chapter.start, chapter.end)
-            if (fraction != null) {
+            if (tall && fraction != null) {
                 Spacer(GlanceModifier.height(8.dp))
                 LinearProgressIndicator(
                     progress = fraction,

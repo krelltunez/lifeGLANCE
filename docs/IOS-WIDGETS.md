@@ -41,6 +41,12 @@ App target (`ios/App/App/`):
 
 ## Xcode steps
 
+> **First, from the repo root:** `npm run build:ios`. This builds the web bundle and
+> runs `cap sync ios` to stage it (and Capacitor plugins) into the native project — a
+> prerequisite, not part of the Xcode build below. It does **not** compile the app or
+> touch the widget extension target, and is safe to re-run. Run it again whenever you
+> change **web** code; pure Swift/widget changes only need an Xcode rebuild.
+
 1. **Open** `ios/App/App.xcworkspace`.
 
 2. **App Group on the App target** — select the **App** target → *Signing &
@@ -101,3 +107,22 @@ steps — automatic signing provisions the App Group on the fly.
 - No JS changes: `src/native/widgetBridge.js` already calls the `WidgetBridge` plugin
   (the Swift `jsName` matches), and `src/utils/widgetSnapshot.js` is the single source
   of the snapshot for both platforms.
+
+## Registering the WidgetBridge plugin (required)
+
+Capacitor auto-discovers plugins that ship as packages, but **not** plugins defined
+inside the app — so `WidgetBridge` reports *"plugin is not implemented on ios"* until
+it's registered explicitly. `MainViewController.swift` does this via the documented
+`capacitorDidLoad()` hook:
+
+```swift
+class MainViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginInstance(WidgetBridgePlugin())
+    }
+}
+```
+
+Add that file to the **App** target, then in **Main.storyboard** set the bridge view
+controller's **Custom Class** to `MainViewController` (Identity Inspector). Without
+this, snapshots never reach the App Group and every widget shows its empty state.
