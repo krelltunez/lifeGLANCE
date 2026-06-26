@@ -170,9 +170,9 @@ struct TimelineStripView: View {
                         .foregroundColor(Palette.amber)
                         .fixedSize()
                         .padding(.horizontal, 3)
-                        .padding(.bottom, 4)
+                        .padding(.vertical, 4)
                         .background(Palette.bg)
-                        .position(x: min(max(px(m.todayX), 22), w - 22), y: 11)
+                        .position(x: min(max(px(m.todayX), 22), w - 22), y: 13)
                 }
             }
         }
