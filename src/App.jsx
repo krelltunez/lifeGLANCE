@@ -145,7 +145,7 @@ export default function App() {
     const flush = () => {
       const birthday = localStorage.getItem('lifeglance-birthday') || null
       let pins = {}
-      try { pins = JSON.parse(localStorage.getItem('lifeglance-pins') || '{}') } catch {}
+      try { pins = JSON.parse(localStorage.getItem('lifeglance-pins') || '{}') } catch { /* ignore malformed pins */ }
       pushWidgetSnapshot(
         buildWidgetSnapshot(milestonesRef.current, chaptersRef.current, birthday, new Date(), pins)
       )
