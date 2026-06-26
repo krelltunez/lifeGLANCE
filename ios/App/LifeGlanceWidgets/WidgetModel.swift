@@ -58,7 +58,7 @@ struct WidgetSnapshot: Codable {
     let prev: WidgetMilestone?
     let currentChapter: WidgetChapter?
     let onThisDay: [WidgetMilestone]?
-    let pinned: WidgetMilestone?
+    let pins: [String: WidgetMilestone]?
     let counts: Counts?
 
     struct Counts: Codable {

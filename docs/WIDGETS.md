@@ -147,12 +147,17 @@ just a pull + rebuild.
   (all past, non-year milestones); each widget filters it to today's month/day at **render
   time**, so the midnight refresh shows the new day without the app re-pushing.
 
-### ✅ Phase 6 — Pinned countdown + Quick add
+### ✅ Phase 6 — Color-slot countdowns + Quick add
 Both platforms, no new native targets.
-- **Pinned countdown** — a countdown to a milestone the user pins **in the app** (a 📌
-  toggle in the milestone detail stores `lifeglance-pinned-milestone-id`; the snapshot
-  resolves it to `pinned`). This deliberately avoids per-widget configuration (Android
-  config Activity / iOS AppIntent) — a single app-side pin is simpler and cross-platform.
+- **Color-slot countdowns** — four pinnable slots (**amber / rose / teal / blue**), each
+  with its own dedicated countdown widget. A 📌 color-dot picker in the milestone detail
+  assigns a milestone to a slot (`lifeglance-pins` = `{slot: id}`); the snapshot resolves
+  set slots into `pins: {slot: milestone}` (unset slots omitted — never stored as null, so
+  the iOS `[String: Milestone]` decode is safe). Because each slot is a **separate widget
+  type** (its own receiver / `Widget` struct), several different milestones can be pinned
+  on the home screen at once **without** per-widget configuration (config Activity /
+  AppIntent). The slot color is the binding — it's the widget's accent. Implemented as one
+  shared view parameterized by slot + accent.
 - **Quick add** — a launcher widget that opens the app straight into the new-milestone
   sheet. Reuses the launch-target handoff, extended to carry an `action` ("new") alongside
   the existing `milestoneId` (Android intent extra `widget_action`; iOS `lifeglance://new`).

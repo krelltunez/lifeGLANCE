@@ -3,6 +3,7 @@ package com.lifeglance.app.widget
 import android.content.ComponentName
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,13 +32,15 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.lifeglance.app.MainActivity
 
-private val PINNED_MILESTONE_KEY = ActionParameters.Key<String>(MainActivity.EXTRA_WIDGET_MILESTONE_ID)
+private val SLOT_MILESTONE_KEY = ActionParameters.Key<String>(MainActivity.EXTRA_WIDGET_MILESTONE_ID)
 
 /**
- * "Pinned countdown" widget: a live countdown to the milestone the user pinned in the
- * app (stored as a single id; resolved into the snapshot as `pinned`).
+ * A countdown to the milestone pinned to one color slot. Each slot ("amber", "rose",
+ * "teal", "blue") has its own dedicated widget (the receivers below), so several pinned
+ * countdowns can live on the home screen without per-widget configuration. The slot's
+ * color is the binding — it's the accent and identifies which pin the widget tracks.
  */
-class PinnedCountdownWidget : GlanceAppWidget() {
+class SlotCountdownWidget(private val slot: String, private val accentArgb: Long) : GlanceAppWidget() {
     override val sizeMode = SizeMode.Responsive(
         setOf(
             DpSize(160.dp, 80.dp),
@@ -46,27 +49,27 @@ class PinnedCountdownWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val pinned = WidgetData.readSnapshot(context)?.pinned
+        val milestone = WidgetData.readSnapshot(context)?.pins?.get(slot)
         provideContent {
-            Content(context, pinned)
+            Content(context, milestone)
         }
     }
 
     @Composable
-    private fun Content(context: Context, pinned: WidgetData.Milestone?) {
-        val accent = WidgetTheme.parseColor(pinned?.color)
+    private fun Content(context: Context, milestone: WidgetData.Milestone?) {
+        val accent = Color(accentArgb)
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(ColorProvider(WidgetTheme.BG))
                 .cornerRadius(16.dp)
                 .padding(16.dp)
-                .clickable(openAction(context, pinned?.id)),
+                .clickable(openAction(context, milestone?.id)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (pinned == null) {
+            if (milestone == null) {
                 Text(
-                    text = "Pin a milestone in the app to track it here",
+                    text = "Pin a milestone to the $slot slot in the app",
                     maxLines = 3,
                     style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 12.sp),
                 )
@@ -79,17 +82,17 @@ class PinnedCountdownWidget : GlanceAppWidget() {
             )
             Spacer(GlanceModifier.height(4.dp))
             Text(
-                text = WidgetData.relativeLabel(pinned.date),
+                text = WidgetData.relativeLabel(milestone.date),
                 style = TextStyle(color = ColorProvider(WidgetTheme.TEXT), fontFamily = FontFamily.Monospace, fontSize = 22.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(2.dp))
             Text(
-                text = pinned.title,
+                text = milestone.title,
                 maxLines = 2,
                 style = TextStyle(color = ColorProvider(WidgetTheme.TEXT), fontFamily = FontFamily.Monospace, fontSize = 14.sp),
             )
             Text(
-                text = WidgetData.formatDateForPrecision(pinned.date, pinned.datePrecision),
+                text = WidgetData.formatDateForPrecision(milestone.date, milestone.datePrecision),
                 style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 11.sp),
             )
         }
@@ -98,11 +101,23 @@ class PinnedCountdownWidget : GlanceAppWidget() {
     private fun openAction(context: Context, milestoneId: String?) =
         actionStartActivity(
             ComponentName(context, MainActivity::class.java),
-            if (milestoneId != null) actionParametersOf(PINNED_MILESTONE_KEY to milestoneId)
+            if (milestoneId != null) actionParametersOf(SLOT_MILESTONE_KEY to milestoneId)
             else actionParametersOf(),
         )
 }
 
-class PinnedCountdownReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = PinnedCountdownWidget()
+class AmberCountdownReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = SlotCountdownWidget("amber", 0xFFC8A96E)
+}
+
+class RoseCountdownReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = SlotCountdownWidget("rose", 0xFFE85D75)
+}
+
+class TealCountdownReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = SlotCountdownWidget("teal", 0xFF38B2AC)
+}
+
+class BlueCountdownReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = SlotCountdownWidget("blue", 0xFF4A90D9)
 }

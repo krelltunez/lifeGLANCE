@@ -125,14 +125,18 @@ describe('buildWidgetSnapshot', () => {
     expect(snap.onThisDay.map(m => m.id)).toEqual(['newer', 'mid', 'older']) // desc by date
   })
 
-  it('resolves the pinned milestone by id (or null)', () => {
+  it('resolves color pin slots by id (or null per slot)', () => {
     const milestones = [
       ms({ id: 'a', title: 'A', date: '2027-01-01T12:00:00Z' }),
       ms({ id: 'b', title: 'B', date: '2028-01-01T12:00:00Z' }),
     ]
-    expect(buildWidgetSnapshot(milestones, [], null, NOW, 'b').pinned?.id).toBe('b')
-    expect(buildWidgetSnapshot(milestones, [], null, NOW, 'missing').pinned).toBeNull()
-    expect(buildWidgetSnapshot(milestones, [], null, NOW).pinned).toBeNull()
+    const snap = buildWidgetSnapshot(milestones, [], null, NOW, { amber: 'a', teal: 'b', rose: 'missing' })
+    expect(snap.pins.amber?.id).toBe('a')
+    expect(snap.pins.teal?.id).toBe('b')
+    // Unset / not-found slots are omitted entirely (no null values stored).
+    expect(snap.pins.rose).toBeUndefined()
+    expect(snap.pins.blue).toBeUndefined()
+    expect(buildWidgetSnapshot(milestones, [], null, NOW).pins).toEqual({})
   })
 
   it('counts milestones in the current calendar year', () => {
