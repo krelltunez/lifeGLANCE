@@ -107,10 +107,43 @@
                 android:resource="@xml/quick_add_widget_info" />
         </receiver>
 
-        <!-- Home-screen widget: pinned countdown -->
+        <!-- Home-screen widgets: pinned color-slot countdowns (one per slot) -->
         <receiver
-            android:name=".widget.PinnedCountdownReceiver"
-            android:label="@string/widget_pinned_label"
+            android:name=".widget.AmberCountdownReceiver"
+            android:label="@string/widget_pin_amber_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pinned_countdown_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.RoseCountdownReceiver"
+            android:label="@string/widget_pin_rose_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pinned_countdown_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.TealCountdownReceiver"
+            android:label="@string/widget_pin_teal_label"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pinned_countdown_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.BlueCountdownReceiver"
+            android:label="@string/widget_pin_blue_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

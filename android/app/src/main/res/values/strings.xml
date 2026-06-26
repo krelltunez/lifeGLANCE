@@ -23,6 +23,9 @@
     <string name="widget_quick_add_label">Add milestone</string>
     <string name="widget_quick_add_description">A one-tap shortcut to add a new milestone.</string>
 
-    <string name="widget_pinned_label">Pinned countdown</string>
-    <string name="widget_pinned_description">A countdown to a milestone you\'ve pinned in the app.</string>
+    <string name="widget_pin_amber_label">Countdown · amber</string>
+    <string name="widget_pin_rose_label">Countdown · rose</string>
+    <string name="widget_pin_teal_label">Countdown · teal</string>
+    <string name="widget_pin_blue_label">Countdown · blue</string>
+    <string name="widget_pinned_description">A countdown to the milestone pinned to this color slot in the app.</string>
 </resources>

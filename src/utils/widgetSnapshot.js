@@ -20,6 +20,11 @@ import { precomputeEndpoints, getMilestoneVisibility } from './visibility'
 
 export const WIDGET_SNAPSHOT_VERSION = 1
 
+// Color pin slots. Each can hold one milestone (set in the app); each has its own
+// dedicated home-screen widget, so several pinned countdowns can coexist without
+// per-widget configuration. Keep in sync with the native widgets and the pin UI.
+export const PIN_SLOTS = ['amber', 'rose', 'teal', 'blue']
+
 // Pares a milestone down to just what a widget renders.
 function projectMilestone(m) {
   if (!m) return null
@@ -48,7 +53,7 @@ function pickCurrentChapter(chapters, nowMs) {
   return best
 }
 
-export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = null, now = new Date(), pinnedId = null) {
+export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = null, now = new Date(), pins = {}) {
   const nowMs = now.getTime()
 
   // Keep only milestones that are visible on the main timeline.
@@ -108,9 +113,26 @@ export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = n
   const thisYear = now.getFullYear()
   const thisYearCount = visible.filter(m => new Date(m.date).getFullYear() === thisYear).length
 
-  // The milestone the user pinned in the app (by id), for the pinned-countdown widget.
-  // Resolved from all milestones (an explicit pin shows regardless of timeline visibility).
-  const pinned = pinnedId ? (milestones.find(m => m.id === pinnedId) ?? null) : null
+  // Resolve each color pin slot (slot → milestone id, set in the app) to its milestone.
+  // Only set+found slots are included — unset slots are omitted, not stored as null, so
+  // the iOS [String: Milestone] decode never sees a null value. Pinned milestones show
+  // regardless of timeline visibility (the pin is explicit).
+  const resolvedPins = {}
+  for (const slot of PIN_SLOTS) {
+    const id = pins?.[slot]
+    const m = id ? milestones.find(x => x.id === id) : null
+    if (m) resolvedPins[slot] = projectMilestone(m)
+  }
+
+  // Bounded set of the milestones nearest today (≤10 each side, by date) for the
+  // timeline-strip widget. The widget auto-fits a window and positions these against
+  // the render-time "today" so the marker stays correct between pushes.
+  const splitAt = sorted.findIndex(m => new Date(m.date).getTime() >= nowMs)
+  const futureStart = splitAt === -1 ? sorted.length : splitAt
+  const strip = [
+    ...sorted.slice(Math.max(0, futureStart - 10), futureStart),
+    ...sorted.slice(futureStart, futureStart + 10),
+  ].map(projectMilestone)
 
   return {
     version:        WIDGET_SNAPSHOT_VERSION,
@@ -120,7 +142,8 @@ export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = n
     prev:           projectMilestone(prev),
     currentChapter,
     onThisDay,
-    pinned:         projectMilestone(pinned),
+    pins:           resolvedPins,
+    strip,
     counts:         { past, future, total: past + future, thisYear: thisYearCount },
   }
 }

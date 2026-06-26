@@ -125,14 +125,32 @@ describe('buildWidgetSnapshot', () => {
     expect(snap.onThisDay.map(m => m.id)).toEqual(['newer', 'mid', 'older']) // desc by date
   })
 
-  it('resolves the pinned milestone by id (or null)', () => {
+  it('resolves color pin slots by id (or null per slot)', () => {
     const milestones = [
       ms({ id: 'a', title: 'A', date: '2027-01-01T12:00:00Z' }),
       ms({ id: 'b', title: 'B', date: '2028-01-01T12:00:00Z' }),
     ]
-    expect(buildWidgetSnapshot(milestones, [], null, NOW, 'b').pinned?.id).toBe('b')
-    expect(buildWidgetSnapshot(milestones, [], null, NOW, 'missing').pinned).toBeNull()
-    expect(buildWidgetSnapshot(milestones, [], null, NOW).pinned).toBeNull()
+    const snap = buildWidgetSnapshot(milestones, [], null, NOW, { amber: 'a', teal: 'b', rose: 'missing' })
+    expect(snap.pins.amber?.id).toBe('a')
+    expect(snap.pins.teal?.id).toBe('b')
+    // Unset / not-found slots are omitted entirely (no null values stored).
+    expect(snap.pins.rose).toBeUndefined()
+    expect(snap.pins.blue).toBeUndefined()
+    expect(buildWidgetSnapshot(milestones, [], null, NOW).pins).toEqual({})
+  })
+
+  it('builds the timeline-strip set (nearest milestones, date-sorted, capped per side)', () => {
+    // 12 past + 12 future; strip keeps the nearest 10 of each, ascending by date.
+    const milestones = []
+    for (let i = 1; i <= 12; i++) milestones.push(ms({ id: `p${i}`, date: `${2026 - i}-06-20T12:00:00Z` }))
+    for (let i = 1; i <= 12; i++) milestones.push(ms({ id: `f${i}`, date: `${2026 + i}-06-20T12:00:00Z` }))
+    const snap = buildWidgetSnapshot(milestones, [], null, NOW)
+    expect(snap.strip.length).toBe(20) // 10 past + 10 future
+    const dates = snap.strip.map(m => +new Date(m.date))
+    expect(dates).toEqual([...dates].sort((a, b) => a - b)) // ascending
+    // The very farthest (p12 = 2014, f12 = 2038) are dropped.
+    expect(snap.strip.find(m => m.id === 'p12')).toBeUndefined()
+    expect(snap.strip.find(m => m.id === 'f12')).toBeUndefined()
   })
 
   it('counts milestones in the current calendar year', () => {

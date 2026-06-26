@@ -176,16 +176,17 @@ struct OnThisDayView: View {
     }
 }
 
-// MARK: - Pinned countdown
+// MARK: - Pinned color-slot countdown
 
-struct PinnedCountdownView: View {
+struct PinnedSlotView: View {
     let entry: SnapshotEntry
+    let slot: String
+    let accent: Color
 
     var body: some View {
-        let pinned = entry.snapshot?.pinned
+        let pinned = entry.snapshot?.pins?[slot]
         VStack(alignment: .leading, spacing: 2) {
             if let pinned = pinned {
-                let accent = Color(hex: pinned.color, fallback: Palette.amber)
                 Text("PINNED").font(mono(10, .bold)).foregroundColor(accent)
                 Text(WidgetDate.relativeLabel(pinned.date))
                     .font(mono(22, .bold)).foregroundColor(Palette.text)
@@ -193,7 +194,7 @@ struct PinnedCountdownView: View {
                 Text(WidgetDate.formatDate(pinned.date, precision: pinned.datePrecision ?? "day"))
                     .font(mono(11)).foregroundColor(Palette.muted)
             } else {
-                Text("Pin a milestone in the app to track it here")
+                Text("Pin a milestone to the \(slot) slot in the app")
                     .font(mono(12)).foregroundColor(Palette.muted).lineLimit(3)
             }
         }

@@ -12,7 +12,44 @@ struct LifeGlanceWidgetsBundle: WidgetBundle {
         OnThisDayWidget()
         StatsWidget()
         QuickAddWidget()
-        PinnedCountdownWidget()
+        TimelineStripWidget()
+        AmberCountdownWidget()
+        RoseCountdownWidget()
+        TealCountdownWidget()
+        BlueCountdownWidget()
+    }
+}
+
+// Each color slot is its own widget (so several pinned countdowns can coexist without
+// per-widget configuration). They share PinnedSlotView, parameterized by slot + accent.
+private func slotConfig(kind: String, slot: String, accentHex: String, name: String) -> some WidgetConfiguration {
+    StaticConfiguration(kind: kind, provider: SnapshotProvider()) { entry in
+        PinnedSlotView(entry: entry, slot: slot, accent: Color(hex: accentHex, fallback: Palette.amber))
+            .widgetBackground(Palette.bg)
+    }
+    .configurationDisplayName(name)
+    .description("A countdown to the milestone pinned to this color slot in the app.")
+    .supportedFamilies([.systemSmall, .systemMedium])
+}
+
+struct AmberCountdownWidget: Widget {
+    var body: some WidgetConfiguration {
+        slotConfig(kind: "PinnedAmber", slot: "amber", accentHex: "C8A96E", name: "Countdown · amber")
+    }
+}
+struct RoseCountdownWidget: Widget {
+    var body: some WidgetConfiguration {
+        slotConfig(kind: "PinnedRose", slot: "rose", accentHex: "E85D75", name: "Countdown · rose")
+    }
+}
+struct TealCountdownWidget: Widget {
+    var body: some WidgetConfiguration {
+        slotConfig(kind: "PinnedTeal", slot: "teal", accentHex: "38B2AC", name: "Countdown · teal")
+    }
+}
+struct BlueCountdownWidget: Widget {
+    var body: some WidgetConfiguration {
+        slotConfig(kind: "PinnedBlue", slot: "blue", accentHex: "4A90D9", name: "Countdown · blue")
     }
 }
 
@@ -82,13 +119,13 @@ struct QuickAddWidget: Widget {
     }
 }
 
-struct PinnedCountdownWidget: Widget {
+struct TimelineStripWidget: Widget {
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: "PinnedCountdownWidget", provider: SnapshotProvider()) { entry in
-            PinnedCountdownView(entry: entry).widgetBackground(Palette.bg)
+        StaticConfiguration(kind: "TimelineStripWidget", provider: SnapshotProvider()) { entry in
+            TimelineStripView(entry: entry).widgetBackground(Palette.bg)
         }
-        .configurationDisplayName("Pinned countdown")
-        .description("A countdown to a milestone you've pinned in the app.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .configurationDisplayName("Timeline")
+        .description("A glance at your timeline around today.")
+        .supportedFamilies([.systemMedium, .systemLarge, .systemExtraLarge])
     }
 }

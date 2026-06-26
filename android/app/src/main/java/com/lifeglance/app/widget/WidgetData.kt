@@ -56,7 +56,7 @@ object WidgetData {
         val currentChapter: Chapter?,
         val birthday: String?,
         val onThisDay: List<Milestone>,
-        val pinned: Milestone?,
+        val pins: Map<String, Milestone>,
         val pastCount: Int,
         val futureCount: Int,
         val totalCount: Int,
@@ -74,7 +74,7 @@ object WidgetData {
                 currentChapter = parseChapter(obj.optJSONObject("currentChapter")),
                 birthday = obj.stringOrNull("birthday"),
                 onThisDay = parseMilestoneArray(obj.optJSONArray("onThisDay")),
-                pinned = parseMilestone(obj.optJSONObject("pinned")),
+                pins = parsePins(obj.optJSONObject("pins")),
                 pastCount = counts?.optInt("past", 0) ?: 0,
                 futureCount = counts?.optInt("future", 0) ?: 0,
                 totalCount = counts?.optInt("total", 0) ?: 0,
@@ -90,6 +90,18 @@ object WidgetData {
         val out = ArrayList<Milestone>(arr.length())
         for (i in 0 until arr.length()) {
             parseMilestone(arr.optJSONObject(i))?.let { out.add(it) }
+        }
+        return out
+    }
+
+    // { slot -> milestone | null }; only non-null slots are kept.
+    private fun parsePins(obj: JSONObject?): Map<String, Milestone> {
+        if (obj == null) return emptyMap()
+        val out = HashMap<String, Milestone>()
+        val keys = obj.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            parseMilestone(obj.optJSONObject(key))?.let { out[key] = it }
         }
         return out
     }
@@ -244,7 +256,10 @@ object WidgetData {
             CurrentChapterReceiver::class.java,
             OnThisDayReceiver::class.java,
             StatsReceiver::class.java,
-            PinnedCountdownReceiver::class.java,
+            AmberCountdownReceiver::class.java,
+            RoseCountdownReceiver::class.java,
+            TealCountdownReceiver::class.java,
+            BlueCountdownReceiver::class.java,
         )
         val mgr = AppWidgetManager.getInstance(context)
         for (cls in receivers) {

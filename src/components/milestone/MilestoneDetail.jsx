@@ -4,7 +4,18 @@ import { Capacitor } from '@capacitor/core'
 import { formatDateDisplay, relativeLabel, ageAtDate } from '../../utils/dates'
 import { dbGetMedia, dbGetPhoto } from '../../data/db'
 
-const PINNED_KEY = 'lifeglance-pinned-milestone-id'
+const PINS_KEY = 'lifeglance-pins'
+// Color pin slots — each maps to its own countdown widget. Keep in sync with PIN_SLOTS
+// in widgetSnapshot.js and the native slot widgets.
+const PIN_SLOTS = [
+  { id: 'amber', color: '#C8A96E' },
+  { id: 'rose',  color: '#E85D75' },
+  { id: 'teal',  color: '#38B2AC' },
+  { id: 'blue',  color: '#4A90D9' },
+]
+const readPins = () => {
+  try { return JSON.parse(localStorage.getItem(PINS_KEY) || '{}') } catch { return {} }
+}
 
 export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, categories = [] }) {
   const { t, i18n } = useTranslation('milestone')
@@ -12,15 +23,17 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
   const [audioUrl,  setAudioUrl]  = useState(null)
   const [photoUrl,  setPhotoUrl]  = useState(null)
   const [confirm,   setConfirm]   = useState(null)
-  const [pinned,    setPinned]    = useState(() => localStorage.getItem(PINNED_KEY) === m.id)
+  const [pins,      setPins]      = useState(readPins)
 
-  // The pinned-countdown widget reads a single pinned milestone id. Toggling here
-  // updates it and nudges the widget snapshot to re-push. Native shells only.
+  // Each color slot maps to its own countdown widget. Tapping a slot pins this milestone
+  // to it (or clears it), then nudges the widget snapshot to re-push. Native shells only.
   const canPin = Capacitor.isNativePlatform()
-  function togglePin() {
-    if (pinned) localStorage.removeItem(PINNED_KEY)
-    else        localStorage.setItem(PINNED_KEY, m.id)
-    setPinned(!pinned)
+  function toggleSlot(slot) {
+    const next = { ...readPins() }
+    if (next[slot] === m.id) delete next[slot]
+    else next[slot] = m.id
+    localStorage.setItem(PINS_KEY, JSON.stringify(next))
+    setPins(next)
     window.dispatchEvent(new Event('lifeglance:widget-refresh'))
   }
 
@@ -184,11 +197,25 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
             </div>
             <div className="sheet-actions-right">
               {canPin && (
-                <button className="btn-ghost" onClick={togglePin}
-                  title={pinned ? 'Unpin from widget' : 'Pin to countdown widget'}
-                  style={{ color: pinned ? 'var(--amber)' : undefined }}>
-                  {pinned ? '📌 Pinned' : '📌 Pin'}
-                </button>
+                <div className="detail-pin-slots" title="Pin to a countdown widget"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '6px' }}>
+                  <span style={{ fontSize: '0.85rem', opacity: 0.7 }}>📌</span>
+                  {PIN_SLOTS.map(s => {
+                    const active = pins[s.id] === m.id
+                    return (
+                      <button key={s.id} type="button" onClick={() => toggleSlot(s.id)}
+                        title={active ? `Unpin from ${s.id} widget` : `Pin to ${s.id} widget`}
+                        aria-label={active ? `Unpin from ${s.id} widget` : `Pin to ${s.id} widget`}
+                        aria-pressed={active}
+                        style={{
+                          width: '18px', height: '18px', borderRadius: '50%', padding: 0,
+                          border: `2px solid ${s.color}`,
+                          background: active ? s.color : 'transparent',
+                          cursor: 'pointer',
+                        }} />
+                    )
+                  })}
+                </div>
               )}
               <button className="btn" onClick={() => { onClose(); onEdit(m) }}
                 style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
