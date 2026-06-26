@@ -59,6 +59,7 @@ struct WidgetSnapshot: Codable {
     let currentChapter: WidgetChapter?
     let onThisDay: [WidgetMilestone]?
     let pins: [String: WidgetMilestone]?
+    let strip: [WidgetMilestone]?
     let counts: Counts?
 
     struct Counts: Codable {
@@ -211,6 +212,10 @@ enum WidgetDate {
 
     static func weekday() -> String { formatToday("EEEE") }
     static func todayLong() -> String { formatToday("MMMM d, yyyy") }
+
+    // Exposed for the timeline-strip widget, which positions milestones by date.
+    static func calendarDate(_ iso: String) -> Date? { dateOnly(iso) }
+    static func todayDate() -> Date { today() }
 
     private static func formatToday(_ pattern: String) -> String {
         let formatter = DateFormatter()

@@ -139,6 +139,20 @@ describe('buildWidgetSnapshot', () => {
     expect(buildWidgetSnapshot(milestones, [], null, NOW).pins).toEqual({})
   })
 
+  it('builds the timeline-strip set (nearest milestones, date-sorted, capped per side)', () => {
+    // 12 past + 12 future; strip keeps the nearest 10 of each, ascending by date.
+    const milestones = []
+    for (let i = 1; i <= 12; i++) milestones.push(ms({ id: `p${i}`, date: `${2026 - i}-06-20T12:00:00Z` }))
+    for (let i = 1; i <= 12; i++) milestones.push(ms({ id: `f${i}`, date: `${2026 + i}-06-20T12:00:00Z` }))
+    const snap = buildWidgetSnapshot(milestones, [], null, NOW)
+    expect(snap.strip.length).toBe(20) // 10 past + 10 future
+    const dates = snap.strip.map(m => +new Date(m.date))
+    expect(dates).toEqual([...dates].sort((a, b) => a - b)) // ascending
+    // The very farthest (p12 = 2014, f12 = 2038) are dropped.
+    expect(snap.strip.find(m => m.id === 'p12')).toBeUndefined()
+    expect(snap.strip.find(m => m.id === 'f12')).toBeUndefined()
+  })
+
   it('counts milestones in the current calendar year', () => {
     const milestones = [
       ms({ date: '2026-03-01T12:00:00Z' }),

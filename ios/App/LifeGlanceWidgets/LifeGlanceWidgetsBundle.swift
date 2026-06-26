@@ -12,6 +12,7 @@ struct LifeGlanceWidgetsBundle: WidgetBundle {
         OnThisDayWidget()
         StatsWidget()
         QuickAddWidget()
+        TimelineStripWidget()
         AmberCountdownWidget()
         RoseCountdownWidget()
         TealCountdownWidget()
@@ -115,5 +116,16 @@ struct QuickAddWidget: Widget {
         .configurationDisplayName("Add milestone")
         .description("A one-tap shortcut to add a new milestone.")
         .supportedFamilies([.systemSmall])
+    }
+}
+
+struct TimelineStripWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "TimelineStripWidget", provider: SnapshotProvider()) { entry in
+            TimelineStripView(entry: entry).widgetBackground(Palette.bg)
+        }
+        .configurationDisplayName("Timeline")
+        .description("A glance at your timeline around today.")
+        .supportedFamilies([.systemMedium, .systemLarge, .systemExtraLarge])
     }
 }

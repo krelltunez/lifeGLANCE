@@ -124,6 +124,16 @@ export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = n
     if (m) resolvedPins[slot] = projectMilestone(m)
   }
 
+  // Bounded set of the milestones nearest today (≤10 each side, by date) for the
+  // timeline-strip widget. The widget auto-fits a window and positions these against
+  // the render-time "today" so the marker stays correct between pushes.
+  const splitAt = sorted.findIndex(m => new Date(m.date).getTime() >= nowMs)
+  const futureStart = splitAt === -1 ? sorted.length : splitAt
+  const strip = [
+    ...sorted.slice(Math.max(0, futureStart - 10), futureStart),
+    ...sorted.slice(futureStart, futureStart + 10),
+  ].map(projectMilestone)
+
   return {
     version:        WIDGET_SNAPSHOT_VERSION,
     generatedAt:    now.toISOString(),
@@ -133,6 +143,7 @@ export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = n
     currentChapter,
     onThisDay,
     pins:           resolvedPins,
+    strip,
     counts:         { past, future, total: past + future, thisYear: thisYearCount },
   }
 }
