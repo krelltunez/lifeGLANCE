@@ -44,11 +44,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     private func handleWidgetDeepLink(_ url: URL) {
-        guard url.scheme == "lifeglance", url.host == "milestone",
-              let comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let id = comps.queryItems?.first(where: { $0.name == "id" })?.value
-        else { return }
-        UserDefaults(suiteName: "group.com.lifeglance")?.set(id, forKey: "pending_target")
+        guard url.scheme == "lifeglance" else { return }
+        let defaults = UserDefaults(suiteName: "group.com.lifeglance")
+        switch url.host {
+        case "milestone":
+            if let comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
+               let id = comps.queryItems?.first(where: { $0.name == "id" })?.value {
+                defaults?.set(id, forKey: "pending_target")
+            }
+        case "new":
+            defaults?.set("new", forKey: "pending_action")
+        default:
+            break
+        }
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {

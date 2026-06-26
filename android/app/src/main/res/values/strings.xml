@@ -19,4 +19,10 @@
 
     <string name="widget_stats_label">Milestones</string>
     <string name="widget_stats_description">Your milestone totals: past, ahead, this year, and your age.</string>
+
+    <string name="widget_quick_add_label">Add milestone</string>
+    <string name="widget_quick_add_description">A one-tap shortcut to add a new milestone.</string>
+
+    <string name="widget_pinned_label">Pinned countdown</string>
+    <string name="widget_pinned_description">A countdown to a milestone you\'ve pinned in the app.</string>
 </resources>

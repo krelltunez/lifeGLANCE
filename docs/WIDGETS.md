@@ -143,9 +143,19 @@ just a pull + rebuild.
   with "N years ago · date". Shows more rows as the widget grows.
 - **Milestones (stats)** — total with a past/ahead split, plus this-year count and age
   at the larger size.
-- Snapshot gained `onThisDay: Milestone[]` and `counts.thisYear`. `onThisDay` is computed
-  at build time, so it's as fresh as the last snapshot push (fine for a timeline app
-  opened regularly; a follow-up could move the filter to render time for staleness-proofing).
+- Snapshot gained `onThisDay` and `counts.thisYear`. `onThisDay` is the **candidate pool**
+  (all past, non-year milestones); each widget filters it to today's month/day at **render
+  time**, so the midnight refresh shows the new day without the app re-pushing.
+
+### ✅ Phase 6 — Pinned countdown + Quick add
+Both platforms, no new native targets.
+- **Pinned countdown** — a countdown to a milestone the user pins **in the app** (a 📌
+  toggle in the milestone detail stores `lifeglance-pinned-milestone-id`; the snapshot
+  resolves it to `pinned`). This deliberately avoids per-widget configuration (Android
+  config Activity / iOS AppIntent) — a single app-side pin is simpler and cross-platform.
+- **Quick add** — a launcher widget that opens the app straight into the new-milestone
+  sheet. Reuses the launch-target handoff, extended to carry an `action` ("new") alongside
+  the existing `milestoneId` (Android intent extra `widget_action`; iOS `lifeglance://new`).
 
 ---
 
@@ -155,10 +165,9 @@ just a pull + rebuild.
 - **Mini-timeline strip** — a rendered slice of the timeline around today. Highest
   "wow," hardest (native canvas or a cached bitmap from the web app). Deferred by
   decision.
-- **Pinned countdown** — user picks one milestone via a config Activity (Android) /
-  AppIntent configuration (iOS).
-- **Quick-add button** — launcher deep-linking into "New milestone" (`N`); needs a small
-  app-side action handler beyond the current milestone-id launch target.
+- **Per-widget configurable pin** — if a single global pin proves limiting, add real
+  configurable widgets (Android config Activity / iOS AppIntent) so each placed widget
+  can target a different milestone.
 
 ---
 

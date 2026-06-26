@@ -14,6 +14,8 @@ public class MainActivity extends BridgeActivity {
 
     // Extra carrying the milestone id a widget tap wants the app to focus.
     public static final String EXTRA_WIDGET_MILESTONE_ID = "widget_milestone_id";
+    // Extra carrying a widget action (e.g. "new" from the quick-add widget).
+    public static final String EXTRA_WIDGET_ACTION = "widget_action";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -35,12 +37,14 @@ public class MainActivity extends BridgeActivity {
     private void handleWidgetIntent(Intent intent) {
         if (intent == null) return;
         String milestoneId = intent.getStringExtra(EXTRA_WIDGET_MILESTONE_ID);
-        if (milestoneId == null) return;
-        getSharedPreferences(WidgetData.PREFS, MODE_PRIVATE)
-            .edit()
-            .putString(WidgetData.KEY_PENDING_TARGET, milestoneId)
-            .apply();
+        String action      = intent.getStringExtra(EXTRA_WIDGET_ACTION);
+        if (milestoneId == null && action == null) return;
+        var editor = getSharedPreferences(WidgetData.PREFS, MODE_PRIVATE).edit();
+        if (milestoneId != null) editor.putString(WidgetData.KEY_PENDING_TARGET, milestoneId);
+        if (action != null)      editor.putString(WidgetData.KEY_PENDING_ACTION, action);
+        editor.apply();
         intent.removeExtra(EXTRA_WIDGET_MILESTONE_ID);
+        intent.removeExtra(EXTRA_WIDGET_ACTION);
     }
 
     @Override

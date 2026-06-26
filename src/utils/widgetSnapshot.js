@@ -48,7 +48,7 @@ function pickCurrentChapter(chapters, nowMs) {
   return best
 }
 
-export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = null, now = new Date()) {
+export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = null, now = new Date(), pinnedId = null) {
   const nowMs = now.getTime()
 
   // Keep only milestones that are visible on the main timeline.
@@ -95,25 +95,22 @@ export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = n
     }
   }
 
-  // "On this day": past milestones sharing today's month (and day, for day-precision),
-  // mirroring the OnThisDayModal filter. Most recent first. Computed at build time, so
-  // it's as fresh as the last snapshot push (the app pushes on foreground/background).
-  const todayMonth = now.getMonth() + 1
-  const todayDay   = now.getDate()
+  // Candidate pool for the "On This Day" widget: every past, dated (non-year-precision)
+  // milestone, most-recent first. The widget filters this down to today's month/day at
+  // RENDER time, so it stays correct across midnight (when the widget re-renders) without
+  // the app having to re-push the snapshot.
   const onThisDay = visible
-    .filter(m => {
-      const d = new Date(m.date)
-      if (d >= now) return false
-      if (m.date_precision === 'year') return false
-      if (d.getMonth() + 1 !== todayMonth) return false
-      return m.date_precision === 'month' || d.getDate() === todayDay
-    })
+    .filter(m => m.date_precision !== 'year' && new Date(m.date) < now)
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .map(projectMilestone)
 
   // Milestones dated within the current calendar year (for the stats widget).
   const thisYear = now.getFullYear()
   const thisYearCount = visible.filter(m => new Date(m.date).getFullYear() === thisYear).length
+
+  // The milestone the user pinned in the app (by id), for the pinned-countdown widget.
+  // Resolved from all milestones (an explicit pin shows regardless of timeline visibility).
+  const pinned = pinnedId ? (milestones.find(m => m.id === pinnedId) ?? null) : null
 
   return {
     version:        WIDGET_SNAPSHOT_VERSION,
@@ -123,6 +120,7 @@ export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = n
     prev:           projectMilestone(prev),
     currentChapter,
     onThisDay,
+    pinned:         projectMilestone(pinned),
     counts:         { past, future, total: past + future, thisYear: thisYearCount },
   }
 }

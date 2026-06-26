@@ -28,11 +28,14 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve()
     }
 
-    // Returns and clears a pending deep-link target left by a widget tap.
+    // Returns and clears a pending deep-link target / action left by a widget tap.
     @objc func consumeLaunchTarget(_ call: CAPPluginCall) {
         var result = JSObject()
         if let target = WidgetStore.consumePendingTarget() {
             result["milestoneId"] = target
+        }
+        if let action = WidgetStore.consumePendingAction() {
+            result["action"] = action
         }
         call.resolve(result)
     }

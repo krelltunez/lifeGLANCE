@@ -481,6 +481,11 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     const handleTarget = async () => {
       const target = await consumeWidgetLaunchTarget()
       if (!target) return
+      if (target.action === 'new') {   // quick-add widget
+        setEditTarget(null)
+        setAddOpen(true)
+        return
+      }
       const m = milestonesRef.current.find(x => x.id === target.milestoneId)
       if (!m) return
       setSelectedId(m.id)

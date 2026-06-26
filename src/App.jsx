@@ -144,8 +144,9 @@ export default function App() {
 
     const flush = () => {
       const birthday = localStorage.getItem('lifeglance-birthday') || null
+      const pinnedId = localStorage.getItem('lifeglance-pinned-milestone-id') || null
       pushWidgetSnapshot(
-        buildWidgetSnapshot(milestonesRef.current, chaptersRef.current, birthday)
+        buildWidgetSnapshot(milestonesRef.current, chaptersRef.current, birthday, new Date(), pinnedId)
       )
     }
 
