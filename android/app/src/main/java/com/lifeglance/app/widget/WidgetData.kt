@@ -22,6 +22,7 @@ object WidgetData {
     const val PREFS = "lifeglance_widget"
     const val KEY_SNAPSHOT = "snapshot"
     const val KEY_PENDING_TARGET = "pending_target"
+    const val KEY_PENDING_ACTION = "pending_action"
 
     fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -55,6 +56,7 @@ object WidgetData {
         val currentChapter: Chapter?,
         val birthday: String?,
         val onThisDay: List<Milestone>,
+        val pinned: Milestone?,
         val pastCount: Int,
         val futureCount: Int,
         val totalCount: Int,
@@ -72,6 +74,7 @@ object WidgetData {
                 currentChapter = parseChapter(obj.optJSONObject("currentChapter")),
                 birthday = obj.stringOrNull("birthday"),
                 onThisDay = parseMilestoneArray(obj.optJSONArray("onThisDay")),
+                pinned = parseMilestone(obj.optJSONObject("pinned")),
                 pastCount = counts?.optInt("past", 0) ?: 0,
                 futureCount = counts?.optInt("future", 0) ?: 0,
                 totalCount = counts?.optInt("total", 0) ?: 0,
@@ -134,6 +137,17 @@ object WidgetData {
     fun yearsAgo(iso: String, today: LocalDate = LocalDate.now()): Int {
         val date = localDateOf(iso) ?: return 0
         return (today.year - date.year).coerceAtLeast(0)
+    }
+
+    /**
+     * True when a milestone shares today's month (and day, for day-precision). The On
+     * This Day widget applies this at render time so the midnight refresh shows the new
+     * day's matches without the app re-pushing the snapshot.
+     */
+    fun isOnThisDay(iso: String, precision: String, today: LocalDate = LocalDate.now()): Boolean {
+        val date = localDateOf(iso) ?: return false
+        if (date.monthValue != today.monthValue) return false
+        return precision == "month" || date.dayOfMonth == today.dayOfMonth
     }
 
     /** Mirrors the web app's relativeLabel(): "in 3 days", "2 yrs, 1 mo ago", "today". */
@@ -230,6 +244,7 @@ object WidgetData {
             CurrentChapterReceiver::class.java,
             OnThisDayReceiver::class.java,
             StatsReceiver::class.java,
+            PinnedCountdownReceiver::class.java,
         )
         val mgr = AppWidgetManager.getInstance(context)
         for (cls in receivers) {

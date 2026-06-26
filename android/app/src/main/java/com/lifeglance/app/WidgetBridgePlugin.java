@@ -48,11 +48,16 @@ public class WidgetBridgePlugin extends Plugin {
         Context ctx = getContext();
         SharedPreferences prefs = ctx.getSharedPreferences(WidgetData.PREFS, Context.MODE_PRIVATE);
         String target = prefs.getString(WidgetData.KEY_PENDING_TARGET, null);
-        if (target != null) {
-            prefs.edit().remove(WidgetData.KEY_PENDING_TARGET).apply();
+        String action = prefs.getString(WidgetData.KEY_PENDING_ACTION, null);
+        if (target != null || action != null) {
+            prefs.edit()
+                .remove(WidgetData.KEY_PENDING_TARGET)
+                .remove(WidgetData.KEY_PENDING_ACTION)
+                .apply();
         }
         JSObject ret = new JSObject();
         ret.put("milestoneId", target); // null when nothing is pending
+        ret.put("action", action);
         call.resolve(ret);
     }
 }

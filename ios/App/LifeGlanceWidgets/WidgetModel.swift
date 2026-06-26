@@ -16,6 +16,7 @@ enum WidgetStore {
     static let appGroupId = "group.com.lifeglance"
     static let keySnapshot = "snapshot"
     static let keyPendingTarget = "pending_target"
+    static let keyPendingAction = "pending_action"
 
     private static var defaults: UserDefaults? { UserDefaults(suiteName: appGroupId) }
 
@@ -39,6 +40,13 @@ enum WidgetStore {
         defaults?.removeObject(forKey: keyPendingTarget)
         return target
     }
+
+    // Returns and clears a pending widget action (e.g. "new" from quick-add).
+    static func consumePendingAction() -> String? {
+        guard let action = defaults?.string(forKey: keyPendingAction) else { return nil }
+        defaults?.removeObject(forKey: keyPendingAction)
+        return action
+    }
 }
 
 // MARK: - Snapshot model (decodes the JSON the web app pushes)
@@ -50,6 +58,7 @@ struct WidgetSnapshot: Codable {
     let prev: WidgetMilestone?
     let currentChapter: WidgetChapter?
     let onThisDay: [WidgetMilestone]?
+    let pinned: WidgetMilestone?
     let counts: Counts?
 
     struct Counts: Codable {
@@ -167,6 +176,15 @@ enum WidgetDate {
         let then = utcCalendar.component(.year, from: date)
         let nowYear = utcCalendar.component(.year, from: today())
         return max(nowYear - then, 0)
+    }
+
+    /// True when a milestone shares today's month (and day, for day-precision). Applied
+    /// at render time so the midnight timeline refresh shows the new day's matches.
+    static func isOnThisDay(_ iso: String, precision: String) -> Bool {
+        guard let date = dateOnly(iso) else { return false }
+        let t = today()
+        if utcCalendar.component(.month, from: date) != utcCalendar.component(.month, from: t) { return false }
+        return precision == "month" || utcCalendar.component(.day, from: date) == utcCalendar.component(.day, from: t)
     }
 
     /// Time-elapsed progress through a bounded chapter as 0...1, or nil if ongoing.

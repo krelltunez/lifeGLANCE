@@ -111,17 +111,28 @@ describe('buildWidgetSnapshot', () => {
     expect(buildWidgetSnapshot([], [], '', NOW).birthday).toBeNull()
   })
 
-  it('collects on-this-day milestones (past, same month/day, not year-precision)', () => {
+  it('builds the on-this-day pool: past, dated (non-year) milestones, most recent first', () => {
+    // The pool is NOT filtered to today's date — the widget does that at render time so it
+    // stays fresh across midnight. So all past, non-year milestones are included here.
     const milestones = [
-      ms({ id: 'match-day',   title: 'Wedding', date: '2018-06-20T12:00:00Z' }),                         // same month+day, past → in
-      ms({ id: 'match-month', title: 'Move',    date: '2019-06-05T12:00:00Z', date_precision: 'month' }), // same month, month-precision → in
-      ms({ id: 'diff-day',    title: 'Other',   date: '2018-06-21T12:00:00Z' }),                         // same month, different day → out
-      ms({ id: 'year-prec',   title: 'Born',    date: '2000-06-20T12:00:00Z', date_precision: 'year' }),  // year-precision → out
-      ms({ id: 'future',      title: 'Future',  date: '2030-06-20T12:00:00Z' }),                         // future → out
+      ms({ id: 'older', title: 'Wedding', date: '2018-06-20T12:00:00Z' }),
+      ms({ id: 'newer', title: 'Move',    date: '2019-06-05T12:00:00Z', date_precision: 'month' }),
+      ms({ id: 'mid',   title: 'Other',   date: '2018-12-21T12:00:00Z' }),
+      ms({ id: 'year',  title: 'Born',    date: '2000-06-20T12:00:00Z', date_precision: 'year' }), // year-precision → out
+      ms({ id: 'fut',   title: 'Future',  date: '2030-06-20T12:00:00Z' }),                         // future → out
     ]
     const snap = buildWidgetSnapshot(milestones, [], null, NOW)
-    // Sorted most-recent first: 2019 (match-month) before 2018 (match-day).
-    expect(snap.onThisDay.map(m => m.id)).toEqual(['match-month', 'match-day'])
+    expect(snap.onThisDay.map(m => m.id)).toEqual(['newer', 'mid', 'older']) // desc by date
+  })
+
+  it('resolves the pinned milestone by id (or null)', () => {
+    const milestones = [
+      ms({ id: 'a', title: 'A', date: '2027-01-01T12:00:00Z' }),
+      ms({ id: 'b', title: 'B', date: '2028-01-01T12:00:00Z' }),
+    ]
+    expect(buildWidgetSnapshot(milestones, [], null, NOW, 'b').pinned?.id).toBe('b')
+    expect(buildWidgetSnapshot(milestones, [], null, NOW, 'missing').pinned).toBeNull()
+    expect(buildWidgetSnapshot(milestones, [], null, NOW).pinned).toBeNull()
   })
 
   it('counts milestones in the current calendar year', () => {

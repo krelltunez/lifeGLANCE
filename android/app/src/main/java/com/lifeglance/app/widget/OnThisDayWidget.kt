@@ -44,8 +44,12 @@ class OnThisDayWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val snapshot = WidgetData.readSnapshot(context)
+        // Filter the candidate pool to today's date here (render time), so the midnight
+        // refresh shows the correct day even if the app hasn't pushed a new snapshot.
+        val items = (snapshot?.onThisDay ?: emptyList())
+            .filter { WidgetData.isOnThisDay(it.date, it.datePrecision) }
         provideContent {
-            Content(context, snapshot?.onThisDay ?: emptyList())
+            Content(context, items)
         }
     }
 

@@ -148,7 +148,10 @@ struct OnThisDayView: View {
     }
 
     var body: some View {
-        let items = entry.snapshot?.onThisDay ?? []
+        // Filter the candidate pool to today's date here (render time) so the midnight
+        // timeline refresh shows the right day without the app re-pushing.
+        let items = (entry.snapshot?.onThisDay ?? [])
+            .filter { WidgetDate.isOnThisDay($0.date, precision: $0.datePrecision ?? "day") }
         let maxRows = family == .systemLarge ? 5 : 2
         VStack(alignment: .leading, spacing: 4) {
             Text("ON THIS DAY").font(mono(10, .bold)).foregroundColor(Palette.amber)
@@ -170,6 +173,46 @@ struct OnThisDayView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(16)
         .widgetURL(URL(string: "lifeglance://open"))
+    }
+}
+
+// MARK: - Pinned countdown
+
+struct PinnedCountdownView: View {
+    let entry: SnapshotEntry
+
+    var body: some View {
+        let pinned = entry.snapshot?.pinned
+        VStack(alignment: .leading, spacing: 2) {
+            if let pinned = pinned {
+                let accent = Color(hex: pinned.color, fallback: Palette.amber)
+                Text("PINNED").font(mono(10, .bold)).foregroundColor(accent)
+                Text(WidgetDate.relativeLabel(pinned.date))
+                    .font(mono(22, .bold)).foregroundColor(Palette.text)
+                Text(pinned.title).font(mono(14)).foregroundColor(Palette.text).lineLimit(2)
+                Text(WidgetDate.formatDate(pinned.date, precision: pinned.datePrecision ?? "day"))
+                    .font(mono(11)).foregroundColor(Palette.muted)
+            } else {
+                Text("Pin a milestone in the app to track it here")
+                    .font(mono(12)).foregroundColor(Palette.muted).lineLimit(3)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(16)
+        .widgetURL(milestoneURL(pinned?.id))
+    }
+}
+
+// MARK: - Quick add
+
+struct QuickAddView: View {
+    var body: some View {
+        VStack(spacing: 2) {
+            Text("+").font(mono(38, .bold)).foregroundColor(Palette.amber)
+            Text("new milestone").font(mono(11)).foregroundColor(Palette.muted).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .widgetURL(URL(string: "lifeglance://new"))
     }
 }
 

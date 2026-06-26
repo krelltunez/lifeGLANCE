@@ -23,12 +23,16 @@ export async function pushWidgetSnapshot(snapshot) {
 }
 
 // Returns a pending deep-link target a widget tap left behind, or null. The native
-// side clears it once read, so this is safe to call on every resume.
+// side clears it once read, so this is safe to call on every resume. A target is
+// either an action (e.g. { action: 'new' } from the quick-add widget) or a milestone
+// to focus ({ milestoneId }).
 export async function consumeWidgetLaunchTarget() {
   if (!isNative()) return null
   try {
     const res = await WidgetBridge.consumeLaunchTarget()
-    return res?.milestoneId ? { milestoneId: res.milestoneId } : null
+    if (res?.action) return { action: res.action }
+    if (res?.milestoneId) return { milestoneId: res.milestoneId }
+    return null
   } catch (err) {
     console.warn('[widgetBridge] consumeLaunchTarget failed:', err)
     return null

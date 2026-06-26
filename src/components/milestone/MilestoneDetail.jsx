@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Capacitor } from '@capacitor/core'
 import { formatDateDisplay, relativeLabel, ageAtDate } from '../../utils/dates'
 import { dbGetMedia, dbGetPhoto } from '../../data/db'
+
+const PINNED_KEY = 'lifeglance-pinned-milestone-id'
 
 export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, categories = [] }) {
   const { t, i18n } = useTranslation('milestone')
@@ -9,6 +12,17 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
   const [audioUrl,  setAudioUrl]  = useState(null)
   const [photoUrl,  setPhotoUrl]  = useState(null)
   const [confirm,   setConfirm]   = useState(null)
+  const [pinned,    setPinned]    = useState(() => localStorage.getItem(PINNED_KEY) === m.id)
+
+  // The pinned-countdown widget reads a single pinned milestone id. Toggling here
+  // updates it and nudges the widget snapshot to re-push. Native shells only.
+  const canPin = Capacitor.isNativePlatform()
+  function togglePin() {
+    if (pinned) localStorage.removeItem(PINNED_KEY)
+    else        localStorage.setItem(PINNED_KEY, m.id)
+    setPinned(!pinned)
+    window.dispatchEvent(new Event('lifeglance:widget-refresh'))
+  }
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -169,6 +183,13 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
               )}
             </div>
             <div className="sheet-actions-right">
+              {canPin && (
+                <button className="btn-ghost" onClick={togglePin}
+                  title={pinned ? 'Unpin from widget' : 'Pin to countdown widget'}
+                  style={{ color: pinned ? 'var(--amber)' : undefined }}>
+                  {pinned ? '📌 Pinned' : '📌 Pin'}
+                </button>
+              )}
               <button className="btn" onClick={() => { onClose(); onEdit(m) }}
                 style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
                 {tc('edit')}

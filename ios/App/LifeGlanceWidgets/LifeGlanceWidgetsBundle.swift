@@ -11,6 +11,8 @@ struct LifeGlanceWidgetsBundle: WidgetBundle {
         CurrentChapterWidget()
         OnThisDayWidget()
         StatsWidget()
+        QuickAddWidget()
+        PinnedCountdownWidget()
     }
 }
 
@@ -66,5 +68,27 @@ struct StatsWidget: Widget {
         .configurationDisplayName("Milestones")
         .description("Your milestone totals: past, ahead, this year, and your age.")
         .supportedFamilies([.systemMedium, .systemLarge])
+    }
+}
+
+struct QuickAddWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "QuickAddWidget", provider: SnapshotProvider()) { _ in
+            QuickAddView().widgetBackground(Palette.bg)
+        }
+        .configurationDisplayName("Add milestone")
+        .description("A one-tap shortcut to add a new milestone.")
+        .supportedFamilies([.systemSmall])
+    }
+}
+
+struct PinnedCountdownWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "PinnedCountdownWidget", provider: SnapshotProvider()) { entry in
+            PinnedCountdownView(entry: entry).widgetBackground(Palette.bg)
+        }
+        .configurationDisplayName("Pinned countdown")
+        .description("A countdown to a milestone you've pinned in the app.")
+        .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
