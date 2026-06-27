@@ -6,21 +6,25 @@ import { dbGetPhoto } from '../../data/db'
 import { getMilestoneVisibility } from '../../utils/visibility'
 import { isIntegrationEnabled } from '../../lib/intentsTransport.js'
 
-export default function AddMilestoneSheet({ onSave, onClose, existing, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() }, drilledChapter = null }) {
+export default function AddMilestoneSheet({ onSave, onClose, existing, draft = null, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() }, drilledChapter = null }) {
   const { t } = useTranslation('milestone')
   const { t: tc } = useTranslation('common')
   const { i18n } = useTranslation()
   const months = monthNames(i18n.language, 'short')
   const isEdit = !!existing
+  // `draft` pre-fills a NEW milestone (e.g. from the Android share sheet). It only
+  // seeds title/note/url; it never sets `isEdit`, so the rest stays new-milestone
+  // defaults. `existing` (edit mode) always wins over a draft.
+  const seed = existing ?? draft
 
-  const [title,      setTitle]      = useState(existing?.title     ?? '')
+  const [title,      setTitle]      = useState(seed?.title      ?? '')
   const [month,      setMonth]      = useState('6')
   const [day,        setDay]        = useState('')
   const [year,       setYear]       = useState('')
   const [precision,  setPrecision]  = useState(existing?.date_precision ?? 'month')
   const [category,   setCategory]   = useState(existing?.category  ?? 'personal')
-  const [note,       setNote]       = useState(existing?.note       ?? '')
-  const [url,        setUrl]        = useState(existing?.url        ?? '')
+  const [note,       setNote]       = useState(seed?.note        ?? '')
+  const [url,        setUrl]        = useState(seed?.url         ?? '')
 
   const [photoFile,       setPhotoFile]       = useState(null)
   const [photoObjectUrl,  setPhotoObjectUrl]  = useState(null)
