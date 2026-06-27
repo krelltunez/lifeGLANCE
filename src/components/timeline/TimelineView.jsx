@@ -1158,9 +1158,13 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         img.src = svgUrl
       })
 
-      // Draw lifeGLANCE branding watermark in bottom-left corner
+      // Draw lifeGLANCE branding watermark in the top-left corner. (Top, not
+      // bottom: in compact views the timeline axis sits at the bottom of the
+      // frame, where a bottom-left wordmark overlapped it.) topInset is the glow
+      // band above the axis; offset past it plus the cap height so the wordmark
+      // clears the top edge with a comfortable margin.
       const brandPad = 20
-      const brandY   = h + topInset - 24
+      const brandY   = topInset + 70
       ctx.save()
       ctx.textBaseline = 'alphabetic'
       // Canvas fillStyle cannot resolve var(--…); use the live token values
