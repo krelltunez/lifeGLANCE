@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Timeline          from './Timeline'
 import { collectCssVariables } from './exportImageHelpers'
+import { shareToMilestoneDraft } from '../../native/shareDraft'
 import StatsPanel        from '../stats/StatsPanel'
 import AddMilestoneSheet from '../milestone/AddMilestoneSheet'
 import MilestoneDetail   from '../milestone/MilestoneDetail'
@@ -87,6 +88,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const [zoomAnim,      setZoomAnim]      = useState('')
   const [filter,        setFilter]        = useState(new Set())
   const [addOpen,       setAddOpen]       = useState(false)
+  const [shareDraft,    setShareDraft]    = useState(null)
   const [editTarget,    setEditTarget]    = useState(null)
   const [detail,        setDetail]        = useState(null)
   const [textSize,      setTextSize]      = useState(() => {
@@ -489,6 +491,14 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       }
       if (target.action === 'search') {   // "Search" app shortcut
         setSearchOpen(true)
+        return
+      }
+      if (target.share) {                 // shared a link/text from another app
+        const d = shareToMilestoneDraft(target.share)
+        if (!d) return
+        setEditTarget(null)
+        setShareDraft(d)
+        setAddOpen(true)
         return
       }
       const m = milestonesRef.current.find(x => x.id === target.milestoneId)
@@ -970,7 +980,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   }
 
   function openEdit(m)  { setEditTarget(m); setAddOpen(true) }
-  function closeSheet() { setAddOpen(false); setEditTarget(null) }
+  function closeSheet() { setAddOpen(false); setEditTarget(null); setShareDraft(null) }
 
   // ── Chapter CRUD ─────────────────────────────────────────────────────────────
   function openChapterCreate() { setEditChapter(null); setChapterSheetOpen(true) }
@@ -1967,7 +1977,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       {/* ── Sheets ─────────────────────────────────────────────────────────── */}
       {addOpen && (
         <AddMilestoneSheet
-          onSave={handleSave} onClose={closeSheet} existing={editTarget}
+          onSave={handleSave} onClose={closeSheet} existing={editTarget} draft={shareDraft}
           categories={categories}
           chapters={chapters}
           visibilityPrecomputed={visibilityPrecomputed}

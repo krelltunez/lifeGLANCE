@@ -31,6 +31,13 @@ export async function consumeWidgetLaunchTarget() {
   try {
     const res = await WidgetBridge.consumeLaunchTarget()
     if (res?.action) return { action: res.action }
+    if (res?.share) {
+      try {
+        return { share: JSON.parse(res.share) }
+      } catch {
+        return null
+      }
+    }
     if (res?.milestoneId) return { milestoneId: res.milestoneId }
     return null
   } catch (err) {

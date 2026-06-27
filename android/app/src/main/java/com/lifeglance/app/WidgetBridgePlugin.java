@@ -42,22 +42,25 @@ public class WidgetBridgePlugin extends Plugin {
         call.resolve();
     }
 
-    // Returns and clears a pending deep-link target left by a widget tap.
+    // Returns and clears a pending deep-link target left by a widget tap or a share.
     @PluginMethod
     public void consumeLaunchTarget(PluginCall call) {
         Context ctx = getContext();
         SharedPreferences prefs = ctx.getSharedPreferences(WidgetData.PREFS, Context.MODE_PRIVATE);
         String target = prefs.getString(WidgetData.KEY_PENDING_TARGET, null);
         String action = prefs.getString(WidgetData.KEY_PENDING_ACTION, null);
-        if (target != null || action != null) {
+        String share  = prefs.getString(WidgetData.KEY_PENDING_SHARE, null);
+        if (target != null || action != null || share != null) {
             prefs.edit()
                 .remove(WidgetData.KEY_PENDING_TARGET)
                 .remove(WidgetData.KEY_PENDING_ACTION)
+                .remove(WidgetData.KEY_PENDING_SHARE)
                 .apply();
         }
         JSObject ret = new JSObject();
         ret.put("milestoneId", target); // null when nothing is pending
         ret.put("action", action);
+        ret.put("share", share);        // JSON string { text, subject } or null
         call.resolve(ret);
     }
 }

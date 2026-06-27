@@ -23,6 +23,8 @@ object WidgetData {
     const val KEY_SNAPSHOT = "snapshot"
     const val KEY_PENDING_TARGET = "pending_target"
     const val KEY_PENDING_ACTION = "pending_action"
+    // JSON { "text": ..., "subject": ... } from an ACTION_SEND text share.
+    const val KEY_PENDING_SHARE = "pending_share"
 
     fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
