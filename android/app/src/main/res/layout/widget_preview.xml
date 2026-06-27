@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Static preview shown in the Android widget picker (long-press home screen →
-  Widgets). The widgets use Jetpack Glance, whose default initialLayout
-  (@layout/glance_default_loading_layout) is a loading spinner. Using that spinner
-  as the previewLayout makes every widget look like it's perpetually loading in
-  the picker, because Glance never composes real content there. This static,
-  on-brand tile replaces the spinner — actual content still renders once the
-  widget is placed on the home screen.
+  Widgets) for the standard-size widgets. The widgets use Jetpack Glance, whose
+  default initialLayout (@layout/glance_default_loading_layout) is a loading
+  spinner; using that as the previewLayout made every widget look like it was
+  perpetually loading. This on-brand "lifeGLANCE" wordmark replaces it (life in
+  the off-white text colour, GLANCE in purple to match the app). Real content
+  still renders once the widget is placed on the home screen.
+
+  The 1x1 quick-add widget is too narrow for the wordmark and uses
+  @layout/widget_preview_compact (icon only) instead.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -17,17 +20,28 @@
     android:padding="12dp">
 
     <ImageView
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="10dp"
         android:src="@mipmap/ic_launcher"
         android:contentDescription="@null" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:text="@string/app_name"
+        android:maxLines="1"
+        android:includeFontPadding="false"
+        android:text="life"
         android:textColor="#E8E0D0"
+        android:textSize="16sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:includeFontPadding="false"
+        android:text="GLANCE"
+        android:textColor="#9370DB"
         android:textSize="16sp"
-        android:textStyle="bold" />
+        android:textStyle="bold|italic" />
 </LinearLayout>

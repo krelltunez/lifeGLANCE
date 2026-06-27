@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Compact widget-picker preview for the 1x1 quick-add widget (~80dp wide), where
+  the "lifeGLANCE" wordmark won't fit on one line. Icon only — no text, so
+  nothing wraps. See widget_preview.xml for the standard-size widgets.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F1117">
+
+    <ImageView
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center"
+        android:src="@mipmap/ic_launcher"
+        android:contentDescription="@null" />
+</FrameLayout>
