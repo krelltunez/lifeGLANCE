@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Timeline          from './Timeline'
+import { collectCssVariables } from './exportImageHelpers'
 import StatsPanel        from '../stats/StatsPanel'
 import AddMilestoneSheet from '../milestone/AddMilestoneSheet'
 import MilestoneDetail   from '../milestone/MilestoneDetail'
@@ -1094,6 +1095,18 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       clone.setAttribute('viewBox', `0 ${-topInset} ${w} ${h + topInset}`)
       clone.style.fontSize = getComputedStyle(svgEl).fontSize // e.g. "22px"
 
+      // Inline the active theme's CSS design tokens. The timeline SVG colours its
+      // cards/text/ticks with var(--token) references resolved against the host
+      // document's :root. A serialized SVG rendered via <img> has its OWN root
+      // with no access to those, so every var(--…) would resolve to nothing and
+      // render transparent (cards/text/today-marker vanish). Copy the tokens onto
+      // the clone's root so they cascade into the SVG; using the live computed
+      // values means dark/light mode is respected automatically.
+      const rootStyle = getComputedStyle(document.documentElement)
+      for (const [name, value] of collectCssVariables(rootStyle)) {
+        clone.style.setProperty(name, value)
+      }
+
       const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
       bg.setAttribute('x', '0')
       bg.setAttribute('y', String(-topInset))
@@ -1145,17 +1158,24 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         img.src = svgUrl
       })
 
-      // Draw lifeGLANCE branding watermark in bottom-left corner
+      // Draw lifeGLANCE branding watermark in the top-left corner. (Top, not
+      // bottom: in compact views the timeline axis sits at the bottom of the
+      // frame, where a bottom-left wordmark overlapped it.) topInset is the glow
+      // band above the axis; offset past it plus the cap height so the wordmark
+      // clears the top edge with a comfortable margin.
       const brandPad = 20
-      const brandY   = h + topInset - 24
+      const brandY   = topInset + 70
       ctx.save()
       ctx.textBaseline = 'alphabetic'
+      // Canvas fillStyle cannot resolve var(--…); use the live token values
+      // (resolved above), falling back to the dark-theme literals.
+      const tokenColor = (name, fallback) => rootStyle.getPropertyValue(name).trim() || fallback
       ctx.font = `400 70px 'Courier Prime', 'Courier New', monospace`
       const lifeW = ctx.measureText('life').width
-      ctx.fillStyle = 'var(--text)'
+      ctx.fillStyle = tokenColor('--text', '#E8E0D0')
       ctx.fillText('life', brandPad, brandY)
       ctx.font = `bold italic 75px 'Courier Prime', 'Courier New', monospace`
-      ctx.fillStyle = 'var(--indigo)'
+      ctx.fillStyle = tokenColor('--indigo', '#3D3580')
       ctx.fillText('GLANCE', brandPad + lifeW, brandY)
       ctx.restore()
 
