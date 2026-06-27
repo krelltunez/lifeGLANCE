@@ -1,0 +1,13 @@
+<!-- App-shortcut icon: a teal disc with a white magnifier (shown as-is, not tinted). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#38B2AC"
+        android:pathData="M24,24m-24,0a24,24 0,1 1,48 0a24,24 0,1 1,-48 0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M31.5,29.1l-3.6,-3.6c0.9,-1.3 1.4,-2.9 1.4,-4.6 0,-4.6 -3.7,-8.3 -8.3,-8.3 -4.6,0 -8.3,3.7 -8.3,8.3 0,4.6 3.7,8.3 8.3,8.3 1.7,0 3.3,-0.5 4.6,-1.4l3.6,3.6c0.6,0.6 1.5,0.6 2.1,0l0.2,-0.2c0.6,-0.6 0.6,-1.5 0,-2.1zM20.9,26c-2.8,0 -5.1,-2.3 -5.1,-5.1 0,-2.8 2.3,-5.1 5.1,-5.1 2.8,0 5.1,2.3 5.1,5.1 0,2.8 -2.3,5.1 -5.1,5.1z" />
+</vector>

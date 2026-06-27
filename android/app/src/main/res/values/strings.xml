@@ -27,6 +27,10 @@
     <string name="tile_add_milestone_label">Add milestone</string>
     <string name="shortcut_add_short">Add milestone</string>
     <string name="shortcut_add_long">Add a new milestone</string>
+    <string name="shortcut_search_short">Search</string>
+    <string name="shortcut_search_long">Search milestones</string>
+    <string name="shortcut_on_this_day_short">On this day</string>
+    <string name="shortcut_on_this_day_long">On this day</string>
 
     <string name="widget_pin_amber_label">Countdown · amber</string>
     <string name="widget_pin_rose_label">Countdown · rose</string>

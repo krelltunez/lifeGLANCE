@@ -482,9 +482,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     const handleTarget = async () => {
       const target = await consumeWidgetLaunchTarget()
       if (!target) return
-      if (target.action === 'new') {   // quick-add widget
+      if (target.action === 'new') {   // quick-add widget / tile / app shortcut
         setEditTarget(null)
         setAddOpen(true)
+        return
+      }
+      if (target.action === 'search') {       // "Search" app shortcut
+        setSearchOpen(true)
+        return
+      }
+      if (target.action === 'on-this-day') {  // "On this day" app shortcut
+        setOnThisDayOpen(true)
         return
       }
       const m = milestonesRef.current.find(x => x.id === target.milestoneId)
