@@ -9,7 +9,7 @@
   "deselectAll": "取消全选",
   "selectAll": "全选",
   "titleColumn": "标题",
-  "categoryColumn": "范畴",
+  "categoryColumn": "卷宗",
   "annual": "年度",
   "importButton_one": "导入{{count}}个里程碑",
   "importButton_other": "导入{{count}}个里程碑"
