@@ -8,4 +8,5 @@
     android:widgetCategory="home_screen"
     android:description="@string/widget_stats_description"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:previewLayout="@layout/glance_default_loading_layout" />
+    android:previewLayout="@layout/widget_preview"
+    android:previewImage="@mipmap/ic_launcher" />
