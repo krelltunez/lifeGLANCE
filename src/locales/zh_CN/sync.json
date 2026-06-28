@@ -54,12 +54,12 @@
   "vaultSkippedToast": "有{{count}}个条目无法读取。请检查云端同步设置。",
   "vaultSkippedNote": "本设备上有{{count}}个条目无法读取并已跳过。下次同步时将自动重试，这通常表示密码短语不一致。",
   "verifierUnsupported": "请更新您的同步服务器以支持密钥验证。",
-  "authFailed": "Authentication failed — check your username and password in sync settings.",
-  "forbidden": "Sync blocked (403) — your server may be blocking the request.",
-  "locked": "Sync is locked by another device — try again in a moment.",
-  "networkError": "Network error — check your connection and try again.",
-  "preconditionFailed": "Another device updated first — retrying.",
-  "passphraseRequired": "Enter your sync passphrase to continue.",
-  "appIdMismatch": "This sync data belongs to a different app.",
-  "schemaForwardIncompatible": "This sync data is from a newer app version — please update the app."
+  "authFailed": "验证失败 - 请检查同步设定中的用户名与密码",
+  "forbidden": "同步遭拒(403)— 您的伺服器可能拒绝了此请求",
+  "locked": "同步被其他装置锁定 — 请稍后再试",
+  "networkError": "网路错误 — 请检查连线后再试",
+  "preconditionFailed": "其他装置已先更新 — 正在重试",
+  "passphraseRequired": "请输入您的同步密码短语以继续",
+  "appIdMismatch": "此同步资料属于其他应用程式",
+  "schemaForwardIncompatible": "请更新APP - 此同步资料来自较新的版本"
 }
