@@ -1,3 +1,5 @@
+import { dirtyCategories } from '../sync/dirty.js'
+
 export const DEFAULT_CATEGORIES = [
   { id: 'personal',  label: 'personal',  color: '#9370DB' },
   { id: 'family',    label: 'family',    color: '#9370DB' },
@@ -32,4 +34,7 @@ export function loadCategories() {
 export function saveCategories(cats) {
   localStorage.setItem(CAT_KEY, JSON.stringify(cats))
   localStorage.setItem('lifeglance-categories-updated-at', new Date().toISOString())
+  // Local category edit → mark the categories bundle dirty for the DB sync tier.
+  // (Remote applies write the bundle straight to localStorage, never via here.)
+  dirtyCategories()
 }

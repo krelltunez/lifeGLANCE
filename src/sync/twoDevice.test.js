@@ -78,7 +78,7 @@ function makeDevice(vault) {
   dev.push = async () => {
     const upserts = []
     for (const id of [...dev.dirty]) {
-      const env = dev.adapter.getLocalEntity(id)
+      const env = await dev.adapter.getLocalEntity(id)
       if (env == null) { vault.deleteRow(id); continue }
       upserts.push({ entityId: id, envelope: await encryptEntity(env, id) })
     }
@@ -89,17 +89,17 @@ function makeDevice(vault) {
     const { rows } = vault.list(dev.hwm)
     for (const R of rows) {
       if (R.deleted) {
-        dev.adapter.applyRemoteDelete(R.entityId)
+        await dev.adapter.applyRemoteDelete(R.entityId)
         dev.dirty.delete(R.entityId)
       } else {
         const env = await decryptEntity(R.envelope, R.entityId)
-        const local = dev.adapter.getLocalEntity(R.entityId)
+        const local = await dev.adapter.getLocalEntity(R.entityId)
         if (local == null) {
-          dev.adapter.applyRemoteEntity(R.entityId, env)
+          await dev.adapter.applyRemoteEntity(R.entityId, env)
         } else if (dev.adapter.isInsertOnly(env)) {
-          dev.adapter.applyRemoteEntity(R.entityId, env)
+          await dev.adapter.applyRemoteEntity(R.entityId, env)
         } else if (dev.adapter.getEntityLastModified(env) > dev.adapter.getEntityLastModified(local)) {
-          dev.adapter.applyRemoteEntity(R.entityId, env)
+          await dev.adapter.applyRemoteEntity(R.entityId, env)
           dev.dirty.delete(R.entityId)
         }
       }

@@ -23,6 +23,7 @@ import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones, uid 
 import { listChapters, restoreChapters, createChapter, updateChapter, deleteChapter } from '../../data/chapters'
 import { writeMilestoneTombstone } from '../../sync/tombstones'
 import { getSyncEngine } from '../../sync/engine'
+import { dirtyBirthday } from '../../sync/dirty'
 import ChapterSheet from '../chapter/ChapterSheet'
 import CloudSyncModal from '../sync/CloudSyncModal'
 import SyncPassphraseModal from '../sync/SyncPassphraseModal'
@@ -1351,6 +1352,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         localStorage.setItem('lifeglance-birthday', restoredBirthday)
         localStorage.setItem('lifeglance-birthday-updated-at',
           parsed.birthdayUpdatedAt || new Date().toISOString())
+        dirtyBirthday()
         setBirthday(restoredBirthday)
         window.dispatchEvent(new Event('lifeglance:widget-refresh'))
       }
@@ -2056,6 +2058,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             setBirthday(v)
             localStorage.setItem('lifeglance-birthday', v)
             localStorage.setItem('lifeglance-birthday-updated-at', new Date().toISOString())
+            dirtyBirthday()
             // Birthday isn't part of milestones/chapters, so nudge the widget snapshot
             // to re-push (drives the Today widget's age line).
             window.dispatchEvent(new Event('lifeglance:widget-refresh'))

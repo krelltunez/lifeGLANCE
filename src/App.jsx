@@ -7,6 +7,7 @@ import SyncPassphraseModal from './components/sync/SyncPassphraseModal'
 import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
+import { initDbSyncEngine, getDbSyncEngine } from './sync/dbSync'
 import { buildWidgetSnapshot } from './utils/widgetSnapshot'
 import { pushWidgetSnapshot } from './native/widgetBridge'
 
@@ -69,6 +70,11 @@ export default function App() {
           setVaultSkipped,
         })
 
+        // GLANCEvault database-sync engine, constructed ALONGSIDE the WebDAV
+        // engine above. Returns null (fully inert) unless the vault is enabled in
+        // the cloud-sync config — vault sync is opt-in and never replaces WebDAV.
+        initDbSyncEngine({ setMilestones, setChapters })
+
         // Restore encryption session key from IDB so the passphrase prompt
         // only appears when the key genuinely isn't stored (first setup or
         // new device), not on every page load.
@@ -89,7 +95,8 @@ export default function App() {
     let id
     const t = setTimeout(() => {
       getSyncEngine()?.sync()
-      id = setInterval(() => getSyncEngine()?.sync(), 60_000)
+      getDbSyncEngine()?.sync()
+      id = setInterval(() => { getSyncEngine()?.sync(); getDbSyncEngine()?.sync() }, 60_000)
     }, jitter)
     return () => { clearTimeout(t); clearInterval(id) }
   }, [])
@@ -130,6 +137,10 @@ export default function App() {
     uploadTimerRef.current = setTimeout(() => {
       getSyncEngine()?.upload()
     }, 5_000)
+    // Push-on-write for the vault tier: a debounced vault-only push so a local
+    // edit reaches GLANCEvault promptly (even on a backgrounded device) without
+    // waiting for the 60s cycle or an app reopen. No-op when vault is disabled.
+    getDbSyncEngine()?.pushDebounced()
     return () => clearTimeout(uploadTimerRef.current)
   }, [milestones, chapters, screen])
 

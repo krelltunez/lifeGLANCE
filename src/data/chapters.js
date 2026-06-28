@@ -1,6 +1,7 @@
 import { dbGetAllChapters, dbGetChapter, dbAddChapter, dbPutChapter, dbDeleteChapter } from './db'
 import { uid } from './milestones'
 import { writeChapterTombstone } from '../sync/tombstones'
+import { markDirty } from '../sync/dirty'
 
 // Valid color values are the same hex strings used for milestone categories and
 // the settings palette (COLOR_PALETTE in SettingsModal).  No runtime validation
@@ -67,6 +68,7 @@ function applyMembershipDiff(prevIds, nextIds, prevOps, at) {
 export async function createChapter(data) {
   const chapter = buildChapter(data)
   await dbAddChapter(chapter)
+  markDirty(chapter.id)
   return chapter
 }
 
@@ -94,12 +96,14 @@ export async function updateChapter(id, updates, existing) {
     )
   }
   await dbPutChapter(chapter)
+  markDirty(chapter.id)
   return chapter
 }
 
 export async function deleteChapter(id) {
   writeChapterTombstone(id)
   await dbDeleteChapter(id)
+  markDirty(id)
 }
 
 // Adds milestoneId to chapter.milestoneIds; no-op if already present.
@@ -115,6 +119,7 @@ export async function addMilestoneToChapter(chapterId, milestoneId) {
     updated_at:   now,
   }
   await dbPutChapter(updated)
+  markDirty(updated.id)
   return updated
 }
 
@@ -130,6 +135,7 @@ export async function removeMilestoneFromChapter(chapterId, milestoneId) {
     updated_at:   now,
   }
   await dbPutChapter(updated)
+  markDirty(updated.id)
   return updated
 }
 

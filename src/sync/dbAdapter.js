@@ -36,12 +36,10 @@
 // per-member LWW), so they converge in one extra round.
 
 import { normalizeMemberOps } from '../data/chapters.js'
+import { LIFE_ID, BUNDLE_KINDS, bundleEntityId } from './entityIds.js'
 
-export const LIFE_ID = 'default'
+export { LIFE_ID, BUNDLE_KINDS, bundleEntityId }
 
-// Bundle kinds and their stable row ids. Not `__glance_` (engine-reserved).
-export const BUNDLE_KINDS = ['categories', 'milestoneTombstones', 'chapterTombstones', 'birthday']
-export const bundleEntityId = (kind) => `life:${LIFE_ID}:${kind}`
 const BUNDLE_ID_TO_KIND = Object.fromEntries(BUNDLE_KINDS.map(k => [bundleEntityId(k), k]))
 export const isBundleEntityId = (entityId) => entityId in BUNDLE_ID_TO_KIND
 
@@ -181,15 +179,18 @@ const sameContent = (x, y) => JSON.stringify(canonical(x)) === JSON.stringify(ca
 export function makeDbAdapter({ store, markDirty = () => {} }) {
   const deepEqual = sameContent
 
+  // Store ops may be async (real db.js / localStorage) or sync (the in-memory
+  // harness); awaiting works for both. Callbacks the engine awaits are async.
+
   // ── Bundle envelope <-> repr ──
-  const bundleEnvelope = (kind) => {
-    const repr = store.getBundle(kind)
+  const bundleEnvelope = async (kind) => {
+    const repr = await store.getBundle(kind)
     const env = { _kind: kind, life_id: LIFE_ID, value: repr.value }
     if ('updatedAt' in repr) env.updatedAt = repr.updatedAt
     return env
   }
-  const applyBundle = (kind, env) => {
-    const local = store.getBundle(kind)
+  const applyBundle = async (kind, env) => {
+    const local = await store.getBundle(kind)
     let mergedRepr
     if (kind === 'categories') {
       const m = mergeCategories(local.value, local.updatedAt, env.value, env.updatedAt)
@@ -204,54 +205,53 @@ export function makeDbAdapter({ store, markDirty = () => {} }) {
     } else {
       throw new Error(`unknown bundle kind: ${kind}`)
     }
-    store.putBundle(kind, mergedRepr)
+    await store.putBundle(kind, mergedRepr)
     // Re-push the superset if this device's local copy contributed anything the
     // peer's row lacked (i.e. merged != what remote pushed).
-    const mergedEnv = bundleEnvelope(kind)
-    if (!deepEqual(mergedEnv.value, env.value) ||
-        ('updatedAt' in env && mergedEnv.updatedAt !== env.updatedAt)) {
+    if (!deepEqual(mergedRepr.value, env.value) ||
+        ('updatedAt' in env && mergedRepr.updatedAt !== env.updatedAt)) {
       markDirty(bundleEntityId(kind))
     }
   }
 
   // ── Engine callbacks ──
-  const getLocalEntity = (entityId) => {
+  const getLocalEntity = async (entityId) => {
     if (isBundleEntityId(entityId)) return bundleEnvelope(BUNDLE_ID_TO_KIND[entityId])
-    const m = store.milestones.get(entityId)
+    const m = await store.milestones.get(entityId)
     if (m) return { _kind: 'milestone', life_id: LIFE_ID, ...m }
-    const c = store.chapters.get(entityId)
+    const c = await store.chapters.get(entityId)
     if (c) return { _kind: 'chapter', life_id: LIFE_ID, ...c }
     return null
   }
 
-  const applyRemoteEntity = (entityId, env) => {
+  const applyRemoteEntity = async (entityId, env) => {
     const kind = env?._kind
     if (kind === 'milestone') {
       // Plain LWW already resolved by the engine — remote won (or local absent).
-      store.milestones.put(stripEnvelope(env))
+      await store.milestones.put(stripEnvelope(env))
       return
     }
     if (kind === 'chapter') {
       const remoteChapter = stripEnvelope(env)
-      const local = store.chapters.get(entityId)
-      if (!local) { store.chapters.put({ ...remoteChapter, memberOps: normalizeMemberOps(remoteChapter) }); return }
+      const local = await store.chapters.get(entityId)
+      if (!local) { await store.chapters.put({ ...remoteChapter, memberOps: normalizeMemberOps(remoteChapter) }); return }
       const merged = mergeChapters(local, remoteChapter)
-      store.chapters.put(merged)
+      await store.chapters.put(merged)
       // Richer-than-remote → re-push the merged superset.
       if (!deepEqual({ ...merged, _kind: 'chapter', life_id: LIFE_ID }, env)) markDirty(entityId)
       return
     }
-    if (BUNDLE_ID_TO_KIND[entityId]) { applyBundle(BUNDLE_ID_TO_KIND[entityId], env); return }
-    if (BUNDLE_KINDS.includes(kind)) { applyBundle(kind, env); return }
+    if (BUNDLE_ID_TO_KIND[entityId]) { await applyBundle(BUNDLE_ID_TO_KIND[entityId], env); return }
+    if (BUNDLE_KINDS.includes(kind)) { await applyBundle(kind, env); return }
     throw new Error(`applyRemoteEntity: unroutable row ${entityId} (_kind=${kind})`)
   }
 
-  const applyRemoteDelete = (entityId) => {
+  const applyRemoteDelete = async (entityId) => {
     // Bundles are never deleted. A bare-UUID delete is a milestone or a chapter;
     // delete from both stores (the wrong one is a harmless no-op).
     if (isBundleEntityId(entityId)) return
-    store.milestones.delete(entityId)
-    store.chapters.delete(entityId)
+    await store.milestones.delete(entityId)
+    await store.chapters.delete(entityId)
   }
 
   // Chapters and bundles are merge-on-apply: report insert-only so the engine
@@ -262,9 +262,9 @@ export function makeDbAdapter({ store, markDirty = () => {} }) {
 
   // Every entityId this device currently holds — the HWM=0 full-snapshot seed
   // (Part B) marks all of these dirty so a fresh device uploads its whole state.
-  const allEntityIds = () => [
-    ...store.milestones.all().map(m => m.id),
-    ...store.chapters.all().map(c => c.id),
+  const allEntityIds = async () => [
+    ...(await store.milestones.all()).map(m => m.id),
+    ...(await store.chapters.all()).map(c => c.id),
     ...BUNDLE_KINDS.map(bundleEntityId),
   ]
 

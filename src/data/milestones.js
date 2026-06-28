@@ -1,6 +1,7 @@
 import { dbGetAll, dbAdd, dbPut, dbDelete, dbClearAllMedia } from './db'
 import { categoryColor } from '../utils/colors'
 import { writeMilestoneTombstone } from '../sync/tombstones'
+import { markDirty } from '../sync/dirty'
 
 export function uid() {
   if (typeof crypto.randomUUID === 'function') {
@@ -79,6 +80,7 @@ export async function addMilestone(data) {
   if (m.media_type && m.media_id  == null) m.media_id  = m.id
   if (m.has_photo  && m.photo_id  == null) m.photo_id  = `${m.id}-photo`
   await dbAdd(m)
+  markDirty(m.id)
   return m
 }
 
@@ -103,6 +105,7 @@ export async function updateMilestone(id, updates, existing) {
     updated_at: now,
   }
   await dbPut(m)
+  markDirty(m.id)
   return m
 }
 
@@ -131,6 +134,10 @@ export async function backfillMediaIds() {
 export async function deleteMilestone(id) {
   writeMilestoneTombstone(id)
   await dbDelete(id)
+  // markDirty after the row is gone: the DB engine's push sees getLocalEntity →
+  // null and pushes a soft-delete row. (writeMilestoneTombstone also dirties the
+  // tombstone bundle for the file-tier-compatible tombstone map.)
+  markDirty(id)
 }
 
 // Clear all milestones and replace with the supplied array (preserves original IDs).

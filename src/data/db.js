@@ -161,6 +161,16 @@ export function dbGetAll() {
   })
 }
 
+// Single milestone by id (or null). Used by the GLANCEvault row adapter, which
+// resolves one entity at a time rather than scanning the whole store.
+export function dbGet(id) {
+  return new Promise((resolve, reject) => {
+    const req = tx().get(id)
+    req.onsuccess = () => resolve(req.result ?? null)
+    req.onerror   = () => reject(req.error)
+  })
+}
+
 export function dbAdd(item) {
   return new Promise((resolve, reject) => {
     const req = tx('readwrite').add(item)
