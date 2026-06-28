@@ -57,7 +57,7 @@
   "authFailed": "验证失败: 请检查同步设定中的用户名与密码",
   "forbidden": "同步遭拒(403): 您的伺服器拒绝了此请求",
   "locked": "其他装置正在同步，请稍后再试",
-  "networkError": "网路错误: 请检查连线后再试",
+  "networkError": "网路不稳: 请检查连线后再试",
   "preconditionFailed": "其他装置刚更新了资料，正在重新同步",
   "passphraseRequired": "请输入您的同步密码短语以继续",
   "appIdMismatch": "此同步资料属于其他应用程式",
