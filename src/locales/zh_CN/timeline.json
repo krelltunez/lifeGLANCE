@@ -48,7 +48,7 @@
   "filterCategory": "卷宗",
   "filterCategories": "{{count}}类卷宗",
   "emptyState": "~ 云开见月明 ~\n为你我的章回创造里程碑",
-  "emptyFiltered_one": "~ 坐看云起时 ~\n此卷宗尚无里程碑\n为你我的章回立下首碑",
+  "emptyFiltered_one": "~ 坐看云起时 ~\n此卷宗尚无里程碑\n为你我的章回写下一笔",
   "emptyFiltered_other": "~ 星垂平野阔 ~\n各卷宗皆无里程碑\n为你我的章回就此开篇",
   "mediaLargeFile": "文件较大",
   "mediaFileSize": "文件大小为{{size}}",
