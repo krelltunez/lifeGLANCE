@@ -54,12 +54,12 @@
   "vaultSkippedToast": "有{{count}}个条目无法读取。请检查云端同步设置。",
   "vaultSkippedNote": "本设备上有{{count}}个条目无法读取并已跳过。下次同步时将自动重试，这通常表示密码短语不一致。",
   "verifierUnsupported": "请更新您的同步服务器以支持密钥验证。",
-  "authFailed": "验证失败 - 请检查同步设定中的用户名与密码",
-  "forbidden": "同步遭拒(403)— 您的伺服器可能拒绝了此请求",
-  "locked": "同步被其他装置锁定 — 请稍后再试",
-  "networkError": "网路错误 — 请检查连线后再试",
-  "preconditionFailed": "其他装置已先更新 — 正在重试",
+  "authFailed": "验证失败: 请检查同步设定中的用户名与密码",
+  "forbidden": "同步遭拒(403): 您的伺服器拒绝了此请求",
+  "locked": "其他装置正在同步，请稍后再试",
+  "networkError": "网路错误: 请检查连线后再试",
+  "preconditionFailed": "其他装置刚更新了资料，正在重新同步",
   "passphraseRequired": "请输入您的同步密码短语以继续",
   "appIdMismatch": "此同步资料属于其他应用程式",
-  "schemaForwardIncompatible": "请更新APP - 此同步资料来自较新的版本"
+  "schemaForwardIncompatible": "请更新APP再试: 此同步资料来自较新的版本"
 }
