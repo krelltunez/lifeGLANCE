@@ -8,7 +8,7 @@
   "step3Prompt": "未来将至，您心中最期盼的一件事是什么?",
   "step3Placeholder": "设想：执手共游",
   "step4Eyebrow": "肆章: 缓缓展卷，生命的时光长轴",
-  "step4Prompt": "人生如画，如江河，如星图，漫漫延伸……",
+  "step4Prompt": "人生如画﹑如江河﹑如星图，漫漫延伸……",
   "approximateIsFine": "约略即可",
   "errorPastEvent": "此事应在昔日之期",
   "errorFutureEvent": "此事应在未来之期",
@@ -18,5 +18,5 @@
   "noPastEvent": "过往未及落笔作念",
   "noFutureEvent": "未来尚待挥墨成画",
   "openTimeline": "展开我们的岁月长卷 →",
-  "keyboardShortcutHint": "按下<kbd>?</kbd>，唤起键盘热键"
+  "keyboardShortcutHint": "按下<kbd>?</kbd>，唤醒键盘快捷键"
 }
