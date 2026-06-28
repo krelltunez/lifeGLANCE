@@ -1,3 +1,5 @@
+import { dirtyMilestoneTombstones, dirtyChapterTombstones } from './dirty.js';
+
 const MILESTONE_TOMBSTONE_KEY = 'lifeglance-milestone-tombstones';
 const CHAPTER_TOMBSTONE_KEY = 'lifeglance-chapter-tombstones';
 
@@ -18,6 +20,7 @@ export const writeMilestoneTombstone = (id) => {
   const t = getMilestoneTombstones();
   t[id] = new Date().toISOString();
   localStorage.setItem(MILESTONE_TOMBSTONE_KEY, JSON.stringify(t));
+  dirtyMilestoneTombstones();
 };
 
 export const writeChapterTombstone = (id) => {
@@ -25,4 +28,5 @@ export const writeChapterTombstone = (id) => {
   const t = getChapterTombstones();
   t[id] = new Date().toISOString();
   localStorage.setItem(CHAPTER_TOMBSTONE_KEY, JSON.stringify(t));
+  dirtyChapterTombstones();
 };

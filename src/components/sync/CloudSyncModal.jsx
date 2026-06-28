@@ -2,6 +2,18 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getSyncEngine } from '../../sync/engine'
 import { isSyncing, syncErrorText, SYNC_ERROR_I18N_KEYS } from '../../sync/status'
+import { verifyVaultCredentials, runVaultSetup, disableVault, VAULT_OUTCOME } from '../../sync/vaultSetup'
+
+// Maps a vault verify/setup outcome kind to its distinct, translatable message.
+const VAULT_MSG_KEY = {
+  [VAULT_OUTCOME.SUCCESS]:       'vaultOk',
+  [VAULT_OUTCOME.UNINITIALIZED]: 'vaultUninitialized',
+  [VAULT_OUTCOME.AUTH]:          'vaultAuth',
+  [VAULT_OUTCOME.FORBIDDEN]:     'vaultForbidden',
+  [VAULT_OUTCOME.NETWORK]:       'vaultNetwork',
+  [VAULT_OUTCOME.UNSUPPORTED]:   'vaultUnsupported',
+  passphrase:                    'vaultPassphraseRequired',
+}
 
 const PROXY = '/api/webdav-proxy'
 
@@ -72,6 +84,17 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   const [testResult,  setTestResult]  = useState(null)
   const [saving,      setSaving]      = useState(false)
 
+  // ── Vault (GLANCEvault database) tier — coexists with WebDAV above ──────────
+  const [vaultEnabled,    setVaultEnabled]    = useState(existingConfig?.vaultEnabled ?? false)
+  const [vaultUrl,        setVaultUrl]        = useState(existingConfig?.vaultUrl ?? '')
+  const [vaultToken,      setVaultToken]      = useState(existingConfig?.vaultToken ?? '')
+  const [accountId,       setAccountId]       = useState(existingConfig?.accountId ?? '')
+  const [vaultPassphrase, setVaultPassphrase] = useState('')
+  const [vaultTesting,    setVaultTesting]    = useState(false)
+  const [vaultSaving,     setVaultSaving]     = useState(false)
+  const [vaultResult,     setVaultResult]     = useState(null)
+  const vaultConfigured = !!existingConfig?.vaultEnabled
+
   const isExisting = !!existingConfig
 
   // Typed engine error codes (KEY_MISMATCH, VERIFIER_UNSUPPORTED) are surfaced with
@@ -134,12 +157,14 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
             return
           }
         }
-        engine?.setConfig({ ...baseConfig, encryptionEnabled: true })
+        // Merge over the live config so the coexisting vault fields are preserved
+        // (both tiers share the lifeglance-cloud-sync-config object).
+        engine?.setConfig({ ...(engine.getConfig() ?? {}), ...baseConfig, encryptionEnabled: true })
         await engine?.upload()
       } else {
         const { clearEncryptionKey } = await import('@glance-apps/sync')
         await clearEncryptionKey({ cryptoDBName: 'lifeglance-crypto' })
-        engine?.setConfig({ ...baseConfig, encryptionEnabled: false })
+        engine?.setConfig({ ...(engine.getConfig() ?? {}), ...baseConfig, encryptionEnabled: false })
         engine?.upload().catch(console.error)
       }
       onClose()
@@ -162,8 +187,58 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   }
 
   async function handleDisable() {
-    engine?.setConfig(null)
+    // Disabling the WebDAV tier must not wipe a coexisting vault config. If the
+    // vault is configured, keep only its fields; otherwise clear the whole object.
+    const cfg = engine?.getConfig() ?? {}
+    if (cfg.vaultEnabled) {
+      engine?.setConfig({ vaultEnabled: cfg.vaultEnabled, vaultUrl: cfg.vaultUrl, vaultToken: cfg.vaultToken, accountId: cfg.accountId })
+    } else {
+      engine?.setConfig(null)
+    }
     onClose()
+  }
+
+  // ── Vault handlers ─────────────────────────────────────────────────────────
+  const vaultMsg = (kind) => t(VAULT_MSG_KEY[kind] ?? 'vaultNetwork')
+
+  async function handleVaultVerify() {
+    setVaultTesting(true)
+    setVaultResult(null)
+    try {
+      const { kind } = await verifyVaultCredentials({ vaultUrl, vaultToken, accountId })
+      const ok = kind === VAULT_OUTCOME.SUCCESS || kind === VAULT_OUTCOME.UNINITIALIZED
+      setVaultResult({ ok, message: vaultMsg(kind) })
+    } finally {
+      setVaultTesting(false)
+    }
+  }
+
+  async function handleVaultSave() {
+    setVaultSaving(true)
+    setVaultResult(null)
+    try {
+      // The single sync passphrase: take what was typed here, else whatever is
+      // already loaded in this session (e.g. from WebDAV encryption setup).
+      const { getSyncPassphrase } = await import('@glance-apps/sync')
+      const passphrase = vaultPassphrase || getSyncPassphrase() || ''
+      const result = await runVaultSetup({ vaultUrl, vaultToken, accountId, passphrase })
+      if (result.ok) {
+        // 'uninitialized' shows its own informative message; success shows activated.
+        setVaultResult({ ok: true, message: result.kind === VAULT_OUTCOME.UNINITIALIZED ? vaultMsg(result.kind) : t('vaultActivated') })
+      } else {
+        setVaultResult({ ok: false, message: vaultMsg(result.kind) })
+      }
+    } catch (err) {
+      setVaultResult({ ok: false, message: t('saveFailed', { message: err.message }) })
+    } finally {
+      setVaultSaving(false)
+    }
+  }
+
+  function handleVaultDisable() {
+    disableVault()
+    setVaultEnabled(false)
+    setVaultResult(null)
   }
 
   return (
@@ -337,6 +412,75 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
                   />
                 </div>
               )}
+            </>
+          )}
+        </div>
+
+        {/* ── GLANCEvault (database) tier — coexists with WebDAV above ─────── */}
+        <div className="settings-section" style={{ borderTop: '1px solid var(--border-soft, rgba(128,128,128,0.25))', paddingTop: '0.85rem', marginTop: '0.5rem' }}>
+          <div className="settings-label">{t('vaultSectionTitle')}</div>
+          <p className="settings-note" style={{ marginTop: '0.15rem', marginBottom: '0.5rem' }}>{t('vaultCoexistNote')}</p>
+          <label className="settings-toggle-row">
+            <span className="settings-toggle-label">{t('vaultEnableLabel')}</span>
+            <input
+              type="checkbox"
+              className="settings-toggle"
+              checked={vaultEnabled}
+              onChange={e => { setVaultEnabled(e.target.checked); setVaultResult(null) }}
+            />
+          </label>
+
+          {vaultEnabled && (
+            <>
+              <div style={{ marginTop: '0.75rem' }}>
+                <div className="settings-label">{t('vaultUrlLabel')}</div>
+                <input className="input" type="url" placeholder={t('vaultUrlPlaceholder')}
+                  value={vaultUrl} onChange={e => setVaultUrl(e.target.value)} style={{ width: '100%' }} />
+              </div>
+              <div style={{ marginTop: '0.5rem' }}>
+                <div className="settings-label">{t('vaultTokenLabel')}</div>
+                <input className="input" type="password" placeholder={t('vaultTokenPlaceholder')}
+                  value={vaultToken} onChange={e => setVaultToken(e.target.value)} style={{ width: '100%' }} />
+              </div>
+              <div style={{ marginTop: '0.5rem' }}>
+                <div className="settings-label">{t('vaultAccountLabel')}</div>
+                <input className="input" type="text" placeholder={t('vaultAccountPlaceholder')}
+                  value={accountId} onChange={e => setAccountId(e.target.value)} style={{ width: '100%' }} />
+              </div>
+              <div style={{ marginTop: '0.5rem' }}>
+                <div className="settings-label">{t('vaultPassphraseLabel')}</div>
+                <input className="input" type="password" placeholder={t('vaultPassphraseLabel')}
+                  value={vaultPassphrase} onChange={e => setVaultPassphrase(e.target.value)} style={{ width: '100%' }} />
+                <p className="settings-note" style={{ marginTop: '0.35rem' }}>{t('vaultPassphraseNote')}</p>
+              </div>
+
+              {vaultResult && (
+                <div style={{
+                  padding: '0.6rem 1rem', borderRadius: '6px', marginTop: '0.6rem', fontSize: '0.82rem',
+                  background: vaultResult.ok ? 'var(--success-bg)' : 'var(--danger-bg)',
+                  color: vaultResult.ok ? 'var(--success)' : 'var(--rose)',
+                  border: `1px solid ${vaultResult.ok ? 'rgba(var(--success-rgb), 0.267)' : 'rgba(var(--rose-rgb), 0.267)'}`,
+                }}>
+                  {vaultResult.message}
+                </div>
+              )}
+
+              <div className="settings-backup-row" style={{ justifyContent: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.6rem' }}>
+                <button className="btn" style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                  onClick={handleVaultVerify} disabled={vaultTesting || vaultSaving || !vaultUrl || !vaultToken || !accountId}>
+                  {vaultTesting ? t('vaultVerifying') : t('vaultVerify')}
+                </button>
+                <button className="btn btn-filled" style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                  onClick={handleVaultSave} disabled={vaultTesting || vaultSaving || !vaultUrl || !vaultToken || !accountId}>
+                  {vaultSaving ? t('saving') : t('vaultSaveEnable')}
+                </button>
+                {vaultConfigured && (
+                  <button className="btn btn-danger" style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                    onClick={handleVaultDisable} disabled={vaultSaving}>
+                    {t('vaultDisable')}
+                  </button>
+                )}
+              </div>
             </>
           )}
         </div>
