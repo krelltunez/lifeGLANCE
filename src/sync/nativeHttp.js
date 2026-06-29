@@ -23,7 +23,9 @@ function headerGet(headers, name) {
 }
 
 // Low-level direct request. Returns a normalized result the adapters reshape.
-async function nativeRequest(method, url, headers, body) {
+// Exported so the vault fetch adapter (nativeVaultFetch.js) can reuse the same
+// CapacitorHttp primitive the WebDAV/intents transports use.
+export async function nativeRequest(method, url, headers, body) {
   const res = await CapacitorHttp.request({
     method,
     url,

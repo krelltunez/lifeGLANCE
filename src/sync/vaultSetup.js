@@ -26,6 +26,7 @@ import {
 } from '@glance-apps/sync'
 import { setupIntentsEncryption as defaultSetupIntentsEncryption } from '../lib/intentsKeyStore.js'
 import { reinitDbSyncEngine as defaultReinit, getDbSyncEngine } from './dbSync.js'
+import { nativeVaultFetchImpl } from './nativeVaultFetch.js'
 
 const CONFIG_KEY    = 'lifeglance-cloud-sync-config'
 const CRYPTO_DBNAME = 'lifeglance-crypto'
@@ -50,9 +51,12 @@ export async function verifyVaultCredentials({ vaultUrl, vaultToken, accountId }
   if (!vaultUrl?.trim() || !vaultToken?.trim() || !accountId?.trim()) {
     return { kind: VAULT_OUTCOME.NETWORK }
   }
+  // On native, route the probe through CapacitorHttp so getSalt isn't blocked by
+  // the WebView's CORS; on web this is undefined and the package uses global fetch.
+  const fetchImpl = deps.fetchImpl ?? nativeVaultFetchImpl()
   let client
   try {
-    client = createClient({ vaultUrl: vaultUrl.trim(), vaultToken: vaultToken.trim() })
+    client = createClient({ vaultUrl: vaultUrl.trim(), vaultToken: vaultToken.trim(), fetchImpl })
   } catch {
     return { kind: VAULT_OUTCOME.NETWORK } // malformed URL / missing fetch
   }

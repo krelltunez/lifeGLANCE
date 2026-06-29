@@ -57,6 +57,7 @@ import {
   type Plaintext,
   type RootKeyProvider,
 } from './blobCrypto.ts'
+import { nativeVaultFetchImpl } from '../sync/nativeVaultFetch.js'
 
 /** The glance-vault connection coordinates (same shape sync's vault client uses). */
 export interface VaultConnection {
@@ -173,7 +174,13 @@ function resolveConnection(deps: BlobTransportDeps): VaultConnection {
 }
 
 function resolveFetch(deps: BlobTransportDeps): FetchImpl {
-  const f = deps.fetchImpl ?? (globalThis.fetch as unknown as FetchImpl | undefined)
+  // On native, route vault blob requests through CapacitorHttp (undefined on web,
+  // so the browser/PWA keeps using global fetch — the vault serves CORS there).
+  // This is the same native-safe adapter the sync vault client and verify probe
+  // use, so the blob control plane reaches the vault on native ahead of the
+  // Phase 8 media round-trip.
+  const native = nativeVaultFetchImpl() as unknown as FetchImpl | undefined
+  const f = deps.fetchImpl ?? native ?? (globalThis.fetch as unknown as FetchImpl | undefined)
   if (typeof f !== 'function') {
     throw new Error('blobTransport: no fetch implementation available')
   }
