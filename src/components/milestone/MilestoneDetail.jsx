@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
 import { formatDateDisplay, relativeLabel, ageAtDate } from '../../utils/dates'
 import { dbGetMedia, dbGetPhoto } from '../../data/db'
+import { isRealBlobHash, fetchFullResBytes } from '../../blobs/milestoneMedia.js'
 
 const PINS_KEY = 'lifeglance-pins'
 // Color pin slots — each maps to its own countdown widget. Keep in sync with PIN_SLOTS
@@ -43,27 +44,43 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
+  // Media (audio/video): a real-hash media_id resolves from the GLANCEvault blob
+  // store (lazy, on open); a legacy/placeholder slot resolves from the local
+  // media store. A fetch failure (blob not yet uploaded / reclaimed) leaves
+  // audioUrl null → the graceful "media unavailable" placeholder renders below.
   useEffect(() => {
     if (!m.media_type) return
-    let objectUrl
-    dbGetMedia(m.id).then(result => {
-      if (!result) return
-      objectUrl = URL.createObjectURL(result.blob)
+    let objectUrl, cancelled = false
+    const show = (blob) => {
+      if (cancelled || !blob) return
+      objectUrl = URL.createObjectURL(blob)
       setAudioUrl(objectUrl)
-    })
-    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl) }
-  }, [m.id, m.media_type])
+    }
+    if (isRealBlobHash(m.media_id)) {
+      const type = m.media_type === 'video' ? 'video/mp4' : 'audio/mpeg'
+      fetchFullResBytes(m.media_id).then(b => show(b && new Blob([b], { type }))).catch(() => {})
+    } else {
+      dbGetMedia(m.id).then(result => show(result?.blob)).catch(() => {})
+    }
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl) }
+  }, [m.id, m.media_type, m.media_id])
 
   useEffect(() => {
     if (!m.has_photo) return
-    let objectUrl
-    dbGetPhoto(m.id).then(result => {
-      if (!result) return
-      objectUrl = URL.createObjectURL(result.blob)
+    let objectUrl, cancelled = false
+    const show = (blob) => {
+      if (cancelled || !blob) return
+      objectUrl = URL.createObjectURL(blob)
       setPhotoUrl(objectUrl)
-    })
-    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl) }
-  }, [m.id, m.has_photo])
+    }
+    if (isRealBlobHash(m.photo_id)) {
+      // No stored mime on the slot; <img> content-sniffs an untyped image blob.
+      fetchFullResBytes(m.photo_id).then(b => show(b && new Blob([b]))).catch(() => {})
+    } else {
+      dbGetPhoto(m.id).then(result => show(result?.blob)).catch(() => {})
+    }
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl) }
+  }, [m.id, m.has_photo, m.photo_id])
 
   function doDelete()       { onDelete(m.id); onClose() }
   function doDeleteSeries() { onDeleteSeries(m.recurrence_id); onClose() }

@@ -24,6 +24,8 @@ import { listChapters, restoreChapters, createChapter, updateChapter, deleteChap
 import { writeMilestoneTombstone } from '../../sync/tombstones'
 import { getSyncEngine } from '../../sync/engine'
 import { dirtyBirthday } from '../../sync/dirty'
+import { readVaultConfig } from '../../sync/dbSync'
+import { uploadMilestoneMedia, releaseMilestoneMedia } from '../../blobs/milestoneMedia.js'
 import ChapterSheet from '../chapter/ChapterSheet'
 import CloudSyncModal from '../sync/CloudSyncModal'
 import SyncPassphraseModal from '../sync/SyncPassphraseModal'
@@ -797,6 +799,44 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     toastTimerRef.current = setTimeout(() => setToast(null), 5000)
   }
 
+  // Phase 8: when vault sync is on, upload a newly-attached file's bytes (+ a
+  // thumbnail for image/video) to the GLANCEvault blob store and point the
+  // milestone's reference slots at the REAL content hashes. BLOBS-BEFORE-
+  // REFERENCE: the slots are written — via updateMilestone, which BUMPS updated_at
+  // so the now-non-deterministic hashes propagate by LWW — only after both blobs
+  // are confirmed stored. Clean-fail: on thumbnail-generation or upload failure
+  // the milestone keeps its local media with placeholder slots (nothing
+  // half-written); the vault reference just isn't established yet, and is
+  // retriable. No-op when vault is off (local/WebDAV path unchanged).
+  async function establishVaultMediaRefs(milestone, file, slot) {
+    if (!file || !readVaultConfig()) return milestone
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer())
+      const { fullHash, thumbHash } = await uploadMilestoneMedia({ bytes, mimeType: file.type })
+      const updates = slot === 'photo' ? { photo_id: fullHash } : { media_id: fullHash }
+      if (thumbHash) updates.thumbnail_id = thumbHash
+      return await updateMilestone(milestone.id, updates, milestone)
+    } catch (err) {
+      console.warn('[media] vault blob sync deferred (kept local, retriable):', err)
+      showToast(t('mediaVaultDeferred'), 'info')
+      return milestone
+    }
+  }
+
+  // Establish vault blob refs in the BACKGROUND after the milestone is already
+  // shown locally (snappy UI), then refresh just that milestone in state with the
+  // real-hash slots. Chains photo then media so the second write builds on the
+  // first (no slot clobber). No-op when vault is off or no new file was attached.
+  function backgroundEstablishMedia(milestone, photoFile, mediaFile) {
+    if (!readVaultConfig() || (!photoFile && !mediaFile)) return
+    ;(async () => {
+      let m = milestone
+      if (photoFile) m = await establishVaultMediaRefs(m, photoFile, 'photo')
+      if (mediaFile) m = await establishVaultMediaRefs(m, mediaFile, 'media')
+      if (m !== milestone) setMilestones(prev => prev.map(x => (x.id === m.id ? m : x)))
+    })().catch(err => console.warn('[media] establish failed:', err))
+  }
+
   // ── CRUD ─────────────────────────────────────────────────────────────────────
   async function executeSave(data, existing) {
     // photoFile / photoRemoved / mediaFile / mediaRemoved are transfer-only fields
@@ -829,6 +869,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         const newMs = milestones.map(m => m.id === existing.id ? updated : m)
         pushHistory(newMs)
         setMilestones(newMs)
+        backgroundEstablishMedia(updated, photoFile, mediaFile)
         audio.playEditSave()
         // Emit create if the user just enabled dayGLANCE tracking for the first time.
         if (updated.dayglance_linked && !existing.dayglance_linked) {
@@ -876,6 +917,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         const newMs = [...milestones, ...created]
         pushHistory(newMs)
         setMilestones(newMs)
+        backgroundEstablishMedia(created[0], photoFile, mediaFile) // base-year instance holds the media
         setNewlyAddedId(created[0].id)
         audio.playChime()
       } else {
@@ -891,6 +933,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         const newMs = [...milestones, m]
         pushHistory(newMs)
         setMilestones(newMs)
+        backgroundEstablishMedia(m, photoFile, mediaFile)
         setNewlyAddedId(m.id)
         // Emit outbound create to dayGLANCE if the user checked "track as dayGLANCE Goal".
         if (dgLinked) {
@@ -968,6 +1011,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     try {
       const target = milestones.find(m => m.id === id)
       await deleteMilestone(id)
+      // Phase 8: drop the server ref counts for any real-hash blob slots so the
+      // vault can eventually reclaim them. Best-effort; never blocks the delete.
+      if (target && readVaultConfig()) releaseMilestoneMedia(target).catch(() => {})
       const newMs = milestones.filter(m => m.id !== id)
       pushHistory(newMs)
       setMilestones(newMs)
@@ -986,9 +1032,11 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   async function handleDeleteSeries(recurrence_id) {
     try {
       const toDelete = milestones.filter(m => m.recurrence_id === recurrence_id)
+      const vaultOn = !!readVaultConfig()
       for (const m of toDelete) {
         writeMilestoneTombstone(m.id)
         await deleteMilestone(m.id)
+        if (vaultOn) releaseMilestoneMedia(m).catch(() => {})
       }
       const newMs = milestones.filter(m => m.recurrence_id !== recurrence_id)
       pushHistory(newMs)

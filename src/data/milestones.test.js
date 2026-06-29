@@ -65,6 +65,25 @@ describe('updateMilestone', () => {
     expect(all[0].title).toBe('Updated')
   })
 
+  it('bumps updated_at when writing a real blob hash to a media slot (Phase 8)', async () => {
+    // Real blob hashes are not device-derivable (unlike the old deterministic
+    // placeholders), so writing one MUST bump updated_at to propagate via LWW —
+    // i.e. it must go through the normal updateMilestone mutation, not a silent
+    // no-bump backfill.
+    const { addMilestone, updateMilestone, loadMilestones } = await setup()
+    const { dbPut } = await import('./db')
+    const m = await addMilestone({ title: 'Has photo', date: new Date('2020-01-01'), has_photo: true })
+    // Force an old updated_at so the bump is unambiguous.
+    const old = '2000-01-01T00:00:00.000Z'
+    await dbPut({ ...m, updated_at: old })
+    const realHash = 'a'.repeat(64)
+    const updated = await updateMilestone(m.id, { photo_id: realHash, thumbnail_id: 'b'.repeat(64) }, { ...m, updated_at: old })
+    expect(updated.photo_id).toBe(realHash)
+    expect(new Date(updated.updated_at).getTime()).toBeGreaterThan(new Date(old).getTime())
+    const all = await loadMilestones()
+    expect(all[0].updated_at).toBe(updated.updated_at)
+  })
+
   it('recalculates direction on date change', async () => {
     const { addMilestone, updateMilestone, loadMilestones } = await setup()
     const m = await addMilestone({ title: 'Test', date: new Date('2000-01-01') })

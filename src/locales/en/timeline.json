@@ -55,5 +55,7 @@
   "mediaStorageRemaining": "You have {{size}} of storage remaining.",
   "mediaAttachAnyway": "attach anyway",
   "yearsAgo_one": "{{count}} year ago",
-  "yearsAgo_other": "{{count}} years ago"
+  "yearsAgo_other": "{{count}} years ago",
+  "mediaVaultDeferred": "Saved locally — syncing this media to the cloud will retry shortly.",
+  "mediaUnavailable": "media unavailable"
 }
