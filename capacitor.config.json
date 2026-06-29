@@ -1,0 +1,10 @@
+{
+  "appId": "com.lifeglance",
+  "appName": "lifeGLANCE",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
