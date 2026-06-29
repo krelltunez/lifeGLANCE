@@ -120,7 +120,6 @@ export const initDbSyncEngine = (opts = {}) => {
   })
 
   holder.markDirty = engine.markDirty
-  registerDirtyTarget({ markDirty: engine.markDirty })
 
   // HWM=0 full-snapshot seed: on first activation, mark every entity this device
   // already holds dirty so a brand-new vault device uploads its whole state. The
@@ -138,9 +137,14 @@ export const initDbSyncEngine = (opts = {}) => {
     opts.setChapters?.(ch)
     opts.setCategories?.(loadCategories())
     opts.setBirthday?.(localStorage.getItem('lifeglance-birthday') || '')
-    // Nudge UI that reads categories/birthday straight from storage (settings,
-    // widget) to re-read after a merge applied new bundle values.
-    if (typeof window !== 'undefined') window.dispatchEvent(new Event('lifeglance:widget-refresh'))
+    // Nudge UI that reads categories/birthday straight from storage to re-read
+    // after a merge applied new bundle values. milestones/chapters refresh via
+    // the setters above; categories/birthday live in component state (TimelineView)
+    // and re-read on this event, so a synced bundle shows without an app reload.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('lifeglance:sync-applied'))
+      window.dispatchEvent(new Event('lifeglance:widget-refresh'))
+    }
   }
 
   const sync = async () => {
@@ -160,6 +164,14 @@ export const initDbSyncEngine = (opts = {}) => {
     clearTimeout(_pushTimer)
     _pushTimer = setTimeout(() => { pushNow().catch(err => console.warn('[dbsync] push failed', err)) }, ms)
   }
+
+  // Register the dirty target so EVERY local write (not just milestone/chapter
+  // edits) both marks its row dirty and schedules a vault push. Without the push
+  // nudge, a category/birthday/tombstone-only edit would mark dirty but wait for
+  // the 60s cycle to upload — and could miss it entirely if the app backgrounds
+  // first. Routing the push through markDirty makes push-on-write uniform across
+  // all entity types.
+  registerDirtyTarget({ markDirty: (id) => { engine.markDirty(id); pushDebounced() } })
 
   _dbEngine = { engine, sync, pushNow, pushDebounced, seedSnapshot, refresh, markDirty: engine.markDirty }
   return _dbEngine

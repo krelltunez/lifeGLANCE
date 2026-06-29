@@ -175,6 +175,26 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     showToast(ts('vaultSkippedToast', { count: vaultSkipped.count }), 'error')
   }, [vaultSkipped])
 
+  // Re-read categories/birthday after a GLANCEvault sync applied new bundle
+  // values to storage. These live in component state (unlike milestones/chapters,
+  // which the engine refreshes via setMilestones/setChapters), so without this
+  // they'd stay stale until an app reload. Set only when changed so an idle sync
+  // cycle doesn't trigger a needless re-render.
+  useEffect(() => {
+    const onSyncApplied = () => {
+      setCategories(prev => {
+        const next = loadCategories()
+        return JSON.stringify(prev) === JSON.stringify(next) ? prev : next
+      })
+      setBirthday(prev => {
+        const next = localStorage.getItem('lifeglance-birthday') || ''
+        return prev === next ? prev : next
+      })
+    }
+    window.addEventListener('lifeglance:sync-applied', onSyncApplied)
+    return () => window.removeEventListener('lifeglance:sync-applied', onSyncApplied)
+  }, [])
+
   // Apply font size globally
   useEffect(() => {
     document.documentElement.style.fontSize = TEXT_SIZES[textSize]

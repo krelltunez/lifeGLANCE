@@ -122,4 +122,63 @@ describe('Stage 2 Part B — DB sync engine wiring', () => {
     expect(onDevice2).not.toBeNull()
     expect(onDevice2.title).toBe('Pre-existing')
   })
+
+  // Gap B: a bundle-only edit (categories/birthday/tombstones) must trigger the
+  // push-on-write, not just milestone/chapter edits. Marking the categories
+  // bundle dirty schedules the debounced vault push and the row reaches the vault.
+  it('a category-only edit schedules a vault push (push-on-write for bundles)', async () => {
+    const m = await freshModules()
+    localStorage.setItem('lifeglance-cloud-sync-config', JSON.stringify(VAULT_CFG))
+    localStorage.setItem('lifeglance-db-sync-seeded', '1') // skip seed so only the dirty bundle pushes
+    localStorage.setItem('lifeglance-categories', JSON.stringify([{ id: 'side', label: 'Side', color: '#FF8800' }]))
+    localStorage.setItem('lifeglance-categories-updated-at', new Date(2000).toISOString())
+    const vault = makeMemVault()
+    m.setSyncPassphrase('pw')
+    await m.setupDbRootKey('pw', new Uint8Array(16).fill(8), { cryptoDBName: 'lifeglance-crypto' })
+    m.initDbSyncEngine({ vaultConfig: VAULT_CFG, vaultClient: vault })
+
+    const { markDirty } = await import('./dirty.js')
+    const { bundleEntityId } = await import('./entityIds.js')
+    const catId = bundleEntityId('categories')
+
+    // A local edit marks the bundle dirty AND schedules a push. Use fake timers
+    // so the scheduled push is observed (setTimeout) without firing real crypto
+    // under fake time; discard it on useRealTimers (no leak).
+    vi.useFakeTimers()
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout')
+    markDirty(catId)
+    expect(setTimeoutSpy).toHaveBeenCalled() // push-on-write scheduled
+    expect(JSON.parse(localStorage.getItem('lifeglance-db-sync-dirty'))).toContain(catId) // row marked dirty
+    setTimeoutSpy.mockRestore()
+    vi.useRealTimers()
+
+    // Flushing the push (what the debounce would do) delivers the bundle row.
+    const dbSync = m.getDbSyncEngine()
+    await dbSync.pushNow()
+    expect(vault._rows.has(catId)).toBe(true)
+    expect(vault._rows.get(catId).deleted).toBe(false)
+  })
+
+  // Gap A: after a cycle applies bundle values to storage, a sync-applied event
+  // fires so component-state UI (categories/birthday in TimelineView) re-reads
+  // without an app reload.
+  it('a sync dispatches lifeglance:sync-applied so the UI re-reads bundles', async () => {
+    const m = await freshModules()
+    localStorage.setItem('lifeglance-cloud-sync-config', JSON.stringify(VAULT_CFG))
+    const vault = makeMemVault()
+    m.setSyncPassphrase('pw')
+    await m.setupDbRootKey('pw', new Uint8Array(16).fill(8), { cryptoDBName: 'lifeglance-crypto' })
+    const dbSync = m.initDbSyncEngine({ vaultConfig: VAULT_CFG, vaultClient: vault })
+
+    const prevWindow = globalThis.window
+    globalThis.window = new EventTarget()
+    let fired = 0
+    globalThis.window.addEventListener('lifeglance:sync-applied', () => { fired += 1 })
+    try {
+      await dbSync.sync()
+    } finally {
+      globalThis.window = prevWindow
+    }
+    expect(fired).toBeGreaterThan(0)
+  })
 })
