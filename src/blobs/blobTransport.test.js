@@ -74,22 +74,28 @@ function makeVaultServer({ token = TOKEN, accountId = ACCOUNT } = {}) {
   const partPuts = [] // every part index actually PUT, in order (proves resume skips)
   let failPartOnce = null // set to an index to make that PUT fail once
 
+  // Responses expose .text() as well as .json()/.arrayBuffer(), matching a real
+  // fetch Response and the native adapter — the transport reads .text() to surface
+  // server error bodies.
   const jsonRes = (status, obj) => ({
     ok: status >= 200 && status < 300,
     status,
     json: async () => obj,
+    text: async () => JSON.stringify(obj),
     arrayBuffer: async () => new TextEncoder().encode(JSON.stringify(obj)).buffer,
   })
   const binRes = (status, bytes) => ({
     ok: status >= 200 && status < 300,
     status,
     arrayBuffer: async () => new Uint8Array(bytes).buffer,
+    text: async () => '',
     json: async () => { throw new Error('not json') },
   })
   const emptyRes = (status) => ({
     ok: status >= 200 && status < 300,
     status,
     arrayBuffer: async () => new ArrayBuffer(0),
+    text: async () => '',
     json: async () => ({}),
   })
 
@@ -499,5 +505,31 @@ describe('blobTransport — HEAD throw is non-fatal (native HEAD choke)', () => 
     // And it's a real, decryptable round-trip.
     const out = await downloadBlob(hash, depsFor(server))
     expect([...out]).toEqual([...plaintext])
+  })
+})
+
+// ── Server error bodies surface in the thrown error (diagnosability) ──────────
+// A bare "failed: 400" hides WHY the server rejected the request. The transport
+// now appends the server's response body so a native failure names the actual
+// cause (missing/invalid field, wrong shape) instead of just a status code.
+describe('blobTransport — server error detail surfaces in the thrown error', () => {
+  it('appends the response body when initiate (POST /blobs/uploads) returns 400', async () => {
+    const fetchImpl = async (url, init) => {
+      // Dedup HEAD says "absent" so the upload proceeds to initiate.
+      if (init.method === 'HEAD') {
+        return { ok: false, status: 404, text: async () => '', json: async () => ({}) }
+      }
+      // Initiate is rejected with a descriptive body — this is what we want surfaced.
+      if (init.method === 'POST' && url.includes('/blobs/uploads')) {
+        return { ok: false, status: 400, text: async () => '{"error":"size_required"}', json: async () => ({ error: 'size_required' }) }
+      }
+      throw new Error(`unexpected ${init.method} ${url}`)
+    }
+    const deps = {
+      connection: { vaultUrl: VAULT_URL, vaultToken: TOKEN, accountId: ACCOUNT },
+      fetchImpl,
+      getRootKey: provideKey,
+    }
+    await expect(uploadBlob(enc('x'), deps)).rejects.toThrow(/initiate upload failed: 400 — .*size_required/)
   })
 })

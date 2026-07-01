@@ -173,8 +173,24 @@ async function vaultRequest(conn, doFetch, method, path, opts = {}) {
   return doFetch(url, init)
 }
 
+// Read a short snippet of the response body to attach to an error message. The
+// server explains a 4xx (missing/invalid field, wrong shape) in its body; without
+// it, callers see a bare status and can't tell WHY the request was rejected. Best
+// effort: never throw from here (a body may be unreadable or already consumed).
+async function readErrorBody(res) {
+  try {
+    const text = typeof res.text === 'function' ? await res.text() : ''
+    const trimmed = (text || '').trim()
+    return trimmed ? ` — ${trimmed.slice(0, 300)}` : ''
+  } catch {
+    return ''
+  }
+}
+
 async function jsonOrThrow(res, context) {
-  if (!res.ok) throw new BlobTransportError(`${context} failed: ${res.status}`, res.status)
+  if (!res.ok) {
+    throw new BlobTransportError(`${context} failed: ${res.status}${await readErrorBody(res)}`, res.status)
+  }
   return res.json()
 }
 
@@ -205,7 +221,7 @@ export async function blobExists(hash, deps = {}) {
   }
   if (res.ok) return true
   if (res.status === 404) return false
-  throw new BlobTransportError(`blob existence check failed: ${res.status}`, res.status)
+  throw new BlobTransportError(`blob existence check failed: ${res.status}${await readErrorBody(res)}`, res.status)
 }
 
 // ── Upload ───────────────────────────────────────────────────────────────────
@@ -252,7 +268,9 @@ async function putPart(conn, doFetch, uploadId, index, part) {
     `/blobs/uploads/${encodeURIComponent(uploadId)}/parts/${index}`,
     { query: { accountId: conn.accountId }, binaryBody: part },
   )
-  if (!res.ok) throw new BlobTransportError(`upload part ${index} failed: ${res.status}`, res.status)
+  if (!res.ok) {
+    throw new BlobTransportError(`upload part ${index} failed: ${res.status}${await readErrorBody(res)}`, res.status)
+  }
 }
 
 /** POST /blobs/uploads/:id/finalize — reassemble + verify hash + store. */
@@ -265,17 +283,26 @@ async function finalizeUpload(conn, doFetch, uploadId, hash) {
     { jsonBody: { accountId: conn.accountId, hash } },
   )
   if (res.ok) return
-  // The server signals a hash mismatch distinctly so we can surface it clearly.
+  // Read the body ONCE (it may only be readable once), then inspect it: the server
+  // signals a hash mismatch distinctly so we can surface that clearly, and any
+  // other 4xx reason is carried through in the generic error message.
+  let bodyText = ''
+  try {
+    bodyText = typeof res.text === 'function' ? await res.text() : ''
+  } catch {
+    /* body unreadable — fall through with no detail */
+  }
   if (res.status === 409 || res.status === 422 || res.status === 400) {
     let err = null
     try {
-      err = await res.json()
+      err = bodyText ? JSON.parse(bodyText) : null
     } catch {
-      /* fall through to generic */
+      /* not JSON — fall through to generic */
     }
     if (err && err.error === 'hash_mismatch') throw new BlobHashMismatchError(hash)
   }
-  throw new BlobTransportError(`finalize failed: ${res.status}`, res.status)
+  const detail = bodyText.trim() ? ` — ${bodyText.trim().slice(0, 300)}` : ''
+  throw new BlobTransportError(`finalize failed: ${res.status}${detail}`, res.status)
 }
 
 /**
@@ -351,7 +378,9 @@ export async function downloadBlobBytes(hash, deps = {}) {
     headers,
     responseType: 'arraybuffer', // native adapter reads bytes; browser fetch ignores it
   })
-  if (!res.ok) throw new BlobTransportError(`download failed: ${res.status}`, res.status)
+  if (!res.ok) {
+    throw new BlobTransportError(`download failed: ${res.status}${await readErrorBody(res)}`, res.status)
+  }
   return new Uint8Array(await res.arrayBuffer())
 }
 
@@ -378,7 +407,7 @@ export async function addBlobRef(hash, deps = {}) {
   const res = await vaultRequest(conn, doFetch, 'POST', `/blobs/${encodeURIComponent(hash)}/ref-add`, {
     jsonBody: { accountId: conn.accountId },
   })
-  if (!res.ok) throw new BlobTransportError(`ref-add failed: ${res.status}`, res.status)
+  if (!res.ok) throw new BlobTransportError(`ref-add failed: ${res.status}${await readErrorBody(res)}`, res.status)
 }
 
 /** POST /blobs/:hash/ref-release — decrement the reference count for a blob. */
@@ -388,5 +417,5 @@ export async function releaseBlobRef(hash, deps = {}) {
   const res = await vaultRequest(conn, doFetch, 'POST', `/blobs/${encodeURIComponent(hash)}/ref-release`, {
     jsonBody: { accountId: conn.accountId },
   })
-  if (!res.ok) throw new BlobTransportError(`ref-release failed: ${res.status}`, res.status)
+  if (!res.ok) throw new BlobTransportError(`ref-release failed: ${res.status}${await readErrorBody(res)}`, res.status)
 }
