@@ -44,6 +44,14 @@ export default function App() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
+  // Reload milestones from the store on demand — e.g. after the media backfill
+  // writes real-hash slots, so the newly vault-backed media appears immediately.
+  useEffect(() => {
+    const reload = () => { dbGetAll().then(setMilestones).catch(() => {}) }
+    window.addEventListener('lifeglance:milestones-reload', reload)
+    return () => window.removeEventListener('lifeglance:milestones-reload', reload)
+  }, [])
+
   useEffect(() => {
     initDB()
       .then(() => {

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getSyncEngine } from '../../sync/engine'
 import { isSyncing, syncErrorText, SYNC_ERROR_I18N_KEYS } from '../../sync/status'
 import { verifyVaultCredentials, runVaultSetup, disableVault, VAULT_OUTCOME } from '../../sync/vaultSetup'
+import { runMediaBackfill } from '../../blobs/mediaBackfill'
 
 // Maps a vault verify/setup outcome kind to its distinct, translatable message.
 const VAULT_MSG_KEY = {
@@ -94,6 +95,15 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   const [vaultSaving,     setVaultSaving]     = useState(false)
   const [vaultResult,     setVaultResult]     = useState(null)
   const vaultConfigured = !!existingConfig?.vaultEnabled
+
+  // ── Backfill: upload existing local-only media to GLANCEvault (user-initiated) ─
+  const [backfillRunning,  setBackfillRunning]  = useState(false)
+  const [backfillProgress, setBackfillProgress] = useState({ done: 0, total: 0 })
+  const [backfillMsg,      setBackfillMsg]      = useState(null) // { ok, message }
+  const backfillStopRef = useRef(false)
+  // If the modal closes mid-run, signal a cooperative stop so the run halts at the
+  // next item boundary. Already-written slots are durable, so a later run resumes.
+  useEffect(() => () => { backfillStopRef.current = true }, [])
 
   const isExisting = !!existingConfig
 
@@ -239,6 +249,37 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     disableVault()
     setVaultEnabled(false)
     setVaultResult(null)
+  }
+
+  function backfillSummaryMsg(s) {
+    if (s.keyUnavailable) return { ok: false, message: t('backfillKeyUnavailable') }
+    if (s.stopped)        return { ok: true,  message: t('backfillStopped', { migrated: s.migrated }) }
+    if (s.total === 0)    return { ok: true,  message: t('backfillNothing') }
+    if (s.failed > 0)     return { ok: true,  message: t('backfillDoneWithFailures', { migrated: s.migrated, failed: s.failed }) }
+    return { ok: true, message: t('backfillDone', { migrated: s.migrated }) }
+  }
+
+  async function handleBackfill() {
+    setBackfillRunning(true)
+    setBackfillMsg(null)
+    setBackfillProgress({ done: 0, total: 0 })
+    backfillStopRef.current = false
+    try {
+      const summary = await runMediaBackfill({
+        onProgress: (p) => setBackfillProgress(p),
+        shouldStop: () => backfillStopRef.current,
+      })
+      // Any newly-written real-hash slots need the timeline to reload so the media
+      // becomes visible immediately (and its updated_at bump has already queued the
+      // push to other devices).
+      if (summary.migrated > 0) window.dispatchEvent(new Event('lifeglance:milestones-reload'))
+      if (summary.failures?.length) console.warn('[media backfill] failed items:', summary.failures)
+      setBackfillMsg(backfillSummaryMsg(summary))
+    } catch (err) {
+      setBackfillMsg({ ok: false, message: t('backfillError', { message: err?.message || String(err) }) })
+    } finally {
+      setBackfillRunning(false)
+    }
   }
 
   return (
@@ -481,6 +522,39 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
                   </button>
                 )}
               </div>
+
+              {/* One-time catch-up: upload existing local-only media to the vault. */}
+              {vaultConfigured && (
+                <div style={{ marginTop: '0.85rem', borderTop: '1px solid var(--border-soft, rgba(128,128,128,0.25))', paddingTop: '0.7rem' }}>
+                  <div className="settings-label">{t('backfillTitle')}</div>
+                  <p className="settings-note" style={{ marginTop: '0.15rem', marginBottom: '0.5rem' }}>{t('backfillNote')}</p>
+                  <button className="btn" style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                    onClick={handleBackfill} disabled={backfillRunning}>
+                    {backfillRunning
+                      ? (backfillProgress.total > 0 ? t('backfillRunning', backfillProgress) : t('backfillScanning'))
+                      : t('backfillStart')}
+                  </button>
+                  {backfillRunning && backfillProgress.total > 0 && (
+                    <div style={{ marginTop: '0.5rem', height: '6px', borderRadius: '3px', background: 'rgba(128,128,128,0.2)', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${Math.round((100 * backfillProgress.done) / backfillProgress.total)}%`,
+                        background: 'var(--amber-bright)', transition: 'width 0.2s',
+                      }} />
+                    </div>
+                  )}
+                  {backfillMsg && (
+                    <div style={{
+                      padding: '0.6rem 1rem', borderRadius: '6px', marginTop: '0.5rem', fontSize: '0.82rem',
+                      background: backfillMsg.ok ? 'var(--success-bg)' : 'var(--danger-bg)',
+                      color: backfillMsg.ok ? 'var(--success)' : 'var(--rose)',
+                      border: `1px solid ${backfillMsg.ok ? 'rgba(var(--success-rgb), 0.267)' : 'rgba(var(--rose-rgb), 0.267)'}`,
+                    }}>
+                      {backfillMsg.message}
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

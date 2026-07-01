@@ -85,5 +85,16 @@
   "vaultForbidden": "Account ID not found or not permitted for this token.",
   "vaultNetwork": "Could not reach the vault at this URL.",
   "vaultUnsupported": "This vault server is too old — it doesn't support credential verification.",
-  "vaultPassphraseRequired": "Enter your sync passphrase to enable database sync."
+  "vaultPassphraseRequired": "Enter your sync passphrase to enable database sync.",
+  "backfillTitle": "Existing media",
+  "backfillNote": "Upload photos and audio/video already on this device to GLANCEvault so they appear on your other devices. New attachments upload automatically; this is a one-time catch-up for older items. Safe to run repeatedly — already-uploaded items are skipped.",
+  "backfillStart": "Upload existing media to GLANCEvault",
+  "backfillRunning": "Uploading media… {{done}} of {{total}}",
+  "backfillScanning": "Checking for media to upload…",
+  "backfillNothing": "Nothing to upload — all media on this device is already on GLANCEvault.",
+  "backfillKeyUnavailable": "Vault key isn't ready yet. Let sync finish once, then try again.",
+  "backfillDone": "Uploaded {{migrated}} item(s) to GLANCEvault.",
+  "backfillDoneWithFailures": "Uploaded {{migrated}} item(s); {{failed}} could not be uploaded and stay on this device (you can try again later).",
+  "backfillStopped": "Stopped after {{migrated}} item(s). Run again to finish the rest.",
+  "backfillError": "Upload failed: {{message}}"
 }
