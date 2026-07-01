@@ -5,7 +5,8 @@ import React, {
 import { useTranslation } from 'react-i18next'
 import { dateToX, getTimeRangeForView, getTickMarks, assignLanes, getMsPerPx } from '../../utils/timeline'
 import { relativeLabel, formatDateDisplay, ageAtDate, formatDuration } from '../../utils/dates'
-import { dbGetMedia } from '../../data/db'
+import { dbGetMedia, dbGetPhoto } from '../../data/db'
+import { isRealBlobHash, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
 
 // Map text-size labels → root px value (must match TimelineView TEXT_SIZES)
 const REM_PX = { small: 19, normal: 22, big: 26, bigger: 30 }
@@ -90,6 +91,34 @@ const Timeline = forwardRef(function Timeline(
   const [chapterTip,  setChapterTip]  = useState(null) // { chapter, x, y } | null
   const [playingId,   setPlayingId]   = useState(null)
   const audioElRef = useRef(null)
+  // Hover-preview of a card's photo. The image is loaded on demand: a synced-in
+  // photo lives only as a vault blob (photo_id is a real blob hash), so fetch +
+  // decrypt a thumbnail; a locally authored one reads the local store. The object
+  // URL is tracked so the preview never leaks, and a hovered-id guard drops a load
+  // that resolves after the pointer already left.
+  const photoTipUrlRef = useRef(null)
+  const hoveredPhotoRef = useRef(null)
+  const hidePhotoTip = useCallback(() => {
+    hoveredPhotoRef.current = null
+    if (photoTipUrlRef.current) { URL.revokeObjectURL(photoTipUrlRef.current); photoTipUrlRef.current = null }
+    setPhotoTip(null)
+  }, [])
+  const showPhotoTip = useCallback((m, x, y) => {
+    hoveredPhotoRef.current = m.id
+    const set = (blob) => {
+      if (!blob || hoveredPhotoRef.current !== m.id) return
+      if (photoTipUrlRef.current) URL.revokeObjectURL(photoTipUrlRef.current)
+      const url = URL.createObjectURL(blob)
+      photoTipUrlRef.current = url
+      setPhotoTip({ uri: url, x, y })
+    }
+    if (isRealBlobHash(m.photo_id)) {
+      fetchThumbnailBytes(m.photo_id).then(b => set(b && new Blob([b]))).catch(() => {})
+    } else {
+      dbGetPhoto(m.id).then(res => set(res?.blob)).catch(() => {})
+    }
+  }, [])
+  useEffect(() => () => { if (photoTipUrlRef.current) URL.revokeObjectURL(photoTipUrlRef.current) }, [])
   // Track which IDs have already played their fly-in so we don't re-animate on re-renders
   const [flyDoneIds,  setFlyDoneIds]  = useState(() => new Set())
   // panMsRef always tracks the latest value for animation calculations
@@ -670,7 +699,7 @@ const Timeline = forwardRef(function Timeline(
               {(() => {
                 const icons = []
                 if (m.dayglance_linked) icons.push('dayglance')
-                if (m.photo_uri)  icons.push('camera')
+                if (m.has_photo)  icons.push('camera')
                 if (m.media_type === 'audio') icons.push('audio')
                 if (m.media_type === 'video') icons.push('video')
                 if (m.url)        icons.push('link')
@@ -690,8 +719,8 @@ const Timeline = forwardRef(function Timeline(
                   if (type === 'camera') return (
                     <g key="camera" transform={`translate(${ix},${iy})`}
                        opacity={op} style={{ cursor: 'zoom-in' }}
-                       onMouseEnter={e => setPhotoTip({ uri: m.photo_uri, x: e.clientX, y: e.clientY })}
-                       onMouseLeave={() => setPhotoTip(null)}>
+                       onMouseEnter={e => showPhotoTip(m, e.clientX, e.clientY)}
+                       onMouseLeave={hidePhotoTip}>
                       <rect x={-2} y={-1} width={18} height={13} fill="transparent" />
                       <rect x={0} y={2.5} width={14} height={8} rx={1.3}
                         fill="none" stroke={m.color} strokeWidth={0.85} />
