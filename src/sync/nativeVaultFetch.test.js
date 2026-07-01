@@ -1,95 +1,130 @@
 // Tests for the native-safe vault fetch adapter.
 //
-// The real CapacitorHttp path can only run on-device, so these tests cover the
-// adapter LOGIC and WIRING with a faked native primitive: that it maps a native
-// response to the Response-like contract the vault client / blob transport read
-// (.ok / .status / .json() / .text() / .arrayBuffer()), and that the gating
-// helper returns undefined on web so global fetch is used in the browser/PWA.
+// The real CapacitorHttp path runs on-device only, so these cover the adapter
+// LOGIC with a fake CapacitorHttp-shaped primitive: text mapping (.ok/.status/
+// .json()/.text()), the BINARY request body (base64 + dataType 'file') and
+// BINARY response (arraybuffer/base64 → bytes) that fix native blob upload/
+// download, and the web-vs-native gating.
 
 import { describe, it, expect, vi } from 'vitest'
 import { makeNativeVaultFetch, nativeVaultFetchImpl } from './nativeVaultFetch.js'
 
-// Fake native primitive: lifeGLANCE's (method, url, headers, body) shape,
-// returning the raw body as a string (responseType 'text').
-function fakeRequest(result, captured) {
-  return async (method, url, headers, body) => {
-    if (captured) Object.assign(captured, { method, url, headers, body })
-    return result
+// Fake CapacitorHttp: records the request opts and returns a canned response
+// `{ status, data, headers }` (the real plugin's shape).
+function fakeHttp(response, captured) {
+  return async (opts) => {
+    if (captured) Object.assign(captured, opts)
+    return typeof response === 'function' ? response(opts) : response
   }
 }
+const b64 = (bytes) => Buffer.from(bytes).toString('base64')
 
-describe('makeNativeVaultFetch — maps native response to the Response-like contract', () => {
-  it('exposes .ok/.status and parses .json()/.text() from the string body', async () => {
-    const fetchLike = makeNativeVaultFetch(fakeRequest({ status: 200, ok: true, etag: null, body: '{"salt":"abc"}' }))
-    const res = await fetchLike('https://vault/salt/acct', { method: 'GET', headers: { Authorization: 'Bearer t' } })
+describe('makeNativeVaultFetch — text / control-plane mapping', () => {
+  it('maps .ok/.status and parses .json()/.text() from a text response', async () => {
+    const captured = {}
+    const f = makeNativeVaultFetch(fakeHttp({ status: 200, data: '{"salt":"abc"}', headers: {} }, captured))
+    const res = await f('https://vault/salt/acct', { method: 'GET', headers: { Authorization: 'Bearer t' } })
     expect(res.ok).toBe(true)
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ salt: 'abc' })
     expect(await res.text()).toBe('{"salt":"abc"}')
-  })
-
-  it('derives .ok from the status when the primitive omits it', async () => {
-    const ok = makeNativeVaultFetch(fakeRequest({ status: 204, body: '' }))
-    const bad = makeNativeVaultFetch(fakeRequest({ status: 404, body: '' }))
-    expect((await ok('u', {})).ok).toBe(true)
-    expect((await bad('u', {})).ok).toBe(false)
-    expect((await bad('u', {})).status).toBe(404)
-  })
-
-  it('forwards method/url/headers/body to the native primitive', async () => {
-    const captured = {}
-    const fetchLike = makeNativeVaultFetch(fakeRequest({ status: 200, ok: true, body: '{}' }, captured))
-    await fetchLike('https://vault/blobs/uploads', { method: 'POST', headers: { Authorization: 'Bearer t' }, body: '{"hash":"h"}' })
-    expect(captured.method).toBe('POST')
-    expect(captured.url).toBe('https://vault/blobs/uploads')
-    expect(captured.headers).toEqual({ Authorization: 'Bearer t' })
-    expect(captured.body).toBe('{"hash":"h"}')
-  })
-
-  it('defaults method to GET and headers to {} when init is omitted', async () => {
-    const captured = {}
-    const fetchLike = makeNativeVaultFetch(fakeRequest({ status: 200, ok: true, body: '{}' }, captured))
-    await fetchLike('https://vault/x')
+    expect(captured.responseType).toBe('text') // non-binary read
     expect(captured.method).toBe('GET')
-    expect(captured.headers).toEqual({})
+    expect(captured.url).toBe('https://vault/salt/acct')
+    expect(captured.dataType).toBeUndefined()
+  })
+
+  it('passes a string (JSON) body straight through as opts.data with no dataType', async () => {
+    const captured = {}
+    const f = makeNativeVaultFetch(fakeHttp({ status: 200, data: '{}', headers: {} }, captured))
+    await f('https://vault/blobs/uploads', { method: 'POST', headers: {}, body: '{"hash":"h"}' })
+    expect(captured.data).toBe('{"hash":"h"}')
+    expect(captured.dataType).toBeUndefined()
+  })
+
+  it('derives .ok from status; a 404 error body stays a plain string', async () => {
+    const bad = makeNativeVaultFetch(fakeHttp({ status: 404, data: 'not found', headers: {} }))
+    const res = await bad('u', { responseType: 'arraybuffer' }) // even a binary read: error body is text
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(404)
+    expect(await res.text()).toBe('not found') // NOT base64-decoded
   })
 
   it('exposes a case-insensitive headers.get for etag', async () => {
-    const fetchLike = makeNativeVaultFetch(fakeRequest({ status: 200, ok: true, etag: 'W/"v1"', body: '{}' }))
-    const res = await fetchLike('u', {})
-    expect(res.headers.get('ETag')).toBe('W/"v1"')
+    const f = makeNativeVaultFetch(fakeHttp({ status: 200, data: '{}', headers: { ETag: 'W/"v1"' } }))
+    const res = await f('u', {})
+    expect(res.headers.get('etag')).toBe('W/"v1"')
     expect(res.headers.get('x-other')).toBeNull()
   })
+})
 
-  it('.arrayBuffer() returns the control-plane body bytes', async () => {
-    const fetchLike = makeNativeVaultFetch(fakeRequest({ status: 200, ok: true, body: 'hello' }))
-    const buf = await (await fetchLike('u', {})).arrayBuffer()
-    expect(new TextDecoder().decode(new Uint8Array(buf))).toBe('hello')
+describe('makeNativeVaultFetch — binary (the native blob upload/download fix)', () => {
+  it('REQUEST: a Uint8Array body is base64-encoded and marked dataType "file"', async () => {
+    const captured = {}
+    const f = makeNativeVaultFetch(fakeHttp({ status: 200, data: '', headers: {} }, captured))
+    const payload = new Uint8Array([0, 1, 2, 250, 255]) // includes non-UTF8 bytes
+    await f('https://vault/blobs/uploads/x/parts/0', { method: 'PUT', headers: {}, body: payload })
+    expect(captured.dataType).toBe('file') // native Base64-decodes → raw bytes
+    expect(captured.data).toBe(b64(payload)) // exact base64 of the bytes
+    expect(captured.responseType).toBe('text')
+  })
+
+  it('REQUEST: an ArrayBuffer body is handled the same way', async () => {
+    const captured = {}
+    const f = makeNativeVaultFetch(fakeHttp({ status: 200, data: '', headers: {} }, captured))
+    const payload = new Uint8Array([9, 8, 7])
+    await f('u', { method: 'PUT', body: payload.buffer })
+    expect(captured.dataType).toBe('file')
+    expect(captured.data).toBe(b64(payload))
+  })
+
+  it('RESPONSE: an arraybuffer read base64-decodes res.data back to the exact bytes', async () => {
+    const original = new Uint8Array([12, 0, 200, 5, 255, 128])
+    const captured = {}
+    const f = makeNativeVaultFetch(fakeHttp({ status: 200, data: b64(original), headers: {} }, captured))
+    const res = await f('https://vault/blobs/deadbeef', { method: 'GET', responseType: 'arraybuffer' })
+    expect(captured.responseType).toBe('arraybuffer')
+    const out = new Uint8Array(await res.arrayBuffer())
+    expect(out).toEqual(original) // round-trips byte-for-byte
+  })
+
+  it('round-trip: upload bytes then download them back through the adapter', async () => {
+    const bytes = new Uint8Array([1, 2, 3, 254, 0, 77])
+    // Upload: capture what the adapter sent as base64.
+    const up = {}
+    await makeNativeVaultFetch(fakeHttp({ status: 200, data: '', headers: {} }, up))(
+      'u', { method: 'PUT', body: bytes },
+    )
+    // The server would store exactly those bytes; a download returns them base64.
+    const res = await makeNativeVaultFetch(fakeHttp({ status: 200, data: up.data, headers: {} }))(
+      'u', { method: 'GET', responseType: 'arraybuffer' },
+    )
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes)
   })
 })
 
 describe('nativeVaultFetchImpl — web vs native gating', () => {
   it('returns undefined on web (non-native) so callers keep global fetch', () => {
-    // The test env is non-native (Capacitor.isNativePlatform() === false).
     expect(nativeVaultFetchImpl()).toBeUndefined()
   })
 
-  it('returns the adapter on native', async () => {
+  it('returns a working adapter on native (over a mocked CapacitorHttp)', async () => {
     vi.resetModules()
-    vi.doMock('./nativeHttp.js', () => ({
-      isNativePlatform: () => true,
-      nativeRequest: async () => ({ status: 200, ok: true, etag: null, body: '{"ok":1}' }),
+    vi.doMock('./nativeHttp.js', () => ({ isNativePlatform: () => true }))
+    vi.doMock('@capacitor/core', () => ({
+      CapacitorHttp: { request: async () => ({ status: 200, data: '{"ok":1}', headers: {} }) },
     }))
     const { nativeVaultFetchImpl: impl } = await import('./nativeVaultFetch.js')
     const f = impl()
     expect(typeof f).toBe('function')
-    expect((await (await f('u', {})).json())).toEqual({ ok: 1 })
+    expect(await (await f('u', {})).json()).toEqual({ ok: 1 })
+    vi.doUnmock('@capacitor/core')
     vi.doUnmock('./nativeHttp.js')
     vi.resetModules()
   })
 })
 
-describe('wiring — injection sites pass the adapter on native, undefined on web', () => {
+describe('wiring — injection sites, undefined on web', () => {
   it('verify probe passes fetchImpl into createVaultClient (undefined on web)', async () => {
     const { verifyVaultCredentials } = await import('./vaultSetup.js')
     let seenFetchImpl = 'UNSET'
@@ -102,14 +137,11 @@ describe('wiring — injection sites pass the adapter on native, undefined on we
       { createVaultClient },
     )
     expect(r.kind).toBe('success')
-    // On web (test env) the adapter is undefined → the package uses global fetch.
-    expect(seenFetchImpl).toBeUndefined()
+    expect(seenFetchImpl).toBeUndefined() // web → package uses global fetch
   })
 
-  it('blob transport uses global fetch on web (adapter undefined), not throwing for missing fetch', async () => {
+  it('blob transport uses global fetch on web (adapter undefined)', async () => {
     const { blobExists } = await import('../blobs/blobTransport.js')
-    // Inject an explicit fetch so we exercise resolveFetch without hitting network;
-    // proves the native fallback does not interfere on web.
     const fetchImpl = async () => ({ ok: false, status: 404, json: async () => ({}), arrayBuffer: async () => new ArrayBuffer(0) })
     const exists = await blobExists('deadbeef', {
       connection: { vaultUrl: 'https://v', vaultToken: 't', accountId: 'a' },

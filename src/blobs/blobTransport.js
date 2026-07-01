@@ -166,6 +166,10 @@ async function vaultRequest(conn, doFetch, method, path, opts = {}) {
     init.headers['Content-Type'] = 'application/octet-stream'
     init.body = opts.binaryBody
   }
+  // Hint for a binary response body (blob download). Ignored by the browser's
+  // real fetch (which reads .arrayBuffer() natively); used by the native
+  // CapacitorHttp adapter to request an arraybuffer/base64 read.
+  if (opts.responseType) init.responseType = opts.responseType
   return doFetch(url, init)
 }
 
@@ -333,6 +337,7 @@ export async function downloadBlobBytes(hash, deps = {}) {
   const res = await vaultRequest(conn, doFetch, 'GET', `/blobs/${encodeURIComponent(hash)}`, {
     query: { accountId: conn.accountId },
     headers,
+    responseType: 'arraybuffer', // native adapter reads bytes; browser fetch ignores it
   })
   if (!res.ok) throw new BlobTransportError(`download failed: ${res.status}`, res.status)
   return new Uint8Array(await res.arrayBuffer())
