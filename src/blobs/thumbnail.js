@@ -45,6 +45,14 @@ export const DEFAULT_QUALITY = 0.8
 export const POSTER_FRAME_TIME_SECONDS = 1
 
 /**
+ * Hard bound (ms) on EACH await in video poster generation. A native WebView can
+ * silently never fire `loadedmetadata` / `seeked` (a detached <video>, or a codec
+ * it can't decode without emitting `error`), which would otherwise hang the whole
+ * media upload forever. Each step is raced against this so it can never block.
+ */
+export const VIDEO_POSTER_TIMEOUT_MS = 10000
+
+/**
  * Thrown when a thumbnail cannot be produced (corrupt/unsupported source, or any
  * decode/encode failure). A clean, typed failure with NO partial output — the
  * caller treats it as a failed upload and publishes nothing referencing a
@@ -122,7 +130,15 @@ export async function generateThumbnail(sourceBytes, mimeType, opts = {}) {
   try {
     decoded =
       kind === 'video'
-        ? await processor.decodeVideoFrame(sourceBytes, mimeType, posterTime)
+        // Overall bound on video decode, on TOP of the per-step timeouts inside
+        // the browser processor: no processor (real or injected) can make this
+        // await forever. The inner per-step timeout normally fires first and names
+        // the stalling step; this is the backstop (and the seam tests exercise).
+        ? await withTimeout(
+            processor.decodeVideoFrame(sourceBytes, mimeType, posterTime),
+            opts.videoPosterTimeoutMs ?? (VIDEO_POSTER_TIMEOUT_MS + 2000),
+            'decodeVideoFrame',
+          )
         : await processor.decodeImage(sourceBytes, mimeType)
   } catch (err) {
     throw new ThumbnailGenerationError(`failed to decode ${kind} source`, { cause: err })
@@ -183,18 +199,28 @@ export const browserImageProcessor = {
     video.muted = true
     video.preload = 'auto'
     video.playsInline = true
+    // Lightweight step logging so an on-device run reveals WHERE the WebView
+    // stalls (which await never completed) rather than failing opaquely.
+    const step = (msg) => { try { console.warn(`[thumbnail:video] ${msg}`) } catch { /* ignore */ } }
     try {
       video.src = url
-      await onceEvent(video, 'loadedmetadata')
+      step('loading metadata…')
+      await withTimeout(onceEvent(video, 'loadedmetadata'), VIDEO_POSTER_TIMEOUT_MS, 'loadedmetadata')
+      step(`metadata loaded (duration=${video.duration}, ${video.videoWidth}x${video.videoHeight}); seeking…`)
       const duration = Number.isFinite(video.duration) ? video.duration : atSeconds
       const seekTo = Math.min(atSeconds, Math.max(0, duration))
-      await seekVideo(video, Number.isFinite(seekTo) ? seekTo : 0)
-      const frame = await createImageBitmap(video)
+      await withTimeout(seekVideo(video, Number.isFinite(seekTo) ? seekTo : 0), VIDEO_POSTER_TIMEOUT_MS, 'seeked')
+      step('seek complete; grabbing frame (createImageBitmap)…')
+      const frame = await withTimeout(createImageBitmap(video), VIDEO_POSTER_TIMEOUT_MS, 'createImageBitmap(video)')
+      step('frame grabbed OK')
       return {
         width: frame.width || video.videoWidth,
         height: frame.height || video.videoHeight,
         source: frame,
       }
+    } catch (err) {
+      step(`FAILED: ${err?.message || err}`)
+      throw err
     } finally {
       URLg.revokeObjectURL(url)
     }
@@ -209,6 +235,18 @@ export const browserImageProcessor = {
     const blob = await canvas.convertToBlob({ type: mimeType, quality })
     return new Uint8Array(await blob.arrayBuffer())
   },
+}
+
+// Race a promise against a timeout so a media-element await can NEVER block
+// forever. On timeout, rejects with a clear label naming the step that stalled.
+// The underlying promise is abandoned (the caller cleans up the <video>/object
+// URL in its finally), which is the whole point: we stop waiting on the WebView.
+function withTimeout(promise, ms, label) {
+  let timer
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`video poster timed out after ${ms}ms at step: ${label}`)), ms)
+  })
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
 }
 
 function onceEvent(target, name) {

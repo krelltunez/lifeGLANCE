@@ -81,6 +81,9 @@ function makeFakeProcessor(behavior = {}) {
       calls.decodeVideoFrame++
       calls.lastPosterTime = atSeconds
       if (behavior.decodeThrows) throw new Error('fake video decode failure')
+      // Simulate the Android-WebView stall: a decode that never settles. The
+      // timeout in generateThumbnail must turn this into a rejection, not a hang.
+      if (behavior.decodeHangs) return new Promise(() => {})
       return { ...readDims(bytes), source: { kind: 'video-frame' } }
     },
     async encode(image, targetWidth, targetHeight, mimeType, quality) {
@@ -191,6 +194,18 @@ describe('thumbnail — video source (poster frame)', () => {
       posterTimeSeconds: 3.5,
     })
     expect(calls.lastPosterTime).toBe(3.5)
+  })
+
+  it('bounds a hanging video decode with a timeout → ThumbnailGenerationError (never blocks forever)', async () => {
+    const { processor, calls } = makeFakeProcessor({ decodeHangs: true })
+    const err = await generateThumbnail(fakeSource(1920, 1080), 'video/mp4', {
+      processor,
+      videoPosterTimeoutMs: 20, // short bound so the never-settling decode times out fast
+    }).then(() => null, (e) => e)
+    expect(err).toBeInstanceOf(ThumbnailGenerationError)
+    expect(err.cause?.message).toMatch(/timed out/i) // the timeout, surfaced as the cause
+    expect(calls.decodeVideoFrame).toBe(1) // it was invoked, then bounded
+    expect(calls.encode).toBe(0) // no partial output — never reached encode
   })
 })
 

@@ -62,6 +62,20 @@ describe('uploadMilestoneMedia — ordering + clean-fail', () => {
     expect(d.calls).toEqual(['upload:1', 'ref:A']) // no 'thumb'
   })
 
+  it('video: a poster FAILURE/timeout does NOT abort — uploads the video with no poster (thumbHash null)', async () => {
+    const d = recorder({ generateThumbnail: async () => { throw new Error('video poster timed out at step: loadedmetadata') } })
+    const out = await uploadMilestoneMedia({ bytes, mimeType: 'video/mp4' }, d)
+    // The video WAS uploaded + referenced; poster was dropped (no thumb upload/ref).
+    expect(out).toEqual({ fullHash: HASH_A, thumbHash: null })
+    expect(d.calls).toEqual(['upload:1', 'ref:A'])
+  })
+
+  it('image: a thumbnail failure STILL aborts (the image IS the display surface) — contrast with video', async () => {
+    const d = recorder({ generateThumbnail: async () => { throw new Error('corrupt source') } })
+    await expect(uploadMilestoneMedia({ bytes, mimeType: 'image/png' }, d)).rejects.toThrow('corrupt source')
+    expect(d.calls).toEqual([]) // nothing uploaded, nothing referenced
+  })
+
   it('thumbnail-generation failure aborts BEFORE any upload or ref (no reference to a thumbnail that was never made)', async () => {
     const err = new Error('corrupt source')
     const d = recorder({ generateThumbnail: async () => { throw err } })
