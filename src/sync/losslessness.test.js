@@ -138,7 +138,7 @@ function typeOf(v) {
 function makeFixture() {
   const parentChapter = buildChapter({
     title: 'The Twenties', start: new Date('2010-01-01'), end: new Date('2019-12-31'),
-    color: '#9370DB', description: 'A whole decade', defaultMemberVisibility: 'shown',
+    color: '#9370DB', category: 'personal', description: 'A whole decade', defaultMemberVisibility: 'shown',
   })
   const childChapter = buildChapter({
     title: 'University Years', start: new Date('2010-09-01'), end: new Date('2014-06-30'),
@@ -265,6 +265,9 @@ describe('GLANCEvault sync — Stage 1 losslessness', () => {
     expect(rc[child.id].parentChapterId).toBe(child.parentChapterId)
     // milestoneIds membership arrays survive verbatim and in order.
     for (const c of oc) expect(rc[c.id].milestoneIds).toEqual(c.milestoneIds)
+    // The chapter category tag (issue #213) rides the chapter row and round-trips.
+    for (const c of oc) expect(rc[c.id].category).toBe(c.category ?? null)
+    expect(oc.find((c) => c.category === 'personal')).toBeTruthy() // fixture actually exercises it
   })
 
   it('preserves every singleton bundle (tombstone maps, birthday, categories) with paired timestamps', async () => {

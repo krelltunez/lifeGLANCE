@@ -12,6 +12,24 @@
  */
 
 /**
+ * Chapters honor the same category filter as milestones. `filter` is the Set of
+ * selected category ids (empty = no filter, show everything). When a filter is
+ * active, a chapter shows only if its `category` tag is one of the selected ids;
+ * an untagged chapter (category null/undefined) is hidden under an active filter
+ * and shown when the filter is cleared — matching milestone filter behavior.
+ *
+ * Pure and side-effect-free so it's directly unit-testable.
+ *
+ * @param {Array} chapters
+ * @param {Set<string>} filter  selected category ids
+ * @returns {Array} the chapters that pass the filter
+ */
+export function filterChaptersByCategory(chapters, filter) {
+  if (!filter || filter.size === 0) return chapters
+  return chapters.filter(c => c.category != null && filter.has(c.category))
+}
+
+/**
  * Precomputes a Set of milestone IDs that are endpoints of any chapter.
  * Also returns a Map from milestoneId → array of chapter names it anchors.
  *

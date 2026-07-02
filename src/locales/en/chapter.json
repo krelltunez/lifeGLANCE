@@ -22,6 +22,8 @@
   "errorEndDayRange": "end day must be between 1 and {{max}} for the selected month",
   "errorEndAfterStart": "end date must be after start date",
   "colorLabel": "color",
+  "categoryLabel": "category (tag)",
+  "categoryNone": "none",
   "deleteConfirmTitle": "delete <strong>{{title}}</strong>?",
   "endpointTooltip": "endpoint — always shown on main timeline",
   "endpointDimTooltip": "matches chapter boundary — add to make it an endpoint",

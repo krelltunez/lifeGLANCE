@@ -18,7 +18,7 @@ import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS, applyRecurFilter } from '../../utils/timeline'
 import { expandAnnualDates } from '../../utils/recurrence'
 import { loadCategories, saveCategories } from '../../utils/colors'
-import { getMilestoneVisibility, precomputeEndpoints } from '../../utils/visibility'
+import { getMilestoneVisibility, precomputeEndpoints, filterChaptersByCategory } from '../../utils/visibility'
 import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones, uid } from '../../data/milestones'
 import { listChapters, restoreChapters, createChapter, updateChapter, deleteChapter } from '../../data/chapters'
 import { writeMilestoneTombstone } from '../../sync/tombstones'
@@ -386,7 +386,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
   // ── Filter ───────────────────────────────────────────────────────────────────
   const presentCategories = categories.filter(cat =>
-    milestones.some(m => m.category === cat.id)
+    milestones.some(m => m.category === cat.id) || chapters.some(c => c.category === cat.id)
   )
   const hasRecurring = milestones.some(m => m.recurrence_id)
   const categoryFiltered = filter.size === 0 ? milestones : milestones.filter(m => filter.has(m.category))
@@ -1092,6 +1092,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           start:                  startIso,
           end:                    endIso,
           color:                  data.color,
+          category:               data.category ?? null,
           description:            data.description,
           defaultMemberVisibility: data.defaultMemberVisibility,
           milestoneIds:           data.milestoneIds,
@@ -1107,6 +1108,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         start:                  data.start,
         end:                    data.end,   // null for ongoing
         color:                  data.color,
+        category:               data.category ?? null,
         description:            data.description,
         defaultMemberVisibility: data.defaultMemberVisibility,
       })
@@ -1501,7 +1503,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const drillMilestones = drilledChapter
     ? milestones.filter(m => drilledChapter.milestoneIds.includes(m.id))
     : filteredMilestones
-  const drillChapters   = drilledChapter ? [drilledChapter] : chapters
+  // Chapter bands on the main timeline honor the category filter (a drilled-in
+  // chapter is shown as-is). Milestone visibility still uses the FULL chapters
+  // list above, so hiding a chapter band never changes milestone cascade.
+  const drillChapters   = drilledChapter ? [drilledChapter] : filterChaptersByCategory(chapters, filter)
   const drillHighlighted = highlightedIds
 
   function fmtChapterDate(iso) {
@@ -2105,6 +2110,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onDelete={handleChapterDelete}
           existing={editChapter}
           milestones={milestones}
+          categories={categories}
         />
       )}
       {detail && (

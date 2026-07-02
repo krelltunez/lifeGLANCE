@@ -12,6 +12,7 @@ export function buildChapter({
   start,
   end = null,
   color,
+  category                  = null,   // tag id (same set as milestone categories); null = untagged
   description               = '',
   defaultMemberVisibility   = 'shown',
   parentChapterId           = null,
@@ -23,6 +24,7 @@ export function buildChapter({
     start:                  start instanceof Date ? start.toISOString() : new Date(start).toISOString(),
     end:                    end === null ? null : (end instanceof Date ? end.toISOString() : new Date(end).toISOString()),
     color,
+    category,
     description,
     defaultMemberVisibility,
     parentChapterId,

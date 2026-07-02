@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
 import { buildDateFromParts, dateFieldOrder, monthNames } from '../../utils/dates'
+import { DEFAULT_CATEGORIES } from '../../utils/colors'
 
 const CHAPTER_COLORS = [
   { hex: 'var(--amber)', label: 'amber'   },
@@ -37,7 +38,7 @@ function parseIso(iso) {
   }
 }
 
-export default function ChapterSheet({ onSave, onClose, onDelete, existing, milestones = [] }) {
+export default function ChapterSheet({ onSave, onClose, onDelete, existing, milestones = [], categories = DEFAULT_CATEGORIES }) {
   const { t } = useTranslation('chapter')
   const { t: tc } = useTranslation('common')
   const { i18n } = useTranslation()
@@ -111,6 +112,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
   const [endYear,        setEndYear]        = useState(initEnd.year)
   const [endPrecision,   setEndPrecision]   = useState('month')
   const [color,          setColor]          = useState(existing?.color ?? CHAPTER_COLORS[0].hex)
+  const [category,       setCategory]       = useState(existing?.category ?? null)
   const [desc,           setDesc]           = useState(existing?.description ?? '')
   const [defVis,         setDefVis]         = useState(existing?.defaultMemberVisibility ?? 'shown')
   const [checkedIds,     setCheckedIds]     = useState(() => new Set(existing?.milestoneIds ?? []))
@@ -208,6 +210,7 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
           start:                  startIso,
           end:                    ongoing ? null : endIso,
           color,
+          category,
           description:            desc.trim(),
           defaultMemberVisibility: defVis,
           milestoneIds:           [...checkedIds],
@@ -316,6 +319,31 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
                 onClick={() => setColor(c.hex)}
                 title={c.label}
               />
+            ))}
+          </div>
+        </div>
+
+        {/* Category (tag) — same categories as milestones; used for the show/hide
+            filter. Independent of the chapter's color above. */}
+        <div className="sheet-field">
+          <label className="field-label">{t('categoryLabel')}</label>
+          <div className="category-grid">
+            <div
+              className={`category-chip ${category == null ? 'selected' : ''}`}
+              onClick={() => setCategory(null)}
+            >
+              <div className="category-chip-dot" style={{ background: 'var(--text-muted)' }} />
+              {t('categoryNone')}
+            </div>
+            {categories.map(cat => (
+              <div
+                key={cat.id}
+                className={`category-chip ${category === cat.id ? 'selected' : ''}`}
+                onClick={() => setCategory(cat.id)}
+              >
+                <div className="category-chip-dot" style={{ background: cat.color }} />
+                {cat.label}
+              </div>
             ))}
           </div>
         </div>
