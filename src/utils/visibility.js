@@ -22,7 +22,6 @@
  * @returns {{ endpointChapterNames: Map<string, string[]> }}
  */
 export function precomputeEndpoints(chapters) {
-  const endpointIds          = new Set()
   const endpointChapterNames = new Map()
 
   for (const chapter of chapters) {

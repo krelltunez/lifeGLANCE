@@ -52,7 +52,7 @@ export const buildBackupPayload = async () => {
 
 // applyPayload — writes merged data to IDB, then refreshes React state via callbacks
 export const makeApplyPayload = (setMilestones, setChapters) =>
-  async (data, opts) => {
+  async (data, _opts) => {
     const life = data?.lives?.default;
     if (!life) return;
 

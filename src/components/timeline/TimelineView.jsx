@@ -295,7 +295,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
   // Inbound: dayGLANCE notifying of a state change on one of our milestones.
   const handleInboundNotify = useCallback(async (payload) => {
-    const { event, source_entity_id, due, previous_due, completed_at, title } = payload
+    const { event, source_entity_id, due, completed_at, title } = payload
     const current = milestonesRef.current.find(m => m.id === source_entity_id)
     if (!current) return
 
