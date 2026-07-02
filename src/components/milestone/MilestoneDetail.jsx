@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
 import { formatDateDisplay, relativeLabel, ageAtDate } from '../../utils/dates'
 import { dbGetMedia, dbGetPhoto, dbPutMedia } from '../../data/db'
-import { isRealBlobHash, fetchFullResBytes, fetchFullResBytesChunked } from '../../blobs/milestoneMedia.js'
+import { isRealBlobHash, fetchFullResBytes, fetchFullResBytesChunked, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
 
 // Bytes → "X.X MB" for the download-progress label.
 const fmtMB = (n) => `${(n / 1048576).toFixed(1)} MB`
@@ -27,6 +27,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
   const [audioUrl,  setAudioUrl]  = useState(null)
   const [photoUrl,  setPhotoUrl]  = useState(null)
   const [mediaLoading, setMediaLoading] = useState(null) // { received, total } while downloading a remote clip
+  const [posterUrl, setPosterUrl] = useState(null) // video poster (from the uploaded thumbnail)
   const [confirm,   setConfirm]   = useState(null)
   const [pins,      setPins]      = useState(readPins)
 
@@ -88,6 +89,20 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, [m.id, m.media_type, m.media_id])
 
+  // Video poster: the uploaded thumbnail (thumbnail_id) is a small blob, so fetch +
+  // decrypt it (cached in-memory) and use it as the <video poster>, replacing the
+  // default blank "big play button" with the captured frame.
+  useEffect(() => {
+    if (m.media_type !== 'video' || !isRealBlobHash(m.thumbnail_id)) { setPosterUrl(null); return }
+    let objectUrl, cancelled = false
+    fetchThumbnailBytes(m.thumbnail_id).then(bytes => {
+      if (cancelled || !bytes) return
+      objectUrl = URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' }))
+      setPosterUrl(objectUrl)
+    }).catch(() => {})
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl) }
+  }, [m.media_type, m.thumbnail_id])
+
   useEffect(() => {
     if (!m.has_photo) return
     let objectUrl, cancelled = false
@@ -107,6 +122,16 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
 
   function doDelete()       { onDelete(m.id); onClose() }
   function doDeleteSeries() { onDeleteSeries(m.recurrence_id); onClose() }
+
+  // Label for the media-unavailable / downloading state (shared by the plain and
+  // poster-backed renders below).
+  const mediaLabel = mediaLoading
+    ? t('mediaDownloading', {
+        progress: mediaLoading.total
+          ? `${fmtMB(mediaLoading.received)} / ${fmtMB(mediaLoading.total)}`
+          : fmtMB(mediaLoading.received),
+      })
+    : t('mediaSyncedFromDevice')
 
   return (
     <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -180,22 +205,29 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
         {m.media_type && audioUrl && (
           <div className="detail-audio-wrap">
             {m.media_type === 'video'
-              ? <video controls src={audioUrl} className="detail-video" />
+              ? <video controls poster={posterUrl || undefined} src={audioUrl} className="detail-video" />
               : <audio controls src={audioUrl} className="detail-audio" />}
           </div>
         )}
         {m.media_type && !audioUrl && (
-          <div className="detail-audio-wrap detail-media-unavailable">
-            <span className="detail-media-unavailable-label">
-              {mediaLoading
-                ? t('mediaDownloading', {
-                    progress: mediaLoading.total
-                      ? `${fmtMB(mediaLoading.received)} / ${fmtMB(mediaLoading.total)}`
-                      : fmtMB(mediaLoading.received),
-                  })
-                : t('mediaSyncedFromDevice')}
-            </span>
-          </div>
+          posterUrl && m.media_type === 'video' ? (
+            // Show the poster frame with the status (e.g. "Downloading… X.X MB")
+            // overlaid, so a large video previews immediately while it downloads.
+            <div className="detail-audio-wrap" style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+              <img src={posterUrl} alt="" className="detail-video" />
+              <div style={{
+                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'rgba(0,0,0,0.4)', color: '#fff', fontSize: '0.85rem', lineHeight: 1.3,
+                textAlign: 'center', padding: '0.5rem', borderRadius: 'inherit',
+              }}>
+                {mediaLabel}
+              </div>
+            </div>
+          ) : (
+            <div className="detail-audio-wrap detail-media-unavailable">
+              <span className="detail-media-unavailable-label">{mediaLabel}</span>
+            </div>
+          )
         )}
 
         {/* Note */}
