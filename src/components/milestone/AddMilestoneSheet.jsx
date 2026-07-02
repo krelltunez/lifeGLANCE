@@ -376,6 +376,22 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
           </div>
         )}
 
+        {/* Recurrence (edit mode) — sits under the date too, matching create mode */}
+        {isEdit && existing?.recurrence === 'annual' && (
+          <div className="sheet-field">
+            <div className="detail-recurrence-warn">
+              {applyToSeries ? t('applyToSeriesWarning') : t('repeatsAnnuallyEditWarning')}
+            </div>
+            <label className="recurrence-toggle-row" style={{ marginTop: '0.5rem' }}>
+              <span className="field-label" style={{ marginBottom: 0 }}>{t('applyToSeries')}</span>
+              <input type="checkbox" className="settings-toggle"
+                checked={applyToSeries}
+                onChange={e => setApplyToSeries(e.target.checked)} />
+            </label>
+            <p className="settings-note" style={{ marginTop: '0.35rem' }}>{t('applyToSeriesNote')}</p>
+          </div>
+        )}
+
         {/* Category */}
         <div className="sheet-field">
           <label className="field-label">{t('category')}</label>
@@ -507,21 +523,6 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
             }}
           />
         </div>
-
-        {isEdit && existing?.recurrence === 'annual' && (
-          <div className="sheet-field">
-            <div className="detail-recurrence-warn">
-              {applyToSeries ? t('applyToSeriesWarning') : t('repeatsAnnuallyEditWarning')}
-            </div>
-            <label className="recurrence-toggle-row" style={{ marginTop: '0.5rem' }}>
-              <span className="field-label" style={{ marginBottom: 0 }}>{t('applyToSeries')}</span>
-              <input type="checkbox" className="settings-toggle"
-                checked={applyToSeries}
-                onChange={e => setApplyToSeries(e.target.checked)} />
-            </label>
-            <p className="settings-note" style={{ marginTop: '0.35rem' }}>{t('applyToSeriesNote')}</p>
-          </div>
-        )}
 
         {/* Visibility (edit mode only) */}
         {isEdit && (
