@@ -63,9 +63,16 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
     const real = isRealBlobHash(m.media_id)
     const parts = [`type=${m.media_type}`, real ? `id=real:${String(m.media_id).slice(0, 10)}` : 'id=placeholder']
     const mb = (n) => `${(n / 1048576).toFixed(1)}MB`
+    // Set SYNCHRONOUSLY so the line renders immediately — its presence proves this
+    // (DIAG3) build is actually running (vs a stale cached bundle); its absence
+    // means the app is serving old code.
+    setMediaDiag(`DIAG3 · ${parts.join(' · ')} · probing local…`)
+    // Bound the local read so a stall shows up instead of leaving the line stuck.
+    const withTimeout = (p, ms, label) =>
+      Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timeout ${ms}ms`)), ms))])
     // Always probe the local store (even for a real id) so we know whether a local
     // copy exists on this device.
-    dbGetMedia(m.id).then(result => {
+    withTimeout(dbGetMedia(m.id), 8000, 'dbGetMedia').then(result => {
       if (cancelled) return
       parts.push(result?.blob ? `local=${mb(result.blob.size)}` : 'local=NONE')
       if (real) {
@@ -74,13 +81,13 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
           if (cancelled) return
           if (b) { parts.push(`fetch=${mb(b.length)}`); show(new Blob([b], { type })) }
           else parts.push('fetch=null')
-          setMediaDiag(parts.join(' · '))
-        }).catch(e => { if (!cancelled) { parts.push(`fetch!=${e?.name || 'err'}:${String(e?.message || '').slice(0, 40)}`); setMediaDiag(parts.join(' · ')) } })
+          setMediaDiag('DIAG3 · ' + parts.join(' · '))
+        }).catch(e => { if (!cancelled) { parts.push(`fetch!=${e?.name || 'err'}:${String(e?.message || '').slice(0, 40)}`); setMediaDiag('DIAG3 · ' + parts.join(' · ')) } })
       } else {
         show(result?.blob)
-        setMediaDiag(parts.join(' · '))
+        setMediaDiag('DIAG3 · ' + parts.join(' · '))
       }
-    }).catch(e => { if (!cancelled) { parts.push(`local!=${String(e?.message || e).slice(0, 40)}`); setMediaDiag(parts.join(' · ')) } })
+    }).catch(e => { if (!cancelled) { parts.push(`local!=${String(e?.message || e).slice(0, 40)}`); setMediaDiag('DIAG3 · ' + parts.join(' · ')) } })
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, [m.id, m.media_type, m.media_id])
 
