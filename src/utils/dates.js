@@ -56,7 +56,7 @@ export function relativeParts(dateStr) {
   return { key: 'relToday', today: true }
 }
 
-export function relativeLabel(dateStr, precision = 'day') {
+export function relativeLabel(dateStr, _precision = 'day') {
   const { key, count = 0, months = 0 } = relativeParts(dateStr)
   // Strip the <0></0> / <1></1> component tags used by the animated variant.
   return i18n.t(key, { ns: 'common', count, months }).replace(/<\/?\d+>/g, '')

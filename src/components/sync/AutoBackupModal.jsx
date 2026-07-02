@@ -22,7 +22,7 @@ function SettingsTab({ onClose }) {
   const savedBackupConfig = loadBackupConfig()
 
   const [remoteEnabled, setRemoteEnabled] = useState(savedBackupConfig?.remoteEnabled ?? false)
-  const [provider,      setProvider]      = useState(existingConfig?.provider ?? 'nextcloud')
+  const [provider] = useState(existingConfig?.provider ?? 'nextcloud')
   const [url,           setUrl]           = useState(existingConfig?.url ?? '')
   const [username,      setUsername]      = useState(existingConfig?.username ?? '')
   const [password,      setPassword]      = useState(existingConfig?.password ?? '')

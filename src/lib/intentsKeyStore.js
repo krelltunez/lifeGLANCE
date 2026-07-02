@@ -58,7 +58,3 @@ export function makeDeriveFn(rootKey) {
   if (!rootKey) return null
   return (salt) => deriveEnvelopeKey(rootKey, salt)
 }
-
-export function clearIntentsRootKey() {
-  _rootKey = null
-}

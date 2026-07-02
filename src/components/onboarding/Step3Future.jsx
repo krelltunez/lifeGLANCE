@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import TypewriterText from '../ui/TypewriterText'
 import { buildDateFromParts, dateFieldOrder, monthNames } from '../../utils/dates'
 
-export default function Step3Future({ onSubmit, pastMilestone }) {
+export default function Step3Future({ onSubmit }) {
   const { t } = useTranslation('onboarding')
   const { t: tc } = useTranslation('common')
   const { i18n } = useTranslation()

@@ -1,14 +1,12 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { loadIntentsConfig, saveIntentsConfig, enableIntentsEncryption } from '../../lib/intentsTransport.js'
-import { loadIntentsRootKey } from '../../lib/intentsKeyStore.js'
 import { isNativePlatform, nativeWebdavResponse } from '../../sync/nativeHttp.js'
 
 const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy'
 
 export default function IntegrationSettings() {
   const { t } = useTranslation('dayglance')
-  const { t: ts } = useTranslation('sync')
   const [cfg, setCfg] = useState(loadIntentsConfig)
   const [testStatus, setTestStatus] = useState(null)
   const [testMsg,    setTestMsg]    = useState('')
