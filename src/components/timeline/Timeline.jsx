@@ -3,7 +3,7 @@ import React, {
   useImperativeHandle, forwardRef,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { dateToX, getTimeRangeForView, getTickMarks, assignLanes, getMsPerPx } from '../../utils/timeline'
+import { dateToX, getTimeRangeForView, getTickMarks, assignLanes, getMsPerPx, computePinchZoom } from '../../utils/timeline'
 import { relativeLabel, formatDateDisplay, ageAtDate, formatDuration } from '../../utils/dates'
 import { dbGetMedia, dbGetPhoto } from '../../data/db'
 import { isRealBlobHash, fetchThumbnailBytes, fetchFullResBytes } from '../../blobs/milestoneMedia.js'
@@ -63,7 +63,7 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, highlightScale = 1.06, panMs, onPanMs, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
+  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, highlightScale = 1.06, panMs, onPanMs, onPinch, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
   ref
 ) {
   const { t, i18n } = useTranslation('timeline')
@@ -304,25 +304,95 @@ const Timeline = forwardRef(function Timeline(
   const endDrag = useCallback(() => { drag.current.active = false }, [])
   const touchId = useRef(null)
 
+  // ── Pinch-to-zoom ─────────────────────────────────────────────────────────
+  // Two-finger pinch drives the 'custom' zoom via onPinch(halfMs, panMs). All
+  // the zoom math is reused from computePinchZoom; here we only translate finger
+  // geometry (distance + midpoint) into its inputs. Values captured at gesture
+  // start live in pinch.current so each move computes an absolute result (no
+  // drift accumulation). startHalfMs is the effective half-span derived from the
+  // live msPerPx, so a pinch can begin from any named zoom level.
+  const pinch = useRef({ active: false, startDist: 1, startMidX: 0, startHalfMs: 0, startPan: 0 })
+
+  const touchGeometry = (touches) => {
+    const rect = wrapRef.current?.getBoundingClientRect()
+    const left = rect ? rect.left : 0
+    const [a, b] = touches
+    return {
+      dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+      midX: (a.clientX + b.clientX) / 2 - left,
+    }
+  }
+
+  const startPinch = (touches) => {
+    if (animRef.current) cancelAnimationFrame(animRef.current)
+    drag.current.active = false // cancel any single-finger pan in progress
+    const { dist, midX } = touchGeometry(touches)
+    pinch.current = {
+      active: true,
+      startDist: dist || 1,
+      startMidX: midX,
+      startHalfMs: (msPerPx * w) / 2,
+      startPan: panMsRef.current,
+    }
+  }
+
+  const movePinch = (touches) => {
+    if (!pinch.current.active || !onPinch) return
+    const { dist, midX } = touchGeometry(touches)
+    const { halfMs, panMs: newPan } = computePinchZoom({
+      startHalfMs: pinch.current.startHalfMs,
+      startPanMs:  pinch.current.startPan,
+      viewMode, width: w,
+      startMidX:   pinch.current.startMidX,
+      midX,
+      distRatio:   dist / pinch.current.startDist,
+    })
+    panMsRef.current = newPan
+    onPinch(halfMs, newPan)
+  }
+
   return (
     <div
       ref={wrapRef}
       className="timeline-svg-wrap"
-      style={{ flex: 1 }}
+      style={{ flex: 1, touchAction: 'none' }}
       onMouseDown={e => startDrag(e.clientX)}
       onMouseMove={e => moveDrag(e.clientX)}
       onMouseUp={endDrag}
       onMouseLeave={endDrag}
       onTouchStart={e => {
-        const t = e.touches[0]
-        touchId.current = t.identifier
-        startDrag(t.clientX)
+        if (e.touches.length >= 2) {
+          startPinch(e.touches)
+        } else {
+          const t = e.touches[0]
+          touchId.current = t.identifier
+          startDrag(t.clientX)
+        }
       }}
       onTouchMove={e => {
-        const t = [...e.touches].find(x => x.identifier === touchId.current)
-        if (t) moveDrag(t.clientX)
+        if (pinch.current.active && e.touches.length >= 2) {
+          movePinch(e.touches)
+        } else if (!pinch.current.active) {
+          const t = [...e.touches].find(x => x.identifier === touchId.current)
+          if (t) moveDrag(t.clientX)
+        }
       }}
-      onTouchEnd={endDrag}
+      onTouchEnd={e => {
+        if (pinch.current.active) {
+          if (e.touches.length < 2) {
+            pinch.current.active = false
+            // Hand off to single-finger pan if one finger remains, re-anchoring
+            // the drag origin so releasing one finger doesn't jump the view.
+            if (e.touches.length === 1) {
+              const t = e.touches[0]
+              touchId.current = t.identifier
+              startDrag(t.clientX)
+            }
+          }
+        } else {
+          endDrag()
+        }
+      }}
     >
       <svg
         width={w} height={h}

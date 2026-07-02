@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyRecurFilter } from './timeline'
+import { applyRecurFilter, computePinchZoom, PINCH_MIN_HALF_MS, PINCH_MAX_HALF_MS } from './timeline'
 
 // Helper to build a minimal milestone-like object
 function ms(id, dateStr, recurrence_id = null) {
@@ -86,5 +86,60 @@ describe('applyRecurFilter', () => {
     const plain = [n1, n2]
     const result = applyRecurFilter(plain, 'all')
     expect(result).toEqual(plain)
+  })
+})
+
+describe('computePinchZoom', () => {
+  // Mirror of how the timeline maps a screen x to a timestamp, used to assert
+  // the point under the pinch midpoint stays fixed.
+  const timeUnderMid = (panMs, halfMs, midX, width, fraction = 0.5) =>
+    panMs + (halfMs * 2) * (midX / width - fraction)
+
+  // Geometry tests use a wide-open clamp so the finger math is exercised without
+  // the real min/max flooring the small synthetic spans.
+  const NOCLAMP = { minHalfMs: 0, maxHalfMs: Infinity }
+  const base = { startHalfMs: 1000, startPanMs: 0, width: 1000, startMidX: 500, midX: 500, ...NOCLAMP }
+
+  it('halves the span when fingers spread 2×; a centered pinch keeps pan', () => {
+    const r = computePinchZoom({ ...base, distRatio: 2 })
+    expect(r.halfMs).toBe(500)
+    expect(r.panMs).toBe(0)
+  })
+
+  it('doubles the span when fingers pinch to half distance', () => {
+    const r = computePinchZoom({ ...base, distRatio: 0.5 })
+    expect(r.halfMs).toBe(2000)
+  })
+
+  it('clamps zoom-in to the min half-span', () => {
+    const r = computePinchZoom({ startHalfMs: PINCH_MIN_HALF_MS, startPanMs: 0, width: 1000, startMidX: 500, midX: 500, distRatio: 1000 })
+    expect(r.halfMs).toBe(PINCH_MIN_HALF_MS)
+  })
+
+  it('clamps zoom-out to the max half-span', () => {
+    const r = computePinchZoom({ startHalfMs: PINCH_MAX_HALF_MS, startPanMs: 0, width: 1000, startMidX: 500, midX: 500, distRatio: 0.001 })
+    expect(r.halfMs).toBe(PINCH_MAX_HALF_MS)
+  })
+
+  it('keeps the timestamp under an off-center pinch midpoint fixed', () => {
+    const args = { ...base, startMidX: 750, midX: 750, distRatio: 2 }
+    const before = timeUnderMid(args.startPanMs, args.startHalfMs, args.startMidX, args.width)
+    const r = computePinchZoom(args)
+    const after = timeUnderMid(r.panMs, r.halfMs, args.midX, args.width)
+    expect(after).toBeCloseTo(before, 3)
+  })
+
+  it('pans when the two-finger midpoint translates without changing distance', () => {
+    const r = computePinchZoom({ ...base, midX: 600, distRatio: 1 })
+    expect(r.halfMs).toBe(1000)   // distance unchanged → no zoom
+    expect(r.panMs).not.toBe(0)   // midpoint moved → view pans
+  })
+
+  it('honors a non-default view anchor (past) when preserving the midpoint', () => {
+    const args = { startHalfMs: 1000, startPanMs: 12345, viewMode: 'past', width: 1000, startMidX: 300, midX: 300, distRatio: 1.5, ...NOCLAMP }
+    const before = timeUnderMid(args.startPanMs, args.startHalfMs, args.startMidX, args.width, 0.88)
+    const r = computePinchZoom(args)
+    const after = timeUnderMid(r.panMs, r.halfMs, args.midX, args.width, 0.88)
+    expect(after).toBeCloseTo(before, 3)
   })
 })

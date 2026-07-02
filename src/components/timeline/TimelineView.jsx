@@ -379,6 +379,15 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
 
+  // Pinch-to-zoom: the timeline reports an absolute half-span (ms) and pan
+  // offset per gesture frame. Drive the continuous 'custom' zoom directly (no
+  // stepped animation), the same path drill-to-chapter uses to enter custom.
+  const handlePinch = useCallback((halfMs, newPanMs) => {
+    setZoom('custom')
+    setCustomYears(halfMs / (365.25 * 24 * 3600 * 1000))
+    setPanMs(newPanMs)
+  }, [])
+
   // ── Visibility precomputation ─────────────────────────────────────────────────
   // Precompute endpoint data once per chapters change. This is O(chapters × members)
   // and avoids re-scanning chapters for every milestone on every render.
@@ -1940,6 +1949,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             onChapterDoubleClick={openChapterEdit}
             panMs={panMs}
             onPanMs={setPanMs}
+            onPinch={handlePinch}
             viewMode={viewMode}
             onClusterClick={handleClusterClick}
             clustering={clustering}
