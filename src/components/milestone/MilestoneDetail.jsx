@@ -23,6 +23,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
   const { t: tc } = useTranslation('common')
   const [audioUrl,  setAudioUrl]  = useState(null)
   const [photoUrl,  setPhotoUrl]  = useState(null)
+  const [mediaDiag, setMediaDiag] = useState(null) // TEMP: on-device media state readout
   const [confirm,   setConfirm]   = useState(null)
   const [pins,      setPins]      = useState(readPins)
 
@@ -49,19 +50,37 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
   // media store. A fetch failure (blob not yet uploaded / reclaimed) leaves
   // audioUrl null → the graceful "media unavailable" placeholder renders below.
   useEffect(() => {
-    if (!m.media_type) return
+    if (!m.media_type) { setMediaDiag(null); return }
     let objectUrl, cancelled = false
     const show = (blob) => {
       if (cancelled || !blob) return
       objectUrl = URL.createObjectURL(blob)
       setAudioUrl(objectUrl)
     }
-    if (isRealBlobHash(m.media_id)) {
-      const type = m.media_type === 'video' ? 'video/mp4' : 'audio/mpeg'
-      fetchFullResBytes(m.media_id).then(b => show(b && new Blob([b], { type }))).catch(() => {})
-    } else {
-      dbGetMedia(m.id).then(result => show(result?.blob)).catch(() => {})
-    }
+    // TEMP DIAGNOSTIC: record the actual on-device media state so a failing case
+    // reveals WHICH layer is at fault — id kind (real vs local placeholder), a
+    // local blob present + its size, and (for a real id) the fetch outcome.
+    const real = isRealBlobHash(m.media_id)
+    const parts = [`type=${m.media_type}`, real ? `id=real:${String(m.media_id).slice(0, 10)}` : 'id=placeholder']
+    const mb = (n) => `${(n / 1048576).toFixed(1)}MB`
+    // Always probe the local store (even for a real id) so we know whether a local
+    // copy exists on this device.
+    dbGetMedia(m.id).then(result => {
+      if (cancelled) return
+      parts.push(result?.blob ? `local=${mb(result.blob.size)}` : 'local=NONE')
+      if (real) {
+        const type = m.media_type === 'video' ? 'video/mp4' : 'audio/mpeg'
+        fetchFullResBytes(m.media_id).then(b => {
+          if (cancelled) return
+          if (b) { parts.push(`fetch=${mb(b.length)}`); show(new Blob([b], { type })) }
+          else parts.push('fetch=null')
+          setMediaDiag(parts.join(' · '))
+        }).catch(e => { if (!cancelled) { parts.push(`fetch!=${e?.name || 'err'}:${String(e?.message || '').slice(0, 40)}`); setMediaDiag(parts.join(' · ')) } })
+      } else {
+        show(result?.blob)
+        setMediaDiag(parts.join(' · '))
+      }
+    }).catch(e => { if (!cancelled) { parts.push(`local!=${String(e?.message || e).slice(0, 40)}`); setMediaDiag(parts.join(' · ')) } })
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, [m.id, m.media_type, m.media_id])
 
@@ -164,6 +183,11 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
         {m.media_type && !audioUrl && (
           <div className="detail-audio-wrap detail-media-unavailable">
             <span className="detail-media-unavailable-label">{t('mediaSyncedFromDevice')}</span>
+            {mediaDiag && (
+              <span style={{ display: 'block', marginTop: 4, fontSize: '0.68rem', opacity: 0.75, wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                {mediaDiag}
+              </span>
+            )}
           </div>
         )}
 
