@@ -12,6 +12,7 @@ import KeyboardShortcutsModal  from '../help/KeyboardShortcutsModal'
 import SearchModal       from '../search/SearchModal'
 import SummaryModal      from '../stats/SummaryModal'
 import OnThisDayModal    from './OnThisDayModal'
+import HiddenMilestonesModal from './HiddenMilestonesModal'
 import IcsImportModal    from '../import/IcsImportModal'
 import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
@@ -167,6 +168,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const [newlyAddedId,     setNewlyAddedId]     = useState(null)
   const [summaryOpen,      setSummaryOpen]      = useState(false)
   const [onThisDayOpen,    setOnThisDayOpen]    = useState(false)
+  const [hiddenListOpen,   setHiddenListOpen]   = useState(false)
   const [activityLogOpen,  setActivityLogOpen]  = useState(false)
   const [icsImport,     setIcsImport]     = useState(null)  // { candidates, timedCount } | null
   const [toast,         setToast]         = useState(null)  // { message, type } | null
@@ -411,6 +413,12 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     setRecurFilter(f => ({ next: 'all', all: 'past', past: 'future', future: 'next' }[f]))
   }
 
+  // Milestones explicitly hidden from the main timeline. They have no card to tap,
+  // so the "N hidden" button + list is the way to reach them and un-hide (issue
+  // #192). Independent of the category filter — it's a management view of all of
+  // them. (Cascade-hidden milestones are reachable by drilling into their chapter.)
+  const hiddenMilestones = milestones.filter(m => m.mainTimelineVisibility === 'hidden')
+
   // ── "On this day" — milestones that share today's month (and day if precision allows) ──
   const onThisDayItems = React.useMemo(() => {
     const today = new Date()
@@ -506,6 +514,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     setSelectedId(m.id)
     setHighlightsActive(true)
     timelineRef.current?.panToMs(new Date(m.date).getTime())
+    // Open the detail sheet too, so a selected result — including a hidden
+    // milestone with no card on the timeline — is directly viewable/editable.
+    setDetail(m)
     const pastI = past.findIndex(p => p.id === m.id)
     if (pastI !== -1) {
       setPastIdx(pastI)
@@ -1575,7 +1586,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   }
   const anyModalOpen =
     addOpen || !!detail || settingsOpen || helpOpen || kbdOpen || searchOpen ||
-    chapterSheetOpen || summaryOpen || onThisDayOpen || activityLogOpen ||
+    chapterSheetOpen || summaryOpen || onThisDayOpen || hiddenListOpen || activityLogOpen ||
     cloudSyncOpen || autoBackupOpen || !!icsImport || !!mediaConfirm ||
     !!editChapter || !!drilledChapter || zoomOpen || filterOpen
 
@@ -2041,6 +2052,11 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             {t('onThisDay')}
           </button>
         )}
+        {hiddenMilestones.length > 0 && (
+          <button className="today-btn" onClick={() => setHiddenListOpen(true)}>
+            {t('hiddenCount', { count: hiddenMilestones.length })}
+          </button>
+        )}
         <button className="today-btn" onClick={handleJumpToToday}>
           {t('jumpToToday')}
         </button>
@@ -2145,6 +2161,13 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         <SummaryModal
           milestones={milestones}
           onClose={() => setSummaryOpen(false)}
+        />
+      )}
+      {hiddenListOpen && (
+        <HiddenMilestonesModal
+          items={hiddenMilestones}
+          onClose={() => setHiddenListOpen(false)}
+          onSelect={m => { setHiddenListOpen(false); setDetail(m) }}
         />
       )}
       {onThisDayOpen && (
