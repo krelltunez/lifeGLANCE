@@ -49,7 +49,7 @@
   "filterCategories": "{{count}}類卷宗",
   "emptyState": " ~ 雲開見月明 ~ \n為你我的章回創造里程碑",
   "emptyFiltered_one": " ~ 坐看云起时 ~ \n此卷宗尚無里程碑\n為你我的章回寫下一筆",
-  "emptyFiltered_other":  "~ 星垂平野阔 ~ \n各卷宗皆無里程碑\n為你我的章回就此開篇",
+  "emptyFiltered_other":  " ~ 星垂平野阔 ~ \n各卷宗皆無里程碑\n為你我的章回就此開篇",
   "mediaLargeFile": "檔案較大",
   "mediaFileSize": "檔案大小為{{size}}",
   "mediaStorageRemaining": "可用空間剩餘{{size}}",
