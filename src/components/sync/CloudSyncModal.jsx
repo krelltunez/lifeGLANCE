@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { getSyncEngine } from '../../sync/engine'
 import { isSyncing, syncErrorText, SYNC_ERROR_I18N_KEYS } from '../../sync/status'
 import { verifyVaultCredentials, runVaultSetup, disableVault, VAULT_OUTCOME } from '../../sync/vaultSetup'
+import { resolveWebdavBase } from '../../sync/webdav'
 import { runMediaBackfill } from '../../blobs/mediaBackfill'
 
 // Maps a vault verify/setup outcome kind to its distinct, translatable message.
@@ -29,14 +30,6 @@ async function mkdirp(url, username, password) {
       await fetch(PROXY, { method: 'MKCOL', headers: { ...auth, 'X-WebDAV-Url': url } })
     }
   }
-}
-
-function resolveWebdavBase(provider, url, username) {
-  const base = url.replace(/\/+$/, '')
-  if (provider === 'nextcloud' && !base.includes('/remote.php/dav')) {
-    return `${base}/remote.php/dav/files/${encodeURIComponent(username)}`
-  }
-  return base
 }
 
 const PROVIDERS = [

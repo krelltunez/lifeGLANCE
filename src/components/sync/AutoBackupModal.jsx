@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getSyncEngine } from '../../sync/engine'
+import { buildWebdavConfig } from '../../sync/webdav'
 
 const FREQUENCIES = [
   { value: 'hourly',  label: 'Hourly (keep 24)' },
@@ -41,11 +42,15 @@ function SettingsTab({ onClose }) {
     setTesting(true)
     setResult(null)
     try {
-      const config = { provider, url, username, password }
-      const ok = await engine?.testConnection?.(config)
-      setResult(ok
+      // Build + test the connection the SAME way the Cloud Sync test does
+      // (resolving the provider base), so the two tests agree for one server
+      // instead of the auto-backup test failing while sync passes (issue #206).
+      const config = buildWebdavConfig({ provider, url, username, password, folder: existingConfig?.folder })
+      const r = await engine?.test?.(config)
+      if (!r) throw new Error('Sync engine not initialized.')
+      setResult(r.success
         ? { ok: true, message: t('connectionSuccessful') }
-        : { ok: false, message: t('connectionFailedSimple') })
+        : { ok: false, message: r.error ?? t('connectionFailedSimple') })
     } catch (err) {
       setResult({ ok: false, message: t('error', { message: err.message }) })
     } finally {
