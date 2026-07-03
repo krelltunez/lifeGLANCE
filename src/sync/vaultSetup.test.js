@@ -35,7 +35,7 @@ function spyDeps(createVaultClient) {
     createVaultClient,
     setSyncPassphrase: vi.fn(),
     setupDbRootKey: vi.fn(async () => {}),
-    setupIntentsEncryption: vi.fn(async () => {}),
+    setupVaultIntentsRootKey: vi.fn(async () => {}),
     reinit: vi.fn(),
     startSync: vi.fn(),
   }
@@ -87,7 +87,7 @@ describe('runVaultSetup — verify-before-save gate', () => {
     // Keys derived against the FETCHED salt (not invented), before activation.
     expect(deps.setSyncPassphrase).toHaveBeenCalledWith('pw')
     expect(deps.setupDbRootKey).toHaveBeenCalledWith('pw', salt, { cryptoDBName: 'lifeglance-crypto' })
-    expect(deps.setupIntentsEncryption).toHaveBeenCalledWith('pw', salt)
+    expect(deps.setupVaultIntentsRootKey).toHaveBeenCalledWith('pw', salt)
     expect(deps.reinit).toHaveBeenCalledTimes(1)
     expect(deps.startSync).toHaveBeenCalledTimes(1)
   })
@@ -100,7 +100,7 @@ describe('runVaultSetup — verify-before-save gate', () => {
     expect(readVaultConfig()).toEqual(CREDS)            // saved
     expect(deps.setSyncPassphrase).toHaveBeenCalledWith('pw')
     expect(deps.setupDbRootKey).not.toHaveBeenCalled()  // no salt → none invented
-    expect(deps.setupIntentsEncryption).not.toHaveBeenCalled()
+    expect(deps.setupVaultIntentsRootKey).not.toHaveBeenCalled()
     expect(deps.reinit).toHaveBeenCalledTimes(1)        // still activated
   })
 

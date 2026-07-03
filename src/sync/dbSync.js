@@ -20,7 +20,7 @@ import { makeRealStore } from './dbStore.js'
 import { registerDirtyTarget } from './dirty.js'
 import { dbGetAll, dbGetAllChapters } from '../data/db.js'
 import { loadCategories } from '../utils/colors.js'
-import { loadIntentsRootKey, setupIntentsEncryption } from '../lib/intentsKeyStore.js'
+import { loadVaultIntentsRootKey, setupVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
 import { flushOutbox } from '../lib/intentsTransport.js'
 
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
@@ -152,12 +152,15 @@ export const initDbSyncEngine = (opts = {}) => {
   // getSalt) is retried on the next cycle and never breaks a succeeded sync.
   const bootstrapIntentsRootKey = async () => {
     try {
-      if (await loadIntentsRootKey()) return          // already set up — no-op
+      // Guard on the VAULT slot (not the WebDAV slot): a present WebDAV-intents key
+      // must NOT make us skip deriving the vault key. loadVaultIntentsRootKey also
+      // runs the one-time migration that re-homes a legacy shared-slot vault key.
+      if (await loadVaultIntentsRootKey()) return       // vault key already present — no-op
       const passphrase = getSyncPassphrase()
-      if (!passphrase) return                          // no passphrase → cannot derive (DB key couldn't either)
+      if (!passphrase) return                           // no passphrase → cannot derive (DB key couldn't either)
       const salt = await engine.vault.getSalt(vaultConfig.accountId)
-      if (!salt || !salt.length) return                // salt not established yet — try again next cycle
-      await setupIntentsEncryption(passphrase, salt)   // derive against the REAL established salt
+      if (!salt || !salt.length) return                 // salt not established yet — try again next cycle
+      await setupVaultIntentsRootKey(passphrase, salt)  // derive against the REAL vault salt → vault slot
       // The vault intents key just appeared — flush any intents the outbox held
       // (vault target 'transient' on key-not-ready) so a freshly-bootstrapped
       // device delivers them promptly rather than waiting for the next UI poll.

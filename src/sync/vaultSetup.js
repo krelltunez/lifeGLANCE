@@ -14,17 +14,18 @@
 // Passphrase/key foundation (shared with blobs + intents): the vault uses the
 // SINGLE sync passphrase, not a vault-specific secret. When the salt already
 // exists we derive BOTH the DB-sync root key (setupDbRootKey) and the intents/
-// blob root key (setupIntentsEncryption) from passphrase + the VAULT-FETCHED salt
-// BEFORE activating, so the key is cached when the engine comes up and lifeGLANCE
-// stays byte-identical-decryptable with the other apps. We never derive against
-// an invented salt.
+// blob root key (setupVaultIntentsRootKey → the dedicated 'vault-root-key' slot)
+// from passphrase + the VAULT-FETCHED salt BEFORE activating, so the key is cached
+// when the engine comes up and lifeGLANCE stays byte-identical-decryptable with the
+// other apps. We never derive against an invented salt. The vault key has its OWN
+// slot, separate from the WebDAV file-tier intents key, so the two never collide.
 
 import {
   createVaultClient as defaultCreateVaultClient,
   setSyncPassphrase as defaultSetSyncPassphrase,
   setupDbRootKey as defaultSetupDbRootKey,
 } from '@glance-apps/sync'
-import { setupIntentsEncryption as defaultSetupIntentsEncryption } from '../lib/intentsKeyStore.js'
+import { setupVaultIntentsRootKey as defaultSetupVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
 import { reinitDbSyncEngine as defaultReinit, getDbSyncEngine } from './dbSync.js'
 import { nativeVaultFetchImpl } from './nativeVaultFetch.js'
 
@@ -116,7 +117,7 @@ export async function runVaultSetup({ vaultUrl, vaultToken, accountId, passphras
   ;(deps.setSyncPassphrase ?? defaultSetSyncPassphrase)(passphrase)
   if (outcome.kind === VAULT_OUTCOME.SUCCESS) {
     await (deps.setupDbRootKey ?? defaultSetupDbRootKey)(passphrase, outcome.salt, { cryptoDBName: CRYPTO_DBNAME })
-    await (deps.setupIntentsEncryption ?? defaultSetupIntentsEncryption)(passphrase, outcome.salt)
+    await (deps.setupVaultIntentsRootKey ?? defaultSetupVaultIntentsRootKey)(passphrase, outcome.salt)
   }
 
   // Activate IN PLACE (rebuild the engine from the freshly saved config) and kick

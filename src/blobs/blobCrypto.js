@@ -68,7 +68,7 @@
 // -----------------------------------------------------------------------------
 // KEY DERIVATION — on the record, domain-separated (quote for §deriveBlobKey)
 // -----------------------------------------------------------------------------
-//   Root key source: loadIntentsRootKey() — the same per-account vault root key
+//   Root key source: loadVaultIntentsRootKey() — the same per-account vault root key
 //     the sync/intents path uses (PBKDF2(syncPassphrase, /salt/:accountId) →
 //     HKDF base CryptoKey, non-extractable, usages ["deriveKey"]). We reach it
 //     through that existing cached/IDB-backed store; we never re-derive it here.
@@ -82,7 +82,7 @@
 //
 // =============================================================================
 
-import { loadIntentsRootKey } from '../lib/intentsKeyStore.js'
+import { loadVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
 
 /** AES-GCM nonce length, in bytes. The stored blob is [nonce || ciphertext]. */
 export const NONCE_LENGTH = 12
@@ -122,7 +122,7 @@ function toBytes(data) {
  *                    Injectable so this module stays decoupled and testable.
  * @returns the BlobKey ({ aesKey, hmacKey }), or `null` if the root key is not available.
  */
-export async function deriveBlobKey(getRootKey = loadIntentsRootKey) {
+export async function deriveBlobKey(getRootKey = loadVaultIntentsRootKey) {
   const rootKey = await getRootKey()
   if (!rootKey) return null
 
@@ -168,7 +168,7 @@ async function sha256Hex(bytes) {
  * @throws  {BlobKeyUnavailableError} if the root key is unavailable. NEVER falls
  *          back to plaintext.
  */
-export async function encryptBlob(plaintext, getRootKey = loadIntentsRootKey) {
+export async function encryptBlob(plaintext, getRootKey = loadVaultIntentsRootKey) {
   const blobKey = await deriveBlobKey(getRootKey)
   if (!blobKey) throw new BlobKeyUnavailableError()
 
@@ -203,7 +203,7 @@ export async function encryptBlob(plaintext, getRootKey = loadIntentsRootKey) {
  * @throws  if the blob has been tampered with (AES-GCM tag verification fails)
  *          or is malformed.
  */
-export async function decryptBlob(stored, getRootKey = loadIntentsRootKey) {
+export async function decryptBlob(stored, getRootKey = loadVaultIntentsRootKey) {
   const blobKey = await deriveBlobKey(getRootKey)
   if (!blobKey) throw new BlobKeyUnavailableError()
 
