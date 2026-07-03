@@ -5,12 +5,14 @@ import {
   isPast,
 } from 'date-fns'
 import i18n from '../i18n'
+import { safeLocale } from './locale'
 
 // Resolve the locale to use for Intl formatting. Callers may pass an explicit
 // BCP-47 locale; otherwise we follow the APP's selected language (not the
-// browser's), falling back to English.
+// browser's), falling back to English. safeLocale guards against a malformed
+// tag reaching Intl (which would throw and blank the render).
 function resolveLocale(locale) {
-  return locale || i18n.language || 'en'
+  return safeLocale(locale || i18n.language || 'en')
 }
 
 // Returns the age (in whole years) at a given date, or null if birthday not set

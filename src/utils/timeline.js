@@ -1,3 +1,5 @@
+import { safeLocale } from './locale'
+
 export const ZOOM_LEVELS = ['decades', '30yr', 'years', 'months', 'weeks']
 
 // Half-range in milliseconds for each named zoom level (total range = 2×)
@@ -55,6 +57,8 @@ function autoStyle(startMs, endMs) {
 // Generate tick marks for the current view. `locale` (BCP-47) localizes the
 // short month labels; callers pass the app's selected language.
 export function getTickMarks(zoom, startMs, endMs, width, locale) {
+  // Guard against a malformed tag reaching toLocaleString below (would throw).
+  const loc = safeLocale(locale)
   // 'custom' auto-selects its visual style; '30yr' uses the same style as 'decades'
   const style = zoom === 'custom' ? autoStyle(startMs, endMs)
               : zoom === '30yr'   ? 'decades'
@@ -86,7 +90,7 @@ export function getTickMarks(zoom, startMs, endMs, width, locale) {
         const major = d.getMonth() === 0
         const label = major
           ? String(d.getFullYear())
-          : d.toLocaleString(locale, { month: 'short' })
+          : d.toLocaleString(loc, { month: 'short' })
         ticks.push({ x, label, major })
       }
       d = new Date(d.getFullYear(), d.getMonth() + 1, 1)
@@ -99,7 +103,7 @@ export function getTickMarks(zoom, startMs, endMs, width, locale) {
       if (x >= -2 && x <= width + 2) {
         const isFirst = d.getDate() <= 7
         const label = isFirst
-          ? d.toLocaleString(locale, { month: 'short', year: 'numeric' })
+          ? d.toLocaleString(loc, { month: 'short', year: 'numeric' })
           : ''
         ticks.push({ x, label, major: isFirst })
       }

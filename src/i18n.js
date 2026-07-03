@@ -1,6 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
+import { sanitizeLanguageTag } from './utils/locale'
 
 import common from './locales/en/common.json'
 import onboarding from './locales/en/onboarding.json'
@@ -111,6 +112,10 @@ i18n
   .use(initReactI18next)
   .init({
     fallbackLng: 'en',
+    // A detected language can be a POSIX-style value (e.g. "en-US@posix") that
+    // is not a valid BCP-47 tag; normalize it so i18n.language is always safe to
+    // pass to Intl. Applies to every detection source, including cached values.
+    detection: { convertDetectedLanguage: sanitizeLanguageTag },
     defaultNS: 'common',
     ns: [
       'common',
