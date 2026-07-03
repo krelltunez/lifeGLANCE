@@ -21,6 +21,7 @@ import { registerDirtyTarget } from './dirty.js'
 import { dbGetAll, dbGetAllChapters } from '../data/db.js'
 import { loadCategories } from '../utils/colors.js'
 import { loadIntentsRootKey, setupIntentsEncryption } from '../lib/intentsKeyStore.js'
+import { flushOutbox } from '../lib/intentsTransport.js'
 
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
 const DEVICE_ID_KEY  = 'lifeglance-db-sync-device-id'
@@ -157,6 +158,14 @@ export const initDbSyncEngine = (opts = {}) => {
       const salt = await engine.vault.getSalt(vaultConfig.accountId)
       if (!salt || !salt.length) return                // salt not established yet — try again next cycle
       await setupIntentsEncryption(passphrase, salt)   // derive against the REAL established salt
+      // The vault intents key just appeared — flush any intents the outbox held
+      // (vault target 'transient' on key-not-ready) so a freshly-bootstrapped
+      // device delivers them promptly rather than waiting for the next UI poll.
+      try {
+        await flushOutbox()
+      } catch (e) {
+        console.warn('[dbsync] intents flush after key setup deferred', e)
+      }
     } catch (err) {
       console.warn('[dbsync] blob/intents key bootstrap deferred', err)
     }

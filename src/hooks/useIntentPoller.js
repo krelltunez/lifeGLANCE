@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { pollEvents, isIntegrationEnabled } from '../lib/intentsTransport.js'
+import { pollEvents, isIntegrationEnabled, flushOutbox } from '../lib/intentsTransport.js'
+import { drainVaultIntents, isVaultIntentsEnabled } from '../lib/intentsVaultTransport.js'
 import { ACTIONS, SOURCE_APPS } from '@glance-apps/intents'
 
 // Whether an inbound envelope is something lifeGLANCE actually handles:
@@ -35,29 +36,42 @@ export function useIntentPoller({
   useEffect(() => { notifyRef.current  = onInboundNotify  }, [onInboundNotify])
   useEffect(() => { activityRef.current = onActivityEntry }, [onActivityEntry])
 
-  const runPoll = useCallback(async () => {
-    if (!isIntegrationEnabled()) return
+  // The application logic is transport-agnostic: WebDAV pollEvents and the vault
+  // drain both feed the SAME router (relevance filter → create/notify handler).
+  // Only the transport differs.
+  const handleInbound = useCallback(async (envelope) => {
+    const { action, payload, event_id, emitted_by } = envelope
 
-    await pollEvents(async (envelope) => {
-      const { action, payload, event_id, emitted_by } = envelope
+    // Skip events from sibling apps that share the channel (e.g. lastGLANCE
+    // chores) — not actionable here. The cursor still advances for them inside
+    // the transport; we just don't surface them.
+    if (!isRelevantInboundEvent(envelope)) return
 
-      // Skip events from sibling apps that share the events directory (e.g.
-      // lastGLANCE chores) — they're not actionable here. The cursor still
-      // advances for them inside pollEvents; we just don't surface them.
-      if (!isRelevantInboundEvent(envelope)) return
+    activityRef.current?.({ type: 'received', event_id, action, emitted_by, payload })
 
-      activityRef.current?.({ type: 'received', event_id, action, emitted_by, payload })
-
-      if (action === ACTIONS.CREATE && emitted_by === SOURCE_APPS.DAYGLANCE) {
-        await createRef.current?.(payload, event_id)
-      } else if (action === ACTIONS.NOTIFY && payload.source_app === SOURCE_APPS.LIFEGLANCE) {
-        await notifyRef.current?.(payload)
-      }
-    })
+    if (action === ACTIONS.CREATE && emitted_by === SOURCE_APPS.DAYGLANCE) {
+      await createRef.current?.(payload, event_id)
+    } else if (action === ACTIONS.NOTIFY && payload.source_app === SOURCE_APPS.LIFEGLANCE) {
+      await notifyRef.current?.(payload)
+    }
   }, [])
 
+  const runPoll = useCallback(async () => {
+    const webdav = isIntegrationEnabled()
+    const vault  = isVaultIntentsEnabled()
+    if (!webdav && !vault) return
+
+    // RECEIVE both tiers (independent cursors; one being down never blocks the other).
+    if (webdav) await pollEvents(handleInbound)
+    if (vault)  await drainVaultIntents(handleInbound)
+
+    // SEND: drain the durable outbox on the poll cadence (delivers anything held
+    // from a previous session or while a target's key/connection was absent).
+    await flushOutbox().catch(err => console.warn('[intents] outbox flush failed:', err))
+  }, [handleInbound])
+
   useEffect(() => {
-    runPoll()
+    runPoll() // app start / mount: receive + flush anything persisted from a previous session
     const ms = Math.max(1, intervalMin) * 60 * 1000
     const id = setInterval(runPoll, ms)
     return () => clearInterval(id)

@@ -66,6 +66,9 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   const engine = getSyncEngine()
   const existingConfig = engine?.getConfig() ?? null
 
+  // WebDAV sync can be toggled off while keeping its stored credentials (e.g. when
+  // moving fully to GLANCEvault). A brand-new modal defaults on so the fields show.
+  const [webdavEnabled, setWebdavEnabled] = useState(existingConfig ? existingConfig.enabled === true : true)
   const [provider,    setProvider]    = useState(existingConfig?.provider ?? 'nextcloud')
   const [url,         setUrl]         = useState(existingConfig?.url ?? '')
   const [username,    setUsername]    = useState(existingConfig?.username ?? '')
@@ -131,6 +134,18 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   }
 
   async function handleSave() {
+    // WebDAV toggled off: keep the stored credentials but stop syncing on this
+    // device (enabled:false). Preserve every other field, including the vault tier.
+    if (!webdavEnabled) {
+      setSaving(true)
+      try {
+        engine?.setConfig({ ...(engine?.getConfig() ?? {}), enabled: false })
+        onClose()
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
     if (!isExisting && encrypt && !passphrase) return
     if (!isExisting && encrypt && passphrase !== confirmPass) {
       setTestResult({ ok: false, message: t('passphraseMismatch') })
@@ -334,6 +349,23 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
           </div>
         )}
 
+        {/* ── WebDAV tier — toggleable; credentials are kept when turned off ─── */}
+        <div className="settings-section">
+          <div className="settings-label">{t('webdavSectionTitle')}</div>
+          <label className="settings-toggle-row">
+            <span className="settings-toggle-label">{t('webdavEnableLabel')}</span>
+            <input
+              type="checkbox"
+              className="settings-toggle"
+              checked={webdavEnabled}
+              onChange={e => { setWebdavEnabled(e.target.checked); setTestResult(null) }}
+            />
+          </label>
+          <p className="settings-note" style={{ marginTop: '0.4rem' }}>{t('webdavEnableNote')}</p>
+        </div>
+
+        {webdavEnabled && (
+        <>
         {/* Provider */}
         <div className="settings-section">
           <div className="settings-label">{t('providerLabel')}</div>
@@ -450,9 +482,44 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
           )}
         </div>
 
+        {/* WebDAV test connection — lives in the WebDAV area (not the bottom bar)
+            so it isn't confused with the vault's own verify button. */}
+        <div className="settings-section" style={{ paddingTop: 0 }}>
+          <button
+            className="btn"
+            style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+            onClick={handleTest}
+            disabled={testing || !url || !username}
+          >
+            {testing ? t('testing') : t('testConnection')}
+          </button>
+          {testResult && (
+            <div style={{
+              padding: '0.6rem 1rem', borderRadius: '6px', marginTop: '0.6rem', fontSize: '0.82rem',
+              background: testResult.ok ? 'var(--success-bg)' : 'var(--danger-bg)',
+              color: testResult.ok ? 'var(--success)' : 'var(--rose)',
+              border: `1px solid ${testResult.ok ? 'rgba(var(--success-rgb), 0.267)' : 'rgba(var(--rose-rgb), 0.267)'}`,
+            }}>
+              {testResult.message}
+            </div>
+          )}
+        </div>
+        </>
+        )}
+
         {/* ── GLANCEvault (database) tier — coexists with WebDAV above ─────── */}
         <div className="settings-section" style={{ borderTop: '1px solid var(--border-soft, rgba(128,128,128,0.25))', paddingTop: '0.85rem', marginTop: '0.5rem' }}>
-          <div className="settings-label">{t('vaultSectionTitle')}</div>
+          <div className="settings-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            {t('vaultSectionTitle')}
+            <span style={{
+              fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.05em',
+              padding: '0.1rem 0.35rem', borderRadius: '4px',
+              background: 'rgba(var(--amber-bright-rgb, 245,158,11), 0.18)', color: 'var(--amber-bright)',
+            }}>{t('vaultBetaBadge')}</span>
+          </div>
+          <p className="settings-note" style={{ marginTop: '0.3rem', marginBottom: '0.5rem', color: 'var(--amber-bright)', display: 'flex', gap: '0.35rem' }}>
+            <span aria-hidden="true">&#9888;</span>{t('vaultExperimentalNote')}
+          </p>
           <p className="settings-note" style={{ marginTop: '0.15rem', marginBottom: '0.5rem' }}>{t('vaultCoexistNote')}</p>
           <label className="settings-toggle-row">
             <span className="settings-toggle-label">{t('vaultEnableLabel')}</span>
@@ -552,21 +619,6 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
           )}
         </div>
 
-        {/* Test result */}
-        {testResult && (
-          <div style={{
-            padding: '0.6rem 1rem',
-            borderRadius: '6px',
-            marginBottom: '0.75rem',
-            fontSize: '0.82rem',
-            background: testResult.ok ? 'var(--success-bg)' : 'var(--danger-bg)',
-            color: testResult.ok ? 'var(--success)' : 'var(--rose)',
-            border: `1px solid ${testResult.ok ? 'rgba(var(--success-rgb), 0.267)' : 'rgba(var(--rose-rgb), 0.267)'}`,
-          }}>
-            {testResult.message}
-          </div>
-        )}
-
         {/* Last synced */}
         {lastSynced && (
           <p className="settings-note" style={{ marginBottom: '0.75rem' }}>
@@ -575,16 +627,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
         )}
 
         {/* Actions */}
-        <div className="settings-backup-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <button
-            className="btn"
-            style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-            onClick={handleTest}
-            disabled={testing || !url || !username}
-          >
-            {testing ? t('testing') : t('testConnection')}
-          </button>
-
+        <div className="settings-backup-row" style={{ justifyContent: 'flex-end', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', marginLeft: 'auto' }}>
             <button
               className="btn"
@@ -606,7 +649,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
               className="btn btn-filled"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
               onClick={handleSave}
-              disabled={saving || !url || !username || !password}
+              disabled={saving || (webdavEnabled && (!url || !username || !password))}
             >
               {saving ? t('saving') : isExisting ? tc('save') : t('saveAndEnable')}
             </button>

@@ -17,6 +17,8 @@ import {
 } from '@glance-apps/intents'
 import { loadIntentsRootKey, setupIntentsEncryption, makeDeriveFn } from './intentsKeyStore.js'
 import { isNativePlatform, nativeWebdavResponse } from '../sync/nativeHttp.js'
+import { enqueue, flush } from './intentsOutbox.js'
+import { isVaultIntentsEnabled, makeVaultDeliverer } from './intentsVaultTransport.js'
 
 const CONFIG_KEY = 'lifeglance-intents-config'
 const CURSOR_KEY = 'lifeglance-intents-cursor'
@@ -100,7 +102,11 @@ async function putEventFile(cfg, envelope) {
     { 'Content-Type': 'application/json' },
     JSON.stringify(envelope),
   )
-  if (!res.ok) throw new Error(`WebDAV PUT failed: ${res.status} ${res.statusText}`)
+  if (!res.ok) {
+    const err = new Error(`WebDAV PUT failed: ${res.status} ${res.statusText}`)
+    err.status = res.status   // let the deliverer map 5xx/429/408 → transient, other 4xx → permanent
+    throw err
+  }
 }
 
 // PROPFIND the events directory and return a sorted list of .json filenames.
@@ -194,7 +200,13 @@ export async function enableIntentsEncryption(passphrase) {
   saveIntentsConfig({ ...cfg, encryptionEnabled: true })
 }
 
-// ── Emit helpers ──────────────────────────────────────────────────────────────
+// ── WebDAV deliverer (file tier) ──────────────────────────────────────────────
+//
+// The outbox calls this at flush time. It is a thin durable wrapper over the
+// EXISTING WebDAV write (proxyFetch → putEventFile) and keeps that tier's
+// EXISTING encryption policy unchanged (encrypt iff the config has
+// encryptionEnabled — the file tier may legitimately carry plaintext; the vault
+// tier may not). It never throws to signal an expected failure.
 
 async function buildOutboundEnvelope(args) {
   const cfg = loadIntentsConfig()
@@ -207,13 +219,46 @@ async function buildOutboundEnvelope(args) {
   return buildEnvelope(args)
 }
 
-// Emit an outbound `create` to dayGLANCE for a milestone the user wants tracked.
-export async function emitCreateForMilestone(milestone) {
+// Deliver one raw intent over WebDAV. 'delivered' | 'transient' | 'permanent'.
+export async function deliverToWebdav(intent) {
   const cfg = loadIntentsConfig()
-  if (!cfg.enabled || !cfg.webdavUrl.trim()) return
-  const envelope = await buildOutboundEnvelope({
-    emittedBy: SOURCE_APPS.LIFEGLANCE,
-    action:    ACTIONS.CREATE,
+  if (!cfg.enabled || !cfg.webdavUrl.trim()) return 'permanent' // not configured — won't self-heal
+  let envelope
+  try {
+    envelope = await buildOutboundEnvelope({
+      eventId:   intent.event_id,   // stable id → filename + idempotency across retries
+      emittedBy: intent.emitted_by,
+      action:    intent.action,
+      payload:   intent.payload,
+    })
+  } catch {
+    // encryption enabled but the file-tier key isn't cached yet → transient
+    // (hold; never a silent plaintext fallback).
+    return 'transient'
+  }
+  try {
+    await putEventFile(cfg, envelope)
+    return 'delivered'
+  } catch (err) {
+    const s = err?.status
+    if (s !== undefined && s < 500 && s !== 429 && s !== 408) return 'permanent' // other 4xx
+    return 'transient' // network / 5xx / 429 / 408
+  }
+}
+
+// ── Emit: build the RAW intent, enqueue durably, flush ────────────────────────
+
+// Raw intents ({ event_id, action, payload, emitted_by }) — NEVER envelopes. The
+// event_id is stamped NOW and flows unchanged through every retry (outbox id AND
+// server idempotency key). Envelope construction + encryption happen at flush
+// inside each deliverer.
+
+function buildRawCreateIntent(milestone) {
+  const evtId = makeEventId()
+  return {
+    event_id:   evtId,
+    emitted_by: SOURCE_APPS.LIFEGLANCE,
+    action:     ACTIONS.CREATE,
     payload: {
       title:            milestone.title,
       due:              milestone.date,
@@ -222,21 +267,15 @@ export async function emitCreateForMilestone(milestone) {
       entity_type:      'goal',
       notes:            milestone.note || undefined,
     },
-  })
-  await putEventFile(cfg, envelope)
-  return envelope.event_id
+  }
 }
 
-// Emit an outbound `notify` for any state change on a linked milestone.
-export async function emitStateNotify(milestone, event, extra = {}) {
-  const cfg = loadIntentsConfig()
-  if (!cfg.enabled || !cfg.webdavUrl.trim()) return
-  if (!milestone.dayglance_linked) return
+function buildRawNotifyIntent(milestone, event, extra = {}) {
   const evtId = makeEventId()
-  const envelope = await buildOutboundEnvelope({
-    eventId:   evtId,
-    emittedBy: SOURCE_APPS.LIFEGLANCE,
-    action:    ACTIONS.NOTIFY,
+  return {
+    event_id:   evtId,
+    emitted_by: SOURCE_APPS.LIFEGLANCE,
+    action:     ACTIONS.NOTIFY,
     payload: {
       event_id:         evtId,
       source_app:       SOURCE_APPS.LIFEGLANCE,
@@ -249,9 +288,56 @@ export async function emitStateNotify(milestone, event, extra = {}) {
       due:              milestone.date,
       ...extra,
     },
-  })
-  await putEventFile(cfg, envelope)
-  return envelope.event_id
+  }
+}
+
+// The set of enabled transports for an emitted intent. WebDAV and the vault are
+// independent, opt-in ALONGSIDE each other — an intent goes to whichever are on.
+export function computeIntentTargets() {
+  const targets = []
+  if (isIntegrationEnabled()) targets.push('webdav')
+  if (isVaultIntentsEnabled()) targets.push('vault')
+  return targets
+}
+
+// Deliverers for the currently-enabled transports (a target with no deliverer
+// this flush is left untouched by the outbox — not attempted, not counted).
+export function buildIntentDeliverers() {
+  const deliverers = {}
+  if (isIntegrationEnabled())  deliverers.webdav = deliverToWebdav
+  if (isVaultIntentsEnabled()) deliverers.vault  = makeVaultDeliverer()
+  return deliverers
+}
+
+// Flush the durable outbox through the enabled deliverers. Best-effort; the
+// in-flight lock collapses overlapping triggers into one drain.
+export async function flushOutbox(opts = {}) {
+  return flush(buildIntentDeliverers(), opts)
+}
+
+// Durable enqueue of one raw intent, then a best-effort flush. Resolves ONLY
+// after the outbox write has committed — so a caller's change-marker (e.g. the
+// "sent" activity entry) advances only AFTER durable enqueue; a failed enqueue
+// rejects and the marker is not advanced. Returns the event_id, or null when no
+// transport is enabled (nothing to send).
+async function emitIntent(rawIntent) {
+  const targets = computeIntentTargets()
+  if (targets.length === 0) return null
+  await enqueue(rawIntent, targets) // DURABLE before we resolve
+  // Fire-and-forget flush; if it fails the poll cadence / app-start flush retry.
+  flushOutbox().catch(err => console.warn('[intents] flush after enqueue failed:', err))
+  return rawIntent.event_id
+}
+
+// Emit an outbound `create` to dayGLANCE for a milestone the user wants tracked.
+export async function emitCreateForMilestone(milestone) {
+  return emitIntent(buildRawCreateIntent(milestone))
+}
+
+// Emit an outbound `notify` for any state change on a linked milestone.
+export async function emitStateNotify(milestone, event, extra = {}) {
+  if (!milestone.dayglance_linked) return null
+  return emitIntent(buildRawNotifyIntent(milestone, event, extra))
 }
 
 // Emit an outbound `notify` when a linked milestone's date changes.
