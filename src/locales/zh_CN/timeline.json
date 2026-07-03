@@ -59,7 +59,7 @@
   "mediaStorageRemaining": "可用空间剩余{{size}}",
   "mediaAttachAnyway": "仍要附加",
   "yearsAgo_one": "{{count}}年前",
-  "yearsAgo_other": "{{count}}年前"
+  "yearsAgo_other": "{{count}}年前",
   "mediaVaultDeferred": "保存到本机——稍后将同步媒体到云端。",
   "mediaUnavailable": "媒体不可用"
 }
