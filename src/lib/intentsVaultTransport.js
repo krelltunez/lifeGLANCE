@@ -12,9 +12,9 @@
 //      and a uniform bounded-retry model.
 //
 // CROSS-APP CRYPTO CONTRACT: the vault intents key is the SAME per-account root
-// key the blob store uses — loadIntentsRootKey(), derived
-// deriveIntentsRootKey(syncPassphrase, /salt/:accountId) and now reliably
-// bootstrapped on every setup path (dbSync.js). Two GLANCE apps that feed the
+// key the blob store uses — loadVaultIntentsRootKey() (the dedicated 'vault-root-key'
+// slot), derived deriveIntentsRootKey(syncPassphrase, /salt/:accountId) and now
+// reliably bootstrapped on every setup path (dbSync.js). Two GLANCE apps that feed the
 // same passphrase + the same server-owned vault salt derive the byte-identical
 // key and decrypt each other's envelopes. NEVER plaintext on the vault, send or
 // receive. See docs/glance-intents-transport-reference.md §3–§5.
@@ -30,7 +30,7 @@ import {
   NoKeyError,
   SOURCE_APPS,
 } from '@glance-apps/intents'
-import { loadIntentsRootKey, makeDeriveFn } from './intentsKeyStore.js'
+import { loadVaultIntentsRootKey, makeDeriveFn } from './intentsKeyStore.js'
 import { nativeVaultFetchImpl } from '../sync/nativeVaultFetch.js'
 
 const SYNC_CONFIG_KEY = 'lifeglance-cloud-sync-config'
@@ -133,7 +133,7 @@ export async function deliverToVault(intent, deps = {}) {
   const conn = deps.connection ?? readVaultIntentsConnection()
   if (!conn) return 'transient'
 
-  const getRootKey = deps.getRootKey ?? loadIntentsRootKey
+  const getRootKey = deps.getRootKey ?? loadVaultIntentsRootKey
   const rootKey = await getRootKey()
   if (!rootKey) return 'transient' // key not ready — hold/retry, never plaintext
 
@@ -244,7 +244,7 @@ export async function drainVaultIntents(onEnvelope, deps = {}) {
   if (!conn) return // vault not enabled — nothing to drain (WebDAV path is separate)
 
   const doFetch    = resolveFetch(deps)
-  const getRootKey = deps.getRootKey ?? loadIntentsRootKey
+  const getRootKey = deps.getRootKey ?? loadVaultIntentsRootKey
   const limit      = deps.limit ?? PAGE_SIZE
   const store      = deps.cursorStore ?? makeLocalStorageCursorStore()
 

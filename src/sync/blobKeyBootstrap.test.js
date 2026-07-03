@@ -67,14 +67,14 @@ async function freshModules() {
   const db = await import('../data/db.js')
   await db.initDB()
   const { initDbSyncEngine } = await import('./dbSync.js')
-  const { loadIntentsRootKey, setupIntentsEncryption } = await import('../lib/intentsKeyStore.js')
+  const { loadVaultIntentsRootKey, setupVaultIntentsRootKey } = await import('../lib/intentsKeyStore.js')
   const { deriveBlobKey } = await import('../blobs/blobCrypto.js')
   const { setSyncPassphrase, clearDbRootKey } = await import('@glance-apps/sync')
   // @glance-apps/sync is externalized (native ESM), so vi.resetModules does NOT
   // reset its in-memory DB root key. Clear it so each test starts as a genuine
   // fresh device (hasDbRootKey false → ensureRootKey establishes the salt).
   clearDbRootKey()
-  return { db, initDbSyncEngine, loadIntentsRootKey, setupIntentsEncryption, deriveBlobKey, setSyncPassphrase }
+  return { db, initDbSyncEngine, loadVaultIntentsRootKey, setupVaultIntentsRootKey, deriveBlobKey, setSyncPassphrase }
 }
 
 describe('fresh-household blob/intents key late-bootstrap', () => {
@@ -86,9 +86,9 @@ describe('fresh-household blob/intents key late-bootstrap', () => {
     const vault = makeMemVault()
     // Fresh household: passphrase is set (as vaultSetup does on the UNINITIALIZED
     // path) but NO salt exists yet and NO key has been derived — the SUCCESS-path
-    // setupIntentsEncryption never ran.
+    // setupVaultIntentsRootKey never ran.
     m.setSyncPassphrase('pw')
-    expect(await m.loadIntentsRootKey()).toBeNull()   // no blob/intents key yet
+    expect(await m.loadVaultIntentsRootKey()).toBeNull()   // no blob/intents key yet
     expect(vault._salts.size).toBe(0)                 // no salt established yet
 
     const dbSync = m.initDbSyncEngine({ vaultConfig: VAULT_CFG, vaultClient: vault })
@@ -96,7 +96,7 @@ describe('fresh-household blob/intents key late-bootstrap', () => {
 
     // The salt is now established AND the blob/intents key exists…
     expect(vault._salts.has('acct-1')).toBe(true)
-    const rootKey = await m.loadIntentsRootKey()
+    const rootKey = await m.loadVaultIntentsRootKey()
     expect(rootKey).not.toBeNull()
     // …so the blob key derives — encryptBlob would succeed on this device.
     expect(await m.deriveBlobKey()).not.toBeNull()
@@ -109,15 +109,15 @@ describe('fresh-household blob/intents key late-bootstrap', () => {
     m.setSyncPassphrase('pw')
     // Emulate the SUCCESS path having already derived the blob/intents key
     // (against the vault-fetched salt) before the engine ever syncs.
-    await m.setupIntentsEncryption('pw', new Uint8Array(16).fill(9))
-    const keyBefore = await m.loadIntentsRootKey()
+    await m.setupVaultIntentsRootKey('pw', new Uint8Array(16).fill(9))
+    const keyBefore = await m.loadVaultIntentsRootKey()
     expect(keyBefore).not.toBeNull()
 
     const dbSync = m.initDbSyncEngine({ vaultConfig: VAULT_CFG, vaultClient: vault })
     await dbSync.sync()
 
     // The pre-existing key is preserved verbatim — idempotent no-op, no clobber.
-    expect(await m.loadIntentsRootKey()).toBe(keyBefore)
+    expect(await m.loadVaultIntentsRootKey()).toBe(keyBefore)
   })
 
   it('idempotent across repeated first-syncs (never re-derives once established)', async () => {
@@ -128,11 +128,11 @@ describe('fresh-household blob/intents key late-bootstrap', () => {
 
     const dbSync = m.initDbSyncEngine({ vaultConfig: VAULT_CFG, vaultClient: vault })
     await dbSync.sync()
-    const key1 = await m.loadIntentsRootKey()
+    const key1 = await m.loadVaultIntentsRootKey()
     expect(key1).not.toBeNull()
 
     await dbSync.sync()   // repeated sync must NOT re-derive/clobber
-    const key2 = await m.loadIntentsRootKey()
+    const key2 = await m.loadVaultIntentsRootKey()
     expect(key2).toBe(key1)
   })
 
@@ -150,6 +150,6 @@ describe('fresh-household blob/intents key late-bootstrap', () => {
     await dbSync.pushNow()   // push-on-write path also runs ensureRootKey → establishes salt
 
     expect(vault._salts.has('acct-1')).toBe(true)
-    expect(await m.loadIntentsRootKey()).not.toBeNull()
+    expect(await m.loadVaultIntentsRootKey()).not.toBeNull()
   })
 })
