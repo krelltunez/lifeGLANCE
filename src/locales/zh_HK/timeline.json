@@ -2,6 +2,9 @@
   "today": "今日",
   "ongoing": "仍在前行",
   "onThisDay": "當年今日",
+  "hiddenCount": "📚 {{count}} 藏碑",
+  "hiddenMilestones": "藏碑記",
+  "hiddenMilestonesHint": "此處埋藏著那些被歲月掩蓋的里程碑。輕拂那座藏碑，靜靜拭去塵光，於「編輯」擇「顯示」，讓藏碑重現於時光長卷。",
   "approx": "(大約)",
   "yearsOldSuffix": "歲",
   "jumpToToday": "回到今日",
@@ -55,5 +58,7 @@
   "mediaStorageRemaining": "可用空間剩餘{{size}}",
   "mediaAttachAnyway": "仍要附加",
   "yearsAgo_one": "{{count}}年前",
-  "yearsAgo_other": "{{count}}年前"
+  "yearsAgo_other": "{{count}}年前",
+  "mediaVaultDeferred": "儲存至本機-稍後將同步媒體到雲端。",
+  "mediaUnavailable": "媒體不可用"
 }
