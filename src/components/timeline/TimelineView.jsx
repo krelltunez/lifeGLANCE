@@ -182,6 +182,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const zoomRef        = useRef('years')
   const zoomLocked     = useRef(false)
   const customInputRef = useRef(null)
+  // True while 'custom' zoom was entered via a pinch gesture (not a deliberate
+  // tab/dropdown pick). Suppresses the custom-zoom input's autoFocus so a pinch
+  // doesn't pop the mobile keyboard when it mounts that input.
+  const pinchToCustomRef = useRef(false)
   const historyRef     = useRef(null)   // { stack: Milestone[][], idx: number }
   const toastTimerRef  = useRef(null)
   const lastVaultSkipAtRef = useRef(null)
@@ -354,6 +358,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   // ── Zoom ─────────────────────────────────────────────────────────────────────
   const handleZoom = useCallback((newZoom) => {
     if (newZoom === zoom) return
+    pinchToCustomRef.current = false // deliberate zoom pick → the custom input may autofocus
     const dir = ZOOM_RANK[newZoom] > ZOOM_RANK[zoom] ? 'zooming-out' : 'zooming-in'
     setZoomAnim(dir)
     setTimeout(() => { setZoom(newZoom); setZoomAnim('') }, ZOOM_ANIM_MS)
@@ -385,6 +390,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   // offset per gesture frame. Drive the continuous 'custom' zoom directly (no
   // stepped animation), the same path drill-to-chapter uses to enter custom.
   const handlePinch = useCallback((halfMs, newPanMs) => {
+    pinchToCustomRef.current = true // entered custom via pinch → don't autofocus (no keyboard pop)
     setZoom('custom')
     setCustomYears(halfMs / (365.25 * 24 * 3600 * 1000))
     setPanMs(newPanMs)
@@ -1826,7 +1832,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               {zoom === 'custom' && (
                 <div className="custom-zoom-row">
                   <span>±</span>
-                  <input ref={customInputRef} autoFocus={!drilledChapter}
+                  <input ref={customInputRef} autoFocus={!drilledChapter && !pinchToCustomRef.current}
                     className="custom-zoom-input" type="number" min="1" max="200"
                     value={customYears}
                     onChange={e => {
@@ -1868,7 +1874,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                   {zoom === 'custom' ? (
                     <div className="custom-zoom-row">
                       <span>±</span>
-                      <input ref={customInputRef} autoFocus={!drilledChapter}
+                      <input ref={customInputRef} autoFocus={!drilledChapter && !pinchToCustomRef.current}
                         className="custom-zoom-input" type="number" min="1" max="200"
                         value={customYears}
                         onChange={e => {
