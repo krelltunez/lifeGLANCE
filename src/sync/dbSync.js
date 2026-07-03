@@ -14,12 +14,13 @@
 // React); the refresh reloads React state so the UI reflects merged rows. That
 // is a state bridge, not a cursor bridge.
 
-import { createDbSyncEngine } from '@glance-apps/sync'
+import { createDbSyncEngine, getSyncPassphrase } from '@glance-apps/sync'
 import { makeDbAdapter } from './dbAdapter.js'
 import { makeRealStore } from './dbStore.js'
 import { registerDirtyTarget } from './dirty.js'
 import { dbGetAll, dbGetAllChapters } from '../data/db.js'
 import { loadCategories } from '../utils/colors.js'
+import { loadIntentsRootKey, setupIntentsEncryption } from '../lib/intentsKeyStore.js'
 
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
 const DEVICE_ID_KEY  = 'lifeglance-db-sync-device-id'
@@ -130,6 +131,37 @@ export const initDbSyncEngine = (opts = {}) => {
     localStorage.setItem(SEEDED_KEY, '1')
   }
 
+  // Blob/intents key late-bootstrap — the missing twin of the DB key's bootstrap.
+  //
+  // The DB-sync root key gets a late bootstrap inside the engine: on first
+  // sync/push, ensureRootKey establishes the per-account salt (getSalt, or
+  // register a fresh one via putSalt) and derives the DB key from the session
+  // passphrase + that salt. A device that first set up on the UNINITIALIZED
+  // path (fresh household, no salt yet) never ran vaultSetup's SUCCESS-path
+  // derivation, so its blob/intents key — which shares the same passphrase +
+  // salt foundation — would otherwise stay null forever, and blob encryption
+  // (and, once wired, intents) would fail on that device.
+  //
+  // This gives the blob/intents key the SAME late bootstrap at the SAME moment:
+  // once the engine cycle has established the salt, derive it against the REAL
+  // vault salt (never an invented one) using the same session passphrase the DB
+  // key derivation used. Idempotent — a no-op once the key exists (the SUCCESS
+  // path already ran, or a previous first-sync already bootstrapped it), so it
+  // never re-derives or clobbers. Non-fatal: a failure here (e.g. a transient
+  // getSalt) is retried on the next cycle and never breaks a succeeded sync.
+  const bootstrapIntentsRootKey = async () => {
+    try {
+      if (await loadIntentsRootKey()) return          // already set up — no-op
+      const passphrase = getSyncPassphrase()
+      if (!passphrase) return                          // no passphrase → cannot derive (DB key couldn't either)
+      const salt = await engine.vault.getSalt(vaultConfig.accountId)
+      if (!salt || !salt.length) return                // salt not established yet — try again next cycle
+      await setupIntentsEncryption(passphrase, salt)   // derive against the REAL established salt
+    } catch (err) {
+      console.warn('[dbsync] blob/intents key bootstrap deferred', err)
+    }
+  }
+
   // Post-cycle React refresh (the state bridge described above).
   const refresh = async () => {
     const [ms, ch] = await Promise.all([dbGetAll(), dbGetAllChapters()])
@@ -150,15 +182,21 @@ export const initDbSyncEngine = (opts = {}) => {
   const sync = async () => {
     await seedSnapshot()
     const r = await engine.sync()
+    await bootstrapIntentsRootKey()   // salt is now established — give the blob/intents key its late bootstrap
     await refresh()
     return r
   }
 
   // Vault-only push (no pull), used by the debounced push-on-write so a local
-  // edit reaches the vault promptly even on a backgrounded device.
+  // edit reaches the vault promptly even on a backgrounded device. This also
+  // runs ensureRootKey (salt establishment), so bootstrap the blob/intents key
+  // here too — a backgrounded first write can establish the salt before any
+  // full sync does.
   const pushNow = async () => {
     await seedSnapshot()
-    return engine.pushDirtyRows()
+    const r = await engine.pushDirtyRows()
+    await bootstrapIntentsRootKey()
+    return r
   }
   const pushDebounced = (ms = 4000) => {
     clearTimeout(_pushTimer)
