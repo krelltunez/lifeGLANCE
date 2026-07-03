@@ -12,16 +12,16 @@ import { EVENTS, SOURCE_APPS, ACTIONS } from '@glance-apps/intents'
 const h = vi.hoisted(() => ({
   enqueue: vi.fn(async () => ({})),
   flush: vi.fn(async () => ({})),
-  vaultEnabled: { value: true },
+  vaultConn: { value: { vaultUrl: 'https://v', vaultToken: 't', accountId: 'a' } },
 }))
 
 vi.mock('./intentsOutbox.js', () => ({ enqueue: h.enqueue, flush: h.flush, MAX_OUTBOX_ATTEMPTS: 50 }))
 vi.mock('./intentsVaultTransport.js', () => ({
-  isVaultIntentsEnabled: () => h.vaultEnabled.value,
+  readVaultIntentsConnection: () => h.vaultConn.value,
   makeVaultDeliverer: () => (async () => 'delivered'),
 }))
 
-// localStorage shim (computeIntentTargets reads the WebDAV config).
+// localStorage shim (the gating helpers read the intents config).
 if (typeof globalThis.localStorage === 'undefined') {
   const m = new Map()
   globalThis.localStorage = {
@@ -35,8 +35,11 @@ if (typeof globalThis.localStorage === 'undefined') {
 const { emitCreateForMilestone, emitStateNotify, emitRescheduledNotify, computeIntentTargets } =
   await import('./intentsTransport.js')
 
+// The integration is its own opt-in; a single transport is selected (either/or).
 const enableWebdav = () =>
-  localStorage.setItem('lifeglance-intents-config', JSON.stringify({ enabled: true, webdavUrl: 'https://dav.example/remote.php' }))
+  localStorage.setItem('lifeglance-intents-config', JSON.stringify({ enabled: true, transport: 'webdav', webdavUrl: 'https://dav.example/remote.php' }))
+const enableVault = () =>
+  localStorage.setItem('lifeglance-intents-config', JSON.stringify({ enabled: true, transport: 'vault' }))
 
 const milestone = (over = {}) => ({ id: 'm1', title: 'Ship it', date: '2026-02-01', note: '', dayglance_linked: true, ...over })
 
@@ -44,17 +47,17 @@ beforeEach(() => {
   h.enqueue.mockClear()
   h.flush.mockClear()
   h.enqueue.mockResolvedValue({})
-  h.vaultEnabled.value = true
+  h.vaultConn.value = { vaultUrl: 'https://v', vaultToken: 't', accountId: 'a' }
   localStorage.clear()
 })
 
 describe('emit → outbox', () => {
-  it('enqueues a RAW create intent with a stable event_id and both targets', async () => {
+  it('enqueues a RAW create intent with a stable event_id and the selected (WebDAV) target', async () => {
     enableWebdav()
     const id = await emitCreateForMilestone(milestone())
     expect(h.enqueue).toHaveBeenCalledTimes(1)
     const [intent, targets] = h.enqueue.mock.calls[0]
-    expect(targets).toEqual(['webdav', 'vault'])
+    expect(targets).toEqual(['webdav'])            // single selected transport
     expect(intent.action).toBe(ACTIONS.CREATE)
     expect(intent.emitted_by).toBe(SOURCE_APPS.LIFEGLANCE)
     expect(typeof intent.event_id).toBe('string')
@@ -84,15 +87,24 @@ describe('emit → outbox', () => {
     expect(intent.payload.previous_due).toBe('2026-01-01')
   })
 
-  it('targets only the vault when WebDAV is off (opt-in alongside)', async () => {
-    // WebDAV not configured; vault enabled.
+  it('targets the vault when GLANCEvault is the selected transport', async () => {
+    enableVault() // transport: 'vault', vault connection present (default in beforeEach)
     await emitCreateForMilestone(milestone())
     expect(h.enqueue.mock.calls[0][1]).toEqual(['vault'])
     expect(computeIntentTargets()).toEqual(['vault'])
   })
 
-  it('does nothing when no transport is enabled', async () => {
-    h.vaultEnabled.value = false
+  it('does nothing when the integration is off (independent of vault sync)', async () => {
+    // Vault connection is present, but the dayGLANCE integration was never enabled.
+    const id = await emitCreateForMilestone(milestone())
+    expect(id).toBeNull()
+    expect(h.enqueue).not.toHaveBeenCalled()
+    expect(computeIntentTargets()).toEqual([])
+  })
+
+  it('does nothing when the vault transport is selected but not configured', async () => {
+    enableVault()
+    h.vaultConn.value = null // GLANCEvault not set up in Cloud Sync
     const id = await emitCreateForMilestone(milestone())
     expect(id).toBeNull()
     expect(h.enqueue).not.toHaveBeenCalled()

@@ -18,7 +18,7 @@ import {
 import { loadIntentsRootKey, setupIntentsEncryption, makeDeriveFn } from './intentsKeyStore.js'
 import { isNativePlatform, nativeWebdavResponse } from '../sync/nativeHttp.js'
 import { enqueue, flush } from './intentsOutbox.js'
-import { isVaultIntentsEnabled, makeVaultDeliverer } from './intentsVaultTransport.js'
+import { readVaultIntentsConnection, makeVaultDeliverer } from './intentsVaultTransport.js'
 
 const CONFIG_KEY = 'lifeglance-intents-config'
 const CURSOR_KEY = 'lifeglance-intents-cursor'
@@ -26,6 +26,7 @@ const SALT_FILENAME = 'intents-encryption-salt.json'
 
 export const DEFAULT_CONFIG = {
   enabled:           false,
+  transport:         'webdav',   // 'webdav' | 'vault' — the delivery mechanism (either/or)
   webdavUrl:         '',   // https://cloud.example.com/remote.php/dav/files/user
   webdavUser:        '',
   webdavPass:        '',
@@ -50,9 +51,32 @@ export function saveIntentsConfig(cfg) {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg))
 }
 
-export function isIntegrationEnabled() {
+// ── Integration gating ────────────────────────────────────────────────────────
+//
+// The dayGLANCE intents integration is its OWN opt-in feature, INDEPENDENT of
+// GLANCEvault sync. When enabled, the user picks ONE delivery transport —
+// 'webdav' or 'vault' (either/or). A transport is "active" only when the
+// integration is enabled, it is the selected transport, AND it is configured.
+
+// WebDAV is the selected, configured intents transport.
+export function isWebdavIntentsActive() {
   const cfg = loadIntentsConfig()
-  return cfg.enabled && !!cfg.webdavUrl.trim()
+  return cfg.enabled === true && (cfg.transport ?? 'webdav') === 'webdav' && !!cfg.webdavUrl.trim()
+}
+
+// GLANCEvault is the selected intents transport AND the vault connection is
+// available (reused from Cloud Sync — that's also where the encryption key is
+// established, so vault intents ride on a configured vault).
+export function isVaultIntentsActive() {
+  const cfg = loadIntentsConfig()
+  return cfg.enabled === true && cfg.transport === 'vault' && !!readVaultIntentsConnection()
+}
+
+// The integration is enabled AND its selected transport is usable (either tier).
+// Used to gate the send-side UI (the "track as goal" affordance, the activity
+// log) and the receive poller — regardless of which transport is chosen.
+export function isIntegrationEnabled() {
+  return isWebdavIntentsActive() || isVaultIntentsActive()
 }
 
 function loadCursor() {
@@ -291,21 +315,21 @@ function buildRawNotifyIntent(milestone, event, extra = {}) {
   }
 }
 
-// The set of enabled transports for an emitted intent. WebDAV and the vault are
-// independent, opt-in ALONGSIDE each other — an intent goes to whichever are on.
+// The delivery targets for an emitted intent: the ONE selected, active transport
+// (either/or). Empty when the integration is off or its transport isn't ready.
 export function computeIntentTargets() {
   const targets = []
-  if (isIntegrationEnabled()) targets.push('webdav')
-  if (isVaultIntentsEnabled()) targets.push('vault')
+  if (isWebdavIntentsActive()) targets.push('webdav')
+  if (isVaultIntentsActive())  targets.push('vault')
   return targets
 }
 
-// Deliverers for the currently-enabled transports (a target with no deliverer
-// this flush is left untouched by the outbox — not attempted, not counted).
+// Deliverers for the currently-active transport (a target with no deliverer this
+// flush is left untouched by the outbox — not attempted, not counted).
 export function buildIntentDeliverers() {
   const deliverers = {}
-  if (isIntegrationEnabled())  deliverers.webdav = deliverToWebdav
-  if (isVaultIntentsEnabled()) deliverers.vault  = makeVaultDeliverer()
+  if (isWebdavIntentsActive()) deliverers.webdav = deliverToWebdav
+  if (isVaultIntentsActive())  deliverers.vault  = makeVaultDeliverer()
   return deliverers
 }
 

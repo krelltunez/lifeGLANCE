@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { pollEvents, isIntegrationEnabled, flushOutbox } from '../lib/intentsTransport.js'
-import { drainVaultIntents, isVaultIntentsEnabled } from '../lib/intentsVaultTransport.js'
+import { pollEvents, isWebdavIntentsActive, isVaultIntentsActive, flushOutbox } from '../lib/intentsTransport.js'
+import { drainVaultIntents } from '../lib/intentsVaultTransport.js'
 import { ACTIONS, SOURCE_APPS } from '@glance-apps/intents'
 
 // Whether an inbound envelope is something lifeGLANCE actually handles:
@@ -57,8 +57,8 @@ export function useIntentPoller({
   }, [])
 
   const runPoll = useCallback(async () => {
-    const webdav = isIntegrationEnabled()
-    const vault  = isVaultIntentsEnabled()
+    const webdav = isWebdavIntentsActive()
+    const vault  = isVaultIntentsActive()
     if (!webdav && !vault) return
 
     // RECEIVE both tiers (independent cursors; one being down never blocks the other).

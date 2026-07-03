@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { loadIntentsConfig, saveIntentsConfig, enableIntentsEncryption } from '../../lib/intentsTransport.js'
+import { readVaultIntentsConnection } from '../../lib/intentsVaultTransport.js'
 import { isNativePlatform, nativeWebdavResponse } from '../../sync/nativeHttp.js'
 
 const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy'
@@ -85,7 +86,9 @@ export default function IntegrationSettings() {
     }
   }
 
-  const hasUrl   = !!cfg.webdavUrl.trim()
+  const hasUrl     = !!cfg.webdavUrl.trim()
+  const transport  = cfg.transport ?? 'webdav'
+  const vaultReady = !!readVaultIntentsConnection()
 
   return (
     <div className="settings-section">
@@ -103,76 +106,162 @@ export default function IntegrationSettings() {
 
       {cfg.enabled && (
         <>
-          <div className="settings-intents-field">
-            <label className="field-label" style={{ fontSize: '0.72rem' }}>
-              {t('webdavUrl')}
-            </label>
-            <input
-              className="input input-sm"
-              type="url"
-              placeholder="https://cloud.example.com/remote.php/dav/files/user"
-              value={cfg.webdavUrl}
-              onChange={e => update({ webdavUrl: e.target.value })}
-              autoComplete="off"
-            />
-          </div>
-
-          <div className="settings-intents-row">
-            <div className="settings-intents-field" style={{ flex: 1 }}>
-              <label className="field-label" style={{ fontSize: '0.72rem' }}>{t('username')}</label>
-              <input
-                className="input input-sm"
-                type="text"
-                placeholder="user"
-                value={cfg.webdavUser}
-                onChange={e => update({ webdavUser: e.target.value })}
-                autoComplete="username"
-              />
-            </div>
-            <div className="settings-intents-field" style={{ flex: 1 }}>
-              <label className="field-label" style={{ fontSize: '0.72rem' }}>{t('passwordToken')}</label>
-              <input
-                className="input input-sm"
-                type="password"
-                placeholder="••••••••"
-                value={cfg.webdavPass}
-                onChange={e => update({ webdavPass: e.target.value })}
-                autoComplete="current-password"
-              />
+          {/* Transport selector — either WebDAV or GLANCEvault (mutually exclusive). */}
+          <div className="settings-intents-field" style={{ marginTop: '0.5rem' }}>
+            <label className="field-label" style={{ fontSize: '0.72rem' }}>{t('transportLabel')}</label>
+            <div className="settings-intents-row" style={{ gap: '1.25rem', marginTop: '0.3rem' }}>
+              <label className="recurrence-toggle-row" style={{ gap: '0.4rem', cursor: 'pointer', margin: 0 }}>
+                <input
+                  type="radio"
+                  name="intents-transport"
+                  checked={transport === 'webdav'}
+                  onChange={() => update({ transport: 'webdav' })}
+                />
+                <span className="settings-toggle-label">{t('transportWebdav')}</span>
+              </label>
+              <label className="recurrence-toggle-row" style={{ gap: '0.4rem', cursor: 'pointer', margin: 0 }}>
+                <input
+                  type="radio"
+                  name="intents-transport"
+                  checked={transport === 'vault'}
+                  onChange={() => update({ transport: 'vault' })}
+                />
+                <span className="settings-toggle-label">{t('transportVault')}</span>
+              </label>
             </div>
           </div>
 
-          <div className="settings-intents-field">
-            <label className="field-label" style={{ fontSize: '0.72rem' }}>
-              {t('eventsPath')} <span className="settings-note" style={{ marginTop: 0 }}>{t('eventsPathDefault')}</span>
-            </label>
-            <input
-              className="input input-sm"
-              type="text"
-              placeholder="/GLANCE/events/"
-              value={cfg.eventsPath}
-              onChange={e => update({ eventsPath: e.target.value })}
-              autoComplete="off"
-            />
-          </div>
+          {transport === 'webdav' && (
+            <>
+              <div className="settings-intents-field">
+                <label className="field-label" style={{ fontSize: '0.72rem' }}>
+                  {t('webdavUrl')}
+                </label>
+                <input
+                  className="input input-sm"
+                  type="url"
+                  placeholder="https://cloud.example.com/remote.php/dav/files/user"
+                  value={cfg.webdavUrl}
+                  onChange={e => update({ webdavUrl: e.target.value })}
+                  autoComplete="off"
+                />
+              </div>
 
-          <div className="settings-intents-row" style={{ alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
-            <button
-              className="btn"
-              style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-              disabled={!hasUrl || testStatus === 'testing'}
-              onClick={handleTest}
-            >
-              {testStatus === 'testing' ? t('testing') : t('testConnection')}
-            </button>
-            {testStatus && testStatus !== 'testing' && (
-              <span className={`settings-note ${testStatus === 'ok' ? 'intents-test-ok' : 'intents-test-err'}`}
-                style={{ marginTop: 0 }}>
-                {testMsg}
-              </span>
-            )}
-          </div>
+              <div className="settings-intents-row">
+                <div className="settings-intents-field" style={{ flex: 1 }}>
+                  <label className="field-label" style={{ fontSize: '0.72rem' }}>{t('username')}</label>
+                  <input
+                    className="input input-sm"
+                    type="text"
+                    placeholder="user"
+                    value={cfg.webdavUser}
+                    onChange={e => update({ webdavUser: e.target.value })}
+                    autoComplete="username"
+                  />
+                </div>
+                <div className="settings-intents-field" style={{ flex: 1 }}>
+                  <label className="field-label" style={{ fontSize: '0.72rem' }}>{t('passwordToken')}</label>
+                  <input
+                    className="input input-sm"
+                    type="password"
+                    placeholder="••••••••"
+                    value={cfg.webdavPass}
+                    onChange={e => update({ webdavPass: e.target.value })}
+                    autoComplete="current-password"
+                  />
+                </div>
+              </div>
 
+              <div className="settings-intents-field">
+                <label className="field-label" style={{ fontSize: '0.72rem' }}>
+                  {t('eventsPath')} <span className="settings-note" style={{ marginTop: 0 }}>{t('eventsPathDefault')}</span>
+                </label>
+                <input
+                  className="input input-sm"
+                  type="text"
+                  placeholder="/GLANCE/events/"
+                  value={cfg.eventsPath}
+                  onChange={e => update({ eventsPath: e.target.value })}
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="settings-intents-row" style={{ alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
+                <button
+                  className="btn"
+                  style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                  disabled={!hasUrl || testStatus === 'testing'}
+                  onClick={handleTest}
+                >
+                  {testStatus === 'testing' ? t('testing') : t('testConnection')}
+                </button>
+                {testStatus && testStatus !== 'testing' && (
+                  <span className={`settings-note ${testStatus === 'ok' ? 'intents-test-ok' : 'intents-test-err'}`}
+                    style={{ marginTop: 0 }}>
+                    {testMsg}
+                  </span>
+                )}
+              </div>
+
+              {/* Encryption (file tier — the vault tier is always encrypted). */}
+              <label className="settings-toggle-row" style={{ marginTop: '0.5rem' }}>
+                <span className="settings-toggle-label">{t('encryptEvents')}</span>
+                <input
+                  type="checkbox"
+                  className="settings-toggle"
+                  checked={cfg.encryptionEnabled}
+                  onChange={e => handleEncryptionToggle(e.target.checked)}
+                />
+              </label>
+
+              {cfg.encryptionEnabled && (
+                <div className="settings-intents-field" style={{ marginTop: '0.25rem' }}>
+                  <p className="settings-note" style={{ marginTop: 0, marginBottom: '0.4rem' }}>
+                    {t('encryptionNote')}
+                  </p>
+                  <div className="settings-intents-row" style={{ alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      className="input input-sm"
+                      type="password"
+                      placeholder={t('enterPassphrase')}
+                      value={passphrase}
+                      onChange={e => setPassphrase(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleSetupEncryption()}
+                      autoComplete="current-password"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      className="btn"
+                      style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', whiteSpace: 'nowrap' }}
+                      disabled={!passphrase || encStatus === 'saving'}
+                      onClick={handleSetupEncryption}
+                    >
+                      {encStatus === 'saving' ? t('activating') : t('activate')}
+                    </button>
+                  </div>
+                  {encStatus && encStatus !== 'saving' && (
+                    <span className={`settings-note ${encStatus === 'ok' ? 'intents-test-ok' : 'intents-test-err'}`}
+                      style={{ marginTop: '0.3rem', display: 'block' }}>
+                      {encMsg}
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {transport === 'vault' && (
+            <div className="settings-intents-field">
+              <p className="settings-note" style={{ marginTop: 0 }}>{t('vaultTransportNote')}</p>
+              {!vaultReady && (
+                <p className="settings-note intents-test-err" style={{ marginTop: '0.4rem' }}>
+                  {t('vaultNotConfigured')}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Poll cadence — applies to whichever transport is active. */}
           <div className="settings-intents-field" style={{ marginTop: '0.5rem' }}>
             <label className="field-label" style={{ fontSize: '0.72rem' }}>
               {t('pollInterval')}
@@ -187,51 +276,6 @@ export default function IntegrationSettings() {
               onChange={e => update({ pollIntervalMin: Math.max(1, Math.min(30, Number(e.target.value))) })}
             />
           </div>
-
-          {/* Encryption */}
-          <label className="settings-toggle-row" style={{ marginTop: '0.5rem' }}>
-            <span className="settings-toggle-label">{t('encryptEvents')}</span>
-            <input
-              type="checkbox"
-              className="settings-toggle"
-              checked={cfg.encryptionEnabled}
-              onChange={e => handleEncryptionToggle(e.target.checked)}
-            />
-          </label>
-
-          {cfg.encryptionEnabled && (
-            <div className="settings-intents-field" style={{ marginTop: '0.25rem' }}>
-              <p className="settings-note" style={{ marginTop: 0, marginBottom: '0.4rem' }}>
-                {t('encryptionNote')}
-              </p>
-              <div className="settings-intents-row" style={{ alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  className="input input-sm"
-                  type="password"
-                  placeholder={t('enterPassphrase')}
-                  value={passphrase}
-                  onChange={e => setPassphrase(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSetupEncryption()}
-                  autoComplete="current-password"
-                  style={{ flex: 1 }}
-                />
-                <button
-                  className="btn"
-                  style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', whiteSpace: 'nowrap' }}
-                  disabled={!passphrase || encStatus === 'saving'}
-                  onClick={handleSetupEncryption}
-                >
-                  {encStatus === 'saving' ? t('activating') : t('activate')}
-                </button>
-              </div>
-              {encStatus && encStatus !== 'saving' && (
-                <span className={`settings-note ${encStatus === 'ok' ? 'intents-test-ok' : 'intents-test-err'}`}
-                  style={{ marginTop: '0.3rem', display: 'block' }}>
-                  {encMsg}
-                </span>
-              )}
-            </div>
-          )}
 
           <p className="settings-note" style={{ marginTop: '0.5rem' }}>
             {t('integrationNote')}

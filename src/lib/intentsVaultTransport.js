@@ -47,10 +47,12 @@ export const MAX_INTENT_RETRIES = 5
 // ── Connection + fetch resolution (mirrors blobTransport) ─────────────────────
 
 /**
- * Read the vault connection from lifeGLANCE's sync config, ONLY when vault sync
- * is explicitly enabled and all three coordinates are present. Gating on
- * vaultEnabled is what makes vault intents opt-in "like sync" — WebDAV intents
- * are untouched and run alongside. Returns null otherwise.
+ * Read the GLANCEvault connection from lifeGLANCE's sync config (reused by the
+ * vault intents transport — that's also where the encryption key is established).
+ * Requires vault sync to be configured (vaultEnabled + all three coordinates);
+ * returns null otherwise. Whether the vault is the SELECTED intents transport is
+ * decided by the intents config in intentsTransport.js (isVaultIntentsActive),
+ * NOT here — this only reports connection availability.
  */
 export function readVaultIntentsConnection() {
   let cfg
@@ -66,11 +68,6 @@ export function readVaultIntentsConnection() {
   const accountId  = typeof cfg.accountId  === 'string' ? cfg.accountId.trim()  : ''
   if (!vaultUrl || !vaultToken || !accountId) return null
   return { vaultUrl, vaultToken, accountId }
-}
-
-/** Whether the vault intents transport is enabled (a target for emitted intents). */
-export function isVaultIntentsEnabled() {
-  return !!readVaultIntentsConnection()
 }
 
 function resolveFetch(deps) {

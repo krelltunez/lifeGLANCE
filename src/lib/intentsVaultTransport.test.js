@@ -19,7 +19,6 @@ import {
   deliverToVault,
   drainVaultIntents,
   KeyUnavailableError,
-  isVaultIntentsEnabled,
   readVaultIntentsConnection,
   MAX_INTENT_RETRIES,
 } from './intentsVaultTransport.js'
@@ -289,17 +288,16 @@ describe('cross-app key derivation', () => {
   })
 })
 
-// ── Enabled gate (opt-in alongside WebDAV, like sync) ─────────────────────────
+// ── Connection availability (transport selection lives in intentsTransport) ───
 
-describe('isVaultIntentsEnabled / readVaultIntentsConnection', () => {
+describe('readVaultIntentsConnection', () => {
   beforeEach(() => localStorage.clear())
 
-  it('is off unless vault sync is explicitly enabled with all coordinates', () => {
-    expect(isVaultIntentsEnabled()).toBe(false)
+  it('returns a connection only when vault sync is enabled with all coordinates', () => {
+    expect(readVaultIntentsConnection()).toBeNull()
     localStorage.setItem('lifeglance-cloud-sync-config', JSON.stringify({ vaultUrl: 'u', vaultToken: 't', accountId: 'a' }))
-    expect(isVaultIntentsEnabled()).toBe(false) // vaultEnabled not set → off
+    expect(readVaultIntentsConnection()).toBeNull() // vaultEnabled not set → not ready
     localStorage.setItem('lifeglance-cloud-sync-config', JSON.stringify({ vaultEnabled: true, vaultUrl: 'u', vaultToken: 't', accountId: 'a' }))
-    expect(isVaultIntentsEnabled()).toBe(true)
     expect(readVaultIntentsConnection()).toEqual({ vaultUrl: 'u', vaultToken: 't', accountId: 'a' })
   })
 })
