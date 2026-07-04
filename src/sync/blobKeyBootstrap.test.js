@@ -153,3 +153,70 @@ describe('fresh-household blob/intents key late-bootstrap', () => {
     expect(await m.loadVaultIntentsRootKey()).not.toBeNull()
   })
 })
+
+// The upgrade case: vault DB sync runs from a cached DB key, so the passphrase is
+// often absent this session and the vault intents/blob key (new in 2.6.0) never
+// gets derived. When the user has actually selected vault intents, prompt for the
+// passphrase (once) so the key can be derived rather than failing silently with
+// KeyUnavailableError. We seed a cached DB root key (setupDbRootKey → hasDbRootKey
+// true) so the engine's own sync does NOT itself demand the passphrase — exactly
+// the state of an already-syncing device that just upgraded.
+describe('vault intents key — passphrase prompt when it cannot be derived', () => {
+  const INTENTS_VAULT_ACTIVE = JSON.stringify({ enabled: true, transport: 'vault', webdavUrl: '' })
+
+  // Seed a cached DB root key so ensureRootKey is satisfied without a session
+  // passphrase, then clear the passphrase — the "sync works from cache, but the
+  // passphrase isn't in this session" upgrade state.
+  async function seedCachedDbKeyNoPassphrase(m) {
+    const { setupDbRootKey } = await import('@glance-apps/sync')
+    await setupDbRootKey('pw', new Uint8Array(16).fill(7), { cryptoDBName: 'lifeglance-crypto' })
+    m.setSyncPassphrase(null)
+  }
+
+  it('prompts once when the key is missing, no passphrase is in session, and vault intents is active', async () => {
+    const m = await freshModules()
+    localStorage.setItem('lifeglance-cloud-sync-config', JSON.stringify(VAULT_CFG))
+    localStorage.setItem('lifeglance-intents-config', INTENTS_VAULT_ACTIVE)
+    await seedCachedDbKeyNoPassphrase(m)
+    expect(await m.loadVaultIntentsRootKey()).toBeNull()   // intents key was never derived
+
+    const onPassphraseRequired = vi.fn()
+    const vault = makeMemVault()
+    const dbSync = m.initDbSyncEngine({ vaultConfig: VAULT_CFG, vaultClient: vault, onPassphraseRequired })
+
+    await dbSync.sync()   // sync works off the cached DB key; bootstrap hits the no-passphrase branch
+    await dbSync.sync()   // a later cycle must NOT re-open the modal
+
+    expect(onPassphraseRequired).toHaveBeenCalledTimes(1)
+    expect(await m.loadVaultIntentsRootKey()).toBeNull()  // still no key — it needs the passphrase
+  })
+
+  it('does NOT prompt when vault intents is not the selected transport', async () => {
+    const m = await freshModules()
+    localStorage.setItem('lifeglance-cloud-sync-config', JSON.stringify(VAULT_CFG))
+    // No intents config → isVaultIntentsActive() is false (vault sync alone must not nag).
+    await seedCachedDbKeyNoPassphrase(m)
+
+    const onPassphraseRequired = vi.fn()
+    const vault = makeMemVault()
+    const dbSync = m.initDbSyncEngine({ vaultConfig: VAULT_CFG, vaultClient: vault, onPassphraseRequired })
+    await dbSync.sync()
+
+    expect(onPassphraseRequired).not.toHaveBeenCalled()
+  })
+
+  it('does not prompt when the passphrase is available — it derives the key instead', async () => {
+    const m = await freshModules()
+    localStorage.setItem('lifeglance-cloud-sync-config', JSON.stringify(VAULT_CFG))
+    localStorage.setItem('lifeglance-intents-config', INTENTS_VAULT_ACTIVE)
+    m.setSyncPassphrase('pw')
+
+    const onPassphraseRequired = vi.fn()
+    const vault = makeMemVault()
+    const dbSync = m.initDbSyncEngine({ vaultConfig: VAULT_CFG, vaultClient: vault, onPassphraseRequired })
+    await dbSync.sync()
+
+    expect(onPassphraseRequired).not.toHaveBeenCalled()
+    expect(await m.loadVaultIntentsRootKey()).not.toBeNull()
+  })
+})

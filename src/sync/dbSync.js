@@ -21,7 +21,7 @@ import { registerDirtyTarget } from './dirty.js'
 import { dbGetAll, dbGetAllChapters } from '../data/db.js'
 import { loadCategories } from '../utils/colors.js'
 import { loadVaultIntentsRootKey, setupVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
-import { flushOutbox } from '../lib/intentsTransport.js'
+import { flushOutbox, isVaultIntentsActive } from '../lib/intentsTransport.js'
 
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
 const DEVICE_ID_KEY  = 'lifeglance-db-sync-device-id'
@@ -29,6 +29,10 @@ const SEEDED_KEY     = 'lifeglance-db-sync-seeded'
 
 let _dbEngine = null
 let _pushTimer = null
+// Once-per-session guard so a device that can't derive the vault intents/blob key
+// without the passphrase prompts for it exactly once, rather than re-opening the
+// modal on every sync cycle if the user dismisses it.
+let _promptedForIntentsKey = false
 // Cached init options (the React setters App passes at mount) so the engine can
 // be re-initialised IN PLACE from anywhere — e.g. the settings modal activating
 // vault sync — without a page reload and without re-plumbing the setters.
@@ -157,10 +161,24 @@ export const initDbSyncEngine = (opts = {}) => {
       // runs the one-time migration that re-homes a legacy shared-slot vault key.
       if (await loadVaultIntentsRootKey()) return       // vault key already present — no-op
       const passphrase = getSyncPassphrase()
-      if (!passphrase) return                           // no passphrase → cannot derive (DB key couldn't either)
+      if (!passphrase) {
+        // The vault intents/blob key can only be derived from the passphrase +
+        // vault salt, but vault DB sync runs from a cached DB key so the passphrase
+        // is often absent this session (nothing re-prompts for it). On an upgraded
+        // device the key never gets derived and vault intents fail with
+        // KeyUnavailableError. If the user has actually selected vault intents,
+        // prompt for the passphrase once so the key can derive; onUnlocked re-runs
+        // the DB sync, which lands here again with the passphrase available.
+        if (!_promptedForIntentsKey && isVaultIntentsActive()) {
+          _promptedForIntentsKey = true
+          opts.onPassphraseRequired?.()
+        }
+        return                                          // no passphrase → cannot derive (DB key couldn't either)
+      }
       const salt = await engine.vault.getSalt(vaultConfig.accountId)
       if (!salt || !salt.length) return                 // salt not established yet — try again next cycle
       await setupVaultIntentsRootKey(passphrase, salt)  // derive against the REAL vault salt → vault slot
+      _promptedForIntentsKey = false                    // key is set; allow a fresh prompt if it's ever lost again
       // The vault intents key just appeared — flush any intents the outbox held
       // (vault target 'transient' on key-not-ready) so a freshly-bootstrapped
       // device delivers them promptly rather than waiting for the next UI poll.

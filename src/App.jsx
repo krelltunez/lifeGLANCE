@@ -81,7 +81,14 @@ export default function App() {
         // GLANCEvault database-sync engine, constructed ALONGSIDE the WebDAV
         // engine above. Returns null (fully inert) unless the vault is enabled in
         // the cloud-sync config — vault sync is opt-in and never replaces WebDAV.
-        initDbSyncEngine({ setMilestones, setChapters })
+        initDbSyncEngine({
+          setMilestones,
+          setChapters,
+          // Vault intents/blob key can't be derived without the passphrase. When
+          // it's missing and vault intents are in use, prompt for it (same modal
+          // the WebDAV engine uses); onUnlocked re-runs the DB sync to derive it.
+          onPassphraseRequired: () => setShowPassphraseModal(true),
+        })
 
         // Restore encryption session key from IDB so the passphrase prompt
         // only appears when the key genuinely isn't stored (first setup or
@@ -243,6 +250,10 @@ export default function App() {
           onUnlocked={() => {
             setShowPassphraseModal(false)
             getSyncEngine()?.sync()
+            // Now that the passphrase is in session, run the DB sync too so the
+            // vault intents/blob key derives (bootstrapIntentsRootKey) and held
+            // intents flush.
+            getDbSyncEngine()?.sync()
           }}
         />
       )}
