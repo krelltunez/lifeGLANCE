@@ -3,8 +3,12 @@ import { buildPayload, buildBackupPayload, mergePayloads, makeApplyPayload } fro
 import { isNativePlatform, nativeWebdavFetch } from './nativeHttp.js';
 
 let engine = null;
+// The construction params (ref/setter closures) from App.jsx, kept so the
+// engine can be rebuilt in place when a setting that's only read at
+// construction time changes. See reinitSyncEngine.
+let savedInitParams = null;
 
-export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setChapters,
+const buildEngine = ({ milestonesRef, chaptersRef, setMilestones, setChapters,
   setSyncStatus, setSyncError, setSyncHalted, setLastSynced, setShowPassphraseModal,
   setVaultSkipped }) => {
 
@@ -21,7 +25,7 @@ export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setC
     localStorage.setItem(KEY_LAST_SYNCED, new Date(Date.now() - 60_000).toISOString())
   }
 
-  engine = createSyncEngine({
+  return createSyncEngine({
     storageKeyPrefix: 'lifeglance',
     cryptoDBName: 'lifeglance-crypto',
     autoBackupDBName: 'lifeglance-auto-backups',
@@ -80,7 +84,23 @@ export const initSyncEngine = ({ milestonesRef, chaptersRef, setMilestones, setC
     onLastSyncedChange: setLastSynced,
     onPassphraseRequired: () => setShowPassphraseModal(true),
   });
+};
 
+export const initSyncEngine = (params) => {
+  savedInitParams = params;
+  engine = buildEngine(params);
+  return engine;
+};
+
+// Rebuild the engine in place, re-reading construction-only config from
+// localStorage. The sync folder (appFolderName) is captured when the engine is
+// built and never re-read afterwards, so a folder change saved via setConfig has
+// no effect until the engine is reconstructed. Calling this right after saving a
+// new folder makes it take effect immediately, instead of only after a page
+// reload (issue #206). No-op until initSyncEngine has run once.
+export const reinitSyncEngine = () => {
+  if (!savedInitParams) return engine;
+  engine = buildEngine(savedInitParams);
   return engine;
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getSyncEngine } from '../../sync/engine'
+import { getSyncEngine, reinitSyncEngine } from '../../sync/engine'
 import { isSyncing, syncErrorText, SYNC_ERROR_I18N_KEYS } from '../../sync/status'
 import { verifyVaultCredentials, runVaultSetup, disableVault, VAULT_OUTCOME } from '../../sync/vaultSetup'
 import { resolveWebdavBase } from '../../sync/webdav'
@@ -161,6 +161,12 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
       const dirUrl = `${webdavBase}/${folder}/`
       await mkdirp(dirUrl, username, password)
 
+      // The engine captures the sync folder (appFolderName) only at construction,
+      // so a changed folder doesn't take effect until the engine is rebuilt. Save
+      // the config first (setConfig persists it), then reconstruct so the very next
+      // upload targets the new folder instead of needing a page reload (issue #206).
+      const folderChanged = folder !== (existingConfig?.folder ?? 'GLANCE/lifeglance')
+
       if (encrypt) {
         const cryptoConfig = { cryptoDBName: 'lifeglance-crypto' }
         if (passphrase) {
@@ -178,12 +184,14 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
         // Merge over the live config so the coexisting vault fields are preserved
         // (both tiers share the lifeglance-cloud-sync-config object).
         engine?.setConfig({ ...(engine.getConfig() ?? {}), ...baseConfig, encryptionEnabled: true })
-        await engine?.upload()
+        const activeEngine = folderChanged ? reinitSyncEngine() : engine
+        await activeEngine?.upload()
       } else {
         const { clearEncryptionKey } = await import('@glance-apps/sync')
         await clearEncryptionKey({ cryptoDBName: 'lifeglance-crypto' })
         engine?.setConfig({ ...(engine.getConfig() ?? {}), ...baseConfig, encryptionEnabled: false })
-        engine?.upload().catch(console.error)
+        const activeEngine = folderChanged ? reinitSyncEngine() : engine
+        activeEngine?.upload().catch(console.error)
       }
       onClose()
     } catch (err) {
