@@ -27,7 +27,6 @@ import {
   parseEncryptedEnvelope,
   parseSince,
   formatSince,
-  NoKeyError,
   SOURCE_APPS,
 } from '@glance-apps/intents'
 import { loadVaultIntentsRootKey, makeDeriveFn } from './intentsKeyStore.js'
@@ -41,8 +40,14 @@ const VAULT_RETRIES_KEY = 'lifeglance-intents-vault-retries'
 export const PAGE_SIZE = 500
 /** Default intents TTL: 30 days. A default, not part of the wire contract. */
 export const DEFAULT_TTL_MS = 30 * 24 * 60 * 60 * 1000
-/** Receive-side bound: a permanently-throwing/keyless row can't wedge the channel. */
-export const MAX_INTENT_RETRIES = 5
+/**
+ * Receive-side bound for TRANSIENT failures only (network / server / a throwing
+ * handler): generous, because dropping recoverable data on a blip is the cardinal
+ * sin of a sync system. KEY-UNAVAILABLE never counts toward this — a row that can't
+ * decrypt only because the vault-intents key isn't loaded yet is valid data merely
+ * locked, so it HOLDS indefinitely and processes the moment the key arrives.
+ */
+export const MAX_TRANSIENT_RETRIES = 50
 
 // ── Connection + fetch resolution (mirrors blobTransport) ─────────────────────
 
@@ -159,8 +164,11 @@ export function makeVaultDeliverer(deps = {}) {
 // ── The receive drain ─────────────────────────────────────────────────────────
 
 /**
- * The vault intents key is absent. TRANSIENT — the key will arrive once
- * setup/restore completes, so hold + bounded-retry, never advance past.
+ * The vault intents key is absent. A pure HOLD condition, never a drop: the key
+ * arrives once setup / unlock / migration completes, so the row waits indefinitely
+ * and is NEVER counted toward give-up or advanced past. routeRow signals this with
+ * the 'hold-key' outcome; this typed marker remains for callers that prefer to
+ * throw/catch the condition explicitly.
  */
 export class KeyUnavailableError extends Error {
   constructor(message = 'vault intents key not available on this device') {
@@ -186,10 +194,23 @@ function makeLocalStorageCursorStore() {
 }
 
 /**
- * Route one decoded server row's envelope. Returns 'ok' (consumed) or 'permanent'
- * (advance + log); THROWS for a transient (KeyUnavailableError, or a handler
- * error propagated from onEnvelope) so it flows into the drain's uniform
- * hold + bounded-retry branch.
+ * Classify one decoded server row into exactly one of four outcomes. The whole
+ * point is that a locked row is NOT a lost row:
+ *
+ *   'ok'        — consumed (decoded + applied, or a skipped loopback). Advance.
+ *   'hold-key'  — KEY-UNAVAILABLE: the vault-intents key isn't loaded yet. VALID
+ *                 data, merely locked; it decrypts the moment the key arrives.
+ *                 HOLD — never advance past it, never count it toward give-up,
+ *                 never drop it.
+ *   'transient' — decoded fine but applying it failed (a throwing handler). The
+ *                 drain retries under a GENEROUS bound.
+ *   'permanent' — genuinely unrecoverable: plaintext over the vault, a malformed
+ *                 row, or a decrypt that FAILS WITH THE KEY PRESENT (corrupt /
+ *                 wrong-key ciphertext, not merely locked). Give up + advance.
+ *
+ * The critical distinction is key presence: decrypt-fails-BECAUSE-key-absent →
+ * 'hold-key'; decrypt-fails-WITH-key-present → 'permanent'. Same-looking error,
+ * opposite handling.
  *
  * @param raw  the decoded envelope object from parseIntentRow().envelope
  */
@@ -201,26 +222,36 @@ async function routeRow(raw, onEnvelope, getRootKey) {
     return 'permanent'
   }
 
+  // KEY-UNAVAILABLE → HOLD. This row is valid data that is merely locked; it
+  // decrypts as soon as the key is derived (unlock) or migrated. Dropping it would
+  // silently lose a user's cross-app action, so it waits — indefinitely, uncounted.
   const rootKey = await getRootKey()
-  if (!rootKey) throw new KeyUnavailableError() // key absent → transient (hold + retry)
+  if (!rootKey) return 'hold-key'
 
+  // The key IS present. Any decode failure now is genuinely PERMANENT — corrupt
+  // ciphertext, a wrong/stale key, or a malformed envelope — not a lock. Advance
+  // past so the queue can't wedge; key-absent was the only recoverable case and it
+  // was handled above.
   const deriveFn = makeDeriveFn(rootKey)
   let envelope
   try {
     envelope = await parseEncryptedEnvelope(raw, deriveFn)
   } catch (err) {
-    // key present but the row won't decrypt (wrong key / bad ciphertext /
-    // malformed) → PERMANENT (advance past). Only a genuinely-absent key is
-    // transient — and we guarded that above; re-throw a codec NoKeyError as such.
-    if (err instanceof NoKeyError) throw new KeyUnavailableError()
-    console.warn('[intents:vault] permanent decode failure, advancing past:', err?.name || err)
+    console.warn('[intents:vault] permanent decode failure with key present, advancing past:', err?.name || err)
     return 'permanent'
   }
 
   // Loopback: skip our own emitted rows (consumed — advance, do not apply).
   if (envelope.emitted_by === SOURCE_APPS.LIFEGLANCE) return 'ok'
 
-  await onEnvelope(envelope) // handler throw → transient (caught by the drain)
+  // TRANSIENT: decoded fine, but the handler (application logic) threw — e.g. a
+  // transient DB error. Retryable under the generous bound in the drain.
+  try {
+    await onEnvelope(envelope)
+  } catch (err) {
+    console.warn('[intents:vault] handler error (transient), will retry:', err?.name || err)
+    return 'transient'
+  }
   return 'ok'
 }
 
@@ -229,12 +260,19 @@ async function routeRow(raw, onEnvelope, getRootKey) {
  * routes each row through `onEnvelope` (the app's EXISTING application logic), and
  * advances the cursor ONLY on consumed rows. A send NEVER touches this cursor.
  *
- * Uniform bounded-retry model (per row):
- *   • success           → advance + clear the seq's counter
- *   • transient (handler threw OR vault key absent) → HOLD (stop the drain so the
- *     next poll retries from here); at ≥ MAX_INTENT_RETRIES give up LOUDLY
- *     (clear + advance so it can't wedge the channel)
- *   • permanent (decrypt-with-key / plaintext-over-vault / malformed) → advance + log
+ * Three-way classification (per row), so a locked row is never a lost row:
+ *   • ok         → advance + clear the seq's counter
+ *   • hold-key   → KEY-UNAVAILABLE: stop the drain and HOLD at the cursor. Never
+ *     advance, never count toward give-up, never drop. All later rows need the same
+ *     key, so we surface how many are waiting and return; a re-drain fires when the
+ *     key arrives (the poller listens for 'lifeglance:intents-key-ready').
+ *   • transient (handler threw / network) → HOLD (stop the drain so the next poll
+ *     retries from here); only at ≥ MAX_TRANSIENT_RETRIES (a GENEROUS bound) give
+ *     up LOUDLY (clear + advance so it can't wedge the channel)
+ *   • permanent (decrypt-with-key-present / plaintext-over-vault / malformed) →
+ *     give up + advance + log LOUDLY
+ *
+ * Returns { heldForKey } — the count held pending the key this drain (0 if none).
  */
 export async function drainVaultIntents(onEnvelope, deps = {}) {
   const conn = deps.connection ?? readVaultIntentsConnection()
@@ -264,13 +302,15 @@ export async function drainVaultIntents(onEnvelope, deps = {}) {
     const rows = Array.isArray(body?.rows) ? body.rows : []
     hasMore = body?.hasMore === true
 
-    for (const rawRow of rows) {
+    for (let i = 0; i < rows.length; i++) {
+      const rawRow = rows[i]
       let parsed
       try {
         parsed = parseIntentRow(rawRow)
       } catch {
-        // malformed server row → advance past it (permanent). Trust the row's seq
-        // if present so we don't re-list it forever.
+        // malformed server row → PERMANENT: advance past it (trust the row's seq)
+        // so a re-list can't re-fail on it forever and wedge the queue.
+        console.warn('[intents:vault] permanent: malformed server row, advancing past seq', rawRow?.seq)
         if (Number.isInteger(rawRow?.seq)) { since = rawRow.seq; store.setCursor(formatSince(since)) }
         continue
       }
@@ -280,23 +320,50 @@ export async function drainVaultIntents(onEnvelope, deps = {}) {
       try {
         outcome = await routeRow(parsed.envelope, onEnvelope, getRootKey)
       } catch (err) {
-        // transient → bounded retry. HOLD unless we've hit the give-up bound.
+        // routeRow classifies internally and shouldn't throw; if it does (e.g.
+        // getRootKey rejects), treat it as transient — never drop.
+        console.warn('[intents:vault] unexpected drain error (transient):', err?.name || err)
+        outcome = 'transient'
+      }
+
+      // ── KEY-UNAVAILABLE → HOLD (never drop, never advance, never count) ────────
+      if (outcome === 'hold-key') {
+        // Every remaining row needs the same key, so stop here and hold at the
+        // cursor. A held intent must be OBSERVABLE, not a silent stall, so report
+        // the count. A re-drain fires when the key arrives (poller listens for
+        // 'lifeglance:intents-key-ready', dispatched when the key is derived).
+        const held = rows.length - i
+        console.warn(`[intents:vault] ${held} intent(s) held pending vault-intents key (from seq ${seq}); will process when the key is available`)
+        deps.onHeldPendingKey?.({ count: held, sinceSeq: seq })
+        return { heldForKey: held }
+      }
+
+      // ── PERMANENT → give up: advance past + clear so the queue can't wedge ─────
+      if (outcome === 'permanent') {
+        store.clearRetry(seq)
+        since = seq
+        store.setCursor(formatSince(since))
+        continue
+      }
+
+      // ── TRANSIENT (handler / network) → HOLD, bounded by a GENEROUS cap ────────
+      if (outcome === 'transient') {
         const n = store.bumpRetry(seq)
-        if (n >= MAX_INTENT_RETRIES) {
-          console.warn(`[intents:vault] giving up on seq ${seq} (${parsed.envelope?.event_id}) after ${n} retries:`, err?.name || err)
+        if (n >= MAX_TRANSIENT_RETRIES) {
+          console.warn(`[intents:vault] giving up on seq ${seq} (${parsed.envelope?.event_id}) after ${n} transient retries; advancing past`)
           store.clearRetry(seq)
           since = seq
           store.setCursor(formatSince(since))
           continue
         }
-        return // stop the whole drain; the next poll retries from here
+        return { heldForKey: 0 } // hold at this row; the next poll retries from here
       }
 
-      // success or permanent → advance + clear the counter.
-      void outcome
+      // ── OK → consumed: advance + clear the counter ────────────────────────────
       store.clearRetry(seq)
       since = seq
       store.setCursor(formatSince(since))
     }
   }
+  return { heldForKey: 0 }
 }

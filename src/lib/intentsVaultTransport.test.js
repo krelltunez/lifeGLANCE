@@ -18,9 +18,8 @@ import {
 import {
   deliverToVault,
   drainVaultIntents,
-  KeyUnavailableError,
   readVaultIntentsConnection,
-  MAX_INTENT_RETRIES,
+  MAX_TRANSIENT_RETRIES,
 } from './intentsVaultTransport.js'
 import { makeDeriveFn } from './intentsKeyStore.js'
 
@@ -161,31 +160,101 @@ describe('drainVaultIntents', () => {
     expect(cursor.cursor).toBe('3')                 // advanced only to the consumed row
   })
 
-  it('HOLDS on key-absent (transient) — does not drop, does not advance', async () => {
+  it('HOLDS on key-absent — does not drop, does not advance, does NOT count toward give-up', async () => {
     const rootKey = await deriveIntentsRootKey('pw', SALT)
     const row = await encRow(rootKey, { seq: 5, eventId: '20260101T000000Z-cccccc' })
     const applied = []
     const cursor = memCursor()
-    await drainVaultIntents(async env => applied.push(env), {
+    const res = await drainVaultIntents(async env => applied.push(env), {
       connection: CONN, fetchImpl: listFetch([row]), getRootKey: async () => null, cursorStore: cursor,
     })
     expect(applied).toHaveLength(0)                  // held, not applied
     expect(cursor.cursor).toBeNull()                 // cursor NOT advanced (no loss)
-    expect(cursor.retries[5]).toBe(1)                // bounded-retry counter bumped
+    expect(cursor.retries[5]).toBeUndefined()        // key-absent is NOT a retry — never counts
+    expect(res.heldForKey).toBe(1)                   // surfaced as held
   })
 
-  it('gives up loudly + advances after MAX_INTENT_RETRIES key-absent holds', async () => {
+  it('NEVER gives up on key-absent — holds indefinitely, then processes once the key arrives', async () => {
     const rootKey = await deriveIntentsRootKey('pw', SALT)
-    const row = await encRow(rootKey, { seq: 8, eventId: '20260101T000000Z-dddddd' })
+    const row = await encRow(rootKey, { seq: 8, eventId: '20260101T000000Z-dddddd', event: 'completed' })
     const cursor = memCursor()
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    for (let i = 0; i < MAX_INTENT_RETRIES; i++) {
+
+    // Well past any bound with the key absent: it must HOLD every single time —
+    // never advance, never drop. This is the data-loss regression guard.
+    for (let i = 0; i < MAX_TRANSIENT_RETRIES + 5; i++) {
       await drainVaultIntents(async () => {}, {
         connection: CONN, fetchImpl: listFetch([row]), getRootKey: async () => null, cursorStore: cursor,
       })
     }
-    expect(cursor.cursor).toBe('8')                  // gave up → advanced past so it can't wedge
+    expect(cursor.cursor).toBeNull()                 // still held — not advanced, not dropped
+
+    // The key arrives (a re-drain): the SAME row now decodes, applies, and advances.
+    const applied = []
+    await drainVaultIntents(async env => applied.push(env), {
+      connection: CONN, fetchImpl: listFetch([row]), getRootKey: async () => rootKey, cursorStore: cursor,
+    })
+    expect(applied).toHaveLength(1)
+    expect(cursor.cursor).toBe('8')
+  })
+
+  it('PERMANENT: a row that will not decrypt WITH a key present advances past (not held)', async () => {
+    const rootKey = await deriveIntentsRootKey('pw', SALT)
+    const row = await encRow(rootKey, { seq: 6, eventId: '20260101T000000Z-ffffff' })
+    // A DIFFERENT key is present: decode fails, but the key is NOT absent, so this
+    // is a genuine permanent failure (corrupt/wrong key), not a hold.
+    const wrongKey = await deriveIntentsRootKey('different-pw', SALT)
+    const applied = []
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const cursor = memCursor()
+    const res = await drainVaultIntents(async env => applied.push(env), {
+      connection: CONN, fetchImpl: listFetch([row]), getRootKey: async () => wrongKey, cursorStore: cursor,
+    })
+    expect(applied).toHaveLength(0)                  // never applied
+    expect(cursor.cursor).toBe('6')                  // permanent → advanced past (queue not wedged)
+    expect(res.heldForKey).toBe(0)                   // NOT held — the key was present
+    expect(warn).toHaveBeenCalled()
     warn.mockRestore()
+  })
+
+  it('TRANSIENT: a throwing handler holds and retries to the GENEROUS bound, then advances', async () => {
+    const rootKey = await deriveIntentsRootKey('pw', SALT)
+    const row = await encRow(rootKey, { seq: 9, eventId: '20260101T000000Z-999999' })
+    const cursor = memCursor()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const alwaysThrow = async () => { throw new Error('handler boom') }
+
+    // One short of the bound: still holding (not advanced), counter climbing.
+    for (let i = 0; i < MAX_TRANSIENT_RETRIES - 1; i++) {
+      await drainVaultIntents(alwaysThrow, {
+        connection: CONN, fetchImpl: listFetch([row]), getRootKey: async () => rootKey, cursorStore: cursor,
+      })
+    }
+    expect(cursor.cursor).toBeNull()
+    expect(cursor.retries[9]).toBe(MAX_TRANSIENT_RETRIES - 1)
+
+    // The bound-hitting drain gives up loudly and advances so it can't wedge.
+    await drainVaultIntents(alwaysThrow, {
+      connection: CONN, fetchImpl: listFetch([row]), getRootKey: async () => rootKey, cursorStore: cursor,
+    })
+    expect(cursor.cursor).toBe('9')
+    warn.mockRestore()
+  })
+
+  it('reports held-pending-key intents (observable) with a count and sinceSeq', async () => {
+    const rootKey = await deriveIntentsRootKey('pw', SALT)
+    const rows = [
+      await encRow(rootKey, { seq: 3, eventId: '20260101T000000Z-h1h1h1' }),
+      await encRow(rootKey, { seq: 4, eventId: '20260101T000000Z-h2h2h2' }),
+    ]
+    const onHeldPendingKey = vi.fn()
+    const cursor = memCursor()
+    const res = await drainVaultIntents(async () => {}, {
+      connection: CONN, fetchImpl: listFetch(rows), getRootKey: async () => null,
+      cursorStore: cursor, onHeldPendingKey,
+    })
+    expect(onHeldPendingKey).toHaveBeenCalledWith({ count: 2, sinceSeq: 3 })
+    expect(res.heldForKey).toBe(2)
+    expect(cursor.cursor).toBeNull()                 // nothing advanced
   })
 
   it('REJECTS a plaintext row over the vault (permanent) — never routes it, advances', async () => {

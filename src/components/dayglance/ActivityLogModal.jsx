@@ -11,6 +11,7 @@ function formatTs(iso, locale) {
 function entryLabel(entry, t) {
   const title = entry.payload?.title ?? entry.payload?.task_id ?? entry.action
   if (entry.type === 'sent') return t('logSent', { title })
+  if (entry.type === 'held') return t('logHeldPendingKey', { count: entry.payload?.count ?? 0 })
   const event = entry.payload?.event
   if (event === 'completed') return t('logCompleted', { title })
   if (event === 'rescheduled') return t('logRescheduled', { title })
@@ -73,10 +74,10 @@ export default function ActivityLogModal({ onClose }) {
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em',
                   padding: '0.15rem 0.5rem', borderRadius: '3px', flexShrink: 0,
-                  background: e.type === 'sent' ? 'var(--accent-blue-bg)' : 'var(--success-bg)',
-                  color:      e.type === 'sent' ? 'var(--accent-blue-bright)'  : 'var(--success)',
+                  background: e.type === 'sent' ? 'var(--accent-blue-bg)' : e.type === 'held' ? 'var(--amber-bg)' : 'var(--success-bg)',
+                  color:      e.type === 'sent' ? 'var(--accent-blue-bright)' : e.type === 'held' ? 'var(--amber-bright)' : 'var(--success)',
                 }}>
-                  {e.type === 'sent' ? t('sent') : t('received')}
+                  {e.type === 'sent' ? t('sent') : e.type === 'held' ? t('held') : t('received')}
                 </span>
                 <span style={{ color: 'var(--text-main)' }}>{entryLabel(e, t)}</span>
               </div>

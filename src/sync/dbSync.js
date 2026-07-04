@@ -179,13 +179,18 @@ export const initDbSyncEngine = (opts = {}) => {
       if (!salt || !salt.length) return                 // salt not established yet — try again next cycle
       await setupVaultIntentsRootKey(passphrase, salt)  // derive against the REAL vault salt → vault slot
       _promptedForIntentsKey = false                    // key is set; allow a fresh prompt if it's ever lost again
-      // The vault intents key just appeared — flush any intents the outbox held
-      // (vault target 'transient' on key-not-ready) so a freshly-bootstrapped
-      // device delivers them promptly rather than waiting for the next UI poll.
+      // The vault intents key just appeared. Nudge both directions immediately
+      // rather than waiting for the next UI poll: flush any SENDS the outbox held
+      // (vault target 'transient' on key-not-ready), and fire a key-ready event so
+      // the RECEIVE poller re-drains any inbound intents it was holding pending the
+      // key (drainVaultIntents 'hold-key').
       try {
         await flushOutbox()
       } catch (e) {
         console.warn('[dbsync] intents flush after key setup deferred', e)
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('lifeglance:intents-key-ready'))
       }
     } catch (err) {
       console.warn('[dbsync] blob/intents key bootstrap deferred', err)

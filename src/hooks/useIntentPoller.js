@@ -32,6 +32,9 @@ export function useIntentPoller({
   const createRef  = useRef(onInboundCreate)
   const notifyRef  = useRef(onInboundNotify)
   const activityRef = useRef(onActivityEntry)
+  // Last count of intents held pending the vault key, so the activity log records
+  // the state only when it CHANGES (a 2-min poll cadence must not flood it).
+  const lastHeldRef = useRef(0)
   useEffect(() => { createRef.current  = onInboundCreate  }, [onInboundCreate])
   useEffect(() => { notifyRef.current  = onInboundNotify  }, [onInboundNotify])
   useEffect(() => { activityRef.current = onActivityEntry }, [onActivityEntry])
@@ -63,7 +66,16 @@ export function useIntentPoller({
 
     // RECEIVE both tiers (independent cursors; one being down never blocks the other).
     if (webdav) await pollEvents(handleInbound)
-    if (vault)  await drainVaultIntents(handleInbound)
+    if (vault) {
+      const { heldForKey = 0 } = (await drainVaultIntents(handleInbound)) ?? {}
+      // Held-pending-key intents must be observable. Record the state in the
+      // activity log on a CHANGE (entering a hold or the count shifting); the
+      // drain's console.warn is the always-on log.
+      if (heldForKey > 0 && heldForKey !== lastHeldRef.current) {
+        activityRef.current?.({ type: 'held', payload: { count: heldForKey } })
+      }
+      lastHeldRef.current = heldForKey
+    }
 
     // SEND: drain the durable outbox on the poll cadence (delivers anything held
     // from a previous session or while a target's key/connection was absent).
@@ -76,4 +88,14 @@ export function useIntentPoller({
     const id = setInterval(runPoll, ms)
     return () => clearInterval(id)
   }, [runPoll, intervalMin])
+
+  // Re-drain the moment the vault intents key becomes available (dbSync dispatches
+  // this after deriving it on unlock), so intents held pending the key process
+  // immediately instead of waiting for the next poll tick.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onKeyReady = () => { runPoll() }
+    window.addEventListener('lifeglance:intents-key-ready', onKeyReady)
+    return () => window.removeEventListener('lifeglance:intents-key-ready', onKeyReady)
+  }, [runPoll])
 }
