@@ -1867,6 +1867,11 @@ button, input, select, textarea {
   color: var(--text-muted);
   flex-shrink: 0;
 }
+.settings-birthday-fields {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
 .settings-birthday-input {
   background: transparent;
   border: 1px solid var(--border);
@@ -1876,6 +1881,9 @@ button, input, select, textarea {
   font-size: 0.72rem;
   padding: 0.3rem 0.5rem;
   color-scheme: dark;
+}
+select.settings-birthday-input {
+  cursor: pointer;
 }
 
 .settings-backup-row {
