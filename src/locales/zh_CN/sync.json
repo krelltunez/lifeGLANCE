@@ -9,7 +9,7 @@
   "folderLabel": "同步文件夹",
   "encryptionLabel": "数据加密",
   "encryptSyncData": "加密同步数据",
-  "encryptionAlreadyConfigured": "已设置加密。密码留空即为沿用现有加密金钥，或重新输入以重新验证此设备。",
+  "encryptionAlreadyConfigured": "[已设置加密] - 密码留空即为沿用现有加密金钥，或重新输入以重新验证此设备。",
   "passphraseLabel": "加密金钥",
   "passphrasePlaceholderExisting": "(密码留空即为沿用现有加密金钥)",
   "passphrasePlaceholderNew": "输入加密金钥",
