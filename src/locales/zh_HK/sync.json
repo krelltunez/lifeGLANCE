@@ -32,7 +32,7 @@
   "saveAndEnable": "儲存並啟用",
   "passphraseModalTitle": "🔑 輸入雲端同步的加密金鑰",
   "passphraseModalNote": "🔐 同步資料已加密。請輸入加密金鑰以繼續同步。",
-  "incorrectPassphrase": "加密金鑰錯誤。請重新輸入。",
+  "incorrectPassphrase": "加密金鑰不匹配。請重新輸入。",
   "unlocking": "正在解鎖…",
   "unlock": "解鎖",
   "cloudSyncRequired": "請先設定「⇆雲端同步」，「☁️雲端備份」將上傳至同一伺服器。",
@@ -50,7 +50,7 @@
   "backupNote": "使用多台裝置時，請透過「⇆雲端同步」保持資料一致。「☁️雲端備份」僅限單台主裝置啟用。",
   "noBackupsYet": "尚無備份 — 晴空萬里，未見一片雲",
   "historyTab": "備份記錄",
-  "wrongPassphrase": "加密金鑰錯誤。請確認與其他裝置一致。",
+  "wrongPassphrase": "加密金鑰不匹配。請確認與其他裝置一致。",
   "vaultSkippedToast": "有{{count}}個項目無法讀取。請檢查雲端同步設定。",
   "vaultSkippedNote": "本裝置上有{{count}}個項目無法讀取並已略過。下次同步時將自動重試，這通常表示加密金鑰不一致。",
   "verifierUnsupported": "請更新您的同步伺服器以支援金鑰驗證。",
@@ -59,7 +59,7 @@
   "locked": "其他裝置正在同步，請稍後再試",
   "networkError": "網路不穩: 請檢查連線後再試",
   "preconditionFailed": "其他裝置剛更新了資料，正在重新同步",
-  "passphraseRequired": "請輸入同步的加密金鑰以繼續",
+  "passphraseRequired": "請輸入加密金鑰以繼續同步",
   "appIdMismatch": "此同步資料屬於其他應用程式",
   "schemaForwardIncompatible": "請更新APP再試: 此同步資料來自較新的版本"
 }
