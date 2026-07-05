@@ -31,7 +31,7 @@
   "connectionFailed": "连线失败: {{message}}",
   "pollInterval": "数据更新间隔(分钟)",
   "encryptEvents": "加密操作事件",
-  "encryptionNote": "设定云端同步的加密金钥。设定一次，所有装置通用。",
+  "encryptionNote": "设定云端同步的加密金钥。设定一次，所有设备通用。",
   "enterPassphrase": "输入加密金钥启动",
   "activating": "正在启动…",
   "activate": "启动",
