@@ -39,7 +39,7 @@
   "remoteBackupsLabel": "远程备份",
   "enableRemoteBackups": "启用自动远程备份",
   "passwordLabel": "密码 (Password)",
-  "frequencyLabel": "频率",
+  "frequencyLabel": "备份周期",
   "settingsSaved": "设置已保存",
   "connectionFailedSimple": "连线失败。",
   "error": "错误: {{message}}",
