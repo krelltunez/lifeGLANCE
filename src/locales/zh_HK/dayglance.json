@@ -37,7 +37,7 @@
   "activate": "啟動",
   "encryptionEnabled": "🔐 已啟用加密。加密金鑰不留於本機，無需再次輸入。",
   "setupFailed": "設定失敗: {{message}}",
-  "integrationNote": "請確認 lifeGLANCE 與 dayGLANCE 使用相同的「WebDAV伺服器地址」及「Events 存放路徑」。標記為 \"dayGLANCE Goal\" 的里程碑，將加入 dayGLANCE 的 Goals，並雙向同步完成狀態與日期變更。",
+  "integrationNote": "請確認 lifeGLANCE 與 dayGLANCE 使用相同的「WebDAV 伺服器地址」及「Events 存放路徑」。標記為 \"dayGLANCE Goal\" 的里程碑，將加入 dayGLANCE 的 Goals，並雙向同步完成狀態與日期變更。",
   "toastGoalAdded": "已添加 dayGLANCE Goal:「{{title}}」",
   "toastGoalCompleted": "已完成 dayGLANCE Goal:「{{title}}」",
   "toastGoalDeleted": "已刪除 dayGLANCE Goal —「{{title}}」，里程碑依然在此。"
