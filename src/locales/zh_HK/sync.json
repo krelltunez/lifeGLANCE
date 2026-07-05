@@ -39,7 +39,7 @@
   "remoteBackupsLabel": "遠端備份",
   "enableRemoteBackups": "啟用自動遠端備份",
   "passwordLabel": "密碼 (Password)",
-  "frequencyLabel": "頻率",
+  "frequencyLabel": "備份週期",
   "settingsSaved": "設定已儲存",
   "connectionFailedSimple": "連線失敗。",
   "error": "錯誤: {{message}}",
