@@ -47,7 +47,7 @@
   "backupFailed": "备份失败: {{message}}",
   "backingUp": "正在备份…",
   "backupNow": "立即备份",
-  "backupNote": "仅限单一设备启用。多设备使用时，请通过云端同步保持数据一致，并仅在主设备上设置远程备份。",
+  "backupNote": "使用多设备时，请通过🔄云端同步保持数据一致。💾远程备份仅限单台主设备启用。",
   "noBackupsYet": "尚无备份。",
   "historyTab": "历史记录",
   "wrongPassphrase": "加密金钥错误。请确认与其他设备一致。",
