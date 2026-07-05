@@ -13,7 +13,7 @@
   "passphraseLabel": "加密金钥",
   "passphrasePlaceholderExisting": "(密码留空即为沿用现有加密金钥)",
   "passphrasePlaceholderNew": "输入加密金钥",
-  "confirmPassphraseLabel": "确认输入加密金钥",
+  "confirmPassphraseLabel": "再次输入加密金钥",
   "koofrPlaceholder": "https://app.koofr.net (自动填入)",
   "nextcloudPlaceholder": "https://your-nextcloud.example.com",
   "usernamePlaceholder": "用户名 (User)",
