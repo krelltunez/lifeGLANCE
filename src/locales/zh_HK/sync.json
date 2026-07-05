@@ -30,7 +30,7 @@
   "disable": "停用",
   "saving": "正在儲存…",
   "saveAndEnable": "儲存並啟用",
-  "passphraseModalTitle": "🔑 輸入同步的加密金鑰",
+  "passphraseModalTitle": "🔑 輸入雲端同步的加密金鑰",
   "passphraseModalNote": "🔐 同步資料已加密。請輸入加密金鑰以繼續同步。",
   "incorrectPassphrase": "加密金鑰錯誤。請重新輸入。",
   "unlocking": "正在解鎖…",
