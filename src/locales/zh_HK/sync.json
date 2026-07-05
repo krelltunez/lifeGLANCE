@@ -1,6 +1,6 @@
 {
   "title": "🔄雲端同步",
-  "autoBackupTitle": "自動備份",
+  "autoBackupTitle": "💾雲端備份",
   "syncHalted": "同步已停止:",
   "providerLabel": "伺服器类型",
   "serverUrlLabel": "伺服器地址 (URL)",
