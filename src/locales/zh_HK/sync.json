@@ -2,7 +2,7 @@
   "title": "雲端同步",
   "autoBackupTitle": "自動備份",
   "syncHalted": "同步已停止:",
-  "providerLabel": "雲端類型",
+  "providerLabel": "伺服器类型",
   "serverUrlLabel": "伺服器地址 (URL)",
   "usernameLabel": "用户名 (User)",
   "appPasswordLabel": "密碼 (Password)",
