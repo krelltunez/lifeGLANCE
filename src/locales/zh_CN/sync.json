@@ -2,7 +2,7 @@
   "title": "云端同步",
   "autoBackupTitle": "自动备份",
   "syncHalted": "同步已停止:",
-  "providerLabel": "云端类型",
+  "providerLabel": "WebDAV类型",
   "serverUrlLabel": "伺服器地址 (URL)",
   "usernameLabel": "用户名 (User)",
   "appPasswordLabel": "密码 (Password)",
