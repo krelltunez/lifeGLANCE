@@ -53,6 +53,6 @@
   "completedInDayglance": "已完成于 dayGLANCE",
   "photoSyncedFromDevice": "📷 相片附件已保存在来源设备上",
   "mediaSyncedFromDevice": "🎬 音频及视频附件已保存在来源设备上",
-  "mediaDownloading": "⬇️ Downloading… {{progress}}",
+  "mediaDownloading": "⬇️ 下载中… {{progress}}",
   "ageYearsOld": "{{age}}岁"
 }
