@@ -47,7 +47,7 @@
   "backupFailed": "備份失敗: {{message}}",
   "backingUp": "正在備份…",
   "backupNow": "立即備份",
-  "backupNote": "僅限單一設備啟用。多設備使用時，請透過雲端同步保持資料一致，並僅在主設備上設定遠端備份。",
+  "backupNote": "使用多設備時，請透過🔄雲端同步保持資料一致，💾遠端備份僅限單台主設備設備啟用。",
   "noBackupsYet": "尚無備份 — 晴空萬里，未見一片雲",
   "historyTab": "歷史記錄",
   "wrongPassphrase": "加密金鑰錯誤。請確認與其他裝置一致。",
