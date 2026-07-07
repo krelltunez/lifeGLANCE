@@ -78,7 +78,7 @@
   "vaultAccountLabel": "用戶ID",
   "vaultAccountPlaceholder": "設置用戶ID",
   "vaultPassphraseLabel": "設置用戶ID的同步口令(G-Key)",
-  "vaultPassphraseNote": "請輸入與其他裝置共用的同步口令(G-Key)，而非儲存庫認證令牌(G-Token)。",
+  "vaultPassphraseNote": "設置與其他裝置共用的同步口令(G-Key)。並非儲存庫認證令牌(G-Token)。",
   "vaultVerify": "同步連接驗證",
   "vaultVerifying": "驗證中…",
   "vaultSaveEnable": "驗證並啟用資料庫同步",
