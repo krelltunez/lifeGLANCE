@@ -61,7 +61,7 @@
   "preconditionFailed": "其他裝置剛更新了資料，正在重新同步",
   "passphraseRequired": "請輸入加密金鑰以繼續同步",
   "appIdMismatch": "此同步資料屬於其他應用程式",
-  "schemaForwardIncompatible": "請更新APP再試: 此同步資料來自較新的版本"
+  "schemaForwardIncompatible": "請更新APP再試: 此同步資料來自較新的版本",
 
   "webdavSectionTitle": "WebDAV 同步",
   "webdavEnableLabel": "透過 WebDAV 同步",
