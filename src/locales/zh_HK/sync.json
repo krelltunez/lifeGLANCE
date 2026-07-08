@@ -59,7 +59,7 @@
   "locked": "其他裝置正在同步，請稍後再試",
   "networkError": "網路不穩: 請檢查連線後再試",
   "preconditionFailed": "其他裝置剛更新了資料，正在重新同步",
-  "passphraseRequired": "🔑請輸入加密金鑰(W-key)以繼續同步",
+  "passphraseRequired": "請輸入加密金鑰(W-key)以繼續同步",
   "appIdMismatch": "此同步資料屬於其他應用程式",
   "schemaForwardIncompatible": "請更新APP再試: 此同步資料來自較新的版本",
 
