@@ -90,7 +90,7 @@
   "vaultForbidden": "用戶ID不存在，或裝置令牌未獲授權。",
   "vaultNetwork": "無法透過此網址連接到儲存庫(Vault)。若為自建伺服器，常見原因包括：網址錯誤﹑無法連線﹑儲存庫未正確設定CORS標頭，或TLS憑證不受信任。",
   "vaultUnsupported": "「GLANCEvault」庫伺服器版本過舊—無法支持憑證驗證",
-  "vaultPassphraseRequired": "🔑 請輸入用戶同步口令(G-Key)以啟用資料庫同步",
+  "vaultPassphraseRequired": "🗝️ 請輸入用戶同步口令(G-Key)以啟用資料庫同步",
   "backfillTitle": "現有媒體",
   "backfillNote": "將此裝置既有的照片與影音上傳至「GLANCEvault」，並同步至其他裝置。新增項目將自動上傳；並一次性補傳舊有項目。重複執行將自動略過已上傳項目。",
   "backfillStart": "將現有媒體上傳到「GLANCEvault」",
