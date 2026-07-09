@@ -52,6 +52,7 @@
   "historyTab": "cronologia",
   "wrongPassphrase": "Passphrase di sincronizzazione errata — deve corrispondere esattamente a quella usata sugli altri dispositivi.",
   "vaultSkippedToast": "{{count}} elemento/i non leggibili — controlla le impostazioni di sincronizzazione cloud.",
+  "restoredToast": "Ripristinati {{count}} traguardo/i dalla nuvola.",
   "vaultSkippedNote": "{{count}} elemento/i non sono stati letti su questo dispositivo e sono stati ignorati. Verranno ritentati automaticamente alla prossima sincronizzazione — di solito indica una passphrase di sincronizzazione diversa.",
   "verifierUnsupported": "Il tuo server di sincronizzazione deve essere aggiornato per supportare la verifica della chiave.",
   "authFailed": "Authentication failed — check your username and password in sync settings.",

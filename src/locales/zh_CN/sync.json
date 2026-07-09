@@ -52,6 +52,7 @@
   "historyTab": "备份记录",
   "wrongPassphrase": "加密金钥错误。请确认与其他设备一致。",
   "vaultSkippedToast": "有{{count}}个条目无法读取。请检查云端同步设置。",
+  "restoredToast": "已从云端恢复{{count}}个里程碑。",
   "vaultSkippedNote": "本设备上有{{count}}个条目无法读取并已跳过。下次同步时将自动重试，这通常表示加密金钥不一致。",
   "verifierUnsupported": "请更新您的同步服务器以支持金钥验证。",
   "authFailed": "验证失败: 请检查同步设定中的用户名与密码",

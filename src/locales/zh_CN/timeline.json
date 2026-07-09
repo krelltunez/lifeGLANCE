@@ -43,6 +43,7 @@
   "syncingTitle": "正在同步...",
   "syncErrorSimple": "同步错误",
   "cloudSyncTitle": "云端同步",
+  "lastSyncedTitle": "上次同步 {{time}}",
   "addMilestone": "+ 创建里程碑",
   "addMilestoneShort": "+ 新里程碑",
   "addChapter": "+ 新添章节",

@@ -219,6 +219,19 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     return () => window.removeEventListener('lifeglance:sync-applied', onSyncApplied)
   }, [])
 
+  // First-restore confirmation: applyPayload fires 'lifeglance:restored' when a
+  // previously-empty device receives milestones from the cloud. Surface a toast
+  // so the user gets a definite "your timeline is here" signal instead of
+  // watching the green dot and refreshing repeatedly to see if it worked (#253).
+  useEffect(() => {
+    const onRestored = (e) => {
+      const count = e?.detail?.count
+      if (count > 0) showToast(ts('restoredToast', { count }), 'success')
+    }
+    window.addEventListener('lifeglance:restored', onRestored)
+    return () => window.removeEventListener('lifeglance:restored', onRestored)
+  }, [])
+
   // Apply font size globally
   useEffect(() => {
     document.documentElement.style.fontSize = TEXT_SIZES[textSize]
@@ -1944,7 +1957,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               <button
                 className="action-link sync-status-btn"
                 onClick={onOpenCloudSync}
-                title={syncHalted ? t('syncErrorTitle') : isSyncing(syncStatus) ? t('syncingTitle') : syncError ? (SYNC_ERROR_I18N_KEYS[syncError.code] ? ts(SYNC_ERROR_I18N_KEYS[syncError.code]) : t('syncErrorSimple')) : t('cloudSyncTitle')}
+                title={syncHalted ? t('syncErrorTitle') : isSyncing(syncStatus) ? t('syncingTitle') : syncError ? (SYNC_ERROR_I18N_KEYS[syncError.code] ? ts(SYNC_ERROR_I18N_KEYS[syncError.code]) : t('syncErrorSimple')) : lastSynced ? t('lastSyncedTitle', { time: new Date(lastSynced).toLocaleString(i18n.language) }) : t('cloudSyncTitle')}
               >
                 <span
                   className="sync-dot"
