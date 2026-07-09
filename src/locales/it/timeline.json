@@ -31,6 +31,7 @@
   "syncingTitle": "Sincronizzazione…",
   "syncErrorSimple": "Errore di sync",
   "cloudSyncTitle": "Sincronizzazione cloud",
+  "lastSyncedTitle": "Ultima sincronizzazione {{time}}",
   "addMilestone": "+ aggiungi traguardo",
   "addChapter": "+ aggiungi capitolo",
   "filterAll": "tutti",

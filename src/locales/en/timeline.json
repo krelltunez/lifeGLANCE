@@ -43,6 +43,7 @@
   "syncingTitle": "Syncing...",
   "syncErrorSimple": "Sync error",
   "cloudSyncTitle": "Cloud sync",
+  "lastSyncedTitle": "Last synced {{time}}",
   "addMilestone": "+ add milestone",
   "addMilestoneShort": "+ milestone",
   "addChapter": "+ add chapter",

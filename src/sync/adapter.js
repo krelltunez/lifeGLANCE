@@ -103,6 +103,19 @@ export const makeApplyPayload = (setMilestones, setChapters) =>
     const [freshMilestones, freshChapters] = await Promise.all([dbGetAll(), dbGetAllChapters()]);
     setMilestones(freshMilestones);
     setChapters(freshChapters);
+
+    // First-restore signal: a device that held no milestones just received some
+    // from the remote (a new-device restore, or the real payload arriving after
+    // an encryption-handshake stub). Emit a one-time event so the UI can confirm
+    // the restore is actually done — the sync dot goes green on the first ok
+    // cycle, which alone doesn't tell the user their timeline has landed (#253).
+    // Edge-only: currentMilestones was empty, so ordinary later syncs never fire.
+    if (currentMilestones.length === 0 && freshMilestones.length > 0 &&
+        typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lifeglance:restored', {
+        detail: { count: freshMilestones.length },
+      }));
+    }
   };
 
 // mergePayloads — synchronous CRDT merge
