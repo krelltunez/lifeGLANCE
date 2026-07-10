@@ -75,7 +75,7 @@
   "vaultUrlLabel": "儲存庫網址(Vault URL)",
   "vaultUrlPlaceholder": "https://vault.example.com",
   "vaultTokenLabel": "裝置令牌(G-Token)",
-  "vaultTokenPlaceholder": "貼上「GLANCEvault」裝置令牌(G-Token)",
+  "vaultTokenPlaceholder": "貼上「GLANCEvault」裝置令牌(Device_Token)",
   "vaultAccountLabel": "用戶ID",
   "vaultAccountPlaceholder": "設置用戶ID",
   "vaultPassphraseLabel": "設置用戶同步口令(G-Key)",
