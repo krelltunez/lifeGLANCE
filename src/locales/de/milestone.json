@@ -45,5 +45,14 @@
   "visTabInherit": "erben",
   "visTabShown": "sichtbar",
   "visTabHidden": "verborgen",
-  "ageYearsOld": "{{age}} J."
+  "ageYearsOld": "{{age}} J.",
+  "pinHelp": "Jeder farbige Punkt heftet diesen Meilenstein an das passende Countdown-Widget auf dem Startbildschirm. Tippe auf einen Punkt, um ihn dort anzuheften; erneut tippen, um ihn zu lösen.",
+  "pinHelpToggle": "Wofür sind die farbigen Punkte?",
+  "pinCluster": "An ein Countdown-Widget auf dem Startbildschirm anheften",
+  "pinToWidget": "An das {{color}}-Widget anheften",
+  "unpinFromWidget": "Vom {{color}}-Widget lösen",
+  "pinColor_amber": "Bernstein",
+  "pinColor_rose": "Rosa",
+  "pinColor_teal": "Petrol",
+  "pinColor_blue": "Blau"
 }

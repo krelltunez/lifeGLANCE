@@ -45,5 +45,14 @@
   "visTabInherit": "eredita",
   "visTabShown": "visibile",
   "visTabHidden": "nascosto",
-  "ageYearsOld": "{{age}} anni"
+  "ageYearsOld": "{{age}} anni",
+  "pinHelp": "Ogni punto colorato fissa questo traguardo al widget conto alla rovescia corrispondente nella schermata Home. Tocca un punto per fissarlo lì; tocca di nuovo per rimuoverlo.",
+  "pinHelpToggle": "A cosa servono i punti colorati?",
+  "pinCluster": "Fissa a un widget conto alla rovescia della schermata Home",
+  "pinToWidget": "Fissa al widget {{color}}",
+  "unpinFromWidget": "Rimuovi dal widget {{color}}",
+  "pinColor_amber": "ambra",
+  "pinColor_rose": "rosa",
+  "pinColor_teal": "verde acqua",
+  "pinColor_blue": "blu"
 }

@@ -45,5 +45,14 @@
   "visTabInherit": "herdar",
   "visTabShown": "visível",
   "visTabHidden": "oculto",
-  "ageYearsOld": "{{age}} anos"
+  "ageYearsOld": "{{age}} anos",
+  "pinHelp": "Cada ponto colorido fixa este marco no widget de contagem regressiva correspondente na tela inicial. Toque em um ponto para fixá-lo ali; toque novamente para remover.",
+  "pinHelpToggle": "Para que servem os pontos coloridos?",
+  "pinCluster": "Fixar em um widget de contagem regressiva da tela inicial",
+  "pinToWidget": "Fixar no widget {{color}}",
+  "unpinFromWidget": "Remover do widget {{color}}",
+  "pinColor_amber": "âmbar",
+  "pinColor_rose": "rosa",
+  "pinColor_teal": "verde-azulado",
+  "pinColor_blue": "azul"
 }
