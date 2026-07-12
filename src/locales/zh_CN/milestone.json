@@ -54,5 +54,14 @@
   "photoSyncedFromDevice": "📷 相片附件已保存在来源设备上",
   "mediaSyncedFromDevice": "🎬 音频及视频附件已保存在来源设备上",
   "mediaDownloading": "⬇️ 下载中… {{progress}}",
-  "ageYearsOld": "{{age}}岁"
+  "ageYearsOld": "{{age}}岁",
+  "pinHelp": "每个彩色圆点会将此里程碑固定到对应颜色的主屏幕倒计时小组件。点按圆点即可固定；再次点按即可取消。",
+  "pinHelpToggle": "这些圆点有什么用？",
+  "pinCluster": "固定到主屏幕倒计时小组件",
+  "pinToWidget": "固定到{{color}}小组件",
+  "unpinFromWidget": "从{{color}}小组件取消固定",
+  "pinColor_amber": "琥珀色",
+  "pinColor_rose": "玫瑰色",
+  "pinColor_teal": "青色",
+  "pinColor_blue": "蓝色"
 }

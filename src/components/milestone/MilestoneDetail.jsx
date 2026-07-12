@@ -30,6 +30,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
   const [posterUrl, setPosterUrl] = useState(null) // video poster (from the uploaded thumbnail)
   const [confirm,   setConfirm]   = useState(null)
   const [pins,      setPins]      = useState(readPins)
+  const [showPinHelp, setShowPinHelp] = useState(false)
 
   // Each color slot maps to its own countdown widget. Tapping a slot pins this milestone
   // to it (or clears it), then nudges the widget snapshot to re-push. Native shells only.
@@ -263,7 +264,14 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
             </div>
           </div>
         ) : (
-          <div className="sheet-actions">
+          <>
+            {canPin && showPinHelp && (
+              <div className="detail-pin-help"
+                style={{ fontSize: '0.72rem', opacity: 0.72, lineHeight: 1.45, padding: '0 0 0.55rem' }}>
+                {t('pinHelp')}
+              </div>
+            )}
+            <div className="sheet-actions">
             <div className="detail-delete-group">
               <button className="btn-ghost" onClick={() => setConfirm('single')}>
                 {tc('delete')}
@@ -277,15 +285,18 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
             </div>
             <div className="sheet-actions-right">
               {canPin && (
-                <div className="detail-pin-slots" title="Pin to a countdown widget"
+                <div className="detail-pin-slots" title={t('pinCluster')}
                   style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '6px' }}>
                   <span style={{ fontSize: '0.85rem', opacity: 0.7 }}>📌</span>
                   {PIN_SLOTS.map(s => {
                     const active = pins[s.id] === m.id
+                    const label = active
+                      ? t('unpinFromWidget', { color: t(`pinColor_${s.id}`) })
+                      : t('pinToWidget', { color: t(`pinColor_${s.id}`) })
                     return (
                       <button key={s.id} type="button" onClick={() => toggleSlot(s.id)}
-                        title={active ? `Unpin from ${s.id} widget` : `Pin to ${s.id} widget`}
-                        aria-label={active ? `Unpin from ${s.id} widget` : `Pin to ${s.id} widget`}
+                        title={label}
+                        aria-label={label}
                         aria-pressed={active}
                         style={{
                           width: '18px', height: '18px', borderRadius: '50%', padding: 0,
@@ -295,6 +306,17 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
                         }} />
                     )
                   })}
+                  <button type="button" onClick={() => setShowPinHelp(v => !v)}
+                    title={t('pinHelpToggle')}
+                    aria-label={t('pinHelpToggle')}
+                    aria-expanded={showPinHelp}
+                    style={{
+                      width: '18px', height: '18px', borderRadius: '50%', padding: 0,
+                      marginLeft: '2px', border: '1px solid currentColor',
+                      background: 'transparent', color: 'inherit', opacity: showPinHelp ? 0.85 : 0.5,
+                      cursor: 'pointer', fontSize: '0.7rem', lineHeight: 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>?</button>
                 </div>
               )}
               <button className="btn" onClick={() => { onClose(); onEdit(m) }}
@@ -303,6 +325,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
               </button>
             </div>
           </div>
+          </>
         )}
       </div>
     </div>
