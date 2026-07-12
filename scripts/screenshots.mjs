@@ -36,17 +36,27 @@ const BIRTHDAY = '1998-11-03' // Jake's birth date → ages render on milestones
 // CSS viewport picks the app's responsive layout; deviceScaleFactor upscales to
 // Play's pixel dimensions. lifeGLANCE is a LANDSCAPE app (it shows a "rotate your
 // device" prompt in portrait), so these are landscape; each ≤ 3840 px, ratio ≤ 2:1.
+// The CSS widths are sized to a real device's landscape logical resolution so the
+// header and timeline breathe (a too-narrow viewport packs everything together).
 const DEVICES = [
-  { id: 'phone',    width: 640,  height: 360, scale: 3 }, // → 1920 × 1080
-  { id: 'tablet7',  width: 960,  height: 600, scale: 2 }, // → 1920 × 1200
-  { id: 'tablet10', width: 1280, height: 800, scale: 2 }, // → 2560 × 1600
+  { id: 'phone',    width: 960,  height: 540, scale: 2 },   // → 1920 × 1080
+  { id: 'tablet7',  width: 1280, height: 800, scale: 1.5 }, // → 1920 × 1200
+  { id: 'tablet10', width: 1280, height: 800, scale: 2 },   // → 2560 × 1600
 ]
 
 // Each scene starts on a seeded timeline; `setup` navigates to the shot. Keep
 // scenes independent — the page is re-seeded fresh for every (device, scene).
 const SCENES = [
   { id: 'timeline', devices: ['phone', 'tablet7', 'tablet10'],
-    async setup() { /* the timeline is the default view */ } },
+    async setup(page) {
+      // Show milestone CARDS, not clustered dots: zoom in to 'weeks' (a preset —
+      // never the sloppy 'custom'), which narrows the window so nearby milestones
+      // render as individual cards. Then ArrowLeft focuses/pans to a past milestone,
+      // pushing the dense "today" burst off-frame for a clean composition.
+      await setZoom(page, 'weeks')
+      for (let i = 0; i < 3; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(350) }
+      await page.waitForTimeout(600)
+    } },
 
   { id: 'milestone-detail', devices: ['phone', 'tablet10'],
     async setup(page) {
@@ -80,6 +90,20 @@ const SCENES = [
       await page.waitForTimeout(500)
     } },
 ]
+
+// Pick a zoom preset. The control is a dropdown on narrow viewports and inline
+// tabs on wide ones, so handle both.
+async function setZoom(page, label) {
+  const dropdown = page.locator('.zoom-dropdown-btn')
+  if (await dropdown.count()) {
+    await dropdown.first().click()
+    await page.waitForTimeout(250)
+    await page.locator('.zoom-dropdown-item', { hasText: label }).first().click()
+  } else {
+    await page.locator('.zoom-tab', { hasText: label }).first().click()
+  }
+  await page.waitForTimeout(700)
+}
 
 // Seed the demo backup straight into IndexedDB (mirroring restoreMilestones in
 // src/data/milestones.js) so the app boots into a populated timeline — no
