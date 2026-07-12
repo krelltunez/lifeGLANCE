@@ -87,7 +87,7 @@
   "vaultOk": "已連線－憑證已驗證。",
   "vaultUninitialized": "已連線－此用戶ID將在首次同步時完成初始化",
   "vaultActivated": "已啟用儲存庫同步",
-  "vaultAuth": "⚙️ 儲存庫裝置令牌(G-Token)不匹配",
+  "vaultAuth": "儲存庫裝置令牌(G-Token)不匹配",
   "vaultForbidden": "用戶ID不存在，或裝置令牌未獲授權。",
   "vaultNetwork": "無法透過此網址連接到儲存庫(Vault)。若為自建伺服器，常見原因包括：網址錯誤﹑無法連線﹑儲存庫未正確設定CORS標頭，或TLS憑證不受信任。",
   "vaultUnsupported": "請更新「GLANCEvault」庫伺服器—版本過舊無法支持憑證驗證",
