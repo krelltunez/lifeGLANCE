@@ -32,10 +32,15 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    # macos-15 for Xcode 16+; the project is objectVersion 70, which older Xcode
+    # (e.g. 15.4 on macos-14) refuses to open ("future Xcode project file format").
+    runs-on: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
 
       - name: Set up Node
         uses: actions/setup-node@v4
