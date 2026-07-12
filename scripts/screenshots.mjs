@@ -22,6 +22,8 @@ import { fileURLToPath } from 'node:url'
 import http from 'node:http'
 import path from 'node:path'
 
+/* global indexedDB -- referenced only inside page.evaluate(), which runs in the browser */
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(ROOT, 'dist')
 const DEMO = path.join(ROOT, 'lifeglance-jake-chen-test.json')
