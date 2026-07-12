@@ -1,7 +1,7 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
 
-// Native bridge to the home-screen widgets. Implemented natively on Android
-// (WidgetBridgePlugin); a no-op on web and any platform without the plugin.
+// Native bridge to the home-screen widgets. Implemented natively on Android and
+// iOS (WidgetBridgePlugin); a no-op on web and any platform without the plugin.
 //
 //   updateSnapshot({ json })   — persist the widget snapshot and refresh widgets
 //   consumeLaunchTarget()      — read + clear a pending deep-link target { milestoneId }
