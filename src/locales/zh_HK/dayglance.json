@@ -11,7 +11,7 @@
   "logRescheduled": "「{{title}}」已重新排程於 dayGLANCE",
   "logReceived": "「{{title}}」已接收，來自 dayGLANCE",
   "logHeldPendingKey": " {{count}}個事件待解鎖",
-  "integrationTitle": "「dayGLANCE」數據整合 ",
+  "integrationTitle": "「dayGLANCE」數據整合",
   "enableLinking": "啟用 Goal⇄Milestone 同步",
   "transportLabel": "同步機制",
   "transportWebdav": "WebDAV",
