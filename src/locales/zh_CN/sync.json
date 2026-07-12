@@ -30,7 +30,7 @@
   "disable": "停用",
   "saving": "正在保存…",
   "saveAndEnable": "保存并启用",
-  "passphraseModalTitle": "🔑输入云端同步的加密金钥(W-key)",
+  "passphraseModalTitle": "🔑 云端同步解锁",
   "passphraseModalNote": "🔐 同步数据已加密。请输入加密金钥(W-key)以继续同步。",
   "incorrectPassphrase": "加密金钥(W-key)错误。请重新输入。",
   "unlocking": "正在解锁…",
