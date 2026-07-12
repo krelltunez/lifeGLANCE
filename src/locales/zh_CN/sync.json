@@ -89,7 +89,7 @@
   "vaultActivated": "已启用储存库同步",
   "vaultAuth": "⚙️ 储存库设备令牌(G-Token)不匹配",
   "vaultForbidden": "用户ID不存在，或设备令牌未获授权。",
-  "vaultNetwork": "无法透过此网址连接到储存库(Vault)。若为自建服务器，常见原因包括：网址错误﹑无法连线﹑储存库未正确设定CORS标头，或TLS凭证不受信任。",
+  "vaultNetwork": "无法通过此网址连接到储存库(Vault)。若为自建服务器，常见原因包括：网址错误﹑无法连线﹑储存库未正确设定CORS标头，或TLS凭证不受信任。",
   "vaultUnsupported": "请更新「GLANCEvault」库服务器—版本过旧无法支持凭证验证",
   "vaultPassphraseRequired": "🗝️ 请输入用户同步口令(G-Key)以启用资料库同步",
   "backfillTitle": "本地媒体",
