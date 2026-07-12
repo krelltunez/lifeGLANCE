@@ -48,11 +48,16 @@ const SCENES = [
 
   { id: 'milestone-detail', devices: ['phone', 'tablet10'],
     async setup(page) {
-      // Milestones render as <g onClick> in the SVG timeline; open the first one.
-      const node = page.locator('svg g[style*="cursor: pointer"]').first()
-      await node.waitFor({ timeout: 8000 })
-      await node.click()
-      await page.waitForTimeout(500)
+      // Open a specific milestone's detail sheet via search ('/' → type → pick):
+      // handleSearchSelect calls setDetail(). More reliable than clicking a
+      // clustered SVG node, which would drill into a chapter instead.
+      await page.keyboard.press('/')
+      const input = page.locator('.search-input')
+      await input.waitFor({ timeout: 4000 })
+      await input.fill('High school graduation')
+      await page.waitForTimeout(300)
+      await page.locator('.search-result').first().click()
+      await page.waitForTimeout(600)
     } },
 
   { id: 'add-milestone', devices: ['phone'],

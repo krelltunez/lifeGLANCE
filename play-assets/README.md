@@ -14,9 +14,10 @@ Marketing assets for the Google Play listing (not used by the app build).
 Use `public/icon-512x512.png` (512 × 512). It's 24-bit RGB; if Play's uploader
 insists on 32-bit, re-save as RGBA (opaque alpha, no visual change).
 
-## Screenshots (`screenshots/`, generated — gitignored)
+## Screenshots (`screenshots/`)
 
-Regenerate the full Play Store screenshot set in one command:
+The committed set is the current Play Store upload. Regenerate it in one command
+after UI changes:
 
 ```
 npm run screenshots
@@ -42,8 +43,7 @@ lifeGLANCE is a **landscape** app, so all shots are landscape.
 `settings` — phone gets all five; tablets get `timeline` + one more each.
 
 **Requirements**: Playwright's Chromium. This repo's CI image ships it at
-`/opt/pw-browsers`; elsewhere run `npx playwright install chromium` once and
-unset `CHROMIUM_PATH` (the script falls back to Playwright's managed browser).
-Run it on a real machine or CI runner — headless browser automation is flaky
-inside constrained sandboxes.
+`/opt/pw-browsers` (the script's default `CHROMIUM_PATH`); elsewhere run
+`npx playwright install chromium` once and unset `CHROMIUM_PATH` so the script
+uses Playwright's managed browser.
 
