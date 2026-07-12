@@ -53,7 +53,7 @@
   "wrongPassphrase": "🔑 加密金鑰(W-key)不匹配。請確認與其他裝置一致。",
   "vaultSkippedToast": "有{{count}}個項目無法讀取。請檢查「🔄雲端同步」設定。",
   "restoredToast": "已從雲端還原{{count}}個里程碑。",
-  "vaultSkippedNote": "本裝置上有{{count}}個項目無法讀取並已略過。下次同步時將自動重試，🔑這通常表示加密金鑰(W-key)不一致。",
+  "vaultSkippedNote": "本裝置上有{{count}}個項目無法讀取並已略過。下次同步時將自動重試，這通常表示加密金鑰(W-key)不一致。",
   "verifierUnsupported": "請更新您的同步伺服器以支援金鑰驗證。",
   "authFailed": "驗證失敗: 請檢查同步設定中的用戶名與密碼",
   "forbidden": "同步遭拒(403): 伺服器拒絕了此請求",
