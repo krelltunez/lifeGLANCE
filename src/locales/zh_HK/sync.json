@@ -66,7 +66,7 @@
 
   "webdavSectionTitle": "「WebDAV同步」", 
   "webdavEnableLabel": "啟用「WebDAV同步」",
-  "webdavEnableNote": "同步至「WebDAV」伺服器(如 Nextcloud, ownCloud…)。關閉後將保留連線設定，但「WebDAV同步」會停止—例如當您完全轉用「GLANCEvault」同步。",
+  "webdavEnableNote": "同步至「WebDAV」伺服器(如 Nextcloud, ownCloud…)。關閉後將保留連線設定，但「WebDAV同步」會停止—例如當您完全轉用「GLANCEvault同步」。",
   "vaultSectionTitle": "「GLANCEvault同步」",
   "vaultBetaBadge": "測試版",
   "vaultExperimentalNote": "[實驗性功能]: 不建議一般用戶使用。需自行架設「GLANCEvault」伺服器作為儲存庫。",
