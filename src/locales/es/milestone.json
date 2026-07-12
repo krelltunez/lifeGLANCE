@@ -54,5 +54,14 @@
   "pinColor_amber": "ámbar",
   "pinColor_rose": "rosa",
   "pinColor_teal": "verde azulado",
-  "pinColor_blue": "azul"
+  "pinColor_blue": "azul",
+  "applyToSeries": "aplicar a todas las ocurrencias anuales",
+  "applyToSeriesWarning": "↻ se repite cada año — se editan todas las ocurrencias anuales",
+  "applyToSeriesNote": "Aplica el título, la categoría, la nota, el enlace y la visibilidad a cada año. La fecha y los archivos adjuntos permanecen solo en esta ocurrencia.",
+  "repeatDataLabel": "aplicar a cada año:",
+  "repeatDataNote": "nota",
+  "repeatDataLink": "enlace",
+  "repeatDataPhoto": "foto",
+  "repeatDataMedia": "audio / vídeo",
+  "mediaDownloading": "⬇️ Descargando… {{progress}}"
 }

@@ -54,5 +54,14 @@
   "pinColor_amber": "ambra",
   "pinColor_rose": "rosa",
   "pinColor_teal": "verde acqua",
-  "pinColor_blue": "blu"
+  "pinColor_blue": "blu",
+  "applyToSeries": "applica a tutte le occorrenze annuali",
+  "applyToSeriesWarning": "↻ si ripete ogni anno — modifica di ogni occorrenza annuale",
+  "applyToSeriesNote": "Applica titolo, categoria, nota, link e visibilità a ogni anno. La data e i media allegati restano solo su questa occorrenza.",
+  "repeatDataLabel": "applica a ogni anno:",
+  "repeatDataNote": "nota",
+  "repeatDataLink": "link",
+  "repeatDataPhoto": "foto",
+  "repeatDataMedia": "audio / video",
+  "mediaDownloading": "⬇️ Download in corso… {{progress}}"
 }

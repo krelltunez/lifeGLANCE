@@ -54,5 +54,14 @@
   "pinColor_amber": "Bernstein",
   "pinColor_rose": "Rosa",
   "pinColor_teal": "Petrol",
-  "pinColor_blue": "Blau"
+  "pinColor_blue": "Blau",
+  "applyToSeries": "auf alle jährlichen Vorkommen anwenden",
+  "applyToSeriesWarning": "↻ wiederholt sich jährlich — jedes jährliche Vorkommen wird bearbeitet",
+  "applyToSeriesNote": "Überträgt Titel, Kategorie, Notiz, Link und Sichtbarkeit auf jedes Jahr. Datum und angehängte Medien bleiben nur bei diesem Vorkommen.",
+  "repeatDataLabel": "auf jedes Jahr übertragen:",
+  "repeatDataNote": "Notiz",
+  "repeatDataLink": "Link",
+  "repeatDataPhoto": "Foto",
+  "repeatDataMedia": "Audio / Video",
+  "mediaDownloading": "⬇️ Wird heruntergeladen… {{progress}}"
 }
