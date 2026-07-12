@@ -4,3 +4,6 @@ outputs/
 .DS_Store
 *.local
 .env
+
+# Claude Code agent worktrees (ephemeral; never commit)
+.claude/worktrees/
