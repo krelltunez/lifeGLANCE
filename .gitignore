@@ -1,6 +1,7 @@
 node_modules/
 dist/
 outputs/
+play-assets/screenshots/
 .DS_Store
 *.local
 .env
