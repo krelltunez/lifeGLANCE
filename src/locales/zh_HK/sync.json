@@ -11,7 +11,7 @@
   "encryptSyncData": "加密同步資料",
   "encryptionAlreadyConfigured": "🔐 同步資料已加密。密碼留空即為沿用現有加密金鑰(W-key)，或重新輸入以重新驗證此裝置。",
   "passphraseLabel": "加密金鑰(W-key)",
-  "passphrasePlaceholderExisting": "密碼留空即為沿用現有加密金鑰(W-key)",
+  "passphrasePlaceholderExisting": "留空即沿用現有加密金鑰(W-key)",
   "passphrasePlaceholderNew": "輸入加密金鑰(W-key)",
   "confirmPassphraseLabel": "再次輸入加密金鑰(W-key)",
   "koofrPlaceholder": "https://app.koofr.net (自動填充)",
