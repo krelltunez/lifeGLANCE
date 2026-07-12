@@ -36,7 +36,7 @@
   "unlocking": "正在解鎖…",
   "unlock": "解鎖",
   "cloudSyncRequired": "請先設定「🔄雲端同步」，「☁️雲端備份」將上傳至同一伺服器。",
-  "remoteBackupsLabel": "雲端備份",
+  "remoteBackupsLabel": "☁️雲端備份",
   "enableRemoteBackups": "啟用定時雲端備份",
   "passwordLabel": "密碼 (Password)",
   "frequencyLabel": "備份週期",
