@@ -268,8 +268,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
             {canPin && showPinHelp && (
               <div className="detail-pin-help"
                 style={{ fontSize: '0.72rem', opacity: 0.72, lineHeight: 1.45, padding: '0 0 0.55rem' }}>
-                Each colored dot pins this milestone to the matching home-screen
-                countdown widget. Tap a dot to pin it there; tap again to unpin.
+                {t('pinHelp')}
               </div>
             )}
             <div className="sheet-actions">
@@ -286,15 +285,18 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
             </div>
             <div className="sheet-actions-right">
               {canPin && (
-                <div className="detail-pin-slots" title="Pin to a home-screen countdown widget"
+                <div className="detail-pin-slots" title={t('pinCluster')}
                   style={{ display: 'flex', alignItems: 'center', gap: '4px', marginRight: '6px' }}>
                   <span style={{ fontSize: '0.85rem', opacity: 0.7 }}>📌</span>
                   {PIN_SLOTS.map(s => {
                     const active = pins[s.id] === m.id
+                    const label = active
+                      ? t('unpinFromWidget', { color: t(`pinColor_${s.id}`) })
+                      : t('pinToWidget', { color: t(`pinColor_${s.id}`) })
                     return (
                       <button key={s.id} type="button" onClick={() => toggleSlot(s.id)}
-                        title={active ? `Unpin from the ${s.id} widget` : `Pin to the ${s.id} widget`}
-                        aria-label={active ? `Unpin from the ${s.id} widget` : `Pin to the ${s.id} widget`}
+                        title={label}
+                        aria-label={label}
                         aria-pressed={active}
                         style={{
                           width: '18px', height: '18px', borderRadius: '50%', padding: 0,
@@ -305,8 +307,8 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
                     )
                   })}
                   <button type="button" onClick={() => setShowPinHelp(v => !v)}
-                    title="What are these? Pin to a home-screen widget"
-                    aria-label="What do the pin colors do?"
+                    title={t('pinHelpToggle')}
+                    aria-label={t('pinHelpToggle')}
                     aria-expanded={showPinHelp}
                     style={{
                       width: '18px', height: '18px', borderRadius: '50%', padding: 0,

@@ -54,5 +54,14 @@
   "visTabInherit": "inherit",
   "visTabShown": "shown",
   "visTabHidden": "hidden",
-  "ageYearsOld": "{{age}} y.o."
+  "ageYearsOld": "{{age}} y.o.",
+  "pinHelp": "Each colored dot pins this milestone to the matching home-screen countdown widget. Tap a dot to pin it there; tap again to unpin.",
+  "pinHelpToggle": "What do the pin colors do?",
+  "pinCluster": "Pin to a home-screen countdown widget",
+  "pinToWidget": "Pin to the {{color}} widget",
+  "unpinFromWidget": "Unpin from the {{color}} widget",
+  "pinColor_amber": "amber",
+  "pinColor_rose": "rose",
+  "pinColor_teal": "teal",
+  "pinColor_blue": "blue"
 }
