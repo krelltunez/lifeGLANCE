@@ -37,6 +37,11 @@ public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         if let action = WidgetStore.consumePendingAction() {
             result["action"] = action
         }
+        // A share left by the Share Extension: a JSON string { text, subject } the
+        // web layer parses into an Add-milestone draft (matches the Android side).
+        if let share = WidgetStore.consumePendingShare() {
+            result["share"] = share
+        }
         call.resolve(result)
     }
 }

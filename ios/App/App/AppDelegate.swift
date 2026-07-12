@@ -54,6 +54,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             }
         case "new":
             defaults?.set("new", forKey: "pending_action")
+        case "share":
+            // The Share Extension already wrote "pending_share" to the App Group
+            // before opening this URL; nothing to stash here. Opening the app is
+            // enough — the web layer reads the share via consumeLaunchTarget() on
+            // resume. Handled explicitly so it doesn't fall through to default.
+            break
         default:
             break
         }

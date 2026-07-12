@@ -17,6 +17,7 @@ enum WidgetStore {
     static let keySnapshot = "snapshot"
     static let keyPendingTarget = "pending_target"
     static let keyPendingAction = "pending_action"
+    static let keyPendingShare = "pending_share"
 
     private static var defaults: UserDefaults? { UserDefaults(suiteName: appGroupId) }
 
@@ -46,6 +47,18 @@ enum WidgetStore {
         guard let action = defaults?.string(forKey: keyPendingAction) else { return nil }
         defaults?.removeObject(forKey: keyPendingAction)
         return action
+    }
+
+    // A share written by the Share Extension: a JSON string { text, subject }.
+    static func setPendingShare(_ json: String) {
+        defaults?.set(json, forKey: keyPendingShare)
+    }
+
+    // Returns and clears a pending share left by the Share Extension.
+    static func consumePendingShare() -> String? {
+        guard let share = defaults?.string(forKey: keyPendingShare) else { return nil }
+        defaults?.removeObject(forKey: keyPendingShare)
+        return share
     }
 }
 
