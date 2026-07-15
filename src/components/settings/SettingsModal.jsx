@@ -110,12 +110,14 @@ export default function SettingsModal({
   onExportImage, onSaveBackup, onRestoreFile, onImportIcsFile,
   onOpenCloudSync,
   onOpenAutoBackup,
+  onOpenSubscription,
   onOpenActivityLog,
   onClose,
   ultraCompact = false,
 }) {
   const { t, i18n } = useTranslation('settings')
   const { t: tc } = useTranslation('common')
+  const { t: tb } = useTranslation('billing')
   const [newLabel,   setNewLabel]   = useState('')
   const [newColor,   setNewColor]   = useState(COLOR_PALETTE[0])
   const [editingId,  setEditingId]  = useState(null)
@@ -395,6 +397,18 @@ export default function SettingsModal({
                   style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
                   onClick={() => { onClose(); onOpenAutoBackup() }}>{t('autoBackup')}</button>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Subscription (gated Play builds only) ─────────────────────── */}
+        {onOpenSubscription && (
+          <div className="settings-section">
+            <div className="settings-label">{tb('title')}</div>
+            <div className="settings-backup-row">
+              <button className="btn"
+                style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                onClick={() => { onClose(); onOpenSubscription() }}>{tb('manage')}</button>
             </div>
           </div>
         )}

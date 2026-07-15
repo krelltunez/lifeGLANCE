@@ -8,20 +8,35 @@ OUT_DIR="$SCRIPT_DIR/outputs"
 # Flags
 FULL_CLEAN=false
 RELEASE=false
+WEBVIEW_DEBUG=false
 BUILD_NUMBER=""
 VERSION_SUFFIX=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --clean)             FULL_CLEAN=true ;;
     --release)           RELEASE=true ;;
+    --webview-debug)     WEBVIEW_DEBUG=true ;;
     --build)             shift; BUILD_NUMBER="$1" ;;
     --build=*)           BUILD_NUMBER="${1#*=}" ;;
     --version-suffix)    shift; VERSION_SUFFIX="$1" ;;
     --version-suffix=*)  VERSION_SUFFIX="${1#*=}" ;;
-    *) echo "Unknown flag: $1 (valid flags: --clean, --release, --build N, --version-suffix S)" && exit 1 ;;
+    *) echo "Unknown flag: $1 (valid flags: --clean, --release, --webview-debug, --build N, --version-suffix S)" && exit 1 ;;
   esac
   shift
 done
+
+# Opt-in inspectable WebView for billing/entitlement testing on Play-signed
+# release builds (capacitor.config.js reads CAP_WEBVIEW_DEBUG at cap sync).
+# See docs/paywall-billing-plan.md Lessons 7/8.
+if $WEBVIEW_DEBUG; then
+  export CAP_WEBVIEW_DEBUG=1
+  echo "!!=========================================================================!!"
+  echo "!!  --webview-debug: WebView inspection ENABLED in this build.             !!"
+  echo "!!  INTERNAL TESTING ONLY — do NOT promote this build to production.       !!"
+  echo "!!  A production app with an inspectable WebView leaks sync credentials    !!"
+  echo "!!  and passphrase material to anyone with a USB cable.                    !!"
+  echo "!!=========================================================================!!"
+fi
 
 # Interim builds for Play's internal test track: a build number (1..999) is packed into
 # the low 3 digits of the package.json-derived versionCode, keeping codes aligned with
@@ -68,13 +83,21 @@ if $RELEASE; then
   # ── Android release ────────────────────────────────────────────────────
   # Release builds are signed when android/key.properties is present (see
   # android/key.properties.example); without it they fall back to UNSIGNED.
-  echo "==> Building web assets..."
-  cd "$SCRIPT_DIR"
-  npm run build:mobile
+  #
+  # Web assets are built TWICE — the distribution channels differ on purpose
+  # (docs/paywall-billing-plan.md §5):
+  #   1. VITE_BUILD_CHANNEL=github → sideload APK, UNGATED (no paywall)
+  #   2. VITE_BUILD_CHANNEL=play   → Play AAB, GATED (Play Billing paywall)
+  # Each pass runs cap sync, so the native capacitor.config.json is rewritten
+  # per build (including the CAP_WEBVIEW_DEBUG flag) without a clean.
 
-  echo "==> Building release APK + AAB..."
+  echo "==> Building web assets (channel: github, ungated)..."
+  cd "$SCRIPT_DIR"
+  VITE_BUILD_CHANNEL=github npm run build:mobile
+
+  echo "==> Building sideload APK (ungated)..."
   cd "$ANDROID_DIR"
-  ./gradlew assembleRelease bundleRelease
+  ./gradlew assembleRelease
 
   # assembleRelease emits app-release-unsigned.apk until signing is configured,
   # and app-release.apk once it is — copy whichever exists.
@@ -87,12 +110,29 @@ if $RELEASE; then
     echo "    APK → outputs/lifeglance-unsigned.apk (UNSIGNED — configure signing to publish)"
   fi
 
+  # Second web build produces a new content-hashed bundle; wipe the stale
+  # asset intermediates again (same failure mode as the top-of-script wipe).
+  rm -rf "$ANDROID_DIR/app/build/intermediates/compressed_assets"
+
+  echo "==> Building web assets (channel: play, gated)..."
+  cd "$SCRIPT_DIR"
+  VITE_BUILD_CHANNEL=play npm run build:mobile
+
+  echo "==> Building Play AAB (gated)..."
+  cd "$ANDROID_DIR"
+  ./gradlew bundleRelease
+
   cp "app/build/outputs/bundle/release/app-release.aab" "$OUT_DIR/lifeglance.aab"
   echo "    AAB → outputs/lifeglance.aab"
 
   echo ""
   echo "==> Android release build complete. outputs/:"
   ls -lh "$OUT_DIR"
+  if $WEBVIEW_DEBUG; then
+    echo ""
+    echo "!!  Reminder: these builds have an INSPECTABLE WebView (--webview-debug)."
+    echo "!!  Internal testing only — do NOT promote to production."
+  fi
 
 else
   # ── Debug APK + install ────────────────────────────────────────────────

@@ -10,6 +10,8 @@ import { initSyncEngine, getSyncEngine } from './sync/engine'
 import { initDbSyncEngine, getDbSyncEngine } from './sync/dbSync'
 import { buildWidgetSnapshot } from './utils/widgetSnapshot'
 import { pushWidgetSnapshot } from './native/widgetBridge'
+import { useSubscription } from './billing/billing'
+import PaywallModal from './components/billing/PaywallModal'
 
 export default function App() {
   const { t } = useTranslation('common')
@@ -25,6 +27,11 @@ export default function App() {
   const [vaultSkipped, setVaultSkipped] = useState(null)
   const [showPassphraseModal, setShowPassphraseModal] = useState(false)
   const [cloudSyncOpen, setCloudSyncOpen] = useState(false)
+
+  // Entitlement engine — inert (ungated, 'channel' source) everywhere except
+  // the Play Android build, which is the only channel that gets an adapter.
+  const billing = useSubscription()
+  const [subscriptionOpen, setSubscriptionOpen] = useState(false)
 
   const [portraitWarn, setPortraitWarn] = useState(
     () => window.matchMedia('(orientation: portrait) and (max-width: 1024px)').matches
@@ -216,6 +223,7 @@ export default function App() {
       lastSynced={lastSynced}
       vaultSkipped={vaultSkipped}
       onOpenCloudSync={() => setCloudSyncOpen(true)}
+      onOpenSubscription={billing.gated ? () => setSubscriptionOpen(true) : undefined}
     />
   )
 
@@ -256,6 +264,14 @@ export default function App() {
             getDbSyncEngine()?.sync()
           }}
         />
+      )}
+      {subscriptionOpen && (
+        <PaywallModal mode="status" billing={billing} onClose={() => setSubscriptionOpen(false)} />
+      )}
+      {/* The hard gate renders last so it covers every other surface. The
+          engine handles offline/anti-flash itself — gate on isUnlocked only. */}
+      {billing.gated && !billing.isUnlocked && (
+        <PaywallModal mode="gate" billing={billing} />
       )}
     </>
   )
