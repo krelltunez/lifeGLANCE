@@ -17,7 +17,7 @@ on:
       - 'public/**'
       - 'package.json'
       - 'package-lock.json'
-      - 'capacitor.config.json'
+      - 'capacitor.config.js'
       - '.github/workflows/ios.yml'
   pull_request:
     paths:
@@ -26,7 +26,7 @@ on:
       - 'public/**'
       - 'package.json'
       - 'package-lock.json'
-      - 'capacitor.config.json'
+      - 'capacitor.config.js'
       - '.github/workflows/ios.yml'
   workflow_dispatch:
 

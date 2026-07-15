@@ -2743,3 +2743,84 @@ select.settings-birthday-input {
 }
 .intents-test-ok  { color: var(--success-bright); }
 .intents-test-err { color: var(--cat-red); }
+
+/* ─── Paywall (gated Play builds) ──────────────────────────────────────────── */
+.paywall-overlay { z-index: 200; }   /* the hard gate must cover every other sheet */
+.paywall-sheet { max-width: 420px; gap: 1rem; }
+
+.paywall-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: center;
+  padding: 0.4rem 0 0.2rem;
+}
+.paywall-headline {
+  font-size: 1.05rem;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.paywall-tagline {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+}
+
+.paywall-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.paywall-plan-btn {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.8rem;
+}
+.paywall-row-btn {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.85rem;
+  align-self: flex-start;
+}
+.paywall-note { margin-top: 0; }
+
+.paywall-notice {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+.paywall-notice-error { color: var(--rose); }
+
+.paywall-status-section { border-top: none; padding-top: 0; }
+.paywall-status-line {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.paywall-footer { display: flex; }
+
+.paywall-reviewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.paywall-reviewer-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  align-self: center;
+  padding: 0.2rem;
+}
+.paywall-reviewer-toggle:hover { color: var(--text); }
+.paywall-reviewer-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.paywall-reviewer-row .input { flex: 1; min-width: 0; }

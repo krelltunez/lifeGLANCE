@@ -2,4 +2,8 @@ include ':app'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 
+// Play Billing bridge bundled with @glance-apps/billing (npm-installed Gradle library).
+include ':glance-apps-billing'
+project(':glance-apps-billing').projectDir = new File('../node_modules/@glance-apps/billing/android')
+
 apply from: 'capacitor.settings.gradle'

@@ -17,4 +17,7 @@ ext {
     // Native home-screen widgets (Jetpack Glance, Kotlin/Compose)
     kotlinVersion = '2.0.21'
     glanceVersion = '1.1.1'
+
+    // Play Billing client used by the :glance-apps-billing module
+    playBillingVersion = '7.1.1'
 }

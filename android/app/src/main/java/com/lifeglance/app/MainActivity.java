@@ -10,6 +10,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.getcapacitor.BridgeActivity;
+import com.glanceapps.billing.BillingBridgePlugin;
 import com.lifeglance.app.widget.WidgetData;
 
 public class MainActivity extends BridgeActivity {
@@ -22,6 +23,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetBridgePlugin.class);
+        registerPlugin(BillingBridgePlugin.class);
         super.onCreate(savedInstanceState);
         handleWidgetIntent(getIntent());
         handleShareIntent(getIntent());
