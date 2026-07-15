@@ -48,12 +48,20 @@ const DEVICES = [
 // scenes independent — the page is re-seeded fresh for every (device, scene).
 const SCENES = [
   { id: 'timeline', devices: ['phone', 'tablet7', 'tablet10'],
-    async setup(page) {
-      // Show milestone CARDS, not clustered dots: zoom in to 'weeks' (a preset —
-      // never the sloppy 'custom'), which narrows the window so nearby milestones
-      // render as individual cards. Then ArrowLeft focuses/pans to a past milestone,
-      // pushing the dense "today" burst off-frame for a clean composition.
-      await setZoom(page, 'weeks')
+    async setup(page, device) {
+      // Show milestone CARDS, not clustered dots. Pick the zoom by device:
+      //   phone   → 'weeks' (±3 mo): the narrow viewport only breathes with one
+      //             hero card, so keep the window tight.
+      //   tablets → 'months' (±18 mo): the wide viewport has room, so open the
+      //             window to a ~3-year span that fills the frame with SEVERAL
+      //             individual cards, cluster badges, and colored chapter bars —
+      //             far more interesting than a single lonely card. ('years' and
+      //             wider collapse everything into clustered dots — no cards.)
+      // Both are presets, never the sloppy 'custom'. ArrowLeft then focuses
+      // successively older past milestones (milestone-relative, so it composes
+      // the same at any zoom), panning the dense "today" burst off-frame.
+      const tablet = device.id !== 'phone'
+      await setZoom(page, tablet ? 'months' : 'weeks')
       for (let i = 0; i < 3; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(350) }
       await page.waitForTimeout(600)
     } },
@@ -197,7 +205,7 @@ async function main() {
         const file = path.join(OUT, device.id, `${String(++n).padStart(2, '0')}-${scene.id}.png`)
         try {
           await seed(page, demo)
-          await scene.setup(page)
+          await scene.setup(page, device)
           await page.screenshot({ path: file })
           console.log(`  ✓ ${device.id}/${path.basename(file)}`)
         } catch (err) {
