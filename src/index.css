@@ -2767,6 +2767,12 @@ select.settings-birthday-input {
   letter-spacing: 0.03em;
   line-height: 1.5;
 }
+.paywall-subline {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+}
 
 .paywall-plans {
   display: flex;
@@ -2812,7 +2818,7 @@ select.settings-birthday-input {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 0.65rem;
+  font-size: 0.55rem;
   letter-spacing: 0.05em;
   cursor: pointer;
   align-self: center;

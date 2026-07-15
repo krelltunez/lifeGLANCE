@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME } from '../../billing/billing'
+import { MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME, TRIAL_FALLBACK_DAYS } from '../../billing/billing'
 
 // Localized messages for the billing error codes the package maps; anything
 // else falls through to the generic errorGeneric string. Code 2 (user
@@ -80,19 +80,15 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
     setReviewerInvalid(!ok)
   }
 
-  // Store-driven gate copy (never hardcode a trial length or price): a known
-  // trial length gets the specific headline, an unanswered store query gets
-  // generic trial copy, and no eligible trial means NO trial claims at all.
-  const headline = trialEligible
-    ? (trialDays != null ? t('trialHeadline', { count: trialDays }) : t('trialHeadlineGeneric'))
-    : t('headline')
+  // Trial copy leads with the length: the store-reported trialDays wins once
+  // it arrives, TRIAL_FALLBACK_DAYS (the configured Play offer) fills in while
+  // the store hasn't answered, and a determinately-ineligible user gets the
+  // non-trial headline with NO trial claims (the Play sheet won't grant one).
+  const shownTrialDays = trialDays ?? TRIAL_FALLBACK_DAYS
+  const headline = trialEligible ? t('trialHeadline', { count: shownTrialDays }) : t('headline')
 
   const annualLabel = prices.yearly
-    ? (trialEligible
-        ? (trialDays != null
-            ? t('annualTrialButton', { count: trialDays, price: prices.yearly })
-            : t('annualTrialButtonGeneric', { price: prices.yearly }))
-        : t('annualButton', { price: prices.yearly }))
+    ? t('annualButton', { price: prices.yearly })
     : t('annualButtonNoPrice')
 
   const lifetimeLabel = prices.lifetime
@@ -132,12 +128,14 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
     <div className="sheet-overlay paywall-overlay"
       onClick={e => { if (!gate && onClose && e.target === e.currentTarget) onClose() }}>
       <div className="sheet paywall-sheet">
-        <div className="sheet-header">
-          <span className="sheet-title">{t('title')}</span>
-          {!gate && onClose && (
-            <button className="sheet-close" onClick={onClose}>✕</button>
-          )}
-        </div>
+        {!gate && (
+          <div className="sheet-header">
+            <span className="sheet-title">{t('title')}</span>
+            {onClose && (
+              <button className="sheet-close" onClick={onClose}>✕</button>
+            )}
+          </div>
+        )}
 
         {gate ? (
           <>
@@ -146,8 +144,11 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
                 <span className="logo-life">life</span>
                 <span className="logo-glance">GLANCE</span>
               </div>
-              <div className="paywall-headline">{headline}</div>
               <div className="paywall-tagline">{t('tagline')}</div>
+              <div className="paywall-headline">{headline}</div>
+              {trialEligible && (
+                <div className="paywall-subline">{t('trialSubline', { count: shownTrialDays })}</div>
+              )}
             </div>
             {purchaseSection}
           </>
