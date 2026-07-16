@@ -13,7 +13,7 @@
   "enableLinking": "ativar vinculação Objetivo↔Marco",
   "webdavUrl": "URL base WebDAV",
   "username": "Nome de usuário",
-  "passwordToken": "Senha / token",
+  "passwordToken": "senha do aplicativo WebDAV",
   "eventsPath": "Caminho dos eventos",
   "eventsPathDefault": "(padrão: /GLANCE/events/)",
   "testing": "testando…",

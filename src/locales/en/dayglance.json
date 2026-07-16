@@ -20,7 +20,7 @@
   "vaultNotConfigured": "GLANCEvault isn't set up yet. Configure it in Cloud Sync first, then intents will deliver over the vault.",
   "webdavUrl": "WebDAV base URL",
   "username": "Username",
-  "passwordToken": "Password / token",
+  "passwordToken": "WebDAV app password",
   "eventsPath": "Events path",
   "eventsPathDefault": "(default: /GLANCE/events/)",
   "testing": "testing…",
