@@ -31,10 +31,5 @@
   "errorSubUnavailable": "該訂閱目前不可用。請稍後再試。",
   "errorNetwork": "網絡錯誤。請檢查連線後再試。",
   "errorOwned": "你已擁有此項目。",
-  "errorGeneric": "購買時出了問題。請再試一次。",
-  "licenseLabel": "授權",
-  "licenseSubscription": "年度訂閱",
-  "licenseLifetime": "終身解鎖",
-  "licenseReviewer": "審核人員存取",
-  "licenseNone": "無"
+  "errorGeneric": "購買時出了問題。請再試一次。"
 }

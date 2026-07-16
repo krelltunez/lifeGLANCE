@@ -30,18 +30,8 @@ function ExternalLinkIcon() {
   )
 }
 
-// licenseSource: entitlement source on gated (Play) builds — 'lifetime' |
-// 'subscription' | 'reviewer' | 'none'; null on ungated builds (no row shown).
-export default function HelpModal({ onClose, onOpenShortcuts, licenseSource = null }) {
+export default function HelpModal({ onClose, onOpenShortcuts }) {
   const { t, i18n } = useTranslation('help')
-  const { t: tb } = useTranslation('billing')
-
-  const licenseKey = {
-    lifetime:     'licenseLifetime',
-    subscription: 'licenseSubscription',
-    reviewer:     'licenseReviewer',
-    none:         'licenseNone',
-  }[licenseSource]
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -113,12 +103,6 @@ export default function HelpModal({ onClose, onOpenShortcuts, licenseSource = nu
               <span className="help-footer-value">v{VERSION}</span>
               <span className="help-footer-dim"> · {dateStr}, {timeStr}</span>
             </span>
-            {licenseKey && (
-              <span className="help-footer-meta">
-                {tb('licenseLabel')}&ensp;
-                <span className="help-footer-value">{tb(licenseKey)}</span>
-              </span>
-            )}
           </div>
           <button
             className="help-shortcuts-btn"

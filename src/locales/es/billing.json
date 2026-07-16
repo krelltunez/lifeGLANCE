@@ -35,10 +35,5 @@
   "errorSubUnavailable": "Esta suscripción no está disponible ahora mismo. Inténtalo de nuevo más tarde.",
   "errorNetwork": "Error de red. Comprueba tu conexión e inténtalo de nuevo.",
   "errorOwned": "Ya posees este artículo.",
-  "errorGeneric": "Algo salió mal con la compra. Inténtalo de nuevo.",
-  "licenseLabel": "licencia",
-  "licenseSubscription": "Suscripción anual",
-  "licenseLifetime": "Desbloqueo de por vida",
-  "licenseReviewer": "Acceso de revisor",
-  "licenseNone": "Ninguna"
+  "errorGeneric": "Algo salió mal con la compra. Inténtalo de nuevo."
 }

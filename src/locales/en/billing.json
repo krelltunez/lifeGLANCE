@@ -33,10 +33,5 @@
   "errorSubUnavailable": "This subscription isn't available right now. Please try again later.",
   "errorNetwork": "Network error. Please check your connection and try again.",
   "errorOwned": "You already own this item.",
-  "errorGeneric": "Something went wrong with the purchase. Please try again.",
-  "licenseLabel": "license",
-  "licenseSubscription": "Annual subscription",
-  "licenseLifetime": "Lifetime unlock",
-  "licenseReviewer": "Reviewer access",
-  "licenseNone": "None"
+  "errorGeneric": "Something went wrong with the purchase. Please try again."
 }

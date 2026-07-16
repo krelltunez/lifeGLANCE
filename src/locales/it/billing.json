@@ -35,10 +35,5 @@
   "errorSubUnavailable": "Questo abbonamento non è disponibile al momento. Riprova più tardi.",
   "errorNetwork": "Errore di rete. Controlla la connessione e riprova.",
   "errorOwned": "Possiedi già questo articolo.",
-  "errorGeneric": "Qualcosa è andato storto con l'acquisto. Riprova.",
-  "licenseLabel": "licenza",
-  "licenseSubscription": "Abbonamento annuale",
-  "licenseLifetime": "Sblocco a vita",
-  "licenseReviewer": "Accesso revisore",
-  "licenseNone": "Nessuna"
+  "errorGeneric": "Qualcosa è andato storto con l'acquisto. Riprova."
 }

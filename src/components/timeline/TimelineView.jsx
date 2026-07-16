@@ -2218,7 +2218,6 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         <HelpModal
           onClose={() => setHelpOpen(false)}
           onOpenShortcuts={() => setKbdOpen(true)}
-          licenseSource={licenseSource}
         />
       )}
       {kbdOpen && (
@@ -2278,6 +2277,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onImportIcsFile={handleImportIcsFile}
           onOpenCloudSync={onOpenCloudSync ? () => { setSettingsOpen(false); onOpenCloudSync() } : undefined}
           onOpenSubscription={onOpenSubscription ? () => { setSettingsOpen(false); onOpenSubscription() } : undefined}
+          licenseSource={licenseSource}
           onOpenAutoBackup={() => { setSettingsOpen(false); setAutoBackupOpen(true) }}
           onOpenActivityLog={isIntegrationEnabled() ? () => { setSettingsOpen(false); setActivityLogOpen(true) } : undefined}
           onClose={() => setSettingsOpen(false)}

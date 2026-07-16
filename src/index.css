@@ -1722,6 +1722,11 @@ button, input, select, textarea {
   margin-top: 0.2rem;
 }
 
+.settings-license-line {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
 .settings-cat-list {
   display: flex;
   flex-direction: column;
