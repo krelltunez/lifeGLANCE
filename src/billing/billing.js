@@ -17,6 +17,12 @@ export const PRODUCT_IDS = {
   lifetime: 'lifeglance_pro_lifetime',
 }
 
+// Presumed trial length while the store hasn't answered yet. Must match the
+// free-trial offer configured on the `annual` base plan in Play Console — the
+// store-reported value (trialDays) always wins once it arrives, and the gate
+// shows no trial copy at all when the store reports the user ineligible.
+export const TRIAL_FALLBACK_DAYS = 7
+
 const CHANNEL = import.meta.env.VITE_BUILD_CHANNEL ?? 'web'
 const isGatedChannel = CHANNEL === 'play' && Capacitor.getPlatform() === 'android'
 
