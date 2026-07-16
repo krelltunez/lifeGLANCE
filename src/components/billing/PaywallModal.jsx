@@ -172,41 +172,46 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
           </p>
         )}
 
-        <div className="paywall-footer">
-          <button className="btn paywall-row-btn" disabled={purchasing} onClick={() => { setNotice(null); restore() }}>
+        {/* Compact footer: plain text actions under a divider instead of
+            full-width buttons — "Restore purchase · Reviewer access". */}
+        <div className="paywall-links">
+          <button className="paywall-link paywall-link-restore"
+            disabled={purchasing}
+            onClick={() => { setNotice(null); restore() }}>
             {t('restore')}
           </button>
-        </div>
-
-        {gate && (
-          <div className="paywall-reviewer">
-            {reviewerOpen ? (
-              <>
-                <div className="paywall-reviewer-row">
-                  <input
-                    className="input input-sm"
-                    placeholder={t('reviewerPlaceholder')}
-                    value={reviewerCode}
-                    onChange={e => { setReviewerCode(e.target.value); setReviewerInvalid(false) }}
-                    onKeyDown={e => { if (e.key === 'Enter' && reviewerCode.trim()) applyReviewerCode() }}
-                    autoFocus
-                  />
-                  <button className="btn"
-                    disabled={!reviewerCode.trim()}
-                    onClick={applyReviewerCode}>
-                    {t('reviewerApply')}
-                  </button>
-                </div>
-                {reviewerInvalid && (
-                  <p className="paywall-notice paywall-notice-error">{t('reviewerInvalid')}</p>
-                )}
-                <p className="settings-note paywall-note">{t('reviewerHelper')}</p>
-              </>
-            ) : (
-              <button className="paywall-reviewer-toggle" onClick={() => setReviewerOpen(true)}>
+          {gate && (
+            <>
+              <span className="paywall-link-sep">·</span>
+              <button className="paywall-link paywall-link-reviewer"
+                onClick={() => setReviewerOpen(o => !o)}>
                 {t('reviewerToggle')}
               </button>
+            </>
+          )}
+        </div>
+
+        {gate && reviewerOpen && (
+          <div className="paywall-reviewer">
+            <div className="paywall-reviewer-row">
+              <input
+                className="input input-sm"
+                placeholder={t('reviewerPlaceholder')}
+                value={reviewerCode}
+                onChange={e => { setReviewerCode(e.target.value); setReviewerInvalid(false) }}
+                onKeyDown={e => { if (e.key === 'Enter' && reviewerCode.trim()) applyReviewerCode() }}
+                autoFocus
+              />
+              <button className="btn"
+                disabled={!reviewerCode.trim()}
+                onClick={applyReviewerCode}>
+                {t('reviewerApply')}
+              </button>
+            </div>
+            {reviewerInvalid && (
+              <p className="paywall-notice paywall-notice-error">{t('reviewerInvalid')}</p>
             )}
+            <p className="settings-note paywall-note">{t('reviewerHelper')}</p>
           </div>
         )}
       </div>

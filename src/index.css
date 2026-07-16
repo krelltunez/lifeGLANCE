@@ -2805,26 +2805,36 @@ select.settings-birthday-input {
   color: var(--text);
 }
 
-.paywall-footer { display: flex; }
+.paywall-links {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.paywall-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+.paywall-link:hover { color: var(--text); }
+.paywall-link:disabled { opacity: 0.35; cursor: not-allowed; }
+.paywall-link-restore { font-size: 0.65rem; }
+.paywall-link-reviewer { font-size: 0.55rem; }
+.paywall-link-sep {
+  color: var(--text-muted);
+  font-size: 0.6rem;
+}
 
 .paywall-reviewer {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--border);
 }
-.paywall-reviewer-toggle {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.55rem;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  align-self: center;
-  padding: 0.2rem;
-}
-.paywall-reviewer-toggle:hover { color: var(--text); }
 .paywall-reviewer-row {
   display: flex;
   gap: 0.5rem;
