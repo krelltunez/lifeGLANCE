@@ -35,5 +35,10 @@
   "errorSubUnavailable": "Esta assinatura não está disponível no momento. Tente novamente mais tarde.",
   "errorNetwork": "Erro de rede. Verifique sua conexão e tente novamente.",
   "errorOwned": "Você já possui este item.",
-  "errorGeneric": "Algo deu errado com a compra. Tente novamente."
+  "errorGeneric": "Algo deu errado com a compra. Tente novamente.",
+  "licenseLabel": "licença",
+  "licenseSubscription": "Assinatura anual",
+  "licenseLifetime": "Desbloqueio vitalício",
+  "licenseReviewer": "Acesso de revisor",
+  "licenseNone": "Nenhuma"
 }

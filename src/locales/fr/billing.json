@@ -33,5 +33,10 @@
   "errorSubUnavailable": "Cet abonnement n'est pas disponible pour le moment. Réessaie plus tard.",
   "errorNetwork": "Erreur réseau. Vérifie ta connexion et réessaie.",
   "errorOwned": "Tu possèdes déjà cet article.",
-  "errorGeneric": "Un problème est survenu lors de l'achat. Réessaie."
+  "errorGeneric": "Un problème est survenu lors de l'achat. Réessaie.",
+  "licenseLabel": "licence",
+  "licenseSubscription": "Abonnement annuel",
+  "licenseLifetime": "Déblocage à vie",
+  "licenseReviewer": "Accès évaluateur",
+  "licenseNone": "Aucune"
 }

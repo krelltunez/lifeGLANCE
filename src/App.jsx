@@ -224,6 +224,7 @@ export default function App() {
       vaultSkipped={vaultSkipped}
       onOpenCloudSync={() => setCloudSyncOpen(true)}
       onOpenSubscription={billing.gated ? () => setSubscriptionOpen(true) : undefined}
+      licenseSource={billing.gated ? billing.entitlementSource : null}
     />
   )
 

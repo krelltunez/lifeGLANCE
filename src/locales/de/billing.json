@@ -33,5 +33,10 @@
   "errorSubUnavailable": "Dieses Abo ist gerade nicht verfügbar. Bitte versuche es später erneut.",
   "errorNetwork": "Netzwerkfehler. Prüfe deine Verbindung und versuche es erneut.",
   "errorOwned": "Du besitzt diesen Artikel bereits.",
-  "errorGeneric": "Beim Kauf ist etwas schiefgelaufen. Bitte versuche es erneut."
+  "errorGeneric": "Beim Kauf ist etwas schiefgelaufen. Bitte versuche es erneut.",
+  "licenseLabel": "Lizenz",
+  "licenseSubscription": "Jahresabo",
+  "licenseLifetime": "Lebenslange Freischaltung",
+  "licenseReviewer": "Prüferzugang",
+  "licenseNone": "Keine"
 }
