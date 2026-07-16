@@ -9,6 +9,7 @@
   "headline": "Sblocca lifeGLANCE",
   "tagline": "Tutta la tua vita su un'unica linea del tempo — traguardi, capitoli e ricordi, sincronizzati su tutti i tuoi dispositivi.",
   "annualButton": "Annuale — {{price}} / anno",
+  "annualButtonTrial": "Annuale — {{price}} / anno (dopo la prova)",
   "annualButtonNoPrice": "Abbonamento annuale",
   "lifetimeButton": "A vita — {{price}} una tantum",
   "lifetimeButtonNoPrice": "Sblocco a vita",

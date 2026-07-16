@@ -5,6 +5,7 @@
   "headline": "解鎖 lifeGLANCE",
   "tagline": "你的一生，盡在一條時間軸 — 里程碑、篇章與回憶，多裝置同步。",
   "annualButton": "年度 — {{price}} / 年",
+  "annualButtonTrial": "年度 — {{price}} / 年（試用結束後）",
   "annualButtonNoPrice": "年度訂閱",
   "lifetimeButton": "終身版 — 一次性支付 {{price}}",
   "lifetimeButtonNoPrice": "終身解鎖",

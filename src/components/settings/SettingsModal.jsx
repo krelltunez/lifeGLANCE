@@ -111,6 +111,7 @@ export default function SettingsModal({
   onOpenCloudSync,
   onOpenAutoBackup,
   onOpenSubscription,
+  licenseSource,
   onOpenActivityLog,
   onClose,
   ultraCompact = false,
@@ -401,18 +402,6 @@ export default function SettingsModal({
           </div>
         )}
 
-        {/* ── Subscription (gated Play builds only) ─────────────────────── */}
-        {onOpenSubscription && (
-          <div className="settings-section">
-            <div className="settings-label">{tb('title')}</div>
-            <div className="settings-backup-row">
-              <button className="btn"
-                style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-                onClick={() => { onClose(); onOpenSubscription() }}>{tb('manage')}</button>
-            </div>
-          </div>
-        )}
-
         {/* ── Data / backup ─────────────────────────────────────────────── */}
         <div className="settings-section">
           <div className="settings-label">{t('dataLabel')}</div>
@@ -462,6 +451,29 @@ export default function SettingsModal({
             <p className="settings-note" style={{ marginTop: '0.4rem' }}>
               <Trans ns="settings" i18nKey="activityLogNote" components={{ kbd: <kbd /> }} />
             </p>
+          </div>
+        )}
+
+        {/* ── Subscription (gated Play builds only) — kept last so the
+            license state is always at the bottom of the sheet ───────────── */}
+        {onOpenSubscription && (
+          <div className="settings-section">
+            <div className="settings-label">{tb('title')}</div>
+            {licenseSource && (
+              <div className="settings-license-line">
+                {tb({
+                  lifetime:     'statusLifetime',
+                  subscription: 'statusSubscription',
+                  reviewer:     'statusReviewer',
+                  none:         'statusNone',
+                }[licenseSource] ?? 'statusNone')}
+              </div>
+            )}
+            <div className="settings-backup-row">
+              <button className="btn"
+                style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                onClick={() => { onClose(); onOpenSubscription() }}>{tb('manage')}</button>
+            </div>
           </div>
         )}
       </div>

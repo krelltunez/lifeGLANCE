@@ -82,7 +82,7 @@ const IDLE_TIMEOUT_OPTIONS = [
   { ms: 600000, label: '10m' },
 ]
 
-export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync, onOpenSubscription }) {
+export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync, onOpenSubscription, licenseSource }) {
   const { t, i18n } = useTranslation('timeline')
   const { t: tdg } = useTranslation('dayglance')
   const { t: tc } = useTranslation('common')
@@ -2277,6 +2277,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onImportIcsFile={handleImportIcsFile}
           onOpenCloudSync={onOpenCloudSync ? () => { setSettingsOpen(false); onOpenCloudSync() } : undefined}
           onOpenSubscription={onOpenSubscription ? () => { setSettingsOpen(false); onOpenSubscription() } : undefined}
+          licenseSource={licenseSource}
           onOpenAutoBackup={() => { setSettingsOpen(false); setAutoBackupOpen(true) }}
           onOpenActivityLog={isIntegrationEnabled() ? () => { setSettingsOpen(false); setActivityLogOpen(true) } : undefined}
           onClose={() => setSettingsOpen(false)}
