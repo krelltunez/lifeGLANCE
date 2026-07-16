@@ -88,7 +88,7 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
   const headline = trialEligible ? t('trialHeadline', { count: shownTrialDays }) : t('headline')
 
   const annualLabel = prices.yearly
-    ? t('annualButton', { price: prices.yearly })
+    ? t(trialEligible ? 'annualButtonTrial' : 'annualButton', { price: prices.yearly })
     : t('annualButtonNoPrice')
 
   const lifetimeLabel = prices.lifetime

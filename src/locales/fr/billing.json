@@ -7,6 +7,7 @@
   "headline": "Débloque lifeGLANCE",
   "tagline": "Toute ta vie sur une seule frise — jalons, chapitres et souvenirs, synchronisés sur tous tes appareils.",
   "annualButton": "Annuel — {{price}} / an",
+  "annualButtonTrial": "Annuel — {{price}} / an (après l'essai)",
   "annualButtonNoPrice": "Abonnement annuel",
   "lifetimeButton": "À vie — {{price}} en une fois",
   "lifetimeButtonNoPrice": "Déblocage à vie",
