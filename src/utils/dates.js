@@ -2,7 +2,7 @@ import {
   differenceInYears,
   differenceInMonths,
   differenceInDays,
-  isPast,
+  differenceInCalendarDays,
 } from 'date-fns'
 import i18n from '../i18n'
 import { safeLocale } from './locale'
@@ -43,19 +43,25 @@ function toLocalNoon(dateStr) {
 export function relativeParts(dateStr) {
   const date = toLocalNoon(dateStr)
   const now  = new Date()
-  const past = isPast(date) && date < now
-  const from = past ? date : now
-  const to   = past ? now  : date
+  // Day distance in CALENDAR days so the time of day never leaks in. The
+  // previous raw 24h diff against the noon-normalized date misclassified
+  // around noon: before local noon, today read as "in 0 days" and yesterday
+  // as "today"; late in the evening, tomorrow read as "in 0 days".
+  const dayDiff = differenceInCalendarDays(date, now)
+  if (dayDiff === 0) return { key: 'relToday', today: true }
+
+  const past  = dayDiff < 0
+  const days  = Math.abs(dayDiff)
+  const from  = past ? date : now
+  const to    = past ? now  : date
   const tense  = past ? 'Past' : 'Future'
   const years  = differenceInYears(to, from)
   const months = differenceInMonths(to, from) % 12
-  const days   = differenceInDays(to, from)
 
   if (years > 0 && months > 0) return { key: `rel${tense}YrMo`, count: years, months }
   if (years > 0)               return { key: `rel${tense}Yr`,   count: years }
   if (days > 30)               return { key: `rel${tense}Mo`,   count: Math.floor(days / 30) }
-  if (past ? days > 0 : days >= 0) return { key: `rel${tense}Day`, count: days }
-  return { key: 'relToday', today: true }
+  return { key: `rel${tense}Day`, count: days }
 }
 
 export function relativeLabel(dateStr, _precision = 'day') {
