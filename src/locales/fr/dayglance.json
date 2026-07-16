@@ -13,7 +13,7 @@
   "enableLinking": "activer la liaison Objectif↔Jalon",
   "webdavUrl": "URL de base WebDAV",
   "username": "Nom d'utilisateur",
-  "passwordToken": "Mot de passe / jeton",
+  "passwordToken": "mot de passe d'application WebDAV",
   "eventsPath": "Chemin des événements",
   "eventsPathDefault": "(défaut : /GLANCE/events/)",
   "testing": "test en cours…",

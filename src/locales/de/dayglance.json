@@ -13,7 +13,7 @@
   "enableLinking": "Ziel↔Meilenstein-Verknüpfung aktivieren",
   "webdavUrl": "WebDAV-Basis-URL",
   "username": "Benutzername",
-  "passwordToken": "Passwort / Token",
+  "passwordToken": "WebDAV-App-Passwort",
   "eventsPath": "Ereignispfad",
   "eventsPathDefault": "(Standard: /GLANCE/events/)",
   "testing": "wird getestet…",

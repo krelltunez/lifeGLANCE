@@ -20,7 +20,7 @@
   "vaultNotConfigured": "請先完成「雲端同步」的「GLANCEvault同步」設定，事件將經由Vault傳送",
   "webdavUrl": "WebDAV伺服器地址",
   "username": "用戶名 (User)",
-  "passwordToken": "密碼 / 令牌",
+  "passwordToken": "WebDAV 密碼 (Password)",
   "eventsPath": "Events存放路徑",
   "eventsPathDefault": "(預設: /GLANCE/events/)",
   "testing": "測試中…",
