@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest'
 import {
   buildDateFromParts,
   formatDateDisplay,
@@ -125,6 +125,29 @@ describe('monthNames', () => {
 describe('relativeParts', () => {
   it('returns the today key for the current date', () => {
     expect(relativeParts(isoDaysFromNow(0))).toEqual({ key: 'relToday', today: true })
+  })
+
+  // Day classification must not depend on the time of day (the raw 24h diff
+  // against noon-normalized dates used to call today "in 0 days" before local
+  // noon and tomorrow "in 0 days" late in the evening).
+  describe('around day boundaries', () => {
+    afterEach(() => vi.useRealTimers())
+
+    // Local calendar date string for `offset` days from the (mocked) now.
+    function isoLocal(offset = 0) {
+      const d = new Date()
+      d.setDate(d.getDate() + offset)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+
+    for (const hour of [0, 9, 12, 23]) {
+      it(`classifies correctly at ${String(hour).padStart(2, '0')}:30 local`, () => {
+        vi.useFakeTimers({ now: new Date(2026, 6, 16, hour, 30, 0) })
+        expect(relativeParts(isoLocal(0))).toEqual({ key: 'relToday', today: true })
+        expect(relativeParts(isoLocal(1))).toEqual({ key: 'relFutureDay', count: 1 })
+        expect(relativeParts(isoLocal(-1))).toEqual({ key: 'relPastDay', count: 1 })
+      })
+    }
   })
 
   it('uses past day keys for recent past dates', () => {
