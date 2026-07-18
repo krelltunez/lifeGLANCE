@@ -8,6 +8,8 @@ import { mergePayloads } from './adapter'
 const payload = (life) => ({ lives: { default: { milestones: [], chapters: [], ...life } } })
 const birthdayOf = (local, remote) =>
   mergePayloads(payload(local), payload(remote)).data.lives.default.birthday
+const categoriesOf = (local, remote) =>
+  mergePayloads(payload(local), payload(remote)).data.lives.default.categories
 
 describe('mergePayloads birthday LWW', () => {
   it('keeps a real local birthday when the remote is empty and neither is timestamped', () => {
@@ -45,5 +47,34 @@ describe('mergePayloads birthday LWW', () => {
       { birthday: '1990-05-01', birthdayUpdatedAt: '2026-06-01T00:00:00.000Z' },
       { birthday: '1991-07-07', birthdayUpdatedAt: '2026-01-01T00:00:00.000Z' },
     )).toBe('1990-05-01')
+  })
+})
+
+describe('mergePayloads categories LWW', () => {
+  const cats = (...names) => names.map((n) => ({ id: n, name: n }))
+
+  it('keeps a real local category list when remote is empty and neither is timestamped', () => {
+    expect(categoriesOf({ categories: cats('work', 'family') }, { categories: [] }))
+      .toEqual(cats('work', 'family'))
+  })
+
+  it('keeps a real local list when remote is empty at an equal timestamp', () => {
+    const ts = '2026-01-01T00:00:00.000Z'
+    expect(categoriesOf(
+      { categories: cats('work'), categoriesUpdatedAt: ts },
+      { categories: [], categoriesUpdatedAt: ts },
+    )).toEqual(cats('work'))
+  })
+
+  it('accepts a real remote list when the local side is empty', () => {
+    expect(categoriesOf({ categories: [] }, { categories: cats('travel') }))
+      .toEqual(cats('travel'))
+  })
+
+  it('lets a strictly-newer remote win, including clearing all categories', () => {
+    expect(categoriesOf(
+      { categories: cats('work'), categoriesUpdatedAt: '2026-01-01T00:00:00.000Z' },
+      { categories: [], categoriesUpdatedAt: '2026-06-01T00:00:00.000Z' },
+    )).toEqual([])
   })
 })

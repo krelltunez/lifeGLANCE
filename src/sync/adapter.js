@@ -157,8 +157,14 @@ export const mergePayloads = (local, remote) => {
 
   const localCatsTs  = localLife.categoriesUpdatedAt  ? new Date(localLife.categoriesUpdatedAt).getTime()  : 0
   const remoteCatsTs = remoteLife.categoriesUpdatedAt ? new Date(remoteLife.categoriesUpdatedAt).getTime() : 0
-  const mergedCategories          = remoteCatsTs >= localCatsTs ? (remoteLife.categories ?? localLife.categories ?? []) : (localLife.categories ?? [])
-  const mergedCategoriesUpdatedAt = remoteCatsTs >= localCatsTs ? (remoteLife.categoriesUpdatedAt ?? localLife.categoriesUpdatedAt ?? '') : (localLife.categoriesUpdatedAt ?? '')
+  // Same guard as birthday above: on a timestamp tie (legacy rows with no
+  // categoriesUpdatedAt, ts 0/0) an empty remote list must not clobber a real
+  // local one. A strictly-newer remote still wins, including a genuine "cleared
+  // all categories" edit.
+  const remoteCatsWins = remoteCatsTs > localCatsTs ||
+    (remoteCatsTs === localCatsTs && Array.isArray(remoteLife.categories) && remoteLife.categories.length > 0)
+  const mergedCategories          = remoteCatsWins ? (remoteLife.categories ?? localLife.categories ?? []) : (localLife.categories ?? [])
+  const mergedCategoriesUpdatedAt = remoteCatsWins ? (remoteLife.categoriesUpdatedAt ?? localLife.categoriesUpdatedAt ?? '') : (localLife.categoriesUpdatedAt ?? '')
 
   const mergedLife = {
     milestones: mergedMilestones, chapters: mergedChapters, milestoneTombstones, chapterTombstones,
