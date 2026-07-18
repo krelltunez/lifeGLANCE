@@ -144,8 +144,16 @@ export const mergePayloads = (local, remote) => {
   // Last-writer-wins for birthday and categories using paired updatedAt timestamps
   const localBirthdayTs  = localLife.birthdayUpdatedAt  ? new Date(localLife.birthdayUpdatedAt).getTime()  : 0
   const remoteBirthdayTs = remoteLife.birthdayUpdatedAt ? new Date(remoteLife.birthdayUpdatedAt).getTime() : 0
-  const mergedBirthday          = remoteBirthdayTs >= localBirthdayTs ? (remoteLife.birthday ?? localLife.birthday ?? '') : (localLife.birthday ?? '')
-  const mergedBirthdayUpdatedAt = remoteBirthdayTs >= localBirthdayTs ? (remoteLife.birthdayUpdatedAt ?? localLife.birthdayUpdatedAt ?? '') : (localLife.birthdayUpdatedAt ?? '')
+  // Remote wins only when it is strictly newer (an intentional edit, including a
+  // real clear), or on a timestamp tie when it actually carries a value. This
+  // stops an empty remote birthday from clobbering a real local one — the common
+  // trigger is legacy rows where both sides have no birthdayUpdatedAt (ts 0/0),
+  // where a plain `>=` would let remote's empty string win. (`??` doesn't help:
+  // an empty string isn't nullish, so it was treated as a real value.)
+  const remoteBirthdayWins = remoteBirthdayTs > localBirthdayTs ||
+    (remoteBirthdayTs === localBirthdayTs && (remoteLife.birthday ?? '') !== '')
+  const mergedBirthday          = remoteBirthdayWins ? (remoteLife.birthday ?? '') : (localLife.birthday ?? '')
+  const mergedBirthdayUpdatedAt = remoteBirthdayWins ? (remoteLife.birthdayUpdatedAt ?? localLife.birthdayUpdatedAt ?? '') : (localLife.birthdayUpdatedAt ?? '')
 
   const localCatsTs  = localLife.categoriesUpdatedAt  ? new Date(localLife.categoriesUpdatedAt).getTime()  : 0
   const remoteCatsTs = remoteLife.categoriesUpdatedAt ? new Date(remoteLife.categoriesUpdatedAt).getTime() : 0
