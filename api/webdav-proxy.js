@@ -1,15 +1,22 @@
-export const config = { api: { bodyParser: false } };
+import { assertSafeUrl, SsrfError } from '../proxy/ssrfGuard.js';
 
-const PRIVATE_IP = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|::1$|localhost)/i;
+export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
   const target = req.headers['x-webdav-url'];
   if (!target) return res.status(400).json({ error: 'Missing X-WebDAV-Url header' });
 
-  let url;
-  try { url = new URL(target); } catch { return res.status(400).json({ error: 'Invalid URL' }); }
-
-  if (PRIVATE_IP.test(url.hostname)) return res.status(403).json({ error: 'Private IP blocked' });
+  // SSRF guard: validate scheme, resolve DNS, and reject any private/reserved
+  // target (loopback, RFC-1918, 169.254.169.254 metadata, IPv6 ULA, encoded IP
+  // literals). global fetch can't pin the resolved address, so a determined
+  // sub-TTL rebinding attacker has a narrow residual window here — acceptable on
+  // Vercel's controlled egress; the standalone proxy pins the connection.
+  try {
+    await assertSafeUrl(target);
+  } catch (err) {
+    if (err instanceof SsrfError) return res.status(err.status).json({ error: err.message });
+    throw err;
+  }
 
   const headers = {};
   for (const h of ['authorization', 'x-webdav-auth', 'content-type', 'if-match', 'depth', 'destination']) {
