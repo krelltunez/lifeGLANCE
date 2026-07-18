@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME, TRIAL_FALLBACK_DAYS } from '../../billing/billing'
+import { MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME } from '../../billing/billing'
 
 // Localized messages for the billing error codes the package maps; anything
 // else falls through to the generic errorGeneric string. Code 2 (user
@@ -80,12 +80,17 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
     setReviewerInvalid(!ok)
   }
 
-  // Trial copy leads with the length: the store-reported trialDays wins once
-  // it arrives, TRIAL_FALLBACK_DAYS (the configured Play offer) fills in while
-  // the store hasn't answered, and a determinately-ineligible user gets the
-  // non-trial headline with NO trial claims (the Play sheet won't grant one).
-  const shownTrialDays = trialDays ?? TRIAL_FALLBACK_DAYS
-  const headline = trialEligible ? t('trialHeadline', { count: shownTrialDays }) : t('headline')
+  // Trial copy is driven entirely by the store, never a hardcoded length:
+  //  - ineligible user  → non-trial headline, no trial claims (the Play sheet
+  //    won't grant one, so we must not advertise it).
+  //  - eligible, store has reported trialDays → lead with the real length.
+  //  - eligible, store hasn't answered yet → generic "free trial" copy with NO
+  //    number, so we never show a duration that could differ from the actual
+  //    Play offer (which would misrepresent the terms).
+  const knownTrialDays = typeof trialDays === 'number' && trialDays > 0 ? trialDays : null
+  const headline = !trialEligible
+    ? t('headline')
+    : knownTrialDays ? t('trialHeadline', { count: knownTrialDays }) : t('trialHeadlineGeneric')
 
   const annualLabel = prices.yearly
     ? t(trialEligible ? 'annualButtonTrial' : 'annualButton', { price: prices.yearly })
@@ -117,8 +122,13 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
           {lifetimeLabel}
         </button>
       </div>
-      {trialEligible && prices.yearly && (
-        <p className="settings-note paywall-note">{t('renewalExplainer', { price: prices.yearly })}</p>
+      {/* Auto-renewal disclosure for the annual plan — shown for every annual
+          offer (trial or not), not just trial-eligible users. The lifetime plan
+          is a one-time purchase and correctly carries no renewal line. */}
+      {prices.yearly && (
+        <p className="settings-note paywall-note">
+          {t(trialEligible ? 'renewalExplainer' : 'renewalExplainerNoTrial', { price: prices.yearly })}
+        </p>
       )}
       <p className="settings-note paywall-note">{t('paymentNote', { store: STORE_NAME })}</p>
     </>
@@ -147,7 +157,9 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
               <div className="paywall-tagline">{t('tagline')}</div>
               <div className="paywall-headline">{headline}</div>
               {trialEligible && (
-                <div className="paywall-subline">{t('trialSubline', { count: shownTrialDays })}</div>
+                <div className="paywall-subline">
+                  {knownTrialDays ? t('trialSubline', { count: knownTrialDays }) : t('trialSublineGeneric')}
+                </div>
               )}
             </div>
             {purchaseSection}
