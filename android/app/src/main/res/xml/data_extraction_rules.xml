@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Auto Backup / transfer rules (API 31+; see full_backup_content.xml for API <=30).
+
+  Cloud backup EXCLUDES everything that is either a secret or unreliable to
+  restore:
+    * app_webview/ — WebView web storage: WebDAV credentials and the GLANCEvault
+      token (localStorage), the sync encryption keys (lifeglance-crypto
+      IndexedDB), and the timeline database itself. WebView data restore is also
+      notoriously unreliable (partial LevelDB restores), so excluding it removes
+      a corruption failure mode too.
+    * shared_prefs/lifeglance_widget.xml — the widget hand-off snapshot carries
+      milestone names/dates in derived form; the app regenerates it on first open.
+
+  Device-to-device transfer stays unrestricted: it is a direct, encrypted
+  phone-to-phone copy that never lands on a server, so new-phone migration keeps
+  working for users who don't use sync. Recovery after a cloud restore is via
+  cloud sync or the in-app manual export/import.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="app_webview" />
+        <exclude domain="sharedpref" path="lifeglance_widget.xml" />
+    </cloud-backup>
+</data-extraction-rules>
