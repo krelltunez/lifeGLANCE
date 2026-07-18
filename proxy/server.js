@@ -5,6 +5,19 @@ import { assertSafeUrl, pinnedLookup, SsrfError } from './ssrfGuard.js'
 
 const PORT = 3001
 
+// Self-host default: allow private/LAN targets so you can sync to your own NAS
+// (Synology/fnOS on 192.168.x, 10.x, a container hostname, etc.) over http or
+// https. The cloud metadata endpoint and other never-legitimate ranges are still
+// ALWAYS blocked by the guard. Operators who expose this proxy to untrusted
+// networks should set WEBDAV_PROXY_BLOCK_PRIVATE=1 to also reject private ranges
+// (full SSRF lock-down, as on the public hosted instance).
+const BLOCK_PRIVATE = process.env.WEBDAV_PROXY_BLOCK_PRIVATE === '1' ||
+  process.env.WEBDAV_PROXY_BLOCK_PRIVATE === 'true'
+const ALLOW_PRIVATE = !BLOCK_PRIVATE
+if (BLOCK_PRIVATE) {
+  console.warn('[webdav-proxy] WEBDAV_PROXY_BLOCK_PRIVATE enabled — private/LAN targets will be rejected')
+}
+
 // Opt-in: accept a self-signed / untrusted TLS cert on the upstream HTTPS WebDAV
 // server. Many self-hosted NAS WebDAV servers (e.g. Synology on :5006) ship a
 // self-signed cert, which Node's https.request rejects by default — the upstream
@@ -36,12 +49,12 @@ http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ error: 'Missing target URL' }))
   }
 
-  // SSRF guard: validate scheme, resolve DNS, and reject any private/reserved
-  // target. Always enforced (previously gated on VERCEL, so self-hosted runs were
-  // an open relay). `addresses` is reused below to pin the outbound connection.
+  // SSRF guard: validate scheme, resolve DNS, and reject metadata/reserved
+  // targets (always) and private/LAN targets (unless self-host opted in via
+  // ALLOW_PRIVATE). `addresses` is reused below to pin the outbound connection.
   let url, addresses
   try {
-    ({ url, addresses } = await assertSafeUrl(target))
+    ({ url, addresses } = await assertSafeUrl(target, { allowPrivate: ALLOW_PRIVATE }))
   } catch (err) {
     if (err instanceof SsrfError) {
       res.writeHead(err.status, { 'Content-Type': 'application/json' })

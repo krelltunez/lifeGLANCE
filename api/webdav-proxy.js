@@ -8,9 +8,12 @@ export default async function handler(req, res) {
 
   // SSRF guard: validate scheme, resolve DNS, and reject any private/reserved
   // target (loopback, RFC-1918, 169.254.169.254 metadata, IPv6 ULA, encoded IP
-  // literals). global fetch can't pin the resolved address, so a determined
-  // sub-TTL rebinding attacker has a narrow residual window here — acceptable on
-  // Vercel's controlled egress; the standalone proxy pins the connection.
+  // literals). This is the public, multi-tenant hosted instance, so private/LAN
+  // ranges are ALWAYS blocked (no allowPrivate) — unlike the self-host standalone
+  // proxy, which permits LAN targets by default. global fetch can't pin the
+  // resolved address, so a determined sub-TTL rebinding attacker has a narrow
+  // residual window here — acceptable on Vercel's controlled egress; the
+  // standalone proxy pins the connection.
   try {
     await assertSafeUrl(target);
   } catch (err) {

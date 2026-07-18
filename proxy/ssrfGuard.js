@@ -47,22 +47,41 @@ function inV4Range(n, base, bits) {
   return (n >>> shift) === (baseInt >>> shift)
 }
 
-function isBlockedIPv4(ip) {
-  const n = ipv4ToInt(ip)
-  if (n === null) return false
+// Never a legitimate sync target and the highest-value SSRF pivots (esp. the
+// cloud metadata endpoint at 169.254.169.254). ALWAYS blocked, even when a
+// self-hoster opts to allow private/LAN addresses.
+function isAlwaysBlockedIPv4(n) {
   return (
     inV4Range(n, '0.0.0.0', 8) ||       // "this" network / 0.0.0.0
-    inV4Range(n, '10.0.0.0', 8) ||      // RFC 1918 private
-    inV4Range(n, '100.64.0.0', 10) ||   // RFC 6598 CGNAT
-    inV4Range(n, '127.0.0.0', 8) ||     // loopback
     inV4Range(n, '169.254.0.0', 16) ||  // link-local incl. 169.254.169.254 metadata
-    inV4Range(n, '172.16.0.0', 12) ||   // RFC 1918 private
     inV4Range(n, '192.0.0.0', 24) ||    // IETF protocol assignments
-    inV4Range(n, '192.168.0.0', 16) ||  // RFC 1918 private
     inV4Range(n, '198.18.0.0', 15) ||   // benchmarking
     inV4Range(n, '224.0.0.0', 4) ||     // multicast
     inV4Range(n, '240.0.0.0', 4)        // reserved / 255.255.255.255
   )
+}
+
+// Private / LAN ranges: a legitimate destination for a self-hoster syncing to
+// their own NAS, but a classic SSRF target on a public/multi-tenant deployment.
+// Blocked unless the caller passes allowPrivate.
+function isPrivateIPv4(n) {
+  return (
+    inV4Range(n, '10.0.0.0', 8) ||      // RFC 1918 private
+    inV4Range(n, '100.64.0.0', 10) ||   // RFC 6598 CGNAT
+    inV4Range(n, '127.0.0.0', 8) ||     // loopback
+    inV4Range(n, '172.16.0.0', 12) ||   // RFC 1918 private
+    inV4Range(n, '192.168.0.0', 16)     // RFC 1918 private
+  )
+}
+
+// Classify an address as 'always' (never allowed), 'private' (allowed only with
+// allowPrivate), or 'ok'.
+function classifyIPv4(ip) {
+  const n = ipv4ToInt(ip)
+  if (n === null) return 'ok'
+  if (isAlwaysBlockedIPv4(n)) return 'always'
+  if (isPrivateIPv4(n)) return 'private'
+  return 'ok'
 }
 
 // Extract the embedded IPv4 from an IPv4-mapped IPv6 address, or null. The URL
@@ -82,26 +101,30 @@ function mappedIPv4(s) {
   return null
 }
 
-function isBlockedIPv6(ip) {
+function classifyIPv6(ip) {
   const s = ip.toLowerCase().replace(/^\[/, '').replace(/\]$/, '')
   const embedded = mappedIPv4(s)
-  if (embedded) return isBlockedIPv4(embedded)
-  if (s === '::1' || s === '::') return true   // loopback / unspecified
-  if (/^fe[89ab]/.test(s)) return true          // fe80::/10 link-local
-  if (/^f[cd]/.test(s)) return true             // fc00::/7 unique-local
-  if (/^ff/.test(s)) return true                // ff00::/8 multicast
-  return false
+  if (embedded) return classifyIPv4(embedded)
+  if (s === '::') return 'always'               // unspecified
+  if (/^fe[89ab]/.test(s)) return 'always'      // fe80::/10 link-local
+  if (/^ff/.test(s)) return 'always'            // ff00::/8 multicast
+  if (s === '::1') return 'private'             // loopback
+  if (/^f[cd]/.test(s)) return 'private'        // fc00::/7 unique-local
+  return 'ok'
 }
 
-function isBlockedAddress(address, family) {
-  return family === 6 ? isBlockedIPv6(address) : isBlockedIPv4(address)
+function classifyAddress(address, family) {
+  return family === 6 ? classifyIPv6(address) : classifyIPv4(address)
 }
 
 // Validate a client-supplied target URL. Resolves the host and rejects if the
-// URL is malformed, the scheme is not http(s), DNS fails, or ANY resolved address
-// is private/reserved. Resolves to { url, addresses } where addresses is the
-// validated dns.lookup result (usable with pinnedLookup below). Throws SsrfError.
-export async function assertSafeUrl(target) {
+// URL is malformed, the scheme is not http(s), DNS fails, or a resolved address
+// is disallowed. Metadata/link-local/reserved ranges are always rejected;
+// private/LAN ranges (RFC1918, loopback, CGNAT, ULA) are rejected unless
+// opts.allowPrivate is set (self-host reaching its own NAS). Resolves to
+// { url, addresses } where addresses is the validated dns.lookup result (usable
+// with pinnedLookup below). Throws SsrfError.
+export async function assertSafeUrl(target, { allowPrivate = false } = {}) {
   let url
   try {
     url = new URL(target)
@@ -123,7 +146,8 @@ export async function assertSafeUrl(target) {
     throw new SsrfError(502, 'DNS resolution failed')
   }
   for (const { address, family } of addresses) {
-    if (isBlockedAddress(address, family)) {
+    const cls = classifyAddress(address, family)
+    if (cls === 'always' || (cls === 'private' && !allowPrivate)) {
       throw new SsrfError(403, 'Target resolves to a private or reserved address')
     }
   }
@@ -145,6 +169,3 @@ export function pinnedLookup(addresses) {
     return callback(null, first.address, first.family)
   }
 }
-
-// Exposed for unit tests.
-export const _internal = { isBlockedIPv4, isBlockedIPv6, ipv4ToInt }

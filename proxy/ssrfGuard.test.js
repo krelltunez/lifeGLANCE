@@ -54,4 +54,45 @@ describe('assertSafeUrl SSRF guard', () => {
     await expect(assertSafeUrl('http://10.0.0.1/')).rejects.toMatchObject({ status: 403 })
     await expect(assertSafeUrl('gopher://x/')).rejects.toMatchObject({ status: 400 })
   })
+
+  describe('allowPrivate (self-host LAN)', () => {
+    async function verdictPrivate(target) {
+      try {
+        await assertSafeUrl(target, { allowPrivate: true })
+        return 'allow'
+      } catch (err) {
+        if (err instanceof SsrfError) return 'block'
+        throw err
+      }
+    }
+
+    const nowAllowed = [
+      ['RFC1918 192.168/16 over http', 'http://192.168.1.50:5005/dav/'],
+      ['RFC1918 10/8', 'http://10.0.0.5/'],
+      ['RFC1918 172.16/12', 'https://172.16.9.9:5006/'],
+      ['CGNAT', 'http://100.100.0.1/'],
+      ['loopback', 'http://127.0.0.1:8080/'],
+      ['IPv6 loopback', 'http://[::1]/'],
+      ['IPv6 ULA', 'http://[fd00::1]/'],
+    ]
+    for (const [name, target] of nowAllowed) {
+      it(`allows ${name} when allowPrivate`, async () => {
+        expect(await verdictPrivate(target)).toBe('allow')
+      })
+    }
+
+    // Metadata / link-local / reserved stay blocked even with allowPrivate — no
+    // legitimate NAS lives there and it's the highest-value SSRF target.
+    const stillBlocked = [
+      ['cloud metadata', 'http://169.254.169.254/latest/meta-data/'],
+      ['metadata via IPv4-mapped IPv6', 'http://[::ffff:169.254.169.254]/'],
+      ['IPv6 link-local', 'http://[fe80::1]/'],
+      ['multicast', 'http://224.0.0.1/'],
+    ]
+    for (const [name, target] of stillBlocked) {
+      it(`still blocks ${name} even when allowPrivate`, async () => {
+        expect(await verdictPrivate(target)).toBe('block')
+      })
+    }
+  })
 })
