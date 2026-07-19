@@ -2751,7 +2751,7 @@ select.settings-birthday-input {
 
 /* ─── Paywall (gated Play builds) ──────────────────────────────────────────── */
 .paywall-overlay { z-index: 200; }   /* the hard gate must cover every other sheet */
-.paywall-sheet { max-width: 420px; gap: 1rem; }
+.paywall-sheet { max-width: 525px; gap: 1rem; }
 
 .paywall-hero {
   display: flex;
