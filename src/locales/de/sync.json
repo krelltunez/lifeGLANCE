@@ -23,6 +23,7 @@
   "connectionFailedError": "Verbindung fehlgeschlagen: {{message}}",
   "passphraseMismatch": "Passphrasen stimmen nicht überein.",
   "enterPassphraseToActivate": "Gib deine Passphrase ein, um die Verschlüsselung zu aktivieren.",
+  "httpsRequired": "Verwende eine https://-Adresse — ein http://-Server würde deine Sync-Zugangsdaten unverschlüsselt senden.",
   "saveFailed": "Speichern fehlgeschlagen: {{message}}",
   "lastSynced": "zuletzt synchronisiert:",
   "testing": "wird getestet…",

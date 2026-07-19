@@ -23,6 +23,7 @@
   "connectionFailedError": "Conexión fallida: {{message}}",
   "passphraseMismatch": "Las frases de contraseña no coinciden.",
   "enterPassphraseToActivate": "Introduce tu frase de contraseña para activar el cifrado.",
+  "httpsRequired": "Usa una dirección https:// — un servidor http:// enviaría tus credenciales de sincronización sin cifrar.",
   "saveFailed": "Error al guardar: {{message}}",
   "lastSynced": "última sincronización:",
   "testing": "probando…",

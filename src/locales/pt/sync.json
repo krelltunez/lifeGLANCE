@@ -23,6 +23,7 @@
   "connectionFailedError": "Conexão falhou: {{message}}",
   "passphraseMismatch": "As senhas mestras não coincidem.",
   "enterPassphraseToActivate": "Insira sua senha mestra para ativar a criptografia.",
+  "httpsRequired": "Use um endereço https:// — um servidor http:// enviaria suas credenciais de sincronização sem criptografia.",
   "saveFailed": "Falha ao salvar: {{message}}",
   "lastSynced": "última sincronização:",
   "testing": "testando…",

@@ -23,6 +23,7 @@
   "connectionFailedError": "Connexion échouée : {{message}}",
   "passphraseMismatch": "Les phrases secrètes ne correspondent pas.",
   "enterPassphraseToActivate": "Entrez votre phrase secrète pour activer le chiffrement.",
+  "httpsRequired": "Utilise une adresse https:// — un serveur http:// enverrait tes identifiants de synchronisation en clair.",
   "saveFailed": "Échec de l'enregistrement : {{message}}",
   "lastSynced": "dernière synchronisation :",
   "testing": "test en cours…",

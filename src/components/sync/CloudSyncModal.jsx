@@ -34,6 +34,16 @@ async function mkcol(url, auth) {
   return res.status
 }
 
+// On native the request goes straight to the server via CapacitorHttp (no CORS
+// proxy hop), so an http:// URL would put the user's Basic-auth credentials on
+// the wire in cleartext. Reject an explicit http:// scheme there. The web /
+// self-host build keeps http allowed for a LAN NAS (see the proxy's private-IP
+// handling). Blank or scheme-less values fall through to the existing
+// required-field / connection checks.
+function insecureUrlOnNative(rawUrl) {
+  return isNativePlatform() && /^http:\/\//i.test((rawUrl || '').trim())
+}
+
 async function mkdirp(url, username, password) {
   const auth = username ? { Authorization: 'Basic ' + btoa(`${username}:${password}`) } : {}
   const status = await mkcol(url, auth)
@@ -132,6 +142,10 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   }, [onClose])
 
   async function handleTest() {
+    if (insecureUrlOnNative(url)) {
+      setTestResult({ ok: false, message: t('httpsRequired') })
+      return
+    }
     setTesting(true)
     setTestResult(null)
     try {
@@ -161,6 +175,10 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
       } finally {
         setSaving(false)
       }
+      return
+    }
+    if (insecureUrlOnNative(url)) {
+      setTestResult({ ok: false, message: t('httpsRequired') })
       return
     }
     if (!isExisting && encrypt && !passphrase) {
@@ -248,6 +266,10 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   const vaultMsg = (kind) => t(VAULT_MSG_KEY[kind] ?? 'vaultNetwork')
 
   async function handleVaultVerify() {
+    if (insecureUrlOnNative(vaultUrl)) {
+      setVaultResult({ ok: false, message: t('httpsRequired') })
+      return
+    }
     setVaultTesting(true)
     setVaultResult(null)
     try {
@@ -260,6 +282,10 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   }
 
   async function handleVaultSave() {
+    if (insecureUrlOnNative(vaultUrl)) {
+      setVaultResult({ ok: false, message: t('httpsRequired') })
+      return
+    }
     setVaultSaving(true)
     setVaultResult(null)
     try {
