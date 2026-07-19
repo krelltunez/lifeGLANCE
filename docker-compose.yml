@@ -4,9 +4,16 @@ services:
     ports:
       - "6868:80"
     restart: unless-stopped
-    # Uncomment if your WebDAV server (e.g. a Synology/fnOS NAS on HTTPS) uses a
-    # self-signed certificate and syncing fails with a 502 Bad Gateway. This makes
-    # the bundled WebDAV proxy accept the untrusted upstream cert. Only use it on a
-    # trusted LAN with your own NAS — it disables cert verification for that hop.
+    # The bundled WebDAV proxy reaches private/LAN targets (your own NAS on
+    # 192.168.x / 10.x, over http or https) by default; the cloud metadata
+    # endpoint and other reserved ranges are always blocked. Optional env vars:
+    #   WEBDAV_PROXY_INSECURE_TLS=1  — accept a self-signed upstream cert (e.g. a
+    #     Synology/fnOS NAS on HTTPS) when syncing fails with a 502 Bad Gateway.
+    #     Only on a trusted LAN with your own NAS — disables cert verification for
+    #     that hop.
+    #   WEBDAV_PROXY_BLOCK_PRIVATE=1 — also reject private/LAN targets (full SSRF
+    #     lock-down). Set this if you expose the proxy to untrusted networks; it
+    #     will prevent syncing to a LAN NAS.
     # environment:
     #   - WEBDAV_PROXY_INSECURE_TLS=1
+    #   - WEBDAV_PROXY_BLOCK_PRIVATE=1

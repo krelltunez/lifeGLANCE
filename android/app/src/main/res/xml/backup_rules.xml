@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy Auto Backup rules for API <=30 (fullBackupContent). API 31+ uses
+  data_extraction_rules.xml. Excludes the same secret/unreliable data from
+  cloud backup:
+    * app_webview/ — WebDAV credentials, GLANCEvault token, sync encryption keys
+      (lifeglance-crypto IndexedDB), and the timeline database.
+    * shared_prefs/lifeglance_widget.xml — widget hand-off snapshot (regenerated
+      on first open).
+  On API <=30 fullBackupContent controls both cloud and adb backup; there is no
+  separate device-transfer channel to preserve at this API level.
+-->
+<full-backup-content>
+    <exclude domain="root" path="app_webview" />
+    <exclude domain="sharedpref" path="lifeglance_widget.xml" />
+</full-backup-content>

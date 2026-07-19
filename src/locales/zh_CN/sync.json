@@ -23,6 +23,7 @@
   "connectionFailedError": "连线失败:{{message}}",
   "passphraseMismatch": "加密金钥不匹配",
   "enterPassphraseToActivate": "输入您的加密金钥以启用加密。",
+  "httpsRequired": "请使用 https:// 地址——http:// 服务器会明文发送你的同步凭据。",
   "saveFailed": "保存失败: {{message}}",
   "lastSynced": "上次同步时间:",
   "testing": "正在测试…",
@@ -63,7 +64,6 @@
   "passphraseRequired": "输入加密金钥以继续同步",
   "appIdMismatch": "此同步数据属于其他应用程序",
   "schemaForwardIncompatible": "请更新APP: 此同步数据来自较新的版本",
-
   "webdavSectionTitle": "「WebDAV同步」",
   "webdavEnableLabel": "启用「WebDAV同步」",
   "webdavEnableNote": "同步至「WebDAV」服务器(如 Nextcloud, ownCloud…)。关闭后将保留连线设定，但「WebDAV同步」会停止—例如当您完全转用「GLANCEvault同步」。",

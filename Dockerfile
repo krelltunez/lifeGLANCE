@@ -13,7 +13,7 @@ RUN apk add --no-cache nginx
 WORKDIR /app
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/http.d/default.conf
-COPY proxy/server.js proxy/package.json ./proxy/
+COPY proxy/server.js proxy/ssrfGuard.js proxy/package.json ./proxy/
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 EXPOSE 80

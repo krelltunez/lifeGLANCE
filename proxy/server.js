@@ -1,10 +1,22 @@
 import http from 'http'
 import https from 'https'
 import { URL } from 'url'
+import { assertSafeUrl, pinnedLookup, SsrfError } from './ssrfGuard.js'
 
 const PORT = 3001
-const PRIVATE_IP = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.|::1$|localhost)/i
-const BLOCK_PRIVATE = !!process.env.VERCEL
+
+// Self-host default: allow private/LAN targets so you can sync to your own NAS
+// (Synology/fnOS on 192.168.x, 10.x, a container hostname, etc.) over http or
+// https. The cloud metadata endpoint and other never-legitimate ranges are still
+// ALWAYS blocked by the guard. Operators who expose this proxy to untrusted
+// networks should set WEBDAV_PROXY_BLOCK_PRIVATE=1 to also reject private ranges
+// (full SSRF lock-down, as on the public hosted instance).
+const BLOCK_PRIVATE = process.env.WEBDAV_PROXY_BLOCK_PRIVATE === '1' ||
+  process.env.WEBDAV_PROXY_BLOCK_PRIVATE === 'true'
+const ALLOW_PRIVATE = !BLOCK_PRIVATE
+if (BLOCK_PRIVATE) {
+  console.warn('[webdav-proxy] WEBDAV_PROXY_BLOCK_PRIVATE enabled — private/LAN targets will be rejected')
+}
 
 // Opt-in: accept a self-signed / untrusted TLS cert on the upstream HTTPS WebDAV
 // server. Many self-hosted NAS WebDAV servers (e.g. Synology on :5006) ship a
@@ -37,15 +49,18 @@ http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ error: 'Missing target URL' }))
   }
 
-  let url
-  try { url = new URL(target) } catch {
-    res.writeHead(400, { 'Content-Type': 'application/json' })
-    return res.end(JSON.stringify({ error: 'Invalid URL' }))
-  }
-
-  if (BLOCK_PRIVATE && PRIVATE_IP.test(url.hostname)) {
-    res.writeHead(403, { 'Content-Type': 'application/json' })
-    return res.end(JSON.stringify({ error: 'Private IP blocked' }))
+  // SSRF guard: validate scheme, resolve DNS, and reject metadata/reserved
+  // targets (always) and private/LAN targets (unless self-host opted in via
+  // ALLOW_PRIVATE). `addresses` is reused below to pin the outbound connection.
+  let url, addresses
+  try {
+    ({ url, addresses } = await assertSafeUrl(target, { allowPrivate: ALLOW_PRIVATE }))
+  } catch (err) {
+    if (err instanceof SsrfError) {
+      res.writeHead(err.status, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: err.message }))
+    }
+    throw err
   }
 
   const headers = {}
@@ -62,7 +77,9 @@ http.createServer(async (req, res) => {
   const body = chunks.length ? Buffer.concat(chunks) : null
 
   const lib = url.protocol === 'https:' ? https : http
-  const reqOptions = { method: req.method, headers }
+  // Pin the connection to the address we validated so DNS can't be re-resolved to
+  // a different (unchecked) IP between the guard and the connect (rebinding).
+  const reqOptions = { method: req.method, headers, lookup: pinnedLookup(addresses) }
   // Accept a self-signed upstream cert only when explicitly opted in, and only for
   // the HTTPS hop (no effect on plain HTTP).
   if (url.protocol === 'https:' && INSECURE_TLS) reqOptions.rejectUnauthorized = false

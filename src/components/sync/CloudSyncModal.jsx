@@ -4,6 +4,7 @@ import { getSyncEngine, reinitSyncEngine } from '../../sync/engine'
 import { isSyncing, syncErrorText, SYNC_ERROR_I18N_KEYS } from '../../sync/status'
 import { verifyVaultCredentials, runVaultSetup, disableVault, VAULT_OUTCOME } from '../../sync/vaultSetup'
 import { resolveWebdavBase } from '../../sync/webdav'
+import { isNativePlatform, nativeRequest } from '../../sync/nativeHttp'
 import { runMediaBackfill } from '../../blobs/mediaBackfill'
 
 // Maps a vault verify/setup outcome kind to its distinct, translatable message.
@@ -19,15 +20,39 @@ const VAULT_MSG_KEY = {
 
 const PROXY = '/api/webdav-proxy'
 
+// One MKCOL against a WebDAV collection, returning the HTTP status. On native
+// (Capacitor) the CORS proxy doesn't exist — that relative URL resolves against
+// the WebView origin (https://localhost) and 404s — so hit the server directly
+// through the native HTTP stack, exactly like every other WebDAV request. On
+// web/PWA, go through the proxy.
+async function mkcol(url, auth) {
+  if (isNativePlatform()) {
+    const r = await nativeRequest('MKCOL', url, auth)
+    return r.status
+  }
+  const res = await fetch(PROXY, { method: 'MKCOL', headers: { ...auth, 'X-WebDAV-Url': url } })
+  return res.status
+}
+
+// On native the request goes straight to the server via CapacitorHttp (no CORS
+// proxy hop), so an http:// URL would put the user's Basic-auth credentials on
+// the wire in cleartext. Reject an explicit http:// scheme there. The web /
+// self-host build keeps http allowed for a LAN NAS (see the proxy's private-IP
+// handling). Blank or scheme-less values fall through to the existing
+// required-field / connection checks.
+function insecureUrlOnNative(rawUrl) {
+  return isNativePlatform() && /^http:\/\//i.test((rawUrl || '').trim())
+}
+
 async function mkdirp(url, username, password) {
   const auth = username ? { Authorization: 'Basic ' + btoa(`${username}:${password}`) } : {}
-  const res = await fetch(PROXY, { method: 'MKCOL', headers: { ...auth, 'X-WebDAV-Url': url } })
-  if (res.status === 201 || res.status === 405) return
-  if (res.status === 403 || res.status === 409 || res.status === 404) {
+  const status = await mkcol(url, auth)
+  if (status === 201 || status === 405) return
+  if (status === 403 || status === 409 || status === 404) {
     const parent = url.replace(/\/+$/, '').replace(/\/[^/]+$/, '/')
     if (parent && parent !== url) {
       await mkdirp(parent, username, password)
-      await fetch(PROXY, { method: 'MKCOL', headers: { ...auth, 'X-WebDAV-Url': url } })
+      await mkcol(url, auth)
     }
   }
 }
@@ -74,7 +99,9 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   const [username,    setUsername]    = useState(existingConfig?.username ?? '')
   const [password,    setPassword]    = useState(existingConfig?.password ?? '')
   const [folder,      setFolder]      = useState(existingConfig?.folder ?? 'GLANCE/lifeglance')
-  const [encrypt,     setEncrypt]     = useState(existingConfig?.encrypt ?? false)
+  // New setups default to encrypted so a user's whole timeline isn't uploaded as
+  // plaintext by accident; an existing config keeps whatever it was saved with.
+  const [encrypt,     setEncrypt]     = useState(existingConfig?.encrypt ?? true)
   const [passphrase,  setPassphrase]  = useState('')
   const [confirmPass, setConfirmPass] = useState('')
   const [testing,     setTesting]     = useState(false)
@@ -115,6 +142,10 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   }, [onClose])
 
   async function handleTest() {
+    if (insecureUrlOnNative(url)) {
+      setTestResult({ ok: false, message: t('httpsRequired') })
+      return
+    }
     setTesting(true)
     setTestResult(null)
     try {
@@ -146,7 +177,14 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
       }
       return
     }
-    if (!isExisting && encrypt && !passphrase) return
+    if (insecureUrlOnNative(url)) {
+      setTestResult({ ok: false, message: t('httpsRequired') })
+      return
+    }
+    if (!isExisting && encrypt && !passphrase) {
+      setTestResult({ ok: false, message: t('enterPassphraseToActivate') })
+      return
+    }
     if (!isExisting && encrypt && passphrase !== confirmPass) {
       setTestResult({ ok: false, message: t('passphraseMismatch') })
       return
@@ -228,6 +266,10 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   const vaultMsg = (kind) => t(VAULT_MSG_KEY[kind] ?? 'vaultNetwork')
 
   async function handleVaultVerify() {
+    if (insecureUrlOnNative(vaultUrl)) {
+      setVaultResult({ ok: false, message: t('httpsRequired') })
+      return
+    }
     setVaultTesting(true)
     setVaultResult(null)
     try {
@@ -240,6 +282,10 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   }
 
   async function handleVaultSave() {
+    if (insecureUrlOnNative(vaultUrl)) {
+      setVaultResult({ ok: false, message: t('httpsRequired') })
+      return
+    }
     setVaultSaving(true)
     setVaultResult(null)
     try {

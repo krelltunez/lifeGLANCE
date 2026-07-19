@@ -90,6 +90,31 @@ export default function HelpModal({ onClose, onOpenShortcuts }) {
           </div>
         </div>
 
+        {/* ── Legal ────────────────────────────────────────────────────────── */}
+        <div className="settings-section">
+          <div className="settings-label">{t('legalTitle')}</div>
+          <div className="help-links">
+            <a
+              className="help-ext-link"
+              href="https://www.glance-apps.com/privacy"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ExternalLinkIcon />
+              {t('privacyPolicy')}
+            </a>
+            <a
+              className="help-ext-link"
+              href="https://www.glance-apps.com/eula"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ExternalLinkIcon />
+              {t('termsOfUse')}
+            </a>
+          </div>
+        </div>
+
         {/* ── Footer ──────────────────────────────────────────────────────── */}
         <div className="help-footer">
           <div className="help-footer-storage">

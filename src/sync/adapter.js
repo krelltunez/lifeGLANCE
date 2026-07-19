@@ -3,6 +3,13 @@ import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChap
 import { getMilestoneTombstones, getChapterTombstones } from './tombstones.js';
 import { loadCategories, saveCategories } from '../utils/colors.js';
 
+// How long a deletion tombstone is kept before mergePayloads prunes it. Beyond
+// this window a device that has been offline the whole time still holds the
+// deleted item but no longer sees a tombstone for it, so on reconnect the item
+// is re-introduced (resurrected) instead of staying deleted. 90 days is the
+// grace period for that edge case — raising it widens the safe-offline window
+// at the cost of retaining more tombstones; don't lower it without accounting
+// for the increased resurrection risk.
 const RETENTION_MS = 90 * 86_400_000;
 
 // buildPayload — reads live IDB state. Called before every upload.
@@ -144,13 +151,27 @@ export const mergePayloads = (local, remote) => {
   // Last-writer-wins for birthday and categories using paired updatedAt timestamps
   const localBirthdayTs  = localLife.birthdayUpdatedAt  ? new Date(localLife.birthdayUpdatedAt).getTime()  : 0
   const remoteBirthdayTs = remoteLife.birthdayUpdatedAt ? new Date(remoteLife.birthdayUpdatedAt).getTime() : 0
-  const mergedBirthday          = remoteBirthdayTs >= localBirthdayTs ? (remoteLife.birthday ?? localLife.birthday ?? '') : (localLife.birthday ?? '')
-  const mergedBirthdayUpdatedAt = remoteBirthdayTs >= localBirthdayTs ? (remoteLife.birthdayUpdatedAt ?? localLife.birthdayUpdatedAt ?? '') : (localLife.birthdayUpdatedAt ?? '')
+  // Remote wins only when it is strictly newer (an intentional edit, including a
+  // real clear), or on a timestamp tie when it actually carries a value. This
+  // stops an empty remote birthday from clobbering a real local one — the common
+  // trigger is legacy rows where both sides have no birthdayUpdatedAt (ts 0/0),
+  // where a plain `>=` would let remote's empty string win. (`??` doesn't help:
+  // an empty string isn't nullish, so it was treated as a real value.)
+  const remoteBirthdayWins = remoteBirthdayTs > localBirthdayTs ||
+    (remoteBirthdayTs === localBirthdayTs && (remoteLife.birthday ?? '') !== '')
+  const mergedBirthday          = remoteBirthdayWins ? (remoteLife.birthday ?? '') : (localLife.birthday ?? '')
+  const mergedBirthdayUpdatedAt = remoteBirthdayWins ? (remoteLife.birthdayUpdatedAt ?? localLife.birthdayUpdatedAt ?? '') : (localLife.birthdayUpdatedAt ?? '')
 
   const localCatsTs  = localLife.categoriesUpdatedAt  ? new Date(localLife.categoriesUpdatedAt).getTime()  : 0
   const remoteCatsTs = remoteLife.categoriesUpdatedAt ? new Date(remoteLife.categoriesUpdatedAt).getTime() : 0
-  const mergedCategories          = remoteCatsTs >= localCatsTs ? (remoteLife.categories ?? localLife.categories ?? []) : (localLife.categories ?? [])
-  const mergedCategoriesUpdatedAt = remoteCatsTs >= localCatsTs ? (remoteLife.categoriesUpdatedAt ?? localLife.categoriesUpdatedAt ?? '') : (localLife.categoriesUpdatedAt ?? '')
+  // Same guard as birthday above: on a timestamp tie (legacy rows with no
+  // categoriesUpdatedAt, ts 0/0) an empty remote list must not clobber a real
+  // local one. A strictly-newer remote still wins, including a genuine "cleared
+  // all categories" edit.
+  const remoteCatsWins = remoteCatsTs > localCatsTs ||
+    (remoteCatsTs === localCatsTs && Array.isArray(remoteLife.categories) && remoteLife.categories.length > 0)
+  const mergedCategories          = remoteCatsWins ? (remoteLife.categories ?? localLife.categories ?? []) : (localLife.categories ?? [])
+  const mergedCategoriesUpdatedAt = remoteCatsWins ? (remoteLife.categoriesUpdatedAt ?? localLife.categoriesUpdatedAt ?? '') : (localLife.categoriesUpdatedAt ?? '')
 
   const mergedLife = {
     milestones: mergedMilestones, chapters: mergedChapters, milestoneTombstones, chapterTombstones,

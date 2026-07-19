@@ -122,7 +122,7 @@ The Docker image builds with Node 20 Alpine and serves the static output via ngi
 |---|---|
 | Framework | React 18 + Vite |
 | PWA | vite-plugin-pwa (Workbox) |
-| Storage | IndexedDB (milestones + media), localStorage (settings) |
+| Storage | IndexedDB (milestones, media, sync keys), localStorage (settings, sync config) |
 | Dates | date-fns |
 | Font | Courier Prime (Google Fonts, cached offline) |
 | Audio | Web Audio API, synthesised, no samples |
@@ -132,15 +132,18 @@ The Docker image builds with Node 20 Alpine and serves the static output via ngi
 
 ## Sync & Storage
 
-All data is stored locally in your browser using IndexedDB. Nothing is sent to a server.
+By default all data stays on your device, stored locally using IndexedDB — nothing is sent anywhere. Cross-device sync is opt-in: when you enable it, your timeline is synced to a WebDAV server or GLANCEvault instance that **you** choose and control, and can be end-to-end encrypted with a passphrase so the server only ever sees ciphertext.
 
 | Store | Contents |
 |---|---|
 | IndexedDB `milestones` | Milestone records (text fields, flags) |
 | IndexedDB `media` | Audio / video blobs, keyed by milestone ID |
-| `localStorage` | Settings and preferences only (a few KB) |
+| IndexedDB `lifeglance-crypto` | Sync encryption keys — present only when encrypted sync is enabled |
+| `localStorage` | Settings and preferences, and — when sync is enabled — your WebDAV / GLANCEvault server URL and credentials |
 
 Media blobs are fetched lazily, only when you open a milestone detail or click play, so startup time stays fast regardless of how many attachments you have.
+
+**Deletions** propagate through sync for 90 days. If a device stays offline longer than that and then reconnects, items it deleted before going offline can reappear — sync no longer has a record of the deletion. Reconnect syncing devices at least once within 90 days to avoid this.
 
 **Backup:** use *Settings → save backup* to export a JSON file of your milestone records. **Audio and video attachments are not included in the JSON backup, so re-attach them after restoring if needed.**
 
@@ -150,7 +153,7 @@ Media blobs are fetched lazily, only when you open a milestone detail or click p
 
 ## Privacy
 
-lifeGLANCE has no backend, no analytics, no accounts, and no network requests beyond loading the app itself and fetching the Courier Prime font (cached after first load). Your timeline data is yours alone.
+lifeGLANCE has no backend of its own, no analytics, and no tracking. Beyond loading the app and the Courier Prime font (cached after first load), network activity happens only when *you* opt in: syncing to the server you configure, and — in the app-store build — subscription checks through your app store's billing. Your timeline data is yours alone.
 
 ---
 
@@ -162,7 +165,15 @@ Small fixes are welcome, and larger changes should start with an issue. See [CON
 
 ## License
 
-[MIT](LICENSE): free to use, self-host, modify, and distribute.
+The source is [MIT](LICENSE)-licensed: free to build, self-host, modify, and
+distribute. The web app is free to use — [hosted](https://lifeglance.app) or
+self-hosted — and a free Android APK is on the [releases](../../releases) page.
+The paid Google Play and App Store builds are a convenience distribution that
+funds development — you're paying for the packaged, signed, auto-updating
+binary, not the code.
+
+The **lifeGLANCE** name, logo, and app icon are trademarks and are not covered
+by the MIT license.
 
 ---
 
