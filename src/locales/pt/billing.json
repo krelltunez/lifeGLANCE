@@ -33,6 +33,8 @@
   "reviewerPlaceholder": "Código de revisor",
   "reviewerApply": "Aplicar",
   "reviewerInvalid": "Esse código não é válido.",
+  "reviewerBannerText": "Acesso de revisor ativo — o app está desbloqueado sem compra.",
+  "reviewerExitPlans": "Sair e ver os planos",
   "errorNotFound": "Produto não encontrado. Tente novamente mais tarde.",
   "errorUnavailable": "Pagamentos não estão disponíveis neste dispositivo.",
   "errorSubUnavailable": "Esta assinatura não está disponível no momento. Tente novamente mais tarde.",

@@ -31,6 +31,8 @@
   "reviewerPlaceholder": "Prüfercode",
   "reviewerApply": "Anwenden",
   "reviewerInvalid": "Dieser Code ist nicht gültig.",
+  "reviewerBannerText": "Rezensenten-Zugang aktiv — die App ist ohne Kauf freigeschaltet.",
+  "reviewerExitPlans": "Beenden & Pläne ansehen",
   "errorNotFound": "Produkt nicht gefunden. Bitte versuche es später erneut.",
   "errorUnavailable": "Käufe sind auf diesem Gerät nicht verfügbar.",
   "errorSubUnavailable": "Dieses Abo ist gerade nicht verfügbar. Bitte versuche es später erneut.",

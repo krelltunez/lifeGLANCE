@@ -29,6 +29,8 @@
   "reviewerPlaceholder": "审核代码",
   "reviewerApply": "应用",
   "reviewerInvalid": "该代码无效。",
+  "reviewerBannerText": "审核员访问已激活——无需购买即可解锁应用。",
+  "reviewerExitPlans": "退出并查看方案",
   "errorNotFound": "未找到商品。请稍后重试。",
   "errorUnavailable": "此设备不支持支付。",
   "errorSubUnavailable": "该订阅目前不可用。请稍后重试。",

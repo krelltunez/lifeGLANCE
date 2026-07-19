@@ -31,6 +31,8 @@
   "reviewerPlaceholder": "Reviewer code",
   "reviewerApply": "Apply",
   "reviewerInvalid": "That code is not valid.",
+  "reviewerBannerText": "Reviewer access active — the app is unlocked without a purchase.",
+  "reviewerExitPlans": "Exit & view plans",
   "errorNotFound": "Product not found. Please try again later.",
   "errorUnavailable": "Billing is not available on this device.",
   "errorSubUnavailable": "This subscription isn't available right now. Please try again later.",

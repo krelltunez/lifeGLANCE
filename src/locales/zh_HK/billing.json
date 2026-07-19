@@ -29,6 +29,8 @@
   "reviewerPlaceholder": "審核代碼",
   "reviewerApply": "套用",
   "reviewerInvalid": "該代碼無效。",
+  "reviewerBannerText": "審核員存取已啟用——毋須購買即可解鎖應用程式。",
+  "reviewerExitPlans": "退出並查看方案",
   "errorNotFound": "找不到商品。請稍後再試。",
   "errorUnavailable": "此裝置不支援付款。",
   "errorSubUnavailable": "該訂閱目前不可用。請稍後再試。",

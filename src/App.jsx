@@ -12,6 +12,7 @@ import { buildWidgetSnapshot } from './utils/widgetSnapshot'
 import { pushWidgetSnapshot } from './native/widgetBridge'
 import { useSubscription } from './billing/billing'
 import PaywallModal from './components/billing/PaywallModal'
+import ReviewerBanner from './components/billing/ReviewerBanner'
 
 export default function App() {
   const { t } = useTranslation('common')
@@ -32,6 +33,15 @@ export default function App() {
   // the Play Android build, which is the only channel that gets an adapter.
   const billing = useSubscription()
   const [subscriptionOpen, setSubscriptionOpen] = useState(false)
+
+  // A reviewer code unlocks the app but leaves no way back to the paywall — the
+  // only surface that shows the in-app purchases. The billing engine exposes no
+  // revoke, so clear the reviewer-unlock key directly and reload; with no
+  // entitlement the gate (and the IAPs) returns. See docs/reviewer-access-flow.md.
+  const exitReviewerMode = () => {
+    try { localStorage.removeItem('glance-billing.reviewer-unlock') } catch { /* storage unavailable */ }
+    location.reload()
+  }
 
   const [portraitWarn, setPortraitWarn] = useState(
     () => window.matchMedia('(orientation: portrait) and (max-width: 1024px)').matches
@@ -268,6 +278,12 @@ export default function App() {
       )}
       {subscriptionOpen && (
         <PaywallModal mode="status" billing={billing} onClose={() => setSubscriptionOpen(false)} />
+      )}
+      {/* Reviewer-only banner with a way back to the paywall (the sole IAP
+          surface). Shown only when unlocked via a reviewer code, never for
+          purchasers. Never coincident with the gate — exiting reloads. */}
+      {billing.isReviewerUnlocked && (
+        <ReviewerBanner onExit={exitReviewerMode} />
       )}
       {/* The hard gate renders last so it covers every other surface. The
           engine handles offline/anti-flash itself — gate on isUnlocked only. */}

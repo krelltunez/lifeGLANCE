@@ -31,6 +31,8 @@
   "reviewerPlaceholder": "Code évaluateur",
   "reviewerApply": "Appliquer",
   "reviewerInvalid": "Ce code n'est pas valide.",
+  "reviewerBannerText": "Accès évaluateur actif — l'app est déverrouillée sans achat.",
+  "reviewerExitPlans": "Quitter et voir les forfaits",
   "errorNotFound": "Produit introuvable. Réessaie plus tard.",
   "errorUnavailable": "La facturation n'est pas disponible sur cet appareil.",
   "errorSubUnavailable": "Cet abonnement n'est pas disponible pour le moment. Réessaie plus tard.",
