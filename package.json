@@ -28,7 +28,9 @@
   "dependencies": {
     "@capacitor/android": "^8.4.0",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/filesystem": "8.1.2",
     "@capacitor/ios": "^8.4.0",
+    "@capacitor/share": "7.0.2",
     "@glance-apps/billing": "0.1.1",
     "@glance-apps/intents": "1.4.0",
     "@glance-apps/sync": "1.6.1",
