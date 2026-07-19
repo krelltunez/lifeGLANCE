@@ -165,7 +165,15 @@ Small fixes are welcome, and larger changes should start with an issue. See [CON
 
 ## License
 
-[MIT](LICENSE): free to use, self-host, modify, and distribute.
+The source is [MIT](LICENSE)-licensed: free to build, self-host, modify, and
+distribute. The web app is free to use — [hosted](https://lifeglance.app) or
+self-hosted — and a free Android APK is on the [releases](../../releases) page.
+The paid Google Play and App Store builds are a convenience distribution that
+funds development — you're paying for the packaged, signed, auto-updating
+binary, not the code.
+
+The **lifeGLANCE** name, logo, and app icon are trademarks and are not covered
+by the MIT license.
 
 ---
 

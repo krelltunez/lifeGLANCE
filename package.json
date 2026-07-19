@@ -2,6 +2,7 @@
   "name": "lifeglance",
   "version": "2.6.3",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
