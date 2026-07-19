@@ -2,6 +2,20 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME } from '../../billing/billing'
 
+// Feature bullets shown on the gate — the whole app is Pro, so these are the
+// headline capabilities an unlock grants. App stores (Apple especially) expect
+// the paywall to spell out what the purchase includes.
+const FEATURE_KEYS = [
+  'featureTimeline',
+  'featureContent',
+  'featureWidgets',
+  'featureSync',
+  'featureImportExport',
+]
+
+const PRIVACY_URL = 'https://www.glance-apps.com/privacy'
+const TERMS_URL = 'https://www.glance-apps.com/eula'
+
 // Localized messages for the billing error codes the package maps; anything
 // else falls through to the generic errorGeneric string. Code 2 (user
 // cancelled) never reaches here — the engine reports it as 'cancelled'.
@@ -26,6 +40,7 @@ const ERROR_KEYS = {
 // amounts or trial lengths are hardcoded anywhere.
 export default function PaywallModal({ mode = 'gate', billing, onClose }) {
   const { t } = useTranslation('billing')
+  const { t: th } = useTranslation('help') // reuse the help modal's legal-link labels
   const {
     isPro, entitlementSource, prices, trialEligible, trialDays,
     billingEvent, subscribe, restore, clearBillingEvent, setReviewerUnlocked,
@@ -155,6 +170,16 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
                 <span className="logo-glance">GLANCE</span>
               </div>
               <div className="paywall-tagline">{t('tagline')}</div>
+              <ul className="paywall-features">
+                {FEATURE_KEYS.map(key => (
+                  <li key={key} className="paywall-feature">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M20 6 9 17l-5-5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span>{t(key)}</span>
+                  </li>
+                ))}
+              </ul>
               <div className="paywall-headline">{headline}</div>
               {trialEligible && (
                 <div className="paywall-subline">
@@ -226,6 +251,14 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
             <p className="settings-note paywall-note">{t('reviewerHelper')}</p>
           </div>
         )}
+
+        {/* Legal links — required on the paywall for app-store review (same
+            destinations as the help modal). */}
+        <div className="paywall-legal">
+          <a href={PRIVACY_URL} target="_blank" rel="noreferrer">{th('privacyPolicy')}</a>
+          <span className="paywall-link-sep">·</span>
+          <a href={TERMS_URL} target="_blank" rel="noreferrer">{th('termsOfUse')}</a>
+        </div>
       </div>
     </div>
   )
