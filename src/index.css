@@ -2799,7 +2799,7 @@ select.settings-birthday-input {
 .paywall-feature svg {
   flex-shrink: 0;
   margin-top: 0.12rem;
-  color: var(--success);
+  color: var(--purple);
 }
 .paywall-legal {
   display: flex;
