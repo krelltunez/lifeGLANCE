@@ -43,6 +43,12 @@ export default function App() {
     location.reload()
   }
 
+  // Dev-only: force the paywall on the web build so the gate + reviewer flow can
+  // be exercised with `npm run dev` (visit /?wall). The real gate is
+  // Play-Android-only, and the ungated engine always reports isUnlocked, so this
+  // path can't key off it — show unless already reviewer-unlocked.
+  const devWall = import.meta.env.DEV && new URLSearchParams(location.search).has('wall')
+
   const [portraitWarn, setPortraitWarn] = useState(
     () => window.matchMedia('(orientation: portrait) and (max-width: 1024px)').matches
   )
@@ -286,8 +292,9 @@ export default function App() {
         <ReviewerBanner onExit={exitReviewerMode} />
       )}
       {/* The hard gate renders last so it covers every other surface. The
-          engine handles offline/anti-flash itself — gate on isUnlocked only. */}
-      {billing.gated && !billing.isUnlocked && (
+          engine handles offline/anti-flash itself — gate on isUnlocked only.
+          The devWall branch forces it in a dev web build (see above). */}
+      {((billing.gated && !billing.isUnlocked) || (devWall && !billing.isReviewerUnlocked)) && (
         <PaywallModal mode="gate" billing={billing} />
       )}
     </>
