@@ -24,6 +24,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetBridgePlugin.class);
         registerPlugin(BillingBridgePlugin.class);
+        registerPlugin(WebDavHttpPlugin.class);
         super.onCreate(savedInstanceState);
         handleWidgetIntent(getIntent());
         handleShareIntent(getIntent());

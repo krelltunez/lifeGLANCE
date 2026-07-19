@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Timeline          from './Timeline'
 import { collectCssVariables } from './exportImageHelpers'
+import { saveOrShareFile } from '../../native/saveFile'
 import { shareToMilestoneDraft } from '../../native/shareDraft'
 import StatsPanel        from '../stats/StatsPanel'
 import AddMilestoneSheet from '../milestone/AddMilestoneSheet'
@@ -1364,19 +1365,19 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       ctx.fillText('GLANCE', brandPad + lifeW, brandY)
       ctx.restore()
 
-      canvas.toBlob(blob => {
+      canvas.toBlob(async blob => {
         const d = new Date()
         const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-        const a = document.createElement('a')
-        a.download = `lifeglance-${stamp}.png`
-        a.href = URL.createObjectURL(blob)
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        setTimeout(() => URL.revokeObjectURL(a.href), 100)
+        try {
+          await saveOrShareFile({ filename: `lifeglance-${stamp}.png`, blob })
+        } catch (err) {
+          console.error('Export failed:', err)
+          showToast(t('exportFailed'), 'error')
+        }
       }, 'image/png')
     } catch (err) {
       console.error('Export failed:', err)
+      showToast(t('exportFailed'), 'error')
     }
   }
 
@@ -1418,14 +1419,14 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     }
     const json = JSON.stringify(payload, null, 2)
     const blob = new Blob([json], { type: 'application/json' })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
-    a.href     = url
     const d    = new Date()
     const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-    a.download = `lifeglance-${stamp}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    try {
+      await saveOrShareFile({ filename: `lifeglance-${stamp}.json`, blob })
+    } catch (err) {
+      console.error('Backup export failed:', err)
+      showToast(t('exportFailed'), 'error')
+    }
   }
 
   // Categories changed in Settings (add / rename / recolor / delete). The list

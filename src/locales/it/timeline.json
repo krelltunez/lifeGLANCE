@@ -61,5 +61,6 @@
   "yearsAgo_one": "{{count}} anno fa",
   "yearsAgo_other": "{{count}} anni fa",
   "mediaVaultDeferred": "Salvato localmente — la sincronizzazione di questo media nel cloud verrà ritentata a breve.",
-  "mediaUnavailable": "media non disponibile"
+  "mediaUnavailable": "media non disponibile",
+  "exportFailed": "Impossibile salvare il file. Riprova."
 }

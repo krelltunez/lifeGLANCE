@@ -28,7 +28,9 @@
   "dependencies": {
     "@capacitor/android": "^8.4.0",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/filesystem": "8.1.2",
     "@capacitor/ios": "^8.4.0",
+    "@capacitor/share": "8.0.1",
     "@glance-apps/billing": "0.1.1",
     "@glance-apps/intents": "1.4.0",
     "@glance-apps/sync": "1.6.1",
@@ -43,7 +45,7 @@
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
     "@eslint/js": "^9.39.4",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",

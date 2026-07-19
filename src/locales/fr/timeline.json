@@ -61,5 +61,6 @@
   "yearsAgo_one": "il y a {{count}} an",
   "yearsAgo_other": "il y a {{count}} ans",
   "mediaVaultDeferred": "Enregistré localement — la synchronisation de ce média vers le cloud sera réessayée sous peu.",
-  "mediaUnavailable": "média indisponible"
+  "mediaUnavailable": "média indisponible",
+  "exportFailed": "Impossible d’enregistrer le fichier. Réessaie."
 }

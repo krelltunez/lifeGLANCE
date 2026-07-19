@@ -61,5 +61,6 @@
   "yearsAgo_one": "{{count}}年前",
   "yearsAgo_other": "{{count}}年前",
   "mediaVaultDeferred": "保存到本机——稍后将同步媒体到云端。",
-  "mediaUnavailable": "媒体不可用"
+  "mediaUnavailable": "媒体不可用",
+  "exportFailed": "无法保存文件，请重试。"
 }
