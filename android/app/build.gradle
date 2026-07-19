@@ -110,6 +110,10 @@ dependencies {
     // Home-screen widgets (Jetpack Glance, Kotlin/Compose)
     implementation "androidx.glance:glance-appwidget:$rootProject.ext.glanceVersion"
     implementation "androidx.work:work-runtime-ktx:2.9.1"
+
+    // OkHttp backs WebDavHttpPlugin — HttpURLConnection (behind CapacitorHttp)
+    // rejects WebDAV verbs like PROPFIND/MKCOL; OkHttp accepts any method.
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.2"
 
     testImplementation "junit:junit:$junitVersion"
