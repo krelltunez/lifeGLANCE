@@ -143,6 +143,8 @@ By default all data stays on your device, stored locally using IndexedDB — not
 
 Media blobs are fetched lazily, only when you open a milestone detail or click play, so startup time stays fast regardless of how many attachments you have.
 
+**Deletions** propagate through sync for 90 days. If a device stays offline longer than that and then reconnects, items it deleted before going offline can reappear — sync no longer has a record of the deletion. Reconnect syncing devices at least once within 90 days to avoid this.
+
 **Backup:** use *Settings → save backup* to export a JSON file of your milestone records. **Audio and video attachments are not included in the JSON backup, so re-attach them after restoring if needed.**
 
 **Storage limits** vary by browser. Chrome and Firefox allow multiple GB. Safari on iOS is more restrictive and may evict data for origins not visited for 7+ days unless the app is installed to the home screen. The current usage and available quota are shown in the Help modal (`?`).

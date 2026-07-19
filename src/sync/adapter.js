@@ -3,6 +3,13 @@ import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChap
 import { getMilestoneTombstones, getChapterTombstones } from './tombstones.js';
 import { loadCategories, saveCategories } from '../utils/colors.js';
 
+// How long a deletion tombstone is kept before mergePayloads prunes it. Beyond
+// this window a device that has been offline the whole time still holds the
+// deleted item but no longer sees a tombstone for it, so on reconnect the item
+// is re-introduced (resurrected) instead of staying deleted. 90 days is the
+// grace period for that edge case — raising it widens the safe-offline window
+// at the cost of retaining more tombstones; don't lower it without accounting
+// for the increased resurrection risk.
 const RETENTION_MS = 90 * 86_400_000;
 
 // buildPayload — reads live IDB state. Called before every upload.
