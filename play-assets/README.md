@@ -4,11 +4,16 @@ Marketing assets for the Google Play listing (not used by the app build).
 
 ## feature-graphic.png
 - **1024 × 500**, 24-bit PNG, no alpha — meets Play's feature-graphic spec.
-- On-brand: app background `#0F1117`, the app icon, the `lifeGLANCE` wordmark
-  (`life` in `#E8E0D0`, `GLANCE` in `#9370DB`), the "Your life, at a glance."
-  tagline, and a timeline rule with the category-colour dots.
-- **Font note:** rendered with IBM Plex Mono as a stand-in. The in-app wordmark
-  uses **Courier Prime** — re-render with that font for a pixel-faithful match.
+- The app's logo lockup on a `#0F1117` background: the icon motif on the left,
+  then the `lifeGLANCE` wordmark (`life` in `#E8E0D0`, `GLANCE` in bold italic
+  `#9370DB`) with the "Your life, at a glance." tagline beneath it — mirroring
+  the in-app logo.
+- **Generated**, not hand-made: run `npm run feature-graphic` to (re)render it
+  from `scripts/feature-graphic.mjs`. It uses **Courier Prime** — the app's real
+  wordmark font, vendored under `scripts/assets/fonts` (SIL OFL) and embedded, so
+  it needs no network — and hard-fails unless that font actually rendered, so the
+  wordmark can never silently regress to a substitute. Edit the layout/colours in
+  that script and re-run to change the banner. Output is 24-bit RGB, no alpha.
 
 ## High-res icon (for Play)
 Use `public/icon-512x512.png` (512 × 512). It's 24-bit RGB; if Play's uploader
