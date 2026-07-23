@@ -63,7 +63,7 @@ The Docker image builds with Node 20 Alpine and serves the static output via ngi
 
 ## Android App
 
-A native Android app is available on Google Play and as a direct APK download. The Google Play build is a commercial binary whose purchase supports continued development; the APK on the releases page is free.
+A native Android app is available on Google Play and as a direct APK download. The Google Play build is a commercial binary that supports continued development.
 
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="60">](https://play.google.com/store/apps/details?id=com.lifeglance.app)
 
