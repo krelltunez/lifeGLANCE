@@ -4,6 +4,8 @@
 
 Part of the **GLANCE family**: focused, standalone apps connected through a shared intent protocol. See also [dayGLANCE](https://github.com/krelltunez/dayGLANCE) (today), [lastGLANCE](https://github.com/krelltunez/lastGLANCE) (recent upkeep), and lifeGLANCE (your whole timeline).
 
+[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="75">](https://play.google.com/store/apps/details?id=com.lifeglance.app)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-3.0.0-green.svg)](../../releases)
 
@@ -56,6 +58,34 @@ npm run preview # serve the production build locally
 ```
 
 The Docker image builds with Node 20 Alpine and serves the static output via nginx.
+
+---
+
+## Android App
+
+A native Android app is available on Google Play and as a direct APK download. The Google Play build is a commercial binary that supports continued development.
+
+[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="60">](https://play.google.com/store/apps/details?id=com.lifeglance.app)
+
+[**Download APK from Releases →**](https://github.com/krelltunez/lifeGLANCE/releases)
+
+[**Get it on Obtainium →**](https://github.com/ImranR98/Obtainium)
+<br> *Just point Obtainium to `krelltunez/lifeGLANCE`!*
+
+The Android app ships the full web app in a WebView with native enhancements that aren't possible in a browser:
+
+| Feature | Details |
+|---|---|
+| 🏠 **Home screen widgets** | Next milestone countdown, Today (date + age), Current chapter, On this day, milestone stats, and colour-slot pinned countdowns |
+| ➕ **Quick add everywhere** | A Quick Add widget, a Quick Settings tile, and long-press app shortcuts all open the add-milestone sheet in one tap |
+| 📤 **Share to add** | Share a link or text from any app to drop it straight into a new milestone |
+| 🔗 **GLANCE intents** | A cross-app intent protocol links lifeGLANCE with the rest of the GLANCE family |
+| 🔄 **Encrypted sync** | Opt-in WebDAV / GLANCEvault sync, end-to-end encrypted with a passphrase you control |
+| 📴 **Full offline** | The whole timeline works offline; photo, audio, and video attachments are stored as local blobs on-device |
+
+| Timeline | Milestone detail |
+|:-:|:-:|
+| ![lifeGLANCE timeline](play-assets/screenshots/phone/01-timeline.png) | ![Milestone detail](play-assets/screenshots/phone/02-milestone-detail.png) |
 
 ---
 
