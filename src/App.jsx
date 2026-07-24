@@ -29,6 +29,27 @@ export default function App() {
   const [showPassphraseModal, setShowPassphraseModal] = useState(false)
   const [cloudSyncOpen, setCloudSyncOpen] = useState(false)
 
+  // Demo-data state (hosted-eval only). Presence of the persisted demo-state key
+  // means sample data is loaded and drives the persistent banner. The whole
+  // feature is gated on the VITE_DEMO literal so it tree-shakes out of every
+  // build except the Vercel one.
+  // No setter: seed and clear both reload the page, so this is re-read on mount.
+  const [demoLoaded] = useState(
+    () => import.meta.env.VITE_DEMO && !!localStorage.getItem('lifeglance-demo-state')
+  )
+
+  async function handleClearDemo() {
+    if (!import.meta.env.VITE_DEMO) return
+    if (!window.confirm('Remove the sample data? Anything you created yourself will be kept.')) return
+    const { clearDemo } = await import('./demo/demo')
+    await clearDemo()
+    // Reload WITHOUT the ?demo=1 param, or the deep-link auto-seed would just
+    // re-seed on the now-empty timeline and Clear would appear to do nothing.
+    const url = new URL(location.href)
+    url.searchParams.delete('demo')
+    location.replace(url.pathname + url.search + url.hash)
+  }
+
   // Entitlement engine — inert (ungated, 'channel' source) everywhere except
   // the Play Android build, which is the only channel that gets an adapter.
   const billing = useSubscription()
@@ -83,6 +104,23 @@ export default function App() {
         return backfillMediaIds().then(() => Promise.all([dbGetAll(), dbGetAllChapters()]))
       })
       .then(([all, allChapters]) => {
+        // ?demo=1 deep link — auto-seed the sample timeline, subject to the build
+        // gate AND the empty-timeline condition (never clobbers real data), then
+        // reload so the rest of this init runs against the seeded store. Already
+        // seeded (or non-empty) falls through to the normal path.
+        if (
+          import.meta.env.VITE_DEMO &&
+          all.length === 0 &&
+          !localStorage.getItem('lifeglance-demo-state') &&
+          new URLSearchParams(location.search).get('demo') === '1'
+        ) {
+          import('./demo/demo').then(async ({ loadDemo }) => {
+            await loadDemo()
+            location.reload()
+          })
+          return
+        }
+
         setMilestones(all)
         setChapters(allChapters)
         setScreen(all.length === 0 ? 'onboarding' : 'timeline')
@@ -247,6 +285,37 @@ export default function App() {
   return (
     <>
       {content}
+      {/* Persistent sample-data banner (hosted-eval only). Gated on the VITE_DEMO
+          literal so the whole block is stripped from every non-Vercel build. */}
+      {import.meta.env.VITE_DEMO && demoLoaded && screen === 'timeline' && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10000,
+            display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center',
+            gap: '0.35rem 0.9rem', padding: '0.4rem 1rem',
+            fontSize: '0.72rem', lineHeight: 1.3,
+            background: 'rgba(var(--amber-rgb), 0.18)',
+            color: 'var(--amber-bright)',
+            borderBottom: '1px solid rgba(var(--amber-rgb), 0.4)',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <span style={{ fontWeight: 600 }}>
+            Sample data — this is a fictional demo timeline, not your own.
+          </span>
+          <button
+            onClick={handleClearDemo}
+            style={{
+              fontSize: '0.7rem', padding: '0.25rem 0.75rem', borderRadius: '999px',
+              background: 'var(--amber-bright)', color: 'var(--bg)',
+              fontWeight: 700, border: 'none', cursor: 'pointer',
+            }}
+          >
+            Clear sample data
+          </button>
+        </div>
+      )}
       {portraitWarn && (
         <div className="portrait-overlay">
           <div className="logo">

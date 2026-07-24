@@ -27,6 +27,18 @@ export default function Step1Welcome({ onBegin }) {
 
   const showCta = phase === 'cta'
 
+  // Demo-data loader — hosted-eval only. The whole block (handler + button) is
+  // gated on the VITE_DEMO literal so it is dead-code-eliminated from every build
+  // except the Vercel one. The fixture + seed logic live behind a dynamic import
+  // so they are never pulled into the other bundles.
+  async function handleLoadDemo() {
+    if (!import.meta.env.VITE_DEMO) return
+    if (!window.confirm('Load a sample timeline (a fictional persona) so you can explore lifeGLANCE with real content? You can clear it at any time.')) return
+    const { loadDemo } = await import('../../demo/demo')
+    await loadDemo()
+    location.reload()
+  }
+
   return (
     <div className="onboarding-step" style={{ alignItems: 'flex-start' }}>
       {/* Logo animation */}
@@ -65,6 +77,13 @@ export default function Step1Welcome({ onBegin }) {
         <button className="btn" onClick={onBegin}>
           {t('begin')}
         </button>
+        {import.meta.env.VITE_DEMO && (
+          <div style={{ marginTop: '0.85rem' }}>
+            <button className="onboarding-link" onClick={handleLoadDemo}>
+              Load demo data
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
