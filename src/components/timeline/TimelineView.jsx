@@ -2127,39 +2127,52 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         <button className="today-btn" onClick={handleJumpToToday}>
           {t('jumpToToday')}
         </button>
-
-        {/* Sample-data indicator (hosted-eval only). An in-flow toolbar item so it
-            wraps with the rest of the bottom bar and never overlaps other chrome.
-            Gated on the VITE_DEMO literal → stripped from every non-Vercel build. */}
-        {import.meta.env.VITE_DEMO && demoLoaded && (
-          <span
-            role="status"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-              marginLeft: 'auto', padding: '0.22rem 0.28rem 0.22rem 0.7rem',
-              borderRadius: '999px', whiteSpace: 'nowrap',
-              fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.2,
-              color: 'var(--amber-bright)',
-              background: 'rgba(var(--amber-rgb), 0.16)',
-              border: '1px solid rgba(var(--amber-rgb), 0.4)',
-            }}
-          >
-            <span style={{ width: '7px', height: '7px', borderRadius: '50%',
-              background: 'var(--amber-bright)', flexShrink: 0 }} aria-hidden="true" />
-            {ultraCompact ? 'Demo' : 'Sample data'}
-            <button
-              onClick={onClearDemo}
-              style={{
-                fontSize: '0.68rem', padding: '0.2rem 0.65rem', borderRadius: '999px',
-                background: 'var(--amber-bright)', color: 'var(--bg)',
-                fontWeight: 700, border: 'none', cursor: 'pointer', flexShrink: 0,
-              }}
-            >
-              Clear
-            </button>
-          </span>
-        )}
       </div>
+
+      {/* Sample-data pill (hosted-eval only). Floats over the timeline just below
+          the header (logo + zoom picker) so it never crowds the top controls or
+          the bottom toolbar. Hidden while the idle/watch overlay is active. The
+          styles ride along in a gated <style> so the WHOLE block — markup and CSS
+          — is stripped from every non-Vercel build by the VITE_DEMO literal. */}
+      {import.meta.env.VITE_DEMO && demoLoaded && !idle.active && (
+        <>
+          <style>{`
+            .demo-pill {
+              position: fixed; z-index: 850;
+              /* Phone: below the header + past/future row (root font ~22px). */
+              top: calc(4.3rem + env(safe-area-inset-top, 0px));
+              left: calc(0.6rem + env(safe-area-inset-left, 0px));
+              display: inline-flex; align-items: center; gap: 0.5rem;
+              padding: 0.32rem 0.85rem; border-radius: 999px;
+              font-family: var(--font); font-size: 0.72rem; font-weight: 600;
+              letter-spacing: 0.02em; white-space: nowrap; cursor: pointer;
+              color: var(--amber-bright);
+              background: rgba(var(--amber-rgb), 0.16);
+              border: 1px solid rgba(var(--amber-rgb), 0.45);
+              backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+              box-shadow: 0 2px 14px rgba(0, 0, 0, 0.3);
+              transition: background 0.15s;
+            }
+            .demo-pill:hover { background: rgba(var(--amber-rgb), 0.28); }
+            .demo-pill-dot {
+              width: 7px; height: 7px; border-radius: 50%;
+              background: var(--amber-bright); flex-shrink: 0;
+            }
+            @media (min-width: 820px) and (min-height: 620px) {
+              /* Desktop: under the taller two-row header, right of the "past"
+                 panel so it clears both it and the centred today readout. */
+              .demo-pill {
+                top: calc(4.1rem + env(safe-area-inset-top, 0px));
+                left: 7.4rem;
+              }
+            }
+          `}</style>
+          <button onClick={onClearDemo} className="demo-pill" title="Remove the sample data">
+            <span className="demo-pill-dot" aria-hidden="true" />
+            Clear sample data
+          </button>
+        </>
+      )}
 
       {/* ── Idle / watch overlay (visual only — any input exits) ───────────── */}
       {idle.active && (
