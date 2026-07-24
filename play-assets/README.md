@@ -29,7 +29,7 @@ npm run screenshots
 ```
 
 That builds the app, serves `dist/` in-process, seeds the demo backup
-(`lifeglance-jake-chen-test.json`) straight into IndexedDB, and drives Chromium
+(`src/demo/lifeglance-jake-chen-test.json`) straight into IndexedDB, and drives Chromium
 via Playwright to capture each scene at each device into
 `play-assets/screenshots/<device>/`. Everything is declared in
 `scripts/screenshots.mjs` — edit `DEVICES` / `SCENES` there and re-run to change

@@ -26,7 +26,7 @@ import path from 'node:path'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(ROOT, 'dist')
-const DEMO = path.join(ROOT, 'lifeglance-jake-chen-test.json')
+const DEMO = path.join(ROOT, 'src', 'demo', 'lifeglance-jake-chen-test.json')
 const OUT  = path.join(ROOT, 'play-assets', 'screenshots')
 const PORT = Number(process.env.PORT || 4173)
 const BASE = process.env.URL || `http://localhost:${PORT}`

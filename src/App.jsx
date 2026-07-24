@@ -29,6 +29,27 @@ export default function App() {
   const [showPassphraseModal, setShowPassphraseModal] = useState(false)
   const [cloudSyncOpen, setCloudSyncOpen] = useState(false)
 
+  // Demo-data state (hosted-eval only). Presence of the persisted demo-state key
+  // means sample data is loaded and drives the persistent banner. The whole
+  // feature is gated on the VITE_DEMO literal so it tree-shakes out of every
+  // build except the Vercel one.
+  // No setter: seed and clear both reload the page, so this is re-read on mount.
+  const [demoLoaded] = useState(
+    () => import.meta.env.VITE_DEMO && !!localStorage.getItem('lifeglance-demo-state')
+  )
+
+  async function handleClearDemo() {
+    if (!import.meta.env.VITE_DEMO) return
+    if (!window.confirm('Remove the sample data? Anything you created yourself will be kept.')) return
+    const { clearDemo } = await import('./demo/demo')
+    await clearDemo()
+    // Reload WITHOUT the ?demo=1 param, or the deep-link auto-seed would just
+    // re-seed on the now-empty timeline and Clear would appear to do nothing.
+    const url = new URL(location.href)
+    url.searchParams.delete('demo')
+    location.replace(url.pathname + url.search + url.hash)
+  }
+
   // Entitlement engine — inert (ungated, 'channel' source) everywhere except
   // the Play Android build, which is the only channel that gets an adapter.
   const billing = useSubscription()
@@ -83,6 +104,23 @@ export default function App() {
         return backfillMediaIds().then(() => Promise.all([dbGetAll(), dbGetAllChapters()]))
       })
       .then(([all, allChapters]) => {
+        // ?demo=1 deep link — auto-seed the sample timeline, subject to the build
+        // gate AND the empty-timeline condition (never clobbers real data), then
+        // reload so the rest of this init runs against the seeded store. Already
+        // seeded (or non-empty) falls through to the normal path.
+        if (
+          import.meta.env.VITE_DEMO &&
+          all.length === 0 &&
+          !localStorage.getItem('lifeglance-demo-state') &&
+          new URLSearchParams(location.search).get('demo') === '1'
+        ) {
+          import('./demo/demo').then(async ({ loadDemo }) => {
+            await loadDemo()
+            location.reload()
+          })
+          return
+        }
+
         setMilestones(all)
         setChapters(allChapters)
         setScreen(all.length === 0 ? 'onboarding' : 'timeline')
@@ -241,6 +279,8 @@ export default function App() {
       onOpenCloudSync={() => setCloudSyncOpen(true)}
       onOpenSubscription={billing.gated ? () => setSubscriptionOpen(true) : undefined}
       licenseSource={billing.gated ? billing.entitlementSource : null}
+      demoLoaded={import.meta.env.VITE_DEMO && demoLoaded}
+      onClearDemo={import.meta.env.VITE_DEMO ? handleClearDemo : undefined}
     />
   )
 
