@@ -279,43 +279,14 @@ export default function App() {
       onOpenCloudSync={() => setCloudSyncOpen(true)}
       onOpenSubscription={billing.gated ? () => setSubscriptionOpen(true) : undefined}
       licenseSource={billing.gated ? billing.entitlementSource : null}
+      demoLoaded={import.meta.env.VITE_DEMO && demoLoaded}
+      onClearDemo={import.meta.env.VITE_DEMO ? handleClearDemo : undefined}
     />
   )
 
   return (
     <>
       {content}
-      {/* Persistent sample-data banner (hosted-eval only). Gated on the VITE_DEMO
-          literal so the whole block is stripped from every non-Vercel build. */}
-      {import.meta.env.VITE_DEMO && demoLoaded && screen === 'timeline' && (
-        <div
-          role="status"
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10000,
-            display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center',
-            gap: '0.35rem 0.9rem', padding: '0.4rem 1rem',
-            fontSize: '0.72rem', lineHeight: 1.3,
-            background: 'rgba(var(--amber-rgb), 0.18)',
-            color: 'var(--amber-bright)',
-            borderBottom: '1px solid rgba(var(--amber-rgb), 0.4)',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <span style={{ fontWeight: 600 }}>
-            Sample data — this is a fictional demo timeline, not your own.
-          </span>
-          <button
-            onClick={handleClearDemo}
-            style={{
-              fontSize: '0.7rem', padding: '0.25rem 0.75rem', borderRadius: '999px',
-              background: 'var(--amber-bright)', color: 'var(--bg)',
-              fontWeight: 700, border: 'none', cursor: 'pointer',
-            }}
-          >
-            Clear sample data
-          </button>
-        </div>
-      )}
       {portraitWarn && (
         <div className="portrait-overlay">
           <div className="logo">

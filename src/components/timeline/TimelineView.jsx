@@ -83,7 +83,7 @@ const IDLE_TIMEOUT_OPTIONS = [
   { ms: 600000, label: '10m' },
 ]
 
-export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync, onOpenSubscription, licenseSource }) {
+export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync, onOpenSubscription, licenseSource, demoLoaded, onClearDemo }) {
   const { t, i18n } = useTranslation('timeline')
   const { t: tdg } = useTranslation('dayglance')
   const { t: tc } = useTranslation('common')
@@ -2127,6 +2127,38 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         <button className="today-btn" onClick={handleJumpToToday}>
           {t('jumpToToday')}
         </button>
+
+        {/* Sample-data indicator (hosted-eval only). An in-flow toolbar item so it
+            wraps with the rest of the bottom bar and never overlaps other chrome.
+            Gated on the VITE_DEMO literal → stripped from every non-Vercel build. */}
+        {import.meta.env.VITE_DEMO && demoLoaded && (
+          <span
+            role="status"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              marginLeft: 'auto', padding: '0.22rem 0.28rem 0.22rem 0.7rem',
+              borderRadius: '999px', whiteSpace: 'nowrap',
+              fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.2,
+              color: 'var(--amber-bright)',
+              background: 'rgba(var(--amber-rgb), 0.16)',
+              border: '1px solid rgba(var(--amber-rgb), 0.4)',
+            }}
+          >
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%',
+              background: 'var(--amber-bright)', flexShrink: 0 }} aria-hidden="true" />
+            {ultraCompact ? 'Demo' : 'Sample data'}
+            <button
+              onClick={onClearDemo}
+              style={{
+                fontSize: '0.68rem', padding: '0.2rem 0.65rem', borderRadius: '999px',
+                background: 'var(--amber-bright)', color: 'var(--bg)',
+                fontWeight: 700, border: 'none', cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              Clear
+            </button>
+          </span>
+        )}
       </div>
 
       {/* ── Idle / watch overlay (visual only — any input exits) ───────────── */}
