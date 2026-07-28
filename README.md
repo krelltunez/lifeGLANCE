@@ -7,7 +7,7 @@ Part of the **GLANCE family**: focused, standalone apps connected through a shar
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="75">](https://play.google.com/store/apps/details?id=com.lifeglance.app)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.0.0-green.svg)](../../releases)
+[![Version](https://img.shields.io/badge/version-3.0.1-green.svg)](../../releases)
 
 ---
 
