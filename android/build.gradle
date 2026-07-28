@@ -4,7 +4,7 @@ buildscript {
     // Kotlin version for the Glance widgets. Buildscript blocks are evaluated before
     // `apply from: variables.gradle`, so this can't be read from ext here; keep it in
     // sync with kotlinVersion in variables.gradle.
-    ext.kotlinVersion = '2.0.21'
+    ext.kotlinVersion = '2.2.20'
 
     repositories {
         google()
