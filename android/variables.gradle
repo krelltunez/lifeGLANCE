@@ -15,7 +15,7 @@ ext {
     cordovaAndroidVersion = '14.0.1'
 
     // Native home-screen widgets (Jetpack Glance, Kotlin/Compose)
-    kotlinVersion = '2.0.21'
+    kotlinVersion = '2.2.20'
     glanceVersion = '1.1.1'
 
     // Play Billing client used by the :glance-apps-billing module
