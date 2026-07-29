@@ -1,8 +1,10 @@
 # iOS Share Extension — implementation spec
 
-Status: **proposed** (native code not yet written). This specs the work needed to
-bring the "share text/link → pre-filled Add-milestone sheet" flow to iOS, matching
-what Android already does.
+Status: **implemented** — all sections below are built and registered in
+`App.xcodeproj`. Retained as the design record for the "share text/link →
+pre-filled Add-milestone sheet" flow on iOS, matching what Android already does.
+Where the shipped code deliberately departs from the original sketch, the section
+says so. Still **unverified on a device** — see *Acceptance tests*.
 
 ## Goal
 
@@ -54,21 +56,34 @@ with no new storage concepts.
 
 ### 1. New target: `LifeGlanceShare` (Share Extension)
 
-- Add via Xcode: *File ▸ New ▸ Target ▸ Share Extension*.
-  - Product name: `LifeGlanceShare`
-  - Bundle identifier: `com.lifeglance.share`
-  - Deployment target: match the `App` target.
-- Delete the template's `MainInterface.storyboard` — this extension has **no UI**
-  (it processes and dismisses immediately, matching Android's silent stash-and-open).
-- Add the **App Groups** capability with `group.com.lifeglance`, producing
+- Product name `LifeGlanceShare`, bundle identifier `com.lifeglance.share`,
+  `IPHONEOS_DEPLOYMENT_TARGET = 15.0` and `MARKETING_VERSION = 3.0.0` to match
+  the `App` and widgets targets.
+- No storyboard — this extension has **no UI** (it processes and dismisses
+  immediately, matching Android's silent stash-and-open), so activation goes
+  through `NSExtensionPrincipalClass`.
+- **App Groups** capability with `group.com.lifeglance`, in
   `ios/App/LifeGlanceShare/LifeGlanceShare.entitlements`:
   ```xml
   <key>com.apple.security.application-groups</key>
   <array><string>group.com.lifeglance</string></array>
   ```
-- Add the existing `ios/App/LifeGlanceWidgets/WidgetModel.swift` to this target's
-  membership (it is Foundation-only and already shared by the App and widget
-  targets — see §4).
+
+Two departures from the original sketch, both deliberate:
+
+- **The target was hand-written into `project.pbxproj`**, not created through
+  Xcode's *New Target* assistant. The project is `objectVersion = 70`, so the
+  target hangs off a `PBXFileSystemSynchronizedRootGroup` — there are no
+  per-file build entries, which makes the edit small and reviewable, and the
+  `LifeGlanceWidgetsExtension` target next to it serves as the reference shape.
+  Signing is `Automatic` against the existing `DEVELOPMENT_TEAM`, so nothing had
+  to be provisioned by hand.
+- **`WidgetModel.swift` is *not* added to this target's membership.**
+  `ShareViewController` writes to `UserDefaults(suiteName:)` inline instead, the
+  same self-contained approach `AppDelegate` uses. Sharing one file across two
+  synchronized-folder targets requires a `membershipExceptions` entry, which is
+  more machinery than a three-line write is worth. §4's `WidgetStore` additions
+  are still needed — but only for the **App** target's read side (§5).
 
 ### 2. `LifeGlanceShare/Info.plist` activation rule
 
@@ -81,7 +96,7 @@ title we can use as `subject`):
   <key>NSExtensionPointIdentifier</key>
   <string>com.apple.share-services</string>
   <key>NSExtensionPrincipalClass</key>
-  <string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
+  <string>ShareViewController</string>
   <key>NSExtensionAttributes</key>
   <dict>
     <key>NSExtensionActivationRule</key>
@@ -93,6 +108,13 @@ title we can use as `subject`):
   </dict>
 </dict>
 ```
+
+The principal class is the **bare** `ShareViewController`, not
+`$(PRODUCT_MODULE_NAME).ShareViewController` as first sketched. The class is
+declared `@objc(ShareViewController)`, which overrides its Objective-C runtime
+name to drop the module prefix; the system resolves this key through
+`NSClassFromString`, so the module-qualified form would not resolve and the
+extension would fail to launch. The two must be changed together.
 
 ### 3. `LifeGlanceShare/ShareViewController.swift`
 
@@ -231,10 +253,19 @@ the title, and keeps the full text as a note — no iOS-side truncation needed.
 
 ## Acceptance tests (manual — no iOS device CI)
 
+`.github/workflows/ios.yml` compiles the extension, which catches project and
+Swift errors, but it never runs the app — so nothing below is covered by CI.
+All four remain outstanding:
+
 1. Share plain text from Notes → app opens → Add sheet titled from the text.
 2. Share a URL from Safari → Add sheet with the URL populated and hostname/title.
 3. Share with an explicit subject/title → subject becomes the title.
 4. Share something empty/unusable → app does not open a blank draft.
+
+Test 0, implied by the rest: **lifeGLANCE actually appears in the share sheet.**
+An activation-rule or principal-class error presents as a silently missing entry
+rather than a crash, so confirm the entry exists before reading anything into
+tests 1–4.
 
 ## Out of scope
 

@@ -6,8 +6,13 @@
 	<dict>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.share-services</string>
+		<!-- Bare class name, not $(PRODUCT_MODULE_NAME).ShareViewController: the class
+		     is declared @objc(ShareViewController), which sets its Objective-C runtime
+		     name to exactly "ShareViewController" with no module prefix. The system
+		     resolves this key via NSClassFromString, so the module-qualified form would
+		     not be found and the extension would fail to launch. -->
 		<key>NSExtensionPrincipalClass</key>
-		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
+		<string>ShareViewController</string>
 		<key>NSExtensionAttributes</key>
 		<dict>
 			<key>NSExtensionActivationRule</key>

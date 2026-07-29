@@ -12,6 +12,7 @@
 		0DA92D612FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0DA92D4F2FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		0DA92D722FECC30800F56B1C /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA92D712FECC30800F56B1C /* WidgetBridgePlugin.swift */; };
 		0DA92D762FECE9F200F56B1C /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA92D752FECE9F200F56B1C /* MainViewController.swift */; };
+		0DB5E10D2FED010000F56B1C /* LifeGlanceShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0DB5E1022FED010000F56B1C /* LifeGlanceShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -30,6 +31,13 @@
 			remoteGlobalIDString = 0DA92D4E2FECBEF700F56B1C;
 			remoteInfo = LifeGlanceWidgetsExtension;
 		};
+		0DB5E10B2FED010000F56B1C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0DB5E1012FED010000F56B1C;
+			remoteInfo = LifeGlanceShare;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -40,6 +48,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				0DA92D612FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex in Embed Foundation Extensions */,
+				0DB5E10D2FED010000F56B1C /* LifeGlanceShare.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -54,6 +63,7 @@
 		0DA92D702FECC21B00F56B1C /* LifeGlanceWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LifeGlanceWidgetsExtension.entitlements; sourceTree = "<group>"; };
 		0DA92D712FECC30800F56B1C /* WidgetBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBridgePlugin.swift; sourceTree = "<group>"; };
 		0DA92D752FECE9F200F56B1C /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		0DB5E1022FED010000F56B1C /* LifeGlanceShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LifeGlanceShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -81,10 +91,20 @@
 			);
 			target = 504EC3031FED79650016851F /* App */;
 		};
+		0DB5E1072FED010000F56B1C /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				LifeGlanceShare.entitlements,
+				README.md,
+			);
+			target = 0DB5E1012FED010000F56B1C /* LifeGlanceShare */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0DA92D552FECBEF700F56B1C /* LifeGlanceWidgets */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0DA92D742FECC3C700F56B1C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 0DA92D622FECBEF700F56B1C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = LifeGlanceWidgets; sourceTree = "<group>"; };
+		0DB5E1062FED010000F56B1C /* LifeGlanceShare */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (0DB5E1072FED010000F56B1C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = LifeGlanceShare; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -94,6 +114,13 @@
 			files = (
 				0DA92D542FECBEF700F56B1C /* SwiftUI.framework in Frameworks */,
 				0DA92D522FECBEF700F56B1C /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0DB5E1042FED010000F56B1C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,6 +151,7 @@
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				0DA92D552FECBEF700F56B1C /* LifeGlanceWidgets */,
+				0DB5E1062FED010000F56B1C /* LifeGlanceShare */,
 				0DA92D502FECBEF700F56B1C /* Frameworks */,
 				504EC3051FED79650016851F /* Products */,
 			);
@@ -134,6 +162,7 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				0DA92D4F2FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex */,
+				0DB5E1022FED010000F56B1C /* LifeGlanceShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -181,6 +210,28 @@
 			productReference = 0DA92D4F2FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		0DB5E1012FED010000F56B1C /* LifeGlanceShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0DB5E1082FED010000F56B1C /* Build configuration list for PBXNativeTarget "LifeGlanceShare" */;
+			buildPhases = (
+				0DB5E1032FED010000F56B1C /* Sources */,
+				0DB5E1042FED010000F56B1C /* Frameworks */,
+				0DB5E1052FED010000F56B1C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				0DB5E1062FED010000F56B1C /* LifeGlanceShare */,
+			);
+			name = LifeGlanceShare;
+			packageProductDependencies = (
+			);
+			productName = LifeGlanceShare;
+			productReference = 0DB5E1022FED010000F56B1C /* LifeGlanceShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		504EC3031FED79650016851F /* App */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 504EC3161FED79650016851F /* Build configuration list for PBXNativeTarget "App" */;
@@ -194,6 +245,7 @@
 			);
 			dependencies = (
 				0DA92D602FECBEF700F56B1C /* PBXTargetDependency */,
+				0DB5E10C2FED010000F56B1C /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -214,6 +266,10 @@
 				TargetAttributes = {
 					0DA92D4E2FECBEF700F56B1C = {
 						CreatedOnToolsVersion = 26.5;
+					};
+					0DB5E1012FED010000F56B1C = {
+						CreatedOnToolsVersion = 26.5;
+						ProvisioningStyle = Automatic;
 					};
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
@@ -240,12 +296,20 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				0DA92D4E2FECBEF700F56B1C /* LifeGlanceWidgetsExtension */,
+				0DB5E1012FED010000F56B1C /* LifeGlanceShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		0DA92D4D2FECBEF700F56B1C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		0DB5E1052FED010000F56B1C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -275,6 +339,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		0DB5E1032FED010000F56B1C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -292,6 +363,11 @@
 			isa = PBXTargetDependency;
 			target = 0DA92D4E2FECBEF700F56B1C /* LifeGlanceWidgetsExtension */;
 			targetProxy = 0DA92D5F2FECBEF700F56B1C /* PBXContainerItemProxy */;
+		};
+		0DB5E10C2FED010000F56B1C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0DB5E1012FED010000F56B1C /* LifeGlanceShare */;
+			targetProxy = 0DB5E10B2FED010000F56B1C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -390,6 +466,86 @@
 				MARKETING_VERSION = 3.0.0;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lifeglance.LifeGlanceWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		0DB5E1092FED010000F56B1C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_ENTITLEMENTS = LifeGlanceShare/LifeGlanceShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CTZ7352A3G;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LifeGlanceShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = lifeGLANCE;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 3.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lifeglance.share;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		0DB5E10A2FED010000F56B1C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_ENTITLEMENTS = LifeGlanceShare/LifeGlanceShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = CTZ7352A3G;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LifeGlanceShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = lifeGLANCE;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 3.0.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lifeglance.share;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -566,6 +722,15 @@
 			buildConfigurations = (
 				0DA92D642FECBEF700F56B1C /* Debug */,
 				0DA92D652FECBEF700F56B1C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0DB5E1082FED010000F56B1C /* Build configuration list for PBXNativeTarget "LifeGlanceShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0DB5E1092FED010000F56B1C /* Debug */,
+				0DB5E10A2FED010000F56B1C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
