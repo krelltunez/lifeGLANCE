@@ -8,6 +8,8 @@ import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
 import { initDbSyncEngine, getDbSyncEngine } from './sync/dbSync'
+import { useVaultEventStream } from './hooks/useVaultEventStream'
+import { drainIntentsNow } from './hooks/useIntentPoller'
 import { buildWidgetSnapshot } from './utils/widgetSnapshot'
 import { pushWidgetSnapshot } from './native/widgetBridge'
 import { useSubscription } from './billing/billing'
@@ -163,6 +165,15 @@ export default function App() {
         setScreen('onboarding')
       })
   }, [])
+
+  // GLANCEvault SSE push: instant drains of the same sync/intents paths the
+  // intervals below poll. Purely additive — the polls stay the correctness
+  // backstop, and the hook is inert unless the vault is enabled (and re-reads
+  // the config on lifeglance:vault-config-changed).
+  useVaultEventStream({
+    drainSync: () => { getDbSyncEngine()?.sync() },
+    drainIntents: drainIntentsNow,
+  })
 
   // Sync interval — trigger sync every 60 seconds with a random initial jitter
   // so multiple browser windows don't stay phase-locked after a hot reload.

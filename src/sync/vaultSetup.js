@@ -123,6 +123,11 @@ export async function runVaultSetup({ vaultUrl, vaultToken, accountId, passphras
   // Activate IN PLACE (rebuild the engine from the freshly saved config) and kick
   // a first sync, which seeds the HWM=0 full snapshot.
   await (deps.reinit ?? defaultReinit)()
+  // The SSE hook (useVaultEventStream) mirrors the engine's in-place lifecycle:
+  // tell it the config changed so it (re)opens the stream with fresh credentials.
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lifeglance:vault-config-changed'))
+  }
   await (deps.startSync ?? (() => getDbSyncEngine()?.sync()))()
   return { ok: true, kind: outcome.kind }
 }
@@ -135,4 +140,8 @@ export function disableVault(deps = {}) {
   try { cfg = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}') || {} } catch { cfg = {} }
   localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...cfg, vaultEnabled: false }))
   ;(deps.reinit ?? defaultReinit)()
+  // Close the SSE stream too — the hook re-reads the (now disabled) config.
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lifeglance:vault-config-changed'))
+  }
 }
