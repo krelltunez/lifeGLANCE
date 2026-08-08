@@ -12,6 +12,8 @@
 		0DA92D612FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0DA92D4F2FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		0DA92D722FECC30800F56B1C /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA92D712FECC30800F56B1C /* WidgetBridgePlugin.swift */; };
 		0DA92D762FECE9F200F56B1C /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA92D752FECE9F200F56B1C /* MainViewController.swift */; };
+		7B5F62012E3D110100D5E3A1 /* VaultSseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5F62002E3D110100D5E3A1 /* VaultSseClient.swift */; };
+		7B5F62032E3D110100D5E3A1 /* VaultSsePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -54,6 +56,8 @@
 		0DA92D702FECC21B00F56B1C /* LifeGlanceWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LifeGlanceWidgetsExtension.entitlements; sourceTree = "<group>"; };
 		0DA92D712FECC30800F56B1C /* WidgetBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBridgePlugin.swift; sourceTree = "<group>"; };
 		0DA92D752FECE9F200F56B1C /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		7B5F62002E3D110100D5E3A1 /* VaultSseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultSseClient.swift; sourceTree = "<group>"; };
+		7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultSsePlugin.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -142,6 +146,8 @@
 			isa = PBXGroup;
 			children = (
 				0DA92D752FECE9F200F56B1C /* MainViewController.swift */,
+				7B5F62002E3D110100D5E3A1 /* VaultSseClient.swift */,
+				7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */,
 				0DA92D712FECC30800F56B1C /* WidgetBridgePlugin.swift */,
 				0DA92D4A2FECBDC700F56B1C /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -282,6 +288,8 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				0DA92D722FECC30800F56B1C /* WidgetBridgePlugin.swift in Sources */,
 				0DA92D762FECE9F200F56B1C /* MainViewController.swift in Sources */,
+				7B5F62012E3D110100D5E3A1 /* VaultSseClient.swift in Sources */,
+				7B5F62032E3D110100D5E3A1 /* VaultSsePlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
