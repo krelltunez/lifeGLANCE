@@ -15,6 +15,13 @@ export function isRelevantInboundEvent({ action, emitted_by, payload } = {}) {
   return false
 }
 
+// The mounted poller's runPoll, so the vault SSE nudge path (useVaultEventStream
+// → drainIntentsNow) can trigger an immediate intents drain with the SAME
+// handlers and cursors the interval uses. Null while no poller is mounted —
+// drainIntentsNow is then a no-op and the mount-time poll covers the gap.
+let activeIntentDrain = null
+export function drainIntentsNow() { activeIntentDrain?.() }
+
 // Polls the WebDAV events directory while the component is mounted (foreground).
 // Calls the appropriate handler for each inbound event:
 //   onInboundCreate(payload)  — dayGLANCE pushed a new Goal → create milestone
@@ -86,7 +93,11 @@ export function useIntentPoller({
     runPoll() // app start / mount: receive + flush anything persisted from a previous session
     const ms = Math.max(1, intervalMin) * 60 * 1000
     const id = setInterval(runPoll, ms)
-    return () => clearInterval(id)
+    activeIntentDrain = runPoll
+    return () => {
+      clearInterval(id)
+      if (activeIntentDrain === runPoll) activeIntentDrain = null
+    }
   }, [runPoll, intervalMin])
 
   // Re-drain the moment the vault intents key becomes available (dbSync dispatches
