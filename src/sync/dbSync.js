@@ -227,7 +227,14 @@ export const initDbSyncEngine = (opts = {}) => {
   // runs ensureRootKey (salt establishment), so bootstrap the blob/intents key
   // here too — a backgrounded first write can establish the salt before any
   // full sync does.
+  //
+  // Honour the sync 1.10 credential halt here as well: pushDirtyRows is a raw
+  // primitive with no halt guard, so without this check every local edit on a
+  // halted device would fire one doomed (401) batch request. The halt is
+  // terminal by design — the cycle stops, and so should push-on-write. Rows
+  // stay marked dirty, so everything pushes once access is restored.
   const pushNow = async () => {
+    if (engine.isCredentialHalted?.()) return { written: 0, deleted: 0, halted: true }
     await seedSnapshot()
     const r = await engine.pushDirtyRows()
     await bootstrapIntentsRootKey()

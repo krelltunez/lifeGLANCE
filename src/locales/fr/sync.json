@@ -64,6 +64,8 @@
   "passphraseRequired": "Enter your sync passphrase to continue.",
   "appIdMismatch": "This sync data belongs to a different app.",
   "schemaForwardIncompatible": "This sync data is from a newer app version — please update the app.",
+  "credentialInvalid": "Le serveur de synchronisation n'accepte plus l'accès de cet appareil. Vos modifications sont enregistrées sur cet appareil. Demandez à la personne qui gère votre serveur de synchronisation de rétablir l'accès pour cet appareil.",
+  "quotaExceeded": "Le serveur de synchronisation a atteint la limite de ce compte. Vos modifications sont enregistrées sur cet appareil et la synchronisation réessaiera automatiquement. Demandez à la personne qui gère votre serveur de synchronisation d'augmenter la limite.",
   "webdavSectionTitle": "synchronisation WebDAV",
   "webdavEnableLabel": "Synchroniser via WebDAV",
   "webdavEnableNote": "Synchronise avec n'importe quel serveur WebDAV (Nextcloud, ownCloud, etc.). Désactive ceci pour conserver tes informations de connexion tout en arrêtant la synchronisation sur cet appareil — par exemple lors d'un passage complet à GLANCEvault.",
