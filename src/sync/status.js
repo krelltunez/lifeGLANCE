@@ -20,10 +20,15 @@ export const isSyncing = (status) =>
 //   APP_ID_MISMATCH             — the remote file belongs to a different app.
 //   SCHEMA_FORWARD_INCOMPATIBLE — the remote file is from a newer app version.
 //
-// GLANCEvault database-transport codes (inert until that cutover; lifeGLANCE is
-// WebDAV-only today, but the mapping keeps the presentation layer ready):
+// GLANCEvault database-transport codes (vault DB sync is opt-in alongside
+// WebDAV; note the vault engine's onError is not yet wired into the UI — the
+// mapping keeps the presentation layer ready for when it is):
 //   KEY_MISMATCH         — wrong sync passphrase for this account's existing data.
 //   VERIFIER_UNSUPPORTED — the sync server is too old to host the key verifier.
+//   CREDENTIAL_INVALID   — the vault revoked this device's token; the engine
+//                          hard-halts the cycle (sync 1.10+, isHardStop true).
+//   QUOTA_EXCEEDED       — the vault reports the account over quota; pushes
+//                          back off and retry automatically (sync 1.10+).
 //
 // ACCOUNT_ID_REQUIRED is intentionally absent: it's a benign, retryable startup
 // race handled (suppressed) in the engine's onError, not surfaced as an error.
@@ -41,9 +46,11 @@ export const SYNC_ERROR_I18N_KEYS = {
   PASSPHRASE_REQUIRED: 'passphraseRequired',
   APP_ID_MISMATCH: 'appIdMismatch',
   SCHEMA_FORWARD_INCOMPATIBLE: 'schemaForwardIncompatible',
-  // GLANCEvault database transport (inert until cutover)
+  // GLANCEvault database transport
   KEY_MISMATCH: 'wrongPassphrase',
   VERIFIER_UNSUPPORTED: 'verifierUnsupported',
+  CREDENTIAL_INVALID: 'credentialInvalid',
+  QUOTA_EXCEEDED: 'quotaExceeded',
 }
 
 // Resolves an error object ({ message, code }) to display text, translating
