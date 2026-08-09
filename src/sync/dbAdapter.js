@@ -37,6 +37,7 @@
 
 import { normalizeMemberOps } from '../data/chapters.js'
 import { LIFE_ID, BUNDLE_KINDS, bundleEntityId } from './entityIds.js'
+import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js'
 
 export { LIFE_ID, BUNDLE_KINDS, bundleEntityId }
 
@@ -96,15 +97,21 @@ export function mergeCategories(localArr, localTs, remoteArr, remoteTs) {
 }
 
 // TOMBSTONE MAPS (A3 — don't regress the existing per-key merge).
-// id → ISO. UNION keeping the latest ISO per key (commutative). Different-id
-// tombstones from two devices both survive; same-id keeps the later stamp.
-export function mergeTombstoneMap(localMap, remoteMap) {
+// id → ISO. UNION keeping the latest ISO per key (commutative), then PRUNED at
+// the shared fixed retention cutoff (#287). Pruning inside the merge — rather
+// than as a separate local pass — is what escapes the grow-only re-inflation
+// trap: a peer's unpruned copy contributes only entries inside the window, so
+// a pruned map can never oscillate pruned↔restored across cycles. The cutoff
+// is day-floored (tombstoneRetention.js), so every merge within a UTC day
+// computes the same result and an unchanged bundle compares equal (no dirty
+// mark, no push, no SSE self-nudge).
+export function mergeTombstoneMap(localMap, remoteMap, cutoff = tombstoneCutoff()) {
   const out = { ...(localMap && typeof localMap === 'object' ? localMap : {}) }
   const r = remoteMap && typeof remoteMap === 'object' ? remoteMap : {}
   for (const [id, iso] of Object.entries(r)) {
     if (!(id in out) || ts(iso) > ts(out[id])) out[id] = iso
   }
-  return out
+  return pruneTombstoneMap(out, cutoff)
 }
 
 // CHAPTER MEMBERSHIP (A2 — within-entity set hazard → LWW-element-set).
@@ -185,7 +192,15 @@ export function makeDbAdapter({ store, markDirty = () => {} }) {
   // ── Bundle envelope <-> repr ──
   const bundleEnvelope = async (kind) => {
     const repr = await store.getBundle(kind)
-    const env = { _kind: kind, life_id: LIFE_ID, value: repr.value }
+    // Tombstone bundles are pruned at PRODUCE too (#287): the pushed envelope
+    // must carry the same pruned set the merge side computes, or a device
+    // holding a stale unpruned local copy would keep re-publishing aged-out
+    // entries for its peers to re-merge. Same day-floored cutoff as the merge,
+    // so produce and merge agree byte-for-byte within a day.
+    const value = (kind === 'milestoneTombstones' || kind === 'chapterTombstones')
+      ? pruneTombstoneMap(repr.value, tombstoneCutoff())
+      : repr.value
+    const env = { _kind: kind, life_id: LIFE_ID, value }
     if ('updatedAt' in repr) env.updatedAt = repr.updatedAt
     return env
   }
