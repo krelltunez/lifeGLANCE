@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getSyncEngine, reinitSyncEngine } from '../../sync/engine'
 import { isSyncing, syncErrorText, SYNC_ERROR_I18N_KEYS } from '../../sync/status'
+import { describeBackoff, backoffStatusText } from '../../sync/backoffStatus.js'
+import { getDbSyncEngine } from '../../sync/dbSync.js'
 import { verifyVaultCredentials, runVaultSetup, disableVault, VAULT_OUTCOME } from '../../sync/vaultSetup'
 import { resolveWebdavBase } from '../../sync/webdav'
 import { isNativePlatform, nativeRequest } from '../../sync/nativeHttp'
@@ -118,6 +120,21 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
   const [vaultSaving,     setVaultSaving]     = useState(false)
   const [vaultResult,     setVaultResult]     = useState(null)
   const vaultConfigured = !!existingConfig?.vaultEnabled
+  // Standing backoff window (issue #307), polled from the engine's
+  // getBackoffState() while the modal is open — onError is an event stream and
+  // goes quiet during windows, so this is the only truthful standing source.
+  // The 1s tick drives the countdown; the read is memory-only.
+  const [vaultBackoff, setVaultBackoff] = useState(null)
+  useEffect(() => {
+    if (!vaultConfigured) { setVaultBackoff(null); return }
+    const tick = () => {
+      const engine = getDbSyncEngine()?.engine
+      setVaultBackoff(engine?.getBackoffState ? describeBackoff(engine.getBackoffState(), Date.now()) : null)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [vaultConfigured])
 
   // ── Backfill: upload existing local-only media to GLANCEvault (user-initiated) ─
   const [backfillRunning,  setBackfillRunning]  = useState(false)
@@ -636,6 +653,17 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
                   </button>
                 )}
               </div>
+
+              {vaultBackoff && (
+                <div style={{
+                  padding: '0.6rem 1rem', borderRadius: '6px', marginTop: '0.6rem', fontSize: '0.82rem',
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  color: 'var(--amber-bright)',
+                  border: '1px solid rgba(245, 158, 11, 0.267)',
+                }}>
+                  {backoffStatusText(t, vaultBackoff)}
+                </div>
+              )}
 
               {/* One-time catch-up: upload existing local-only media to the vault. */}
               {vaultConfigured && (
