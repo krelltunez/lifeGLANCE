@@ -1,4 +1,5 @@
-import { mergeArrayById, pruneTombstones } from '@glance-apps/sync';
+import { mergeArrayById } from '@glance-apps/sync';
+import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js';
 import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChapter } from '../data/db.js';
 import { getMilestoneTombstones, getChapterTombstones } from './tombstones.js';
 import { loadCategories, saveCategories } from '../utils/colors.js';
@@ -10,7 +11,6 @@ import { loadCategories, saveCategories } from '../utils/colors.js';
 // grace period for that edge case — raising it widens the safe-offline window
 // at the cost of retaining more tombstones; don't lower it without accounting
 // for the increased resurrection risk.
-const RETENTION_MS = 90 * 86_400_000;
 
 // buildPayload — reads live IDB state. Called before every upload.
 // Accepts a milestonesRef so it can read the latest React state for milestones
@@ -139,9 +139,14 @@ export const mergePayloads = (local, remote) => {
   const lct = localLife.chapterTombstones ?? {};
   const rct = remoteLife.chapterTombstones ?? {};
 
-  const cutoff = new Date(Date.now() - RETENTION_MS);
-  const milestoneTombstones = pruneTombstones({ ...lmt, ...rmt }, cutoff);
-  const chapterTombstones = pruneTombstones({ ...lct, ...rct }, cutoff);
+  // Shared fixed 90-day window, day-floored, and the SAME prune function as
+  // the vault tier (tombstoneRetention.js) so the two tiers agree on every
+  // entry — including undatable ones, which the package's pruneTombstones
+  // drops but the shared fail-safe prune keeps. A disagreement there would
+  // make a corrupt-timestamp entry flap between the tiers' merges.
+  const cutoff = tombstoneCutoff();
+  const milestoneTombstones = pruneTombstoneMap({ ...lmt, ...rmt }, cutoff);
+  const chapterTombstones = pruneTombstoneMap({ ...lct, ...rct }, cutoff);
 
   const { merged: mergedMilestones } = mergeArrayById(lm, rm, milestoneTombstones, null,
     { idField: 'id', timestampField: 'updated_at' });

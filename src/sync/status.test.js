@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isSyncing, SYNC_ERROR_I18N_KEYS, syncErrorText } from './status.js'
+import { isSyncing, SYNC_ERROR_I18N_KEYS, combineTierErrors, syncErrorText } from './status.js'
 
 describe('isSyncing', () => {
   it('is true for the in-flight statuses', () => {
@@ -69,5 +69,27 @@ describe('syncErrorText', () => {
     // never reach the display layer. If it ever did, it falls back to raw text
     // rather than being treated as a known, scary error.
     expect(SYNC_ERROR_I18N_KEYS.ACCOUNT_ID_REQUIRED).toBeUndefined()
+  })
+})
+
+describe('combineTierErrors — two tiers, one indicator', () => {
+  const webdavErr = { message: 'webdav down', code: 'NETWORK_ERROR' }
+  const vaultErr  = { message: 'vault down', code: 'NETWORK_ERROR', hard: false }
+  const vaultHalt = { message: 'credential rejected', code: 'CREDENTIAL_INVALID', hard: true }
+
+  it('no errors: clean', () => {
+    expect(combineTierErrors(null, false, null)).toEqual({ error: null, halted: false })
+  })
+
+  it('a vault hard halt outranks a WebDAV error and forces halted styling', () => {
+    expect(combineTierErrors(webdavErr, false, vaultHalt)).toEqual({ error: vaultHalt, halted: true })
+  })
+
+  it('the WebDAV tier wins over a transient vault error', () => {
+    expect(combineTierErrors(webdavErr, true, vaultErr)).toEqual({ error: webdavErr, halted: true })
+  })
+
+  it('a transient vault error shows when WebDAV is clean', () => {
+    expect(combineTierErrors(null, false, vaultErr)).toEqual({ error: vaultErr, halted: false })
   })
 })

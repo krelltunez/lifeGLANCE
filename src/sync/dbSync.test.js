@@ -181,4 +181,40 @@ describe('Stage 2 Part B — DB sync engine wiring', () => {
     }
     expect(fired).toBeGreaterThan(0)
   })
+
+  // The sync 1.10 credential halt must gate push-on-write too: pushDirtyRows is
+  // a raw primitive with no halt guard, so pushNow checks the halt itself.
+  // Local edits stay dirty and push once access is restored via recovery.
+  it('push-on-write goes silent under the sync 1.10 credential halt', async () => {
+    const m = await freshModules()
+    localStorage.setItem('lifeglance-cloud-sync-config', JSON.stringify(VAULT_CFG))
+    const vault = makeMemVault()
+    m.setSyncPassphrase('pw')
+    await m.setupDbRootKey('pw', new Uint8Array(16).fill(9), { cryptoDBName: 'lifeglance-crypto' })
+
+    let batchCalls = 0
+    let reject = true
+    const realBatch = vault.batch
+    vault.batch = async (app, payload) => {
+      batchCalls += 1
+      if (reject) {
+        const err = new Error("batch upsert failed: 401 — the server rejected this device's credential")
+        err.code = 'CREDENTIAL_INVALID'
+        err.status = 401
+        throw err
+      }
+      return realBatch(app, payload)
+    }
+
+    const dbSync = m.initDbSyncEngine({ vaultConfig: VAULT_CFG, vaultClient: vault })
+    await m.milestones.addMilestone({ title: 'Doomed write', date: new Date('2021-01-01') })
+    await dbSync.sync().catch(() => {})   // cycle hits the coded 401 → engine halts
+    expect(dbSync.engine.isCredentialHalted()).toBe(true)
+
+    reject = false                        // server would accept again; the halt is terminal anyway
+    const before = batchCalls
+    const res = await dbSync.pushNow()
+    expect(batchCalls).toBe(before)       // no network attempt from push-on-write
+    expect(res).toEqual({ written: 0, deleted: 0, halted: true })
+  })
 })

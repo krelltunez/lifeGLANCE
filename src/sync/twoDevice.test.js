@@ -284,9 +284,12 @@ describe('Stage 2 Part A — two-device merge correctness', () => {
     fresh()
     seedBoth(A, B, (s) => s.putBundle('milestoneTombstones', { value: {} }))
 
-    A.store.putBundle('milestoneTombstones', { value: { 'dead-on-A': iso(2000) } })
+    // Recent stamps: tombstone bundles are pruned at the retention window on
+    // merge/produce (#287), and this test pins per-key merge semantics, not GC.
+    const now = Date.now()
+    A.store.putBundle('milestoneTombstones', { value: { 'dead-on-A': iso(now - 2000) } })
     A.markDirty(bundleEntityId('milestoneTombstones'))
-    B.store.putBundle('milestoneTombstones', { value: { 'dead-on-B': iso(3000) } })
+    B.store.putBundle('milestoneTombstones', { value: { 'dead-on-B': iso(now - 3000) } })
     B.markDirty(bundleEntityId('milestoneTombstones'))
 
     await fullSync(A, B)

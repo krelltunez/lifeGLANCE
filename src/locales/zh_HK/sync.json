@@ -64,6 +64,8 @@
   "passphraseRequired": "輸入加密金鑰以繼續同步",
   "appIdMismatch": "此同步資料屬於其他應用程式",
   "schemaForwardIncompatible": "請更新APP: 此同步資料來自較新的版本",
+  "credentialInvalid": "同步伺服器不再接受此裝置的同步存取。您的變更已儲存在本裝置上。請聯絡同步伺服器的管理者恢復此裝置的存取權限。",
+  "quotaExceeded": "同步伺服器已達到此帳號的容量上限。您的變更已儲存在本裝置上，同步將自動重試。請聯絡同步伺服器的管理者提高上限。",
   "webdavSectionTitle": "「WebDAV同步」",
   "webdavEnableLabel": "啟用「WebDAV同步」",
   "webdavEnableNote": "同步至「WebDAV」伺服器(如 Nextcloud, ownCloud…)。關閉後將保留連線設定，但「WebDAV同步」會停止—例如當您完全轉用「GLANCEvault同步」。",

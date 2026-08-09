@@ -8,6 +8,9 @@ import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
 import { initDbSyncEngine, getDbSyncEngine } from './sync/dbSync'
+import { combineTierErrors } from './sync/status'
+import { useVaultEventStream } from './hooks/useVaultEventStream'
+import { drainIntentsNow } from './hooks/useIntentPoller'
 import { buildWidgetSnapshot } from './utils/widgetSnapshot'
 import { pushWidgetSnapshot } from './native/widgetBridge'
 import { useSubscription } from './billing/billing'
@@ -22,6 +25,13 @@ export default function App() {
   const [syncStatus,  setSyncStatus]  = useState('idle')
   const [syncError,   setSyncError]   = useState(null)
   const [syncHalted,  setSyncHalted]  = useState(false)
+  // Vault (DB-tier) error, kept SEPARATE from the WebDAV tier's syncError so
+  // the two engines' cycles can't clobber each other's state; the display
+  // combines them with precedence (combineTierErrors). Shape:
+  // { message, code, hard } | null. hard=true is the sync 1.10 credential
+  // halt, which the engine re-surfaces on every attempted cycle — so
+  // clear-on-null is safe (nulls never arrive while halted).
+  const [vaultError,  setVaultError]  = useState(null)
   const [lastSynced,  setLastSynced]  = useState(null)
   // Per-row quarantine signal from the sync engine: { count, entityIds, at } | null.
   // Drives a transient toast (TimelineView) and a durable amber note (CloudSyncModal).
@@ -149,6 +159,13 @@ export default function App() {
           // it's missing and vault intents are in use, prompt for it (same modal
           // the WebDAV engine uses); onUnlocked re-runs the DB sync to derive it.
           onPassphraseRequired: () => setShowPassphraseModal(true),
+          // Surface vault-side errors (issue #289): KEY_MISMATCH, network, and
+          // the sync 1.10 CREDENTIAL_INVALID halt / QUOTA_EXCEEDED all arrive
+          // here. The engine emits (message, code, isHardStop) and fires
+          // (null, null, false) as its clean-cycle reset.
+          onError: (message, code, isHardStop) => {
+            setVaultError(message == null ? null : { message, code, hard: !!isHardStop })
+          },
         })
 
         // Restore encryption session key from IDB so the passphrase prompt
@@ -163,6 +180,15 @@ export default function App() {
         setScreen('onboarding')
       })
   }, [])
+
+  // GLANCEvault SSE push: instant drains of the same sync/intents paths the
+  // intervals below poll. Purely additive — the polls stay the correctness
+  // backstop, and the hook is inert unless the vault is enabled (and re-reads
+  // the config on lifeglance:vault-config-changed).
+  useVaultEventStream({
+    drainSync: () => { getDbSyncEngine()?.sync() },
+    drainIntents: drainIntentsNow,
+  })
 
   // Sync interval — trigger sync every 60 seconds with a random initial jitter
   // so multiple browser windows don't stay phase-locked after a hot reload.
@@ -259,6 +285,9 @@ export default function App() {
     setScreen('timeline')
   }
 
+  // One indicator, two tiers: precedence applied at render time (status.js).
+  const { error: displayError, halted: displayHalted } = combineTierErrors(syncError, syncHalted, vaultError)
+
   const content = screen === 'loading' ? (
     <div className="app-loading">
       <span className="cursor" style={{ width: '8px', height: '8px', borderRadius: '50%' }} />
@@ -272,8 +301,8 @@ export default function App() {
       chapters={chapters}
       setChapters={setChapters}
       syncStatus={syncStatus}
-      syncError={syncError}
-      syncHalted={syncHalted}
+      syncError={displayError}
+      syncHalted={displayHalted}
       lastSynced={lastSynced}
       vaultSkipped={vaultSkipped}
       onOpenCloudSync={() => setCloudSyncOpen(true)}
@@ -302,8 +331,8 @@ export default function App() {
       {cloudSyncOpen && (
         <CloudSyncModal
           syncStatus={syncStatus}
-          syncError={syncError}
-          syncHalted={syncHalted}
+          syncError={displayError}
+          syncHalted={displayHalted}
           lastSynced={lastSynced}
           vaultSkipped={vaultSkipped}
           onClose={() => setCloudSyncOpen(false)}

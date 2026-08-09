@@ -26,7 +26,7 @@ import {
   setupDbRootKey as defaultSetupDbRootKey,
 } from '@glance-apps/sync'
 import { setupVaultIntentsRootKey as defaultSetupVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
-import { reinitDbSyncEngine as defaultReinit, getDbSyncEngine } from './dbSync.js'
+import { reinitDbSyncEngine as defaultReinit, getDbSyncEngine, resetVaultSyncState as defaultResetVaultSyncState, clearCredentialHalt as defaultClearCredentialHalt } from './dbSync.js'
 import { nativeVaultFetchImpl } from './nativeVaultFetch.js'
 
 const CONFIG_KEY    = 'lifeglance-cloud-sync-config'
@@ -108,6 +108,25 @@ export async function runVaultSetup({ vaultUrl, vaultToken, accountId, passphras
   }
   if (!passphrase) return { ok: false, kind: 'passphrase' }
 
+  // Identity change (different account or server): the previous stream's
+  // cursors, seed flag, and credential-halt state must not survive into the
+  // new one (#286) — a stale pull cursor would suppress the new account's
+  // low-seq rows, and the one-shot seed flag would keep this device's
+  // pre-existing data from ever uploading. A token-only rotation keeps the
+  // identity, and therefore the cursors: nothing about the data stream moved.
+  let prev = null
+  try { prev = JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null') } catch { prev = null }
+  const identityChanged = !!(prev && prev.vaultUrl && prev.accountId &&
+    (prev.vaultUrl.trim() !== vaultUrl.trim() || prev.accountId.trim() !== accountId.trim()))
+  if (identityChanged) {
+    ;(deps.resetVaultSyncState ?? defaultResetVaultSyncState)()
+  } else {
+    // Same identity, credentials just re-verified: exit any standing sync 1.10
+    // credential halt (#298). The probe above IS the proof of restored access;
+    // cursors stay (nothing about the data stream moved).
+    ;(deps.clearCredentialHalt ?? defaultClearCredentialHalt)()
+  }
+
   // Persist the exact shape the engine reads (WebDAV fields preserved).
   ;(deps.persist ?? persistVaultConfig)({ vaultUrl, vaultToken, accountId })
 
@@ -123,6 +142,11 @@ export async function runVaultSetup({ vaultUrl, vaultToken, accountId, passphras
   // Activate IN PLACE (rebuild the engine from the freshly saved config) and kick
   // a first sync, which seeds the HWM=0 full snapshot.
   await (deps.reinit ?? defaultReinit)()
+  // The SSE hook (useVaultEventStream) mirrors the engine's in-place lifecycle:
+  // tell it the config changed so it (re)opens the stream with fresh credentials.
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lifeglance:vault-config-changed'))
+  }
   await (deps.startSync ?? (() => getDbSyncEngine()?.sync()))()
   return { ok: true, kind: outcome.kind }
 }
@@ -135,4 +159,8 @@ export function disableVault(deps = {}) {
   try { cfg = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}') || {} } catch { cfg = {} }
   localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...cfg, vaultEnabled: false }))
   ;(deps.reinit ?? defaultReinit)()
+  // Close the SSE stream too — the hook re-reads the (now disabled) config.
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('lifeglance:vault-config-changed'))
+  }
 }
