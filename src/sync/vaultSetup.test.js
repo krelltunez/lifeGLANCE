@@ -147,6 +147,60 @@ describe('runVaultSetup — verify-before-save gate', () => {
   })
 })
 
+describe('runVaultSetup — stream-state reset on identity change (#286)', () => {
+  const okClient = clientReturning(() => new Uint8Array(16).fill(1))
+
+  it('re-link to a DIFFERENT account resets the per-stream sync state', async () => {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ vaultEnabled: true, ...CREDS }))
+    const deps = { ...spyDeps(okClient), resetVaultSyncState: vi.fn() }
+    const r = await runVaultSetup({ ...CREDS, accountId: 'house-2', passphrase: 'pw' }, deps)
+    expect(r.ok).toBe(true)
+    expect(deps.resetVaultSyncState).toHaveBeenCalledTimes(1)
+  })
+
+  it('re-link to a different SERVER resets too', async () => {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ vaultEnabled: true, ...CREDS }))
+    const deps = { ...spyDeps(okClient), resetVaultSyncState: vi.fn() }
+    await runVaultSetup({ ...CREDS, vaultUrl: 'https://other.example', passphrase: 'pw' }, deps)
+    expect(deps.resetVaultSyncState).toHaveBeenCalledTimes(1)
+  })
+
+  it('re-save of the SAME identity (incl. token-only rotation) keeps cursors', async () => {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ vaultEnabled: true, ...CREDS }))
+    const deps = { ...spyDeps(okClient), resetVaultSyncState: vi.fn() }
+    await runVaultSetup({ ...CREDS, vaultToken: 'rotated-tok', passphrase: 'pw' }, deps)
+    expect(deps.resetVaultSyncState).not.toHaveBeenCalled()
+  })
+
+  it('a disabled-but-remembered identity still counts (disable keeps creds)', async () => {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ vaultEnabled: false, ...CREDS }))
+    const deps = { ...spyDeps(okClient), resetVaultSyncState: vi.fn() }
+    await runVaultSetup({ ...CREDS, accountId: 'house-2', passphrase: 'pw' }, deps)
+    expect(deps.resetVaultSyncState).toHaveBeenCalledTimes(1)
+  })
+
+  it('first link (no previous identity) does not reset', async () => {
+    const deps = { ...spyDeps(okClient), resetVaultSyncState: vi.fn() }
+    await runVaultSetup({ ...CREDS, passphrase: 'pw' }, deps)
+    expect(deps.resetVaultSyncState).not.toHaveBeenCalled()
+  })
+
+  it('resetVaultSyncState (the real one) clears the seed flag and every engine cursor, not the device id', async () => {
+    const { resetVaultSyncState } = await import('./dbSync.js')
+    const streamKeys = [
+      'lifeglance-db-sync-seeded', 'lifeglance-db-sync-config',
+      'lifeglance-db-sync-hwm', 'lifeglance-db-sync-push-ack',
+      'lifeglance-db-sync-dirty', 'lifeglance-db-sync-quarantine',
+      'lifeglance-db-sync-last-synced', 'lifeglance-db-sync-credential-halt',
+    ]
+    for (const k of streamKeys) localStorage.setItem(k, 'x')
+    localStorage.setItem('lifeglance-db-sync-device-id', 'dev-keep')
+    resetVaultSyncState()
+    for (const k of streamKeys) expect(localStorage.getItem(k)).toBeNull()
+    expect(localStorage.getItem('lifeglance-db-sync-device-id')).toBe('dev-keep')
+  })
+})
+
 describe('disableVault', () => {
   it('clears only vaultEnabled, keeps WebDAV + vault creds, rebuilds engine', async () => {
     const webdav = { provider: 'nextcloud', url: 'https://nc.example', username: 'me', enabled: true }
