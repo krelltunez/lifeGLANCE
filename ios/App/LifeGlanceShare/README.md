@@ -4,53 +4,55 @@ Native half of the "share text/link into lifeGLANCE" feature (parity with the
 Android `ACTION_SEND` share target). Implements the spec in
 `docs/ios-share-extension-spec.md`.
 
-The source is complete and lives here:
-
 | File | Purpose |
 | ---- | ------- |
 | `ShareViewController.swift` | Reads shared text/URL, writes `pending_share` to the App Group, opens the host app. No UI. |
 | `Info.plist` | `NSExtension` config + activation rule (text / web URL / web page). |
 | `LifeGlanceShare.entitlements` | App Group `group.com.lifeglance`. |
 
-The app-side hooks are already wired on this branch:
-`WidgetStore.consumePendingShare()` (`WidgetModel.swift`), the `share` field in
+The app-side hooks are wired: `WidgetStore.consumePendingShare()`
+(`WidgetModel.swift`), the `share` field in
 `WidgetBridgePlugin.consumeLaunchTarget`, and the `share` host in
 `AppDelegate.handleWidgetDeepLink`. The web layer already consumes it
 (`TimelineView` → `shareToMilestoneDraft`), so **no JS changes are needed**.
 
-## One remaining step: register the target in Xcode
+## Target registration
 
-The Xcode project uses the modern synchronized-folder format (`objectVersion 70`),
-and the target graph (native target, embed-extension build phase, signing) is best
-created through Xcode so provisioning is set up correctly. It is intentionally not
-hand-edited into `project.pbxproj`. To finish:
+The `LifeGlanceShare` target is registered in `App.xcodeproj/project.pbxproj`.
+It was added by hand rather than through Xcode's *New Target* assistant, so a
+few things are worth knowing before editing it:
 
-1. Open `ios/App/App.xcodeproj`.
-2. **File ▸ New ▸ Target… ▸ Share Extension.**
-   - Product name: **LifeGlanceShare**
-   - Bundle identifier: **com.lifeglance.share**
-   - Language: Swift, and **embed in the App target** when prompted.
-3. Xcode generates a `ShareViewController.swift`, an `Info.plist`, and a
-   `MainInterface.storyboard`. **Replace/point them at the files in this folder**
-   and **delete the generated `MainInterface.storyboard`** (this extension has no
-   UI — activation uses `NSExtensionPrincipalClass`, not a storyboard).
-4. In the target's **Build Settings**:
-   - `INFOPLIST_FILE` = `LifeGlanceShare/Info.plist`
-   - `GENERATE_INFOPLIST_FILE` = `YES`
-   - `CODE_SIGN_ENTITLEMENTS` = `LifeGlanceShare/LifeGlanceShare.entitlements`
-   - `IPHONEOS_DEPLOYMENT_TARGET` = `15.0` (match App)
-   - `MARKETING_VERSION` = `2.6.2`, `CURRENT_PROJECT_VERSION` = `1` (match App)
-5. **Signing & Capabilities ▸ + Capability ▸ App Groups**, and check
-   `group.com.lifeglance` (must match the entitlements file above).
-6. Confirm the **App** target's *Embed Foundation Extensions* build phase lists
-   `LifeGlanceShare.appex` (Xcode adds this when you choose "embed in App").
+- The project is `objectVersion = 70`, so the target uses a
+  **`PBXFileSystemSynchronizedRootGroup`** pointing at this folder. Files added
+  here join the target automatically — there are no per-file build entries to
+  maintain.
+- `Info.plist`, `LifeGlanceShare.entitlements` and `README.md` are listed as
+  `membershipExceptions` so they are not copied into the `.appex` as stray
+  resources. Add any future non-code file to that exception set too.
+- Signing is `Automatic` with `DEVELOPMENT_TEAM = CTZ7352A3G`, matching the App
+  and widgets targets. There is no checked-in provisioning profile.
+- `MARKETING_VERSION` is pinned to `3.0.0` alongside the App and widgets
+  targets. It does **not** derive from `package.json` — see the version-drift
+  note in `docs/ios-share-extension-spec.md`.
 
-Then `npx cap sync ios` and build. The iOS CI workflow will start covering the
-extension automatically once the target exists.
+`NSExtensionPrincipalClass` is the bare string `ShareViewController`, not
+`$(PRODUCT_MODULE_NAME).ShareViewController`. `ShareViewController` is declared
+`@objc(ShareViewController)`, which overrides its Objective-C runtime name to
+drop the module prefix; since the system resolves this key with
+`NSClassFromString`, the module-qualified form would not resolve and the
+extension would fail to launch. If the `@objc` attribute is ever removed, this
+key must change back in the same commit.
 
 ## Manual test
+
+CI (`.github/workflows/ios.yml`) compiles the extension but cannot exercise it —
+there is no device or simulator run. These four are device-only:
 
 1. Share plain text from Notes → lifeGLANCE opens with the Add sheet titled from the text.
 2. Share a link from Safari → Add sheet with the URL populated and hostname/title.
 3. Share with an explicit subject/title → subject becomes the title.
 4. Share something empty/unusable → app does not open a blank draft.
+
+Check specifically that lifeGLANCE **appears in the share sheet at all** — an
+activation-rule or principal-class mistake shows up as a silently missing entry,
+not as a crash.
