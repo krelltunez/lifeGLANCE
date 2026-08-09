@@ -41,6 +41,16 @@
     "react-dom": "^18.3.1",
     "react-i18next": "^17.0.8"
   },
+  "overrides": {
+    "sharp": "^0.35.3",
+    "tar": "^7.5.22",
+    "replace": {
+      "minimatch": "^5.1.6"
+    },
+    "xcode": {
+      "uuid": "^11.1.1"
+    }
+  },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
