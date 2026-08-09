@@ -26,7 +26,7 @@ import {
   setupDbRootKey as defaultSetupDbRootKey,
 } from '@glance-apps/sync'
 import { setupVaultIntentsRootKey as defaultSetupVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
-import { reinitDbSyncEngine as defaultReinit, getDbSyncEngine } from './dbSync.js'
+import { reinitDbSyncEngine as defaultReinit, getDbSyncEngine, resetVaultSyncState as defaultResetVaultSyncState } from './dbSync.js'
 import { nativeVaultFetchImpl } from './nativeVaultFetch.js'
 
 const CONFIG_KEY    = 'lifeglance-cloud-sync-config'
@@ -107,6 +107,18 @@ export async function runVaultSetup({ vaultUrl, vaultToken, accountId, passphras
     return { ok: false, kind: outcome.kind }
   }
   if (!passphrase) return { ok: false, kind: 'passphrase' }
+
+  // Identity change (different account or server): the previous stream's
+  // cursors, seed flag, and credential-halt state must not survive into the
+  // new one (#286) — a stale pull cursor would suppress the new account's
+  // low-seq rows, and the one-shot seed flag would keep this device's
+  // pre-existing data from ever uploading. A token-only rotation keeps the
+  // identity, and therefore the cursors: nothing about the data stream moved.
+  let prev = null
+  try { prev = JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null') } catch { prev = null }
+  const identityChanged = !!(prev && prev.vaultUrl && prev.accountId &&
+    (prev.vaultUrl.trim() !== vaultUrl.trim() || prev.accountId.trim() !== accountId.trim()))
+  if (identityChanged) (deps.resetVaultSyncState ?? defaultResetVaultSyncState)()
 
   // Persist the exact shape the engine reads (WebDAV fields preserved).
   ;(deps.persist ?? persistVaultConfig)({ vaultUrl, vaultToken, accountId })

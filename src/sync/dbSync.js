@@ -27,6 +27,35 @@ const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
 const DEVICE_ID_KEY  = 'lifeglance-db-sync-device-id'
 const SEEDED_KEY     = 'lifeglance-db-sync-seeded'
 
+// Every piece of persisted vault-sync state that belongs to one account's data
+// stream. Key names must match @glance-apps/sync dbEngine.js's
+// `${storageKeyPrefix}-...` keys for storageKeyPrefix 'lifeglance', plus this
+// wrapper's one-shot seed flag. DEVICE_ID_KEY is deliberately absent: it
+// identifies the device (not the stream) and survives re-links.
+const STREAM_STATE_KEYS = [
+  SEEDED_KEY,
+  'lifeglance-db-sync-config',          // engine's saved identity record
+  'lifeglance-db-sync-hwm',             // pull cursor
+  'lifeglance-db-sync-push-ack',        // push idempotency marker
+  'lifeglance-db-sync-dirty',           // persisted dirty set
+  'lifeglance-db-sync-quarantine',      // undecryptable-row retry set (seq-based)
+  'lifeglance-db-sync-last-synced',     // display timestamp
+  'lifeglance-db-sync-credential-halt', // sync 1.10 hard halt (old credential)
+]
+
+// Reset all per-stream sync state. Called when the vault IDENTITY changes
+// (different accountId or vaultUrl — see runVaultSetup): cursors from one
+// account must never be applied to another. A stale pull cursor would suppress
+// the new account's low-seq rows, and the one-shot seed flag would keep this
+// device's pre-existing local data from ever uploading (#286). After the
+// reset, the next cycle re-seeds: HWM=0 pulls everything the account has, and
+// seedSnapshot marks all local entities dirty for the full-snapshot push.
+export const resetVaultSyncState = () => {
+  for (const key of STREAM_STATE_KEYS) {
+    try { localStorage.removeItem(key) } catch { /* storage unavailable — nothing to clear */ }
+  }
+}
+
 let _dbEngine = null
 let _pushTimer = null
 // Once-per-session guard so a device that can't derive the vault intents/blob key
