@@ -49,16 +49,34 @@ enum WidgetStore {
         return action
     }
 
-    // A share written by the Share Extension: a JSON string { text, subject }.
-    static func setPendingShare(_ json: String) {
-        defaults?.set(json, forKey: keyPendingShare)
-    }
-
-    // Returns and clears a pending share left by the Share Extension.
+    // Shares are a queue of JSON strings { text, subject }, written by the Share
+    // Extension (ShareViewController.enqueue, which writes to the App Group inline
+    // rather than depending on this file). There is deliberately no writer here —
+    // this side only reads. A queue rather than one slot because iOS cannot bring
+    // the app forward on share, so entries accumulate between app launches and a
+    // last-write-wins slot would silently drop all but the most recent.
+    //
+    // Pops the oldest pending share, leaving any others queued for the next call.
+    // Returns a single JSON string so the JS contract is unchanged: one share per
+    // consumeLaunchTarget(), matching the one Add-milestone sheet the app can show.
+    // Tolerates a legacy single-string value written before the queue existed.
     static func consumePendingShare() -> String? {
-        guard let share = defaults?.string(forKey: keyPendingShare) else { return nil }
+        if var queue = defaults?.array(forKey: keyPendingShare) as? [String] {
+            guard !queue.isEmpty else {
+                defaults?.removeObject(forKey: keyPendingShare)
+                return nil
+            }
+            let next = queue.removeFirst()
+            if queue.isEmpty {
+                defaults?.removeObject(forKey: keyPendingShare)
+            } else {
+                defaults?.set(queue, forKey: keyPendingShare)
+            }
+            return next
+        }
+        guard let legacy = defaults?.string(forKey: keyPendingShare) else { return nil }
         defaults?.removeObject(forKey: keyPendingShare)
-        return share
+        return legacy
     }
 }
 

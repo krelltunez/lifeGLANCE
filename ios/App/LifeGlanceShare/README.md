@@ -6,9 +6,17 @@ Android `ACTION_SEND` share target). Implements the spec in
 
 | File | Purpose |
 | ---- | ------- |
-| `ShareViewController.swift` | Reads shared text/URL, writes `pending_share` to the App Group, opens the host app. No UI. |
+| `ShareViewController.swift` | Reads shared text/URL, appends it to the `pending_share` queue in the App Group, and shows a confirmation sheet. |
 | `Info.plist` | `NSExtension` config + activation rule (text / web URL / web page). |
 | `LifeGlanceShare.entitlements` | App Group `group.com.lifeglance`. |
+
+**This extension does not open lifeGLANCE, and cannot.** iOS bars app extensions
+from opening URLs; the responder-chain `openURL:` trick this was originally built
+on stopped working in iOS 18 and is explicitly disavowed by Apple. A share
+therefore lands quietly in the App Group and surfaces the next time the user opens
+the app — the confirmation sheet exists so that reads as success rather than as
+nothing having happened. Full reasoning in `docs/ios-share-extension-spec.md` §3a;
+please read it before attempting to restore an auto-open.
 
 The app-side hooks are wired: `WidgetStore.consumePendingShare()`
 (`WidgetModel.swift`), the `share` field in
@@ -48,10 +56,12 @@ key must change back in the same commit.
 CI (`.github/workflows/ios.yml`) compiles the extension but cannot exercise it —
 there is no device or simulator run. These four are device-only:
 
-1. Share plain text from Notes → lifeGLANCE opens with the Add sheet titled from the text.
-2. Share a link from Safari → Add sheet with the URL populated and hostname/title.
+1. Share plain text from Notes → "Saved to lifeGLANCE" → open the app → Add sheet titled from the text.
+2. Share a link from Safari → open the app → Add sheet with the URL populated and hostname/title.
 3. Share with an explicit subject/title → subject becomes the title.
-4. Share something empty/unusable → app does not open a blank draft.
+4. Share something empty/unusable → "Nothing to save", and no blank draft later.
+5. Share three items without opening the app in between → all three drafts appear
+   across subsequent resumes, oldest first, none lost.
 
 Check specifically that lifeGLANCE **appears in the share sheet at all** — an
 activation-rule or principal-class mistake shows up as a silently missing entry,
