@@ -26,6 +26,7 @@ import { flushOutbox, isVaultIntentsActive } from '../lib/intentsTransport.js'
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
 const DEVICE_ID_KEY  = 'lifeglance-db-sync-device-id'
 const SEEDED_KEY     = 'lifeglance-db-sync-seeded'
+const CREDENTIAL_HALT_KEY = 'lifeglance-db-sync-credential-halt'
 
 // Every piece of persisted vault-sync state that belongs to one account's data
 // stream. Key names must match @glance-apps/sync dbEngine.js's
@@ -40,7 +41,7 @@ const STREAM_STATE_KEYS = [
   'lifeglance-db-sync-dirty',           // persisted dirty set
   'lifeglance-db-sync-quarantine',      // undecryptable-row retry set (seq-based)
   'lifeglance-db-sync-last-synced',     // display timestamp
-  'lifeglance-db-sync-credential-halt', // sync 1.10 hard halt (old credential)
+  CREDENTIAL_HALT_KEY,                  // sync 1.10 hard halt (old credential)
 ]
 
 // Reset all per-stream sync state. Called when the vault IDENTITY changes
@@ -54,6 +55,17 @@ export const resetVaultSyncState = () => {
   for (const key of STREAM_STATE_KEYS) {
     try { localStorage.removeItem(key) } catch { /* storage unavailable — nothing to clear */ }
   }
+}
+
+// Clear ONLY the sync 1.10 credential halt (#298). Called from runVaultSetup on
+// a verified save whose identity did NOT change: the authenticated getSalt
+// probe just proved these exact credentials work, which is precisely the
+// evidence the halt is waiting for — without this, a device whose token was
+// fixed in place stayed halted forever (the package clears the halt only via
+// per-account recovery, which shared-token mode never runs). Cursors and the
+// seed flag are untouched: the stream identity didn't move.
+export const clearCredentialHalt = () => {
+  try { localStorage.removeItem(CREDENTIAL_HALT_KEY) } catch { /* storage unavailable */ }
 }
 
 let _dbEngine = null

@@ -201,6 +201,38 @@ describe('runVaultSetup — stream-state reset on identity change (#286)', () =>
   })
 })
 
+describe('runVaultSetup — credential-halt recovery (#298)', () => {
+  const okClient = clientReturning(() => new Uint8Array(16).fill(1))
+  const HALT_KEY = 'lifeglance-db-sync-credential-halt'
+
+  it('a verified SAME-identity re-save clears a standing credential halt', async () => {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ vaultEnabled: true, ...CREDS }))
+    localStorage.setItem(HALT_KEY, JSON.stringify({ message: 'rejected' }))
+    const { runVaultSetup: run } = await import('./vaultSetup.js')
+    const r = await run({ ...CREDS, vaultToken: 'fixed-tok', passphrase: 'pw' }, spyDeps(okClient))
+    expect(r.ok).toBe(true)
+    expect(localStorage.getItem(HALT_KEY)).toBeNull()
+  })
+
+  it('an identity-change save clears the halt too (via the full reset)', async () => {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ vaultEnabled: true, ...CREDS }))
+    localStorage.setItem(HALT_KEY, JSON.stringify({ message: 'rejected' }))
+    const { runVaultSetup: run } = await import('./vaultSetup.js')
+    await run({ ...CREDS, accountId: 'house-2', passphrase: 'pw' }, spyDeps(okClient))
+    expect(localStorage.getItem(HALT_KEY)).toBeNull()
+  })
+
+  it('a FAILED verification leaves the halt in place (no proof, no exit)', async () => {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ vaultEnabled: true, ...CREDS }))
+    localStorage.setItem(HALT_KEY, JSON.stringify({ message: 'rejected' }))
+    const deps = spyDeps(clientReturning(() => { throw vaultError(401) }))
+    const { runVaultSetup: run } = await import('./vaultSetup.js')
+    const r = await run({ ...CREDS, passphrase: 'pw' }, deps)
+    expect(r.ok).toBe(false)
+    expect(localStorage.getItem(HALT_KEY)).not.toBeNull()
+  })
+})
+
 describe('disableVault', () => {
   it('clears only vaultEnabled, keeps WebDAV + vault creds, rebuilds engine', async () => {
     const webdav = { provider: 'nextcloud', url: 'https://nc.example', username: 'me', enabled: true }
