@@ -26,7 +26,7 @@ import {
   setupDbRootKey as defaultSetupDbRootKey,
 } from '@glance-apps/sync'
 import { setupVaultIntentsRootKey as defaultSetupVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
-import { reinitDbSyncEngine as defaultReinit, getDbSyncEngine, resetVaultSyncState as defaultResetVaultSyncState } from './dbSync.js'
+import { reinitDbSyncEngine as defaultReinit, getDbSyncEngine, resetVaultSyncState as defaultResetVaultSyncState, clearCredentialHalt as defaultClearCredentialHalt } from './dbSync.js'
 import { nativeVaultFetchImpl } from './nativeVaultFetch.js'
 
 const CONFIG_KEY    = 'lifeglance-cloud-sync-config'
@@ -118,7 +118,14 @@ export async function runVaultSetup({ vaultUrl, vaultToken, accountId, passphras
   try { prev = JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null') } catch { prev = null }
   const identityChanged = !!(prev && prev.vaultUrl && prev.accountId &&
     (prev.vaultUrl.trim() !== vaultUrl.trim() || prev.accountId.trim() !== accountId.trim()))
-  if (identityChanged) (deps.resetVaultSyncState ?? defaultResetVaultSyncState)()
+  if (identityChanged) {
+    ;(deps.resetVaultSyncState ?? defaultResetVaultSyncState)()
+  } else {
+    // Same identity, credentials just re-verified: exit any standing sync 1.10
+    // credential halt (#298). The probe above IS the proof of restored access;
+    // cursors stay (nothing about the data stream moved).
+    ;(deps.clearCredentialHalt ?? defaultClearCredentialHalt)()
+  }
 
   // Persist the exact shape the engine reads (WebDAV fields preserved).
   ;(deps.persist ?? persistVaultConfig)({ vaultUrl, vaultToken, accountId })

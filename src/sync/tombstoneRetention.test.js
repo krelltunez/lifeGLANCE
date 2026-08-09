@@ -115,3 +115,14 @@ describe('vault tier merge + produce pruning (#287 anti-oscillation)', () => {
     expect(dirtied).toEqual([tombId]) // unchanged: exactly one, from cycle 1
   })
 })
+
+describe('both tiers agree on undatable entries (audit note)', () => {
+  it('file-tier mergePayloads keeps a garbage-timestamp tombstone, like the vault tier', async () => {
+    const { mergePayloads } = await import('./adapter.js')
+    const fresh = new Date().toISOString()
+    const local = { lives: { default: { milestones: [], chapters: [], milestoneTombstones: { ok: fresh, corrupt: 'not-a-date' }, chapterTombstones: {} } } }
+    const remote = { lives: { default: { milestones: [], chapters: [], milestoneTombstones: {}, chapterTombstones: {} } } }
+    const { data } = mergePayloads(local, remote)
+    expect(data.lives.default.milestoneTombstones).toEqual({ ok: fresh, corrupt: 'not-a-date' })
+  })
+})
