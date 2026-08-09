@@ -28,9 +28,7 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
             <!-- App shortcuts (long-press the launcher icon) -->
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
 
         <provider
@@ -49,9 +47,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/next_milestone_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/next_milestone_widget_info" />
         </receiver>
 
         <!-- Home-screen widget: today (date, age, context) -->
@@ -62,9 +58,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/today_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/today_widget_info" />
         </receiver>
 
         <!-- Home-screen widget: current chapter -->
@@ -75,9 +69,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/current_chapter_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/current_chapter_widget_info" />
         </receiver>
 
         <!-- Home-screen widget: on this day -->
@@ -88,9 +80,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/on_this_day_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/on_this_day_widget_info" />
         </receiver>
 
         <!-- Home-screen widget: milestones / life stats -->
@@ -101,9 +91,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/stats_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/stats_widget_info" />
         </receiver>
 
         <!-- Home-screen widget: quick add (launcher) -->
@@ -114,9 +102,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/quick_add_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/quick_add_widget_info" />
         </receiver>
 
         <!-- Home-screen widgets: pinned color-slot countdowns (one per slot) -->
@@ -127,9 +113,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/pinned_countdown_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/pinned_countdown_widget_info" />
         </receiver>
         <receiver
             android:name=".widget.RoseCountdownReceiver"
@@ -138,9 +122,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/pinned_countdown_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/pinned_countdown_widget_info" />
         </receiver>
         <receiver
             android:name=".widget.TealCountdownReceiver"
@@ -149,9 +131,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/pinned_countdown_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/pinned_countdown_widget_info" />
         </receiver>
         <receiver
             android:name=".widget.BlueCountdownReceiver"
@@ -160,9 +140,7 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/pinned_countdown_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/pinned_countdown_widget_info" />
         </receiver>
 
         <!-- Quick Settings tile: add a milestone -->
