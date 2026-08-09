@@ -1,4 +1,5 @@
 import { mergeArrayById, pruneTombstones } from '@glance-apps/sync';
+import { tombstoneCutoff } from './tombstoneRetention.js';
 import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChapter } from '../data/db.js';
 import { getMilestoneTombstones, getChapterTombstones } from './tombstones.js';
 import { loadCategories, saveCategories } from '../utils/colors.js';
@@ -10,7 +11,6 @@ import { loadCategories, saveCategories } from '../utils/colors.js';
 // grace period for that edge case — raising it widens the safe-offline window
 // at the cost of retaining more tombstones; don't lower it without accounting
 // for the increased resurrection risk.
-const RETENTION_MS = 90 * 86_400_000;
 
 // buildPayload — reads live IDB state. Called before every upload.
 // Accepts a milestonesRef so it can read the latest React state for milestones
@@ -139,7 +139,9 @@ export const mergePayloads = (local, remote) => {
   const lct = localLife.chapterTombstones ?? {};
   const rct = remoteLife.chapterTombstones ?? {};
 
-  const cutoff = new Date(Date.now() - RETENTION_MS);
+  // Shared fixed 90-day window, day-floored (tombstoneRetention.js) so both
+  // sync tiers prune identically and the cutoff is stable within a day.
+  const cutoff = tombstoneCutoff();
   const milestoneTombstones = pruneTombstones({ ...lmt, ...rmt }, cutoff);
   const chapterTombstones = pruneTombstones({ ...lct, ...rct }, cutoff);
 
