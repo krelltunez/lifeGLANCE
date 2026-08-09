@@ -61,3 +61,22 @@ export const syncErrorText = (syncError, t) => {
   const key = SYNC_ERROR_I18N_KEYS[syncError.code]
   return key ? t(key) : syncError.message
 }
+
+// Two sync tiers, one indicator. Each engine owns its OWN error state — the
+// WebDAV tier's ({message, code} + its halted flag) and the vault tier's
+// ({message, code, hard} from the DB engine's onError) — because wiring both
+// engines to one state would let their cycles clobber/clear each other's
+// errors. Precedence is applied here, at render time:
+//   1. A vault HARD halt (sync 1.10 CREDENTIAL_INVALID, isHardStop=true)
+//      outranks everything: the engine has terminally stopped and re-surfaces
+//      the halt on every attempted cycle, so it stays visible until recovery.
+//   2. Otherwise the WebDAV tier's error wins (its halted flag is
+//      tier-specific and its wiring is the long-established one).
+//   3. Otherwise a transient vault error shows.
+// Returns { error, halted } in the exact shape the existing indicator and
+// modal props consume.
+export const combineTierErrors = (syncError, syncHalted, vaultError) => {
+  if (vaultError?.hard) return { error: vaultError, halted: true }
+  if (syncError) return { error: syncError, halted: !!syncHalted }
+  return { error: vaultError ?? null, halted: !!syncHalted }
+}
