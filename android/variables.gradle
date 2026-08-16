@@ -20,4 +20,11 @@ ext {
 
     // Play Billing client used by the :glance-apps-billing module
     playBillingVersion = '8.3.0'
+
+    // WorkManager has two independent consumers: this app's WidgetRefreshWorker
+    // and the :glance-apps-billing module's acknowledgement retry worker. The
+    // module reads this pin when set and otherwise falls back to its own 2.9.1,
+    // so declaring it here is what keeps the two on one version instead of two
+    // that happen to agree.
+    workManagerVersion = '2.9.1'
 }
