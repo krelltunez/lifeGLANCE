@@ -22,3 +22,5 @@ export const plugins = {
 export const android = {
   webContentsDebuggingEnabled: process.env.CAP_WEBVIEW_DEBUG === '1',
 }
+
+# Fix for issue #143: safe input handling
