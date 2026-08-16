@@ -4,7 +4,9 @@ Status: **implemented** — all sections below are built and registered in
 `App.xcodeproj`. Retained as the design record for the "share text/link →
 pre-filled Add-milestone sheet" flow on iOS, matching what Android already does.
 Where the shipped code deliberately departs from the original sketch, the section
-says so. Still **unverified on a device** — see *Acceptance tests*.
+says so — most importantly §3a, where the "share opens the app" behaviour this
+document was written around turned out to be prohibited by iOS and had to be
+replaced. Partly device-verified; see *Acceptance tests*.
 
 ## Goal
 
@@ -119,8 +121,15 @@ extension would fail to launch. The two must be changed together.
 ### 3. `LifeGlanceShare/ShareViewController.swift`
 
 Responsibilities: pull text/URL/title from the extension context, build the
-`{ text, subject }` payload, write it to the App Group, foreground the host app,
-and complete the request. Sketch:
+`{ text, subject }` payload, append it to the App Group queue, confirm to the user,
+and complete the request.
+
+> **The host app is never foregrounded.** The original sketch below ended by
+> opening `lifeglance://share` via the responder chain. That does not work and
+> cannot be made to — see *The auto-open leg* — so the shipped controller shows a
+> confirmation sheet instead. Read that section before this sketch.
+
+Sketch (retained as the design record; the auto-open half is obsolete):
 
 ```swift
 import UIKit
@@ -188,28 +197,66 @@ final class ShareViewController: UIViewController {
 }
 ```
 
-> Note: the `openURL:` responder-chain hop is the standard way an extension
-> foregrounds its host app. If a future iOS release removes it, fall back to
-> completing the request without opening — the web layer still picks up
-> `pending_share` the next time the app is opened manually.
+### 3a. The auto-open leg — removed, and why it can't come back
+
+The contingency the note above hedged on is now the permanent state, and the
+cause is stronger than "a release removed it": **iOS bars app extensions from
+opening URLs at all.** `UIApplication` is marked unavailable in extensions; the
+`openURL:` responder-chain walk was a runtime end-run around that build-time
+block, and iOS 18 closed it (`responds(to:)` fails, or UIKit logs *BUG IN CLIENT
+OF UIKIT*). Apple DTS, answering this exact question for a Share Extension:
+
+> "App extensions are not allowed to open URLs directly. This isn't accidental,
+> but a deliberate design choice on Apple's part. Don't try to bypass such
+> restrictions using Silly Runtime Hacks™."
+
+`extensionContext.open(_:)` is not a way around it either — it is documented for
+Today widgets, and reports are that it returns `success = false` from a Share
+Extension.
+
+Observed symptom before the fix: sharing a Safari page appeared to do nothing at
+all, and the pre-filled Add sheet was discovered later, on the next manual app
+launch. The payload path was working the whole time; the silence was the bug,
+because a UI-less extension gives no other signal.
+
+**What replaced it:** a confirmation sheet ("Saved to lifeGLANCE" + the captured
+title + Done). Apple's own suggested alternative is a local notification the user
+taps to open the app; that was declined deliberately, because lifeGLANCE ships
+with no notification code or permission anywhere, and introducing its first
+permission prompt for share convenience is a poor trade in a no-account,
+local-first app. Revisit only if notifications arrive for another reason.
+
+Do not re-add an auto-open attempt. `AppDelegate.handleWidgetDeepLink` has no
+`share` case for the same reason.
 
 ### 4. `WidgetStore` additions (`WidgetModel.swift`)
 
-Add a third pending key alongside the existing target/action ones:
+Add a third pending key alongside the existing target/action ones. It holds a
+**queue** (array of JSON strings), not a single value:
 
 ```swift
-static let keyPendingShare = "pending_share"   // JSON string { text, subject }
+static let keyPendingShare = "pending_share"   // [String] of JSON { text, subject }
 
-static func setPendingShare(_ json: String) {
-    defaults?.set(json, forKey: keyPendingShare)
-}
-
-static func consumePendingShare() -> String? {
-    guard let s = defaults?.string(forKey: keyPendingShare) else { return nil }
-    defaults?.removeObject(forKey: keyPendingShare)
-    return s
-}
+// Pops the oldest entry, leaving the rest queued. Returns a single JSON string,
+// so the JS contract is unchanged: one share per consumeLaunchTarget(), matching
+// the one Add-milestone sheet the app can show.
+static func consumePendingShare() -> String? { … }
 ```
+
+There is deliberately **no writer here** — the extension appends to the App Group
+inline (`ShareViewController.enqueue`) so it stays a single self-contained file,
+as §1 explains. This side only reads.
+
+**Why a queue and not one slot.** With auto-open, every share immediately
+foregrounded the app and drained the slot, so last-write-wins was safe. Without
+it, shares pile up until the user next opens lifeGLANCE — so sharing two things
+before opening the app silently discarded the first. Android keeps a single slot
+and is *not* affected, because its `ACTION_SEND` path really does open the app
+each time.
+
+Both readers tolerate a legacy single-string value written before the queue
+existed, so an app updating in place does not drop a share captured by the old
+build.
 
 ### 5. `WidgetBridgePlugin.consumeLaunchTarget` (App target)
 
@@ -222,12 +269,12 @@ if let share = WidgetStore.consumePendingShare() {
 }
 ```
 
-### 6. `AppDelegate` (optional)
+### 6. `AppDelegate` — nothing to do
 
-`lifeglance://share` needs no stashing (the extension already wrote `pending_share`),
-so `handleWidgetDeepLink` can simply accept the host without action. Add a
-`case "share": break` with a comment so the scheme is clearly handled rather than
-silently hitting `default`.
+Originally this section added a `case "share": break` so the deep link was
+visibly handled. That case has been **removed**: `lifeglance://share` is never
+fired, because the extension cannot open the app (§3a). A comment in
+`handleWidgetDeepLink` records why, so the absence reads as deliberate.
 
 ## Data contract (must match Android/JS)
 
@@ -244,8 +291,11 @@ the title, and keeps the full text as a note — no iOS-side truncation needed.
 
 - **URL-only share (Safari):** put the URL into `text` (not a separate field) so the
   existing draft logic finds it; `subject` = page title.
-- **Nothing usable:** complete the request without writing `pending_share`, so the
-  app doesn't open a blank draft.
+- **Nothing usable:** queue nothing, so the app doesn't open a blank draft, and
+  tell the user so ("Nothing to save") rather than dismissing silently.
+- **Several shares before the app is opened:** all are kept, oldest first, and
+  surface one per `consumeLaunchTarget()`. Note the app only drains one per
+  launch/resume today — see *Known gap* below.
 - **Images / files:** out of scope; the activation rule restricts to text/URL/page,
   so non-text attachments never reach us.
 - **App Group sandbox:** the extension must use `UserDefaults(suiteName:)`, never
@@ -255,21 +305,46 @@ the title, and keeps the full text as a note — no iOS-side truncation needed.
 
 `.github/workflows/ios.yml` compiles the extension, which catches project and
 Swift errors, but it never runs the app — so nothing below is covered by CI.
-All four remain outstanding:
 
-1. Share plain text from Notes → app opens → Add sheet titled from the text.
-2. Share a URL from Safari → Add sheet with the URL populated and hostname/title.
+Tests 0–3 passed on device (Safari page share, before the confirmation UI landed).
+Note the expected result is **no longer** "the app opens" — it is "the extension
+confirms, and the draft is waiting on next launch":
+
+0. lifeGLANCE appears in the share sheet at all. An activation-rule or
+   principal-class error presents as a silently missing entry, not a crash.
+1. Share plain text from Notes → "Saved to lifeGLANCE" → open app → Add sheet
+   titled from the text.
+2. Share a URL from Safari → open app → Add sheet with URL and hostname/title.
 3. Share with an explicit subject/title → subject becomes the title.
-4. Share something empty/unusable → app does not open a blank draft.
 
-Test 0, implied by the rest: **lifeGLANCE actually appears in the share sheet.**
-An activation-rule or principal-class error presents as a silently missing entry
-rather than a crash, so confirm the entry exists before reading anything into
-tests 1–4.
+Still outstanding, all new with the confirmation UI and queue:
+
+4. Share something empty/unusable → "Nothing to save", and no blank draft on
+   next launch.
+5. The confirmation sheet renders correctly in light and dark, and Done dismisses.
+6. **Queue:** share three items without opening the app in between, then open the
+   app three times (backgrounding between) → all three drafts appear, oldest
+   first, none lost.
+7. Upgrade path: a share captured by the pre-queue build still surfaces after
+   updating to this one.
+
+## Known gap
+
+The app drains **one** queued share per launch/resume, because
+`consumeLaunchTarget()` is called from `TimelineView`'s `visibilitychange`
+handler and the app can only show one Add sheet at a time. Sharing three things
+then opening the app once yields the first draft; the other two wait for the next
+resume. Nothing is lost, but draining the rest as each sheet is dismissed would
+be the better behaviour — a small `TimelineView` change, deliberately not bundled
+with the native fix.
 
 ## Out of scope
 
 - Rich-media (image/file) shares.
-- A custom compose UI in the extension.
+- A compose/edit UI in the extension. The confirmation sheet added in §3a is
+  deliberately read-only — it reports what was captured, it does not let the user
+  edit the milestone before saving.
+- Opening the host app from the extension, by any means, including a local
+  notification the user taps (§3a).
 - Deriving the extension's `MARKETING_VERSION` from `package.json` (tracked
   separately with the App target — see the version-drift note in the iOS cleanup).
