@@ -55,34 +55,43 @@ struct BlueCountdownWidget: Widget {
 
 struct NextMilestoneWidget: Widget {
     var body: some WidgetConfiguration {
+        // NextMilestoneEntryView routes by family: Lock Screen sizes get the
+        // vibrant-safe accessory views, Home Screen sizes the existing ones.
         StaticConfiguration(kind: "NextMilestoneWidget", provider: SnapshotProvider()) { entry in
-            NextMilestoneView(entry: entry).widgetBackground(Palette.bg)
+            NextMilestoneEntryView(entry: entry)
         }
         .configurationDisplayName("Next milestone")
         .description("Your next upcoming milestone, with a live countdown.")
-        .supportedFamilies([.systemMedium, .systemLarge])
+        .supportedFamilies([
+            .systemMedium, .systemLarge,
+            .accessoryCircular, .accessoryRectangular, .accessoryInline,
+        ])
     }
 }
 
 struct TodayWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "TodayWidget", provider: SnapshotProvider()) { entry in
-            TodayView(entry: entry).widgetBackground(Palette.bg)
+            TodayEntryView(entry: entry)
         }
         .configurationDisplayName("Today")
         .description("Today's date and your age, with recent and upcoming milestones at larger sizes.")
-        .supportedFamilies([.systemMedium, .systemLarge])
+        // No .accessoryCircular: a date and an age have nothing to render in a
+        // circle that the system clock doesn't already show.
+        .supportedFamilies([.systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline])
     }
 }
 
 struct CurrentChapterWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "CurrentChapterWidget", provider: SnapshotProvider()) { entry in
-            CurrentChapterView(entry: entry).widgetBackground(Palette.bg)
+            CurrentChapterEntryView(entry: entry)
         }
         .configurationDisplayName("Current chapter")
         .description("The chapter you're in now: how far along you are and milestones passed.")
-        .supportedFamilies([.systemMedium, .systemLarge])
+        // No .accessoryInline: chapter progress needs two values, and inline is a
+        // single line shared with the clock.
+        .supportedFamilies([.systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
     }
 }
 
