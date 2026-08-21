@@ -6,7 +6,8 @@ pre-filled Add-milestone sheet" flow on iOS, matching what Android already does.
 Where the shipped code deliberately departs from the original sketch, the section
 says so — most importantly §3a, where the "share opens the app" behaviour this
 document was written around turned out to be prohibited by iOS and had to be
-replaced. Partly device-verified; see *Acceptance tests*.
+replaced. The main share path is **device-verified**; four edge cases are not.
+See *Acceptance tests*.
 
 ## Goal
 
@@ -306,9 +307,12 @@ the title, and keeps the full text as a note — no iOS-side truncation needed.
 `.github/workflows/ios.yml` compiles the extension, which catches project and
 Swift errors, but it never runs the app — so nothing below is covered by CI.
 
-Tests 0–3 passed on device (Safari page share, before the confirmation UI landed).
 Note the expected result is **no longer** "the app opens" — it is "the extension
-confirms, and the draft is waiting on next launch":
+confirms, and the draft is waiting on next launch".
+
+**Passed on device.** The main path is confirmed end to end: the extension appears
+in the share sheet, the confirmation sheet shows, and the pre-filled Add sheet is
+waiting on next launch.
 
 0. lifeGLANCE appears in the share sheet at all. An activation-rule or
    principal-class error presents as a silently missing entry, not a crash.
@@ -316,17 +320,22 @@ confirms, and the draft is waiting on next launch":
    titled from the text.
 2. Share a URL from Safari → open app → Add sheet with URL and hostname/title.
 3. Share with an explicit subject/title → subject becomes the title.
+4. The confirmation sheet appears and dismisses.
 
-Still outstanding, all new with the confirmation UI and queue:
+**Not individually confirmed.** Edge cases that a normal share never exercises, so
+passing the above says nothing about them:
 
-4. Share something empty/unusable → "Nothing to save", and no blank draft on
+5. Share something empty/unusable → "Nothing to save", and no blank draft on
    next launch.
-5. The confirmation sheet renders correctly in light and dark, and Done dismisses.
-6. **Queue:** share three items without opening the app in between, then open the
+6. The confirmation sheet in *both* light and dark appearance (only the tested
+   appearance is known good).
+7. **Queue:** share three items without opening the app in between, then open the
    app three times (backgrounding between) → all three drafts appear, oldest
-   first, none lost.
-7. Upgrade path: a share captured by the pre-queue build still surfaces after
-   updating to this one.
+   first, none lost. This is the one guarding against silent data loss, so it is
+   the most worthwhile of the four.
+8. Upgrade path: a share captured by the pre-queue build still surfaces after
+   updating to this one. Time-limited — once no install predates the queue, this
+   stops being testable and stops mattering.
 
 ## Known gap
 
