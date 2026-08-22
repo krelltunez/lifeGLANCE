@@ -1,0 +1,64 @@
+name: Android build
+
+# Verifies the Android app still compiles after web or native changes — the
+# Android twin of ios.yml. Build-only: assembleDebug, no signing, no emulator,
+# no upload. The Kotlin/Java in android/ had no compile coverage at all before
+# this; a broken plugin or widget could only surface on someone's machine.
+#
+# Scoped to changes that can affect the Android build so ordinary web-only PRs
+# don't spend the (cheap, but not free) gradle run.
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'android/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.js'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.js'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          # AGP 8.13 / Gradle 9.3 build fine on 21; 17 is the floor.
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Capacitor 8's CLI requires Node >= 22.
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Build Android app (debug, no signing)
+        run: cd android && ./gradlew assembleDebug --no-daemon
