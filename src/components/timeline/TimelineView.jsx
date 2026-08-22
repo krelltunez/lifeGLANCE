@@ -110,6 +110,14 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const [filter,        setFilter]        = useState(new Set())
   const [addOpen,       setAddOpen]       = useState(false)
   const [shareDraft,    setShareDraft]    = useState(null)
+  // Set when the Add sheet was seeded from a share, so closing it drains the next
+  // queued share. The native side pops one share per consumeLaunchTarget() call
+  // (it can only surface one at a time, since the app shows one Add sheet), so
+  // without this the rest sit until the app is backgrounded and resumed again.
+  const drainNextShareRef = useRef(false)
+  // Lets closeSheet re-run the launch-target drain, which is defined inside the
+  // mount-once effect below.
+  const consumeNextTargetRef = useRef(null)
   const [editTarget,    setEditTarget]    = useState(null)
   const [detail,        setDetail]        = useState(null)
   const [textSize,      setTextSize]      = useState(() => {
@@ -578,6 +586,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         setEditTarget(null)
         setShareDraft(d)
         setAddOpen(true)
+        // More may be queued behind this one; closeSheet drains the next.
+        drainNextShareRef.current = true
         return
       }
       const m = milestonesRef.current.find(x => x.id === target.milestoneId)
@@ -587,6 +597,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       timelineRef.current?.panToMs(new Date(m.date).getTime())
       setDetail(m)
     }
+    consumeNextTargetRef.current = handleTarget
     handleTarget()
     const onShow = () => { if (document.visibilityState === 'visible') handleTarget() }
     document.addEventListener('visibilitychange', onShow)
@@ -1150,7 +1161,16 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   }
 
   function openEdit(m)  { setEditTarget(m); setAddOpen(true) }
-  function closeSheet() { setAddOpen(false); setEditTarget(null); setShareDraft(null) }
+  function closeSheet() {
+    setAddOpen(false); setEditTarget(null); setShareDraft(null)
+    // Saved or dismissed, both are a decision about that share — so advance the
+    // queue either way. Reopens the sheet if another share is waiting; does
+    // nothing if not, since consumeLaunchTarget() then returns null.
+    if (drainNextShareRef.current) {
+      drainNextShareRef.current = false
+      consumeNextTargetRef.current?.()
+    }
+  }
 
   // ── Chapter CRUD ─────────────────────────────────────────────────────────────
   function openChapterCreate() { setEditChapter(null); setChapterSheetOpen(true) }

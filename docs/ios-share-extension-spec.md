@@ -330,22 +330,35 @@ passing the above says nothing about them:
 6. The confirmation sheet in *both* light and dark appearance (only the tested
    appearance is known good).
 7. **Queue:** share three items without opening the app in between, then open the
-   app three times (backgrounding between) → all three drafts appear, oldest
-   first, none lost. This is the one guarding against silent data loss, so it is
-   the most worthwhile of the four.
+   app **once** → the first draft appears, and closing it (saved or dismissed)
+   brings up the second, then the third, without backgrounding. This is the one
+   guarding against silent data loss, so it is the most worthwhile of the four.
+   Watch the close/reopen transition between drafts while you are here.
 8. Upgrade path: a share captured by the pre-queue build still surfaces after
    updating to this one. Time-limited — once no install predates the queue, this
    stops being testable and stops mattering.
 
-## Known gap
+## Draining more than one queued share
 
-The app drains **one** queued share per launch/resume, because
-`consumeLaunchTarget()` is called from `TimelineView`'s `visibilitychange`
-handler and the app can only show one Add sheet at a time. Sharing three things
-then opening the app once yields the first draft; the other two wait for the next
-resume. Nothing is lost, but draining the rest as each sheet is dismissed would
-be the better behaviour — a small `TimelineView` change, deliberately not bundled
-with the native fix.
+The native side pops **one** share per `consumeLaunchTarget()`, because the app
+can only show one Add sheet at a time. The queue is therefore drained a step at a
+time rather than all at once.
+
+`TimelineView` advances it on sheet close: opening a share-seeded Add sheet sets
+`drainNextShareRef`, and `closeSheet()` re-runs the launch-target drain, which
+reopens the sheet if another share is waiting and does nothing if not (the bridge
+then returns `null`). Saving and dismissing both route through `closeSheet` —
+`AddMilestoneSheet` calls `onClose()` after a successful save — so either counts
+as a decision about that share and advances the queue.
+
+This previously waited for the next launch/resume, so sharing three things and
+opening the app once yielded only the first draft. Nothing was lost, but the
+remainder sat until the app was backgrounded and foregrounded again.
+
+> Note the sheet closes and reopens between shares rather than swapping its
+> contents in place. That is deliberate — it signals "next one" — but it is the
+> part most worth a second look on device, since a fast close/reopen can read as
+> a flicker.
 
 ## Out of scope
 
