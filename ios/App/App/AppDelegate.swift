@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import CoreSpotlight
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -65,6 +66,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+        // A tapped Spotlight result (indexed by SpotlightPlugin) arrives as this
+        // activity type with the milestone id as its unique identifier. Stash it
+        // as pending_target — the exact contract a widget tap uses — and the web
+        // layer pans to and opens that milestone on resume. Literals rather than
+        // WidgetStore, keeping this file self-contained like the deep-link
+        // handler above.
+        if userActivity.activityType == CSSearchableItemActionType,
+           let id = userActivity.userInfo?[CSSearchableItemActivityIdentifier] as? String {
+            UserDefaults(suiteName: "group.com.lifeglance")?.set(id, forKey: "pending_target")
+        }
         // Called when the app was launched with an activity, including Universal Links.
         // Feel free to add additional processing here, but if you want the App API to support
         // tracking app url opens, make sure to keep this call

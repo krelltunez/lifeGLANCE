@@ -13,6 +13,7 @@
 		0DA92D722FECC30800F56B1C /* WidgetBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA92D712FECC30800F56B1C /* WidgetBridgePlugin.swift */; };
 		0DA92D762FECE9F200F56B1C /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DA92D752FECE9F200F56B1C /* MainViewController.swift */; };
 		0DB5E10D2FED010000F56B1C /* LifeGlanceShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0DB5E1022FED010000F56B1C /* LifeGlanceShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		0DC7A1112FED030000F56B1C /* SpotlightPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC7A1102FED030000F56B1C /* SpotlightPlugin.swift */; };
 		0DC7A1012FED020000F56B1C /* AddMilestoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC7A1002FED020000F56B1C /* AddMilestoneIntent.swift */; };
 		7B5F62012E3D110100D5E3A1 /* VaultSseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5F62002E3D110100D5E3A1 /* VaultSseClient.swift */; };
 		7B5F62032E3D110100D5E3A1 /* VaultSsePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */; };
@@ -67,6 +68,7 @@
 		0DA92D712FECC30800F56B1C /* WidgetBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetBridgePlugin.swift; sourceTree = "<group>"; };
 		0DA92D752FECE9F200F56B1C /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		0DB5E1022FED010000F56B1C /* LifeGlanceShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LifeGlanceShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		0DC7A1102FED030000F56B1C /* SpotlightPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightPlugin.swift; sourceTree = "<group>"; };
 		0DC7A1002FED020000F56B1C /* AddMilestoneIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMilestoneIntent.swift; sourceTree = "<group>"; };
 		7B5F62002E3D110100D5E3A1 /* VaultSseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultSseClient.swift; sourceTree = "<group>"; };
 		7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultSsePlugin.swift; sourceTree = "<group>"; };
@@ -176,6 +178,7 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				0DC7A1102FED030000F56B1C /* SpotlightPlugin.swift */,
 				0DC7A1002FED020000F56B1C /* AddMilestoneIntent.swift */,
 				0DA92D752FECE9F200F56B1C /* MainViewController.swift */,
 				7B5F62002E3D110100D5E3A1 /* VaultSseClient.swift */,
@@ -365,6 +368,7 @@
 				7B5F62012E3D110100D5E3A1 /* VaultSseClient.swift in Sources */,
 				7B5F62032E3D110100D5E3A1 /* VaultSsePlugin.swift in Sources */,
 				0DC7A1012FED020000F56B1C /* AddMilestoneIntent.swift in Sources */,
+				0DC7A1112FED030000F56B1C /* SpotlightPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
