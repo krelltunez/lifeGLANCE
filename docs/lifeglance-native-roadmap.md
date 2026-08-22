@@ -61,6 +61,24 @@ Note: since widgets are already shipped, some form of projection store already e
 | Widgets | Android (Jetpack Glance) + iOS (WidgetKit) |
 | Share targets | Both |
 | Ambient / watch mode | Both (keep-awake + auto-run, already present) |
+| Lock Screen widget families | iOS (accessory circular / rectangular / inline) |
+| App Intents: add-a-milestone | iOS (Siri + Shortcuts) |
+
+Both iOS entries are device-verified, not merely shipped.
+
+**iOS now targets 16.0** (raised from 15.0), which both of those required. Worth
+knowing before planning further iOS work: anything gated on iOS 16 is now free,
+and StandBy (17+) is the next threshold if it is ever wanted — though it stays
+explicitly skipped below.
+
+### Share targets — the iOS asymmetry is permanent
+
+Android's share target opens the app; iOS's cannot, and that is not a gap to
+close later. App extensions are barred from opening URLs, the responder-chain
+`openURL:` technique died in iOS 18, and Apple is explicit that this is by
+design. The iOS extension confirms in place and the draft waits for the next
+launch. Full reasoning in `docs/ios-share-extension-spec.md` §3a; do not re-open
+it as a bug.
 
 ---
 
@@ -70,9 +88,7 @@ Note: since widgets are already shipped, some form of projection store already e
 |---|---|---|
 | Photo Picker | Android | Permission-free image/video import. Works today despite IndexedDB media because import is foreground and one-shot. |
 | SAF `ACTION_OPEN_DOCUMENT` | Android | Audio import. Photo Picker is visual-only. Also permission-free. |
-| Lock Screen / StandBy widget families | iOS | Nearly free once WidgetKit widgets exist. Same projection, different widget families. |
 | Material You / Monet theming | Android | Wallpaper-derived palette. Makes a personal timeline feel personal. |
-| App Intents: add-a-milestone | iOS | The minimal iOS v1.0 intent. Yields Siri + Shortcuts for that one action. |
 
 ### Photo Picker implementation note
 
@@ -83,11 +99,15 @@ Capacitor-idiomatic path: do **not** intercept `WebChromeClient.onShowFileChoose
 - Use `Capacitor.convertFileSrc()` so JS can `fetch(url).then(r => r.blob())` straight into `dbPutMedia`. Avoids ~33% base64 inflation, which matters for video.
 - The existing web storage path is unchanged. It just receives URIs from a nicer picker.
 
-### App Intents scoping
+### App Intents scoping — shipped as specified
 
-iOS v1.0 is deliberately **minimal**: declare the intent, stop there. No parameterized intents, no Shortcuts chaining.
+iOS v1.0 was deliberately **minimal**: declare the intent, stop there. No parameterized intents, no Shortcuts chaining. That is what shipped — one `AddMilestoneIntent` plus an `AppShortcutsProvider`, in `ios/App/App/AddMilestoneIntent.swift`.
 
 Rationale for the platform asymmetry (rich automation on Android, minimal on iOS): on Android, Tasker speaks the same intent surface already declared for app-to-app interop, so automation depth is close to free. On iOS there is no Tasker, so equivalent depth means hand-building parameterized Shortcuts surfaces. Different ecosystems warrant different depths. This is not an inconsistency.
+
+The intent reuses the Quick Add widget's contract rather than adding a second one: it writes `"new"` to the App Group's `pending_action`, which the existing `consumeLaunchTarget()` path turns into the Add-milestone sheet. Any future intent should follow that shape — extend the projection/action contract, don't grow a parallel bridge.
+
+**Widening this is a real decision, not a follow-up.** Parameterized intents mean modelling milestones as `AppEntity`, which is a materially larger surface than what is here.
 
 ---
 
@@ -164,9 +184,19 @@ Already implemented (keep-awake + auto-run). Two things worth being deliberate a
 
 ## Suggested next slice
 
-Given widgets and share targets are done:
+Both iOS items from the previous slice — Lock Screen widget families and the
+add-a-milestone App Intent — are done and verified on device. **The iOS
+ready-to-build list is now empty**: what remains for iOS is either blocked on
+GLANCEvault's byte plane or in *Later / optional*.
 
-1. **Photo Picker (Android).** Real user-facing win, removes a scary permission prompt, zero architectural risk, no byte-plane dependency.
-2. **Lock Screen / StandBy widget families (iOS).** Nearly free reuse of the WidgetKit work just completed.
+So the centre of gravity moves to Android:
 
-Neither touches the blocked byte plane. Both are cheap.
+1. **Photo Picker (Android).** Real user-facing win, removes a scary permission prompt, zero architectural risk, no byte-plane dependency. Unchanged from the last round, and now the clear front-runner.
+2. **SAF `ACTION_OPEN_DOCUMENT` (Android).** Pairs naturally with the Photo Picker — same import surface, covers the audio case the visual-only picker cannot.
+
+If an iOS slice is wanted instead, **Core Spotlight** (in *Later / optional*) is
+the strongest candidate: it is a read-only consumer of the projection store that
+already exists, so it needs no new infrastructure, and system search into a life
+timeline is a good fit.
+
+Nothing above touches the blocked byte plane.
