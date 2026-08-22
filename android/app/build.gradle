@@ -107,6 +107,12 @@ dependencies {
     // Play Billing bridge (@glance-apps/billing npm package's bundled module)
     implementation project(':glance-apps-billing')
 
+    // PickVisualMedia (the permission-free Android Photo Picker contract) —
+    // used by MediaPickerPlugin. appcompat pulls androidx.activity transitively,
+    // but the contract needs 1.6+, so pin it explicitly rather than relying on
+    // whatever version rides along.
+    implementation "androidx.activity:activity-ktx:1.9.3"
+
     // Home-screen widgets (Jetpack Glance, Kotlin/Compose)
     implementation "androidx.glance:glance-appwidget:$rootProject.ext.glanceVersion"
     implementation "androidx.work:work-runtime-ktx:$rootProject.ext.workManagerVersion"
