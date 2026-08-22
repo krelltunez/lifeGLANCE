@@ -13,6 +13,8 @@ import { useVaultEventStream } from './hooks/useVaultEventStream'
 import { drainIntentsNow } from './hooks/useIntentPoller'
 import { buildWidgetSnapshot } from './utils/widgetSnapshot'
 import { pushWidgetSnapshot } from './native/widgetBridge'
+import { buildSpotlightIndex } from './utils/spotlightIndex'
+import { maybePushSpotlightIndex } from './native/spotlightBridge'
 import { useSubscription } from './billing/billing'
 import PaywallModal from './components/billing/PaywallModal'
 import ReviewerBanner from './components/billing/ReviewerBanner'
@@ -261,6 +263,12 @@ export default function App() {
       try { pins = JSON.parse(localStorage.getItem('lifeglance-pins') || '{}') } catch { /* ignore malformed pins */ }
       pushWidgetSnapshot(
         buildWidgetSnapshot(milestonesRef.current, chaptersRef.current, birthday, new Date(), pins)
+      )
+      // Same trigger discipline feeds Core Spotlight on iOS (no-op elsewhere).
+      // Factory form so the full index is only built where a plugin will take it;
+      // the bridge also skips the push when the payload hasn't changed.
+      maybePushSpotlightIndex(() =>
+        buildSpotlightIndex(milestonesRef.current, chaptersRef.current)
       )
     }
 
