@@ -5,6 +5,7 @@ import { buildDateFromParts, dateFieldOrder, monthNames } from '../../utils/date
 import { dbGetPhoto } from '../../data/db'
 import { getMilestoneVisibility } from '../../utils/visibility'
 import { isIntegrationEnabled } from '../../lib/intentsTransport.js'
+import { pickPhotoNative, pickMediaNative } from '../../native/mediaPicker'
 
 export default function AddMilestoneSheet({ onSave, onClose, existing, draft = null, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() }, drilledChapter = null }) {
   const { t } = useTranslation('milestone')
@@ -171,6 +172,31 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
     setPhotoObjectUrl(null)
     setPhotoRemoved(true)
     if (photoRef.current) photoRef.current.value = ''
+  }
+
+  function handleMediaSelect(file) {
+    if (!file) return
+    setMediaFile(file)
+    setMediaRemoved(false)
+    setMediaObjectUrl(URL.createObjectURL(file))
+  }
+
+  // Attach buttons go native-first: on Android the photo button opens the
+  // permission-free system Photo Picker and the media button a SAF audio/video
+  // chooser (see src/native/mediaPicker.js). Everywhere else — web, iOS, an
+  // older APK without the plugin — the pick resolves null and the hidden
+  // <input type="file"> takes over, so nothing changes off Android. A native
+  // { cancelled } means the user closed the picker: do nothing, don't reopen.
+  async function openPhotoPicker() {
+    const picked = await pickPhotoNative()
+    if (picked === null) { photoRef.current?.click(); return }
+    if (picked.file) handlePhotoSelect(picked.file)
+  }
+
+  async function openMediaPicker() {
+    const picked = await pickMediaNative()
+    if (picked === null) { mediaRef.current?.click(); return }
+    if (picked.file) handleMediaSelect(picked.file)
   }
 
   async function handleSubmit(e) {
@@ -450,7 +476,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
             <div className="audio-attached-row">
               <span className="audio-attached-label">{t('photoAttached')}</span>
               <button type="button" className="btn-ghost" style={{ fontSize: '0.72rem' }}
-                onClick={() => photoRef.current?.click()}>
+                onClick={openPhotoPicker}>
                 {tc('replace')}
               </button>
               <button type="button" className="btn-ghost" style={{ fontSize: '0.72rem' }}
@@ -461,7 +487,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
           ) : (
             <button type="button" className="btn"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', alignSelf: 'flex-start' }}
-              onClick={() => photoRef.current?.click()}>
+              onClick={openPhotoPicker}>
               {t('attachPhoto')}
             </button>
           )}
@@ -496,7 +522,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
                 {existing.media_type === 'video' ? t('videoAttached') : t('audioAttached')}
               </span>
               <button type="button" className="btn-ghost" style={{ fontSize: '0.72rem' }}
-                onClick={() => mediaRef.current?.click()}>
+                onClick={openMediaPicker}>
                 {tc('replace')}
               </button>
               <button type="button" className="btn-ghost" style={{ fontSize: '0.72rem' }}
@@ -507,20 +533,14 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
           ) : (
             <button type="button" className="btn"
               style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem', alignSelf: 'flex-start' }}
-              onClick={() => mediaRef.current?.click()}>
+              onClick={openMediaPicker}>
               {t('attachMedia')}
             </button>
           )}
           <input
             ref={mediaRef} type="file" accept="audio/*,video/*"
             style={{ display: 'none' }}
-            onChange={e => {
-              const file = e.target.files[0]
-              if (!file) return
-              setMediaFile(file)
-              setMediaRemoved(false)
-              setMediaObjectUrl(URL.createObjectURL(file))
-            }}
+            onChange={e => handleMediaSelect(e.target.files[0])}
           />
         </div>
 
