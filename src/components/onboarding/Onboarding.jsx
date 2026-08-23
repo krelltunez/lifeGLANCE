@@ -21,8 +21,8 @@ function SkipIcon() {
   )
 }
 
-// Globe, same line-icon style. Sits beside the language select, which is
-// dressed as another corner link (see .onboarding-language-select).
+// Globe, same line-icon style. Sits beside the language picker's inline
+// variant, which shrink-wraps to the current language's name.
 function GlobeIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -81,7 +81,7 @@ export default function Onboarding({ onComplete }) {
         <div className="onboarding-corner">
           <span className="onboarding-link onboarding-language">
             <GlobeIcon />
-            <LanguagePicker className="onboarding-language-select" aria-label={ts('language')} />
+            <LanguagePicker inline aria-label={ts('language')} />
           </span>
           <span className="onboarding-sep" aria-hidden="true" />
           <ThemeToggle />
