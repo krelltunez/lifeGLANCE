@@ -6,8 +6,13 @@ import WidgetKit
 // The web app pushes a render-ready snapshot here; it is written to the App Group
 // container that the widget extension reads, and the widgets are reloaded.
 //
-// Capacitor auto-discovers plugins conforming to CAPBridgedPlugin; jsName must match
-// registerPlugin('WidgetBridge') in src/native/widgetBridge.js.
+// NOT auto-discovered: app-target plugins must be registered in
+// MainViewController.capacitorDidLoad(), or isPluginAvailable() answers false
+// and the JS side silently no-ops. jsName must match registerPlugin('WidgetBridge')
+// in src/native/widgetBridge.js. (An earlier comment here claimed Capacitor
+// auto-discovers CAPBridgedPlugin conformers; it does not for app-embedded
+// plugins, and that claim is exactly how SpotlightPlugin first shipped
+// unregistered and dead.)
 @objc(WidgetBridgePlugin)
 public class WidgetBridgePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "WidgetBridgePlugin"
