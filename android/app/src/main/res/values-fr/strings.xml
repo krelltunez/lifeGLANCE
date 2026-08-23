@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_next_milestone_label">Prochain jalon</string>
+    <string name="widget_next_milestone_description">Votre prochain jalon, avec compte à rebours en direct.</string>
+    <string name="widget_today_label">Aujourd\'hui</string>
+    <string name="widget_today_description">La date du jour et votre âge, avec les jalons récents et à venir en grande taille.</string>
+    <string name="widget_current_chapter_label">Chapitre en cours</string>
+    <string name="widget_current_chapter_description">Le chapitre où vous êtes : votre progression et les jalons passés.</string>
+    <string name="widget_on_this_day_label">Ce jour-là</string>
+    <string name="widget_on_this_day_description">Les jalons à la date du jour au fil des années passées.</string>
+    <string name="widget_stats_label">Jalons</string>
+    <string name="widget_stats_description">Vos totaux de jalons : passés, à venir, cette année et votre âge.</string>
+    <string name="widget_quick_add_label">Ajouter un jalon</string>
+    <string name="widget_quick_add_description">Un raccourci en un geste pour ajouter un nouveau jalon.</string>
+    <string name="tile_add_milestone_label">Ajouter un jalon</string>
+    <string name="shortcut_add_short">Ajouter un jalon</string>
+    <string name="shortcut_add_long">Ajouter un nouveau jalon</string>
+    <string name="shortcut_search_short">Rechercher</string>
+    <string name="shortcut_search_long">Rechercher des jalons</string>
+    <string name="widget_pin_amber_label">Compte à rebours · ambre</string>
+    <string name="widget_pin_rose_label">Compte à rebours · rose</string>
+    <string name="widget_pin_teal_label">Compte à rebours · sarcelle</string>
+    <string name="widget_pin_blue_label">Compte à rebours · bleu</string>
+    <string name="widget_pinned_description">Un compte à rebours vers le jalon épinglé à cet emplacement de couleur dans l\'application.</string>
+    <string name="widget_eyebrow_next">PROCHAIN</string>
+    <string name="widget_eyebrow_today">AUJOURD\'HUI</string>
+    <string name="widget_eyebrow_chapter">CHAPITRE</string>
+    <string name="widget_eyebrow_on_this_day">CE JOUR-LÀ</string>
+    <string name="widget_eyebrow_pinned">ÉPINGLÉ</string>
+    <string name="widget_eyebrow_milestones">JALONS</string>
+    <string name="widget_no_upcoming">Aucun jalon à venir</string>
+    <string name="widget_no_active_chapter">Aucun chapitre en cours</string>
+    <string name="widget_nothing_on_this_day">Rien d\'aujourd\'hui dans les années passées</string>
+    <string name="widget_new_milestone">nouveau jalon</string>
+    <string name="widget_pin_hint">Épinglez un jalon à l\'emplacement %1$s dans l\'application</string>
+    <string name="widget_last_passed">dernier · %1$s (%2$s)</string>
+    <string name="widget_milestones_count">%1$d/%2$d jalons</string>
+    <string name="widget_chapter_elapsed">depuis %1$s</string>
+    <string name="widget_more_count">+%1$d de plus</string>
+    <string name="widget_past_ahead">%1$d passés · %2$d à venir</string>
+    <string name="widget_this_year_count">%1$d cette année</string>
+    <string name="widget_age">âge %1$d</string>
+    <string name="widget_context_next">prochain</string>
+    <string name="widget_context_last">dernier</string>
+    <string name="widget_context_chapter">chapitre</string>
+    <string name="widget_rel_today">aujourd\'hui</string>
+    <string name="widget_just_started">tout juste commencé</string>
+    <string name="widget_rel_future">dans %1$s</string>
+    <string name="widget_rel_past">il y a %1$s</string>
+    <string name="widget_dur_join">%1$s, %2$s</string>
+    <plurals name="widget_dur_months">
+        <item quantity="one">%1$d mois</item>
+        <item quantity="other">%1$d mois</item>
+    </plurals>
+    <plurals name="widget_dur_years">
+        <item quantity="one">%1$d an</item>
+        <item quantity="other">%1$d ans</item>
+    </plurals>
+    <plurals name="widget_dur_days">
+        <item quantity="one">%1$d jour</item>
+        <item quantity="other">%1$d jours</item>
+    </plurals>
+    <plurals name="widget_years_old">
+        <item quantity="one">%1$d an</item>
+        <item quantity="other">%1$d ans</item>
+    </plurals>
+    <plurals name="widget_years_ago">
+        <item quantity="one">il y a %1$d an</item>
+        <item quantity="other">il y a %1$d ans</item>
+    </plurals>
+    <string name="slot_amber">ambre</string>
+    <string name="slot_rose">rose</string>
+    <string name="slot_teal">sarcelle</string>
+    <string name="slot_blue">bleu</string>
+</resources>

@@ -29,6 +29,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.lifeglance.app.MainActivity
+import com.lifeglance.app.R
 
 /**
  * "Today" widget: weekday, date, and age. At its larger size it also surfaces the
@@ -61,7 +62,7 @@ class TodayWidget : GlanceAppWidget() {
                 .clickable(actionStartActivity(ComponentName(context, MainActivity::class.java), actionParametersOf())),
         ) {
             Text(
-                text = "TODAY",
+                text = context.getString(R.string.widget_eyebrow_today),
                 style = TextStyle(color = ColorProvider(WidgetTheme.AMBER), fontFamily = FontFamily.Monospace, fontSize = 10.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(4.dp))
@@ -77,7 +78,7 @@ class TodayWidget : GlanceAppWidget() {
             val age = WidgetData.age(snapshot?.birthday)
             if (age != null) {
                 Text(
-                    text = "$age year${if (age != 1) "s" else ""} old",
+                    text = context.resources.getQuantityString(R.plurals.widget_years_old, age, age),
                     style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 12.sp),
                 )
             }
@@ -85,13 +86,13 @@ class TodayWidget : GlanceAppWidget() {
             if (tall) {
                 Spacer(GlanceModifier.height(10.dp))
                 snapshot?.next?.let {
-                    ContextLine("next", "${it.title} · ${WidgetData.relativeLabel(it.date)}")
+                    ContextLine(context.getString(R.string.widget_context_next), "${it.title} · ${WidgetData.relativeLabel(context, it.date)}")
                 }
                 snapshot?.prev?.let {
-                    ContextLine("last", "${it.title} · ${WidgetData.relativeLabel(it.date)}")
+                    ContextLine(context.getString(R.string.widget_context_last), "${it.title} · ${WidgetData.relativeLabel(context, it.date)}")
                 }
                 snapshot?.currentChapter?.let {
-                    ContextLine("chapter", it.title)
+                    ContextLine(context.getString(R.string.widget_context_chapter), it.title)
                 }
             }
         }

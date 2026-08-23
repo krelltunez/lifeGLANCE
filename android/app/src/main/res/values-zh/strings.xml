@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_next_milestone_label">下一个里程碑</string>
+    <string name="widget_next_milestone_description">您的下一个里程碑，附实时倒计时。</string>
+    <string name="widget_today_label">今天</string>
+    <string name="widget_today_description">今天的日期与您的年龄；较大尺寸下还会显示最近与即将到来的里程碑。</string>
+    <string name="widget_current_chapter_label">当前章节</string>
+    <string name="widget_current_chapter_description">您现在所处的章节：已行进多远，以及走过的里程碑。</string>
+    <string name="widget_on_this_day_label">历史上的今天</string>
+    <string name="widget_on_this_day_description">往年今日的里程碑。</string>
+    <string name="widget_stats_label">里程碑</string>
+    <string name="widget_stats_description">您的里程碑统计：过去、未来、今年，以及您的年龄。</string>
+    <string name="widget_quick_add_label">添加里程碑</string>
+    <string name="widget_quick_add_description">一键添加新里程碑的快捷方式。</string>
+    <string name="tile_add_milestone_label">添加里程碑</string>
+    <string name="shortcut_add_short">添加里程碑</string>
+    <string name="shortcut_add_long">添加新的里程碑</string>
+    <string name="shortcut_search_short">搜索</string>
+    <string name="shortcut_search_long">搜索里程碑</string>
+    <string name="widget_pin_amber_label">倒计时 · 琥珀</string>
+    <string name="widget_pin_rose_label">倒计时 · 玫瑰</string>
+    <string name="widget_pin_teal_label">倒计时 · 青色</string>
+    <string name="widget_pin_blue_label">倒计时 · 蓝色</string>
+    <string name="widget_pinned_description">倒计时至应用中固定在此颜色栏位的里程碑。</string>
+    <string name="widget_eyebrow_next">下一个</string>
+    <string name="widget_eyebrow_today">今天</string>
+    <string name="widget_eyebrow_chapter">章节</string>
+    <string name="widget_eyebrow_on_this_day">历史上的今天</string>
+    <string name="widget_eyebrow_pinned">已固定</string>
+    <string name="widget_eyebrow_milestones">里程碑</string>
+    <string name="widget_no_upcoming">暂无即将到来的里程碑</string>
+    <string name="widget_no_active_chapter">暂无进行中的章节</string>
+    <string name="widget_nothing_on_this_day">往年今日暂无里程碑</string>
+    <string name="widget_new_milestone">新里程碑</string>
+    <string name="widget_pin_hint">请在应用中将里程碑固定到%1$s栏位</string>
+    <string name="widget_last_passed">上一个 · %1$s（%2$s）</string>
+    <string name="widget_milestones_count">%1$d/%2$d 个里程碑</string>
+    <string name="widget_chapter_elapsed">已进行 %1$s</string>
+    <string name="widget_more_count">还有 %1$d 个</string>
+    <string name="widget_past_ahead">过去 %1$d · 未来 %2$d</string>
+    <string name="widget_this_year_count">今年 %1$d 个</string>
+    <string name="widget_age">%1$d 岁</string>
+    <string name="widget_context_next">下一个</string>
+    <string name="widget_context_last">上一个</string>
+    <string name="widget_context_chapter">章节</string>
+    <string name="widget_rel_today">今天</string>
+    <string name="widget_just_started">刚刚开始</string>
+    <string name="widget_rel_future">%1$s后</string>
+    <string name="widget_rel_past">%1$s前</string>
+    <string name="widget_dur_join">%1$s%2$s</string>
+    <plurals name="widget_dur_months">
+        <item quantity="other">%1$d个月</item>
+    </plurals>
+    <plurals name="widget_dur_years">
+        <item quantity="other">%1$d年</item>
+    </plurals>
+    <plurals name="widget_dur_days">
+        <item quantity="other">%1$d天</item>
+    </plurals>
+    <plurals name="widget_years_old">
+        <item quantity="other">%1$d 岁</item>
+    </plurals>
+    <plurals name="widget_years_ago">
+        <item quantity="other">%1$d 年前</item>
+    </plurals>
+    <string name="slot_amber">琥珀</string>
+    <string name="slot_rose">玫瑰</string>
+    <string name="slot_teal">青色</string>
+    <string name="slot_blue">蓝色</string>
+</resources>

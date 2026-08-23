@@ -32,6 +32,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.lifeglance.app.MainActivity
+import com.lifeglance.app.R
 
 /**
  * "Current Chapter" widget: the chapter spanning today — its name, how far into it
@@ -66,7 +67,7 @@ class CurrentChapterWidget : GlanceAppWidget() {
         ) {
             if (chapter == null) {
                 Text(
-                    text = "No active chapter",
+                    text = context.getString(R.string.widget_no_active_chapter),
                     style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 13.sp),
                 )
                 return@Column
@@ -78,7 +79,7 @@ class CurrentChapterWidget : GlanceAppWidget() {
 
             val accent = WidgetTheme.parseColor(chapter.color)
             Text(
-                text = "CHAPTER",
+                text = context.getString(R.string.widget_eyebrow_chapter),
                 style = TextStyle(color = ColorProvider(accent), fontFamily = FontFamily.Monospace, fontSize = 10.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(4.dp))
@@ -89,13 +90,13 @@ class CurrentChapterWidget : GlanceAppWidget() {
             )
             Spacer(GlanceModifier.height(2.dp))
             Text(
-                text = "${WidgetData.durationWords(chapter.start)} in",
+                text = context.getString(R.string.widget_chapter_elapsed, WidgetData.durationWords(context, chapter.start)),
                 style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 12.sp),
             )
 
             if (tall && chapter.totalCount > 0) {
                 Text(
-                    text = "${chapter.passedCount}/${chapter.totalCount} milestones",
+                    text = context.getString(R.string.widget_milestones_count, chapter.passedCount, chapter.totalCount),
                     style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 11.sp),
                 )
             }

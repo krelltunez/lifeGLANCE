@@ -145,7 +145,7 @@ final class ShareViewController: UIViewController {
         detail.numberOfLines = 3
         detail.textAlignment = .center
 
-        doneButton.setTitle("Done", for: .normal)
+        doneButton.setTitle(String(localized: "Done"), for: .normal)
         doneButton.setTitleColor(amberColor, for: .normal)
         doneButton.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
         doneButton.addTarget(self, action: #selector(finish), for: .touchUpInside)
@@ -172,11 +172,11 @@ final class ShareViewController: UIViewController {
     // `saved` is the captured title, or nil when the item held nothing usable.
     private func show(saved: String?) {
         if let title = saved {
-            headline.text = "Saved to lifeGLANCE"
-            detail.text = "\(title)\n\nIt'll be waiting as a new milestone next time you open the app."
+            headline.text = String(localized: "Saved to lifeGLANCE")
+            detail.text = String(localized: "\(title)\n\nIt'll be waiting as a new milestone next time you open the app.")
         } else {
-            headline.text = "Nothing to save"
-            detail.text = "This item didn't contain any text or link lifeGLANCE could use."
+            headline.text = String(localized: "Nothing to save")
+            detail.text = String(localized: "This item didn't contain any text or link lifeGLANCE could use.")
         }
         UIView.animate(withDuration: 0.2) { self.card.alpha = 1 }
     }

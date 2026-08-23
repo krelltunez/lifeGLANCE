@@ -25,6 +25,8 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		0DFACE0000000000000000A1 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0DFACE0000000000000000A0 /* Localizable.xcstrings */; };
+		0DFACE0000000000000000A3 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0DFACE0000000000000000B0 /* AppShortcuts.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -82,6 +84,15 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		0DFACE0000000000000000A0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		0DFACE0000000000000000B1 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		0DFACE0000000000000000B2 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		0DFACE0000000000000000B3 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		0DFACE0000000000000000B4 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		0DFACE0000000000000000B5 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/AppShortcuts.strings"; sourceTree = "<group>"; };
+		0DFACE0000000000000000B6 /* pt-PT */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-PT"; path = "pt-PT.lproj/AppShortcuts.strings"; sourceTree = "<group>"; };
+		0DFACE0000000000000000B7 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/AppShortcuts.strings"; sourceTree = "<group>"; };
+		0DFACE0000000000000000B8 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/AppShortcuts.strings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -142,6 +153,24 @@
 		};
 /* End PBXFrameworksBuildPhase section */
 
+/* Begin PBXVariantGroup section */
+		0DFACE0000000000000000B0 /* AppShortcuts.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				0DFACE0000000000000000B1 /* de */,
+				0DFACE0000000000000000B2 /* es */,
+				0DFACE0000000000000000B3 /* fr */,
+				0DFACE0000000000000000B4 /* it */,
+				0DFACE0000000000000000B5 /* pt-BR */,
+				0DFACE0000000000000000B6 /* pt-PT */,
+				0DFACE0000000000000000B7 /* zh-Hans */,
+				0DFACE0000000000000000B8 /* zh-Hant */,
+			);
+			name = AppShortcuts.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
 /* Begin PBXGroup section */
 		0DA92D502FECBEF700F56B1C /* Frameworks */ = {
 			isa = PBXGroup;
@@ -193,6 +222,8 @@
 				504EC3131FED79650016851F /* Info.plist */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				0DFACE0000000000000000A0 /* Localizable.xcstrings */,
+				0DFACE0000000000000000B0 /* AppShortcuts.strings */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -297,6 +328,14 @@
 			knownRegions = (
 				en,
 				Base,
+				de,
+				es,
+				fr,
+				it,
+				"pt-BR",
+				"pt-PT",
+				"zh-Hans",
+				"zh-Hant",
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
@@ -338,6 +377,8 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+				0DFACE0000000000000000A1 /* Localizable.xcstrings in Resources */,
+				0DFACE0000000000000000A3 /* AppShortcuts.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

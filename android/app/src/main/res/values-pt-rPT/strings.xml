@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_next_milestone_label">Próximo marco</string>
+    <string name="widget_next_milestone_description">O seu próximo marco, com contagem decrescente ao vivo.</string>
+    <string name="widget_today_label">Hoje</string>
+    <string name="widget_today_description">A data de hoje e a sua idade; nos tamanhos maiores, também marcos recentes e próximos.</string>
+    <string name="widget_current_chapter_label">Capítulo atual</string>
+    <string name="widget_current_chapter_description">O capítulo em que está agora: quanto já avançou e os marcos passados.</string>
+    <string name="widget_on_this_day_label">Neste dia</string>
+    <string name="widget_on_this_day_description">Marcos da data de hoje em anos passados.</string>
+    <string name="widget_stats_label">Marcos</string>
+    <string name="widget_stats_description">Os seus totais de marcos: passados, futuros, este ano e a sua idade.</string>
+    <string name="widget_quick_add_label">Adicionar marco</string>
+    <string name="widget_quick_add_description">Um atalho de um toque para adicionar um novo marco.</string>
+    <string name="tile_add_milestone_label">Adicionar marco</string>
+    <string name="shortcut_add_short">Adicionar marco</string>
+    <string name="shortcut_add_long">Adicionar um novo marco</string>
+    <string name="shortcut_search_short">Procurar</string>
+    <string name="shortcut_search_long">Procurar marcos</string>
+    <string name="widget_pin_amber_label">Contagem decrescente · âmbar</string>
+    <string name="widget_pin_rose_label">Contagem decrescente · rosa</string>
+    <string name="widget_pin_teal_label">Contagem decrescente · verde-azulado</string>
+    <string name="widget_pin_blue_label">Contagem decrescente · azul</string>
+    <string name="widget_pinned_description">Uma contagem decrescente até ao marco fixado neste espaço de cor na aplicação.</string>
+    <string name="widget_eyebrow_next">PRÓXIMO</string>
+    <string name="widget_eyebrow_today">HOJE</string>
+    <string name="widget_eyebrow_chapter">CAPÍTULO</string>
+    <string name="widget_eyebrow_on_this_day">NESTE DIA</string>
+    <string name="widget_eyebrow_pinned">FIXADO</string>
+    <string name="widget_eyebrow_milestones">MARCOS</string>
+    <string name="widget_no_upcoming">Nenhum marco próximo</string>
+    <string name="widget_no_active_chapter">Nenhum capítulo ativo</string>
+    <string name="widget_nothing_on_this_day">Nada de hoje em anos passados</string>
+    <string name="widget_new_milestone">novo marco</string>
+    <string name="widget_pin_hint">Fixe um marco no espaço %1$s na aplicação</string>
+    <string name="widget_last_passed">último · %1$s (%2$s)</string>
+    <string name="widget_milestones_count">%1$d/%2$d marcos</string>
+    <string name="widget_chapter_elapsed">há %1$s</string>
+    <string name="widget_more_count">+%1$d mais</string>
+    <string name="widget_past_ahead">%1$d passados · %2$d futuros</string>
+    <string name="widget_this_year_count">%1$d este ano</string>
+    <string name="widget_age">idade %1$d</string>
+    <string name="widget_context_next">próximo</string>
+    <string name="widget_context_last">último</string>
+    <string name="widget_context_chapter">capítulo</string>
+    <string name="widget_rel_today">hoje</string>
+    <string name="widget_just_started">acabado de começar</string>
+    <string name="widget_rel_future">dentro de %1$s</string>
+    <string name="widget_rel_past">há %1$s</string>
+    <string name="widget_dur_join">%1$s, %2$s</string>
+    <plurals name="widget_dur_months">
+        <item quantity="one">%1$d mês</item>
+        <item quantity="other">%1$d meses</item>
+    </plurals>
+    <plurals name="widget_dur_years">
+        <item quantity="one">%1$d ano</item>
+        <item quantity="other">%1$d anos</item>
+    </plurals>
+    <plurals name="widget_dur_days">
+        <item quantity="one">%1$d dia</item>
+        <item quantity="other">%1$d dias</item>
+    </plurals>
+    <plurals name="widget_years_old">
+        <item quantity="one">%1$d ano</item>
+        <item quantity="other">%1$d anos</item>
+    </plurals>
+    <plurals name="widget_years_ago">
+        <item quantity="one">há %1$d ano</item>
+        <item quantity="other">há %1$d anos</item>
+    </plurals>
+    <string name="slot_amber">âmbar</string>
+    <string name="slot_rose">rosa</string>
+    <string name="slot_teal">verde-azulado</string>
+    <string name="slot_blue">azul</string>
+</resources>

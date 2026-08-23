@@ -64,7 +64,7 @@ struct NextMilestoneCircularView: View {
                         .font(.system(size: 22, weight: .semibold, design: .rounded))
                         .minimumScaleFactor(0.6)
                         .lineLimit(1)
-                    Text(days == 1 ? "day" : "days")
+                    (days == 1 ? Text("day") : Text("days"))
                         .font(.system(size: 10))
                 }
             } else {
