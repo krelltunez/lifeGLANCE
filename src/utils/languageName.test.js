@@ -13,7 +13,8 @@ describe('nativeLanguageName', () => {
     ['es', 'Español'],
     ['fr', 'Français'],
     ['it', 'Italiano'],
-    ['pt', 'Português'],
+    ['pt-BR', 'Português (Brasil)'],
+    ['pt-PT', 'Português (Portugal)'],
     ['zh-CN', '中文（中国）'],
     // The 'short' style: the default region name for zh-HK is the official
     // 中國香港特別行政區, far too long for a select option.
