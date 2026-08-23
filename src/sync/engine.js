@@ -1,6 +1,7 @@
 import { createSyncEngine } from '@glance-apps/sync';
 import { buildPayload, buildBackupPayload, mergePayloads, makeApplyPayload } from './adapter.js';
 import { isNativePlatform, nativeWebdavFetch } from './nativeHttp.js';
+import { FILE_CRYPTO_CONFIG } from './cryptoConfig.js';
 
 let engine = null;
 // The construction params (ref/setter closures) from App.jsx, kept so the
@@ -27,7 +28,10 @@ const buildEngine = ({ milestonesRef, chaptersRef, setMilestones, setChapters,
 
   return createSyncEngine({
     storageKeyPrefix: 'lifeglance',
-    cryptoDBName: 'lifeglance-crypto',
+    // cryptoDBName plus, on native shells, the SecureStore key hooks — the
+    // hooks are either/or with IndexedDB, so every crypto call site must use
+    // the shared config (see cryptoConfig.js).
+    ...FILE_CRYPTO_CONFIG,
     autoBackupDBName: 'lifeglance-auto-backups',
     syncFilename: 'lifeglance-sync.json',
     appFolderName,

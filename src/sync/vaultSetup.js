@@ -28,9 +28,9 @@ import {
 import { setupVaultIntentsRootKey as defaultSetupVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
 import { reinitDbSyncEngine as defaultReinit, getDbSyncEngine, resetVaultSyncState as defaultResetVaultSyncState, clearCredentialHalt as defaultClearCredentialHalt } from './dbSync.js'
 import { nativeVaultFetchImpl } from './nativeVaultFetch.js'
+import { DB_CRYPTO_CONFIG } from './cryptoConfig.js'
 
-const CONFIG_KEY    = 'lifeglance-cloud-sync-config'
-const CRYPTO_DBNAME = 'lifeglance-crypto'
+const CONFIG_KEY = 'lifeglance-cloud-sync-config'
 
 // Outcome kinds. 'success' and 'uninitialized' permit save/activate; the rest
 // hard-fail and block it. Each maps to a distinct, translatable message in the UI.
@@ -135,7 +135,7 @@ export async function runVaultSetup({ vaultUrl, vaultToken, accountId, passphras
   // passphrase is set so the engine derives + establishes the salt on first sync.
   ;(deps.setSyncPassphrase ?? defaultSetSyncPassphrase)(passphrase)
   if (outcome.kind === VAULT_OUTCOME.SUCCESS) {
-    await (deps.setupDbRootKey ?? defaultSetupDbRootKey)(passphrase, outcome.salt, { cryptoDBName: CRYPTO_DBNAME })
+    await (deps.setupDbRootKey ?? defaultSetupDbRootKey)(passphrase, outcome.salt, { ...DB_CRYPTO_CONFIG })
     await (deps.setupVaultIntentsRootKey ?? defaultSetupVaultIntentsRootKey)(passphrase, outcome.salt)
   }
 

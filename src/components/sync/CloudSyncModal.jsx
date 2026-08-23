@@ -7,6 +7,7 @@ import { getDbSyncEngine } from '../../sync/dbSync.js'
 import { verifyVaultCredentials, runVaultSetup, disableVault, VAULT_OUTCOME } from '../../sync/vaultSetup'
 import { resolveWebdavBase } from '../../sync/webdav'
 import { isNativePlatform, nativeRequest } from '../../sync/nativeHttp'
+import { FILE_CRYPTO_CONFIG } from '../../sync/cryptoConfig.js'
 import { runMediaBackfill } from '../../blobs/mediaBackfill'
 
 // Maps a vault verify/setup outcome kind to its distinct, translatable message.
@@ -223,7 +224,9 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
       const folderChanged = folder !== (existingConfig?.folder ?? 'GLANCE/lifeglance')
 
       if (encrypt) {
-        const cryptoConfig = { cryptoDBName: 'lifeglance-crypto' }
+        // Shared file-tier crypto config: carries the SecureStore key hooks on
+        // native shells (either/or with IndexedDB — see cryptoConfig.js).
+        const cryptoConfig = { ...FILE_CRYPTO_CONFIG }
         if (passphrase) {
           const { setupEncryptionKey } = await import('@glance-apps/sync')
           await setupEncryptionKey(passphrase, cryptoConfig)
@@ -243,7 +246,7 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
         await activeEngine?.upload()
       } else {
         const { clearEncryptionKey } = await import('@glance-apps/sync')
-        await clearEncryptionKey({ cryptoDBName: 'lifeglance-crypto' })
+        await clearEncryptionKey({ ...FILE_CRYPTO_CONFIG })
         engine?.setConfig({ ...(engine.getConfig() ?? {}), ...baseConfig, encryptionEnabled: false })
         const activeEngine = folderChanged ? reinitSyncEngine() : engine
         activeEngine?.upload().catch(console.error)

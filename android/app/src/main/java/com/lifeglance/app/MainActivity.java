@@ -29,6 +29,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WebDavHttpPlugin.class);
         registerPlugin(VaultSsePlugin.class);
         registerPlugin(MediaPickerPlugin.class);
+        registerPlugin(SecureStorePlugin.class);
         super.onCreate(savedInstanceState);
         handleWidgetIntent(getIntent());
         handleShareIntent(getIntent());
