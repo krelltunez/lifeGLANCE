@@ -69,6 +69,27 @@ export default defineConfig({
     }),
   ],
   base: '/',
+  build: {
+    rolldownOptions: {
+      output: {
+        advancedChunks: {
+          groups: [
+            {
+              // Translations load lazily (see src/locales.js); group each
+              // language's 13 namespace files into one chunk per language
+              // rather than 13 fragments each, so a language is one small
+              // precache entry. en is left out: i18n.js imports it eagerly as
+              // the synchronous fallback, so it belongs in the main chunk.
+              name: (id) => {
+                const lng = id.match(/src\/locales\/([^/]+)\//)?.[1]
+                return lng && lng !== 'en' ? `locale-${lng}` : undefined
+              },
+            },
+          ],
+        },
+      },
+    },
+  },
   test: {
     environment: 'node',
   },
