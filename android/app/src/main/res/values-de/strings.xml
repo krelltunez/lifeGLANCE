@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_next_milestone_label">Nächster Meilenstein</string>
+    <string name="widget_next_milestone_description">Dein nächster bevorstehender Meilenstein, mit Live-Countdown.</string>
+    <string name="widget_today_label">Heute</string>
+    <string name="widget_today_description">Das heutige Datum und dein Alter, in größeren Größen mit letzten und bevorstehenden Meilensteinen.</string>
+    <string name="widget_current_chapter_label">Aktuelles Kapitel</string>
+    <string name="widget_current_chapter_description">Das Kapitel, in dem du gerade bist: wie weit du bist und wie viele Meilensteine vergangen sind.</string>
+    <string name="widget_on_this_day_label">An diesem Tag</string>
+    <string name="widget_on_this_day_description">Meilensteine vom heutigen Datum in vergangenen Jahren.</string>
+    <string name="widget_stats_label">Meilensteine</string>
+    <string name="widget_stats_description">Deine Meilenstein-Zahlen: vergangen, bevorstehend, dieses Jahr und dein Alter.</string>
+    <string name="widget_quick_add_label">Meilenstein hinzufügen</string>
+    <string name="widget_quick_add_description">Eine Ein-Tipp-Abkürzung zum Hinzufügen eines neuen Meilensteins.</string>
+    <string name="tile_add_milestone_label">Meilenstein hinzufügen</string>
+    <string name="shortcut_add_short">Meilenstein hinzufügen</string>
+    <string name="shortcut_add_long">Neuen Meilenstein hinzufügen</string>
+    <string name="shortcut_search_short">Suchen</string>
+    <string name="shortcut_search_long">Meilensteine suchen</string>
+    <string name="widget_pin_amber_label">Countdown · Bernstein</string>
+    <string name="widget_pin_rose_label">Countdown · Rosé</string>
+    <string name="widget_pin_teal_label">Countdown · Petrol</string>
+    <string name="widget_pin_blue_label">Countdown · Blau</string>
+    <string name="widget_pinned_description">Ein Countdown zu dem Meilenstein, der in der App an diesen Farb-Slot angeheftet ist.</string>
+    <string name="widget_eyebrow_next">NÄCHSTER</string>
+    <string name="widget_eyebrow_today">HEUTE</string>
+    <string name="widget_eyebrow_chapter">KAPITEL</string>
+    <string name="widget_eyebrow_on_this_day">AN DIESEM TAG</string>
+    <string name="widget_eyebrow_pinned">ANGEHEFTET</string>
+    <string name="widget_eyebrow_milestones">MEILENSTEINE</string>
+    <string name="widget_no_upcoming">Keine bevorstehenden Meilensteine</string>
+    <string name="widget_no_active_chapter">Kein aktives Kapitel</string>
+    <string name="widget_nothing_on_this_day">Nichts von heute aus vergangenen Jahren</string>
+    <string name="widget_new_milestone">neuer Meilenstein</string>
+    <string name="widget_pin_hint">Hefte in der App einen Meilenstein an den %1$s-Slot an</string>
+    <string name="widget_last_passed">zuletzt · %1$s (%2$s)</string>
+    <string name="widget_milestones_count">%1$d/%2$d Meilensteine</string>
+    <string name="widget_chapter_elapsed">seit %1$s</string>
+    <string name="widget_more_count">+%1$d weitere</string>
+    <string name="widget_past_ahead">%1$d vergangen · %2$d bevorstehend</string>
+    <string name="widget_this_year_count">%1$d dieses Jahr</string>
+    <string name="widget_age">Alter %1$d</string>
+    <string name="widget_context_next">nächster</string>
+    <string name="widget_context_last">zuletzt</string>
+    <string name="widget_context_chapter">Kapitel</string>
+    <string name="widget_rel_today">heute</string>
+    <string name="widget_just_started">gerade begonnen</string>
+    <string name="widget_rel_future">in %1$s</string>
+    <string name="widget_rel_past">vor %1$s</string>
+    <string name="widget_dur_join">%1$s, %2$s</string>
+    <plurals name="widget_dur_months">
+        <item quantity="one">%1$d Mon.</item>
+        <item quantity="other">%1$d Mon.</item>
+    </plurals>
+    <plurals name="widget_dur_years">
+        <item quantity="one">%1$d J.</item>
+        <item quantity="other">%1$d J.</item>
+    </plurals>
+    <plurals name="widget_dur_days">
+        <item quantity="one">%1$d Tag</item>
+        <item quantity="other">%1$d Tage</item>
+    </plurals>
+    <plurals name="widget_years_old">
+        <item quantity="one">%1$d Jahr alt</item>
+        <item quantity="other">%1$d Jahre alt</item>
+    </plurals>
+    <plurals name="widget_years_ago">
+        <item quantity="one">vor %1$d Jahr</item>
+        <item quantity="other">vor %1$d Jahren</item>
+    </plurals>
+    <string name="slot_amber">Bernstein</string>
+    <string name="slot_rose">Rosé</string>
+    <string name="slot_teal">Petrol</string>
+    <string name="slot_blue">Blau</string>
+</resources>

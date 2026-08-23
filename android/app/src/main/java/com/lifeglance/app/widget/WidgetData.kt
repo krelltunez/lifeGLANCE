@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import com.lifeglance.app.R
 import org.json.JSONObject
 import java.time.LocalDate
 import java.time.Period
@@ -165,42 +166,62 @@ object WidgetData {
     }
 
     /** Mirrors the web app's relativeLabel(): "in 3 days", "2 yrs, 1 mo ago", "today". */
-    fun relativeLabel(iso: String, today: LocalDate = LocalDate.now()): String {
+    fun relativeLabel(context: Context, iso: String, today: LocalDate = LocalDate.now()): String {
         val date = localDateOf(iso) ?: return ""
-        if (date.isEqual(today)) return "today"
+        if (date.isEqual(today)) return context.getString(R.string.widget_rel_today)
         val past = date.isBefore(today)
         val from = if (past) date else today
         val to = if (past) today else date
         val period = Period.between(from, to)
         val totalDays = ChronoUnit.DAYS.between(from, to)
-        val years = period.years
-        val months = period.months
-        val suffix = if (past) " ago" else ""
-        val prefix = if (past) "" else "in "
-        val body = when {
-            years > 0 && months > 0 -> "$years yr${plural(years)}, $months mo"
-            years > 0               -> "$years yr${plural(years)}"
-            totalDays > 30          -> "${totalDays / 30} mo"
-            totalDays > 0           -> "$totalDays day${plural(totalDays)}"
-            else                    -> return "today"
+        if (period.years == 0 && totalDays <= 0) return context.getString(R.string.widget_rel_today)
+        val body = durationBody(context, period.years, period.months, totalDays)
+        return context.getString(if (past) R.string.widget_rel_past else R.string.widget_rel_future, body)
+    }
+
+    /**
+     * "2 yrs, 1 mo" / "4 mo" / "9 days", assembled from string resources so each
+     * language supplies its own unit words and its own joining (Chinese joins
+     * without a comma, for example). The caller wraps it in "in …" / "… ago" /
+     * "… in" framing, each of which is its own translated pattern.
+     */
+    private fun durationBody(context: Context, years: Int, months: Int, totalDays: Long): String {
+        val res = context.resources
+        return when {
+            years > 0 && months > 0 -> context.getString(
+                R.string.widget_dur_join,
+                res.getQuantityString(R.plurals.widget_dur_years, years, years),
+                res.getQuantityString(R.plurals.widget_dur_months, months, months),
+            )
+            years > 0      -> res.getQuantityString(R.plurals.widget_dur_years, years, years)
+            totalDays > 30 -> res.getQuantityString(R.plurals.widget_dur_months, (totalDays / 30).toInt(), (totalDays / 30).toInt())
+            else           -> res.getQuantityString(R.plurals.widget_dur_days, totalDays.toInt(), totalDays.toInt())
         }
-        return "$prefix$body$suffix"
     }
 
     /** Mirrors formatDateDisplay(): precision-aware date formatting. */
     fun formatDate(iso: String): String {
         val date = localDateOf(iso) ?: return ""
-        return date.format(DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault()))
+        return date.format(localizedFormatter("yMMMMd"))
     }
 
     fun formatDateForPrecision(iso: String, precision: String): String {
         val date = localDateOf(iso) ?: return ""
-        val pattern = when (precision) {
-            "year"  -> "yyyy"
-            "month" -> "MMMM yyyy"
-            else    -> "MMMM d, yyyy"
+        val skeleton = when (precision) {
+            "year"  -> "y"
+            "month" -> "yMMMM"
+            else    -> "yMMMMd"
         }
-        return date.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
+        return date.format(localizedFormatter(skeleton))
+    }
+
+    // A fixed "MMMM d, yyyy" renders English field order in every language;
+    // getBestDateTimePattern turns a skeleton into the locale's own pattern
+    // ("d. MMMM yyyy" for de, "y年M月d日" for zh).
+    private fun localizedFormatter(skeleton: String): DateTimeFormatter {
+        val locale = Locale.getDefault()
+        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton)
+        return DateTimeFormatter.ofPattern(pattern, locale)
     }
 
     /** Whole years between a birthday and today, or null if unset / not yet reached. */
@@ -215,17 +236,12 @@ object WidgetData {
      * "4 mo", "9 days". Used for "how far into this chapter" — the caller adds
      * any framing word like "in". Returns "just started" for today/future starts.
      */
-    fun durationWords(fromIso: String, to: LocalDate = LocalDate.now()): String {
+    fun durationWords(context: Context, fromIso: String, to: LocalDate = LocalDate.now()): String {
         val from = localDateOf(fromIso) ?: return ""
-        if (!from.isBefore(to)) return "just started"
+        if (!from.isBefore(to)) return context.getString(R.string.widget_just_started)
         val p = Period.between(from, to)
         val totalDays = ChronoUnit.DAYS.between(from, to)
-        return when {
-            p.years > 0 && p.months > 0 -> "${p.years} yr${plural(p.years)}, ${p.months} mo"
-            p.years > 0                 -> "${p.years} yr${plural(p.years)}"
-            totalDays > 30              -> "${totalDays / 30} mo"
-            else                        -> "$totalDays day${plural(totalDays)}"
-        }
+        return durationBody(context, p.years, p.months, totalDays)
     }
 
     /** Time-elapsed progress through a bounded chapter as 0..1, or null if ongoing. */
@@ -243,7 +259,7 @@ object WidgetData {
         today.format(DateTimeFormatter.ofPattern("EEEE", Locale.getDefault()))
 
     fun todayLong(today: LocalDate = LocalDate.now()): String =
-        today.format(DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault()))
+        today.format(localizedFormatter("yMMMMd"))
 
     /**
      * Refreshes every placed lifeGLANCE widget by broadcasting an update, which makes
@@ -275,6 +291,4 @@ object WidgetData {
         }
     }
 
-    private fun plural(n: Long) = if (n != 1L) "s" else ""
-    private fun plural(n: Int) = if (n != 1) "s" else ""
 }

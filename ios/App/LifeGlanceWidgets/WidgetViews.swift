@@ -71,7 +71,7 @@ struct TodayView: View {
             Text(WidgetDate.weekday()).font(mono(20, .bold)).foregroundColor(Palette.text)
             Text(WidgetDate.todayLong()).font(mono(12)).foregroundColor(Palette.muted)
             if let age = WidgetDate.age(entry.snapshot?.birthday) {
-                Text("\(age) year\(age == 1 ? "" : "s") old")
+                (age == 1 ? Text("1 year old") : Text("\(age) years old"))
                     .font(mono(12)).foregroundColor(Palette.muted)
             }
             // Only large has the vertical room for the context block (medium is the
@@ -79,13 +79,13 @@ struct TodayView: View {
             if family == .systemLarge {
                 Spacer().frame(height: 8)
                 if let next = entry.snapshot?.next {
-                    ContextLine(label: "next", value: "\(next.title) · \(WidgetDate.relativeLabel(next.date))")
+                    ContextLine(label: String(localized: "next"), value: "\(next.title) · \(WidgetDate.relativeLabel(next.date))")
                 }
                 if let prev = entry.snapshot?.prev {
-                    ContextLine(label: "last", value: "\(prev.title) · \(WidgetDate.relativeLabel(prev.date))")
+                    ContextLine(label: String(localized: "last"), value: "\(prev.title) · \(WidgetDate.relativeLabel(prev.date))")
                 }
                 if let chapter = entry.snapshot?.currentChapter {
-                    ContextLine(label: "chapter", value: chapter.title)
+                    ContextLine(label: String(localized: "chapter"), value: chapter.title)
                 }
             }
         }
@@ -143,7 +143,9 @@ struct OnThisDayView: View {
 
     private func subtitle(_ m: WidgetMilestone) -> String {
         let years = WidgetDate.yearsAgo(m.date)
-        let ago = years > 0 ? "\(years) year\(years == 1 ? "" : "s") ago" : "today"
+        let ago = years > 0
+            ? (years == 1 ? String(localized: "1 year ago") : String(localized: "\(years) years ago"))
+            : String(localized: "today")
         return "\(ago) · \(WidgetDate.formatDate(m.date, precision: m.datePrecision ?? "day"))"
     }
 
@@ -178,6 +180,17 @@ struct OnThisDayView: View {
 
 // MARK: - Pinned color-slot countdown
 
+// The slot id is a stable contract with the web layer; only its display name
+// is translated.
+private func slotName(_ slot: String) -> String {
+    switch slot {
+    case "amber": return String(localized: "amber")
+    case "rose":  return String(localized: "rose")
+    case "teal":  return String(localized: "teal")
+    default:      return String(localized: "blue")
+    }
+}
+
 struct PinnedSlotView: View {
     let entry: SnapshotEntry
     let slot: String
@@ -194,7 +207,7 @@ struct PinnedSlotView: View {
                 Text(WidgetDate.formatDate(pinned.date, precision: pinned.datePrecision ?? "day"))
                     .font(mono(11)).foregroundColor(Palette.muted)
             } else {
-                Text("Pin a milestone to the \(slot) slot in the app")
+                Text("Pin a milestone to the \(slotName(slot)) slot in the app")
                     .font(mono(12)).foregroundColor(Palette.muted).lineLimit(3)
             }
         }

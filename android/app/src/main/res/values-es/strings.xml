@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_next_milestone_label">Próximo hito</string>
+    <string name="widget_next_milestone_description">Tu próximo hito, con cuenta atrás en vivo.</string>
+    <string name="widget_today_label">Hoy</string>
+    <string name="widget_today_description">La fecha de hoy y tu edad; en tamaños grandes, también hitos recientes y próximos.</string>
+    <string name="widget_current_chapter_label">Capítulo actual</string>
+    <string name="widget_current_chapter_description">El capítulo en el que estás: cuánto llevas y los hitos pasados.</string>
+    <string name="widget_on_this_day_label">Tal día como hoy</string>
+    <string name="widget_on_this_day_description">Hitos de la fecha de hoy en años pasados.</string>
+    <string name="widget_stats_label">Hitos</string>
+    <string name="widget_stats_description">Tus totales de hitos: pasados, próximos, este año y tu edad.</string>
+    <string name="widget_quick_add_label">Añadir hito</string>
+    <string name="widget_quick_add_description">Un atajo de un toque para añadir un nuevo hito.</string>
+    <string name="tile_add_milestone_label">Añadir hito</string>
+    <string name="shortcut_add_short">Añadir hito</string>
+    <string name="shortcut_add_long">Añadir un nuevo hito</string>
+    <string name="shortcut_search_short">Buscar</string>
+    <string name="shortcut_search_long">Buscar hitos</string>
+    <string name="widget_pin_amber_label">Cuenta atrás · ámbar</string>
+    <string name="widget_pin_rose_label">Cuenta atrás · rosa</string>
+    <string name="widget_pin_teal_label">Cuenta atrás · verde azulado</string>
+    <string name="widget_pin_blue_label">Cuenta atrás · azul</string>
+    <string name="widget_pinned_description">Una cuenta atrás hasta el hito fijado en este color en la aplicación.</string>
+    <string name="widget_eyebrow_next">PRÓXIMO</string>
+    <string name="widget_eyebrow_today">HOY</string>
+    <string name="widget_eyebrow_chapter">CAPÍTULO</string>
+    <string name="widget_eyebrow_on_this_day">TAL DÍA COMO HOY</string>
+    <string name="widget_eyebrow_pinned">FIJADO</string>
+    <string name="widget_eyebrow_milestones">HITOS</string>
+    <string name="widget_no_upcoming">Sin hitos próximos</string>
+    <string name="widget_no_active_chapter">Sin capítulo activo</string>
+    <string name="widget_nothing_on_this_day">Nada de hoy en años pasados</string>
+    <string name="widget_new_milestone">nuevo hito</string>
+    <string name="widget_pin_hint">Fija un hito al espacio %1$s en la aplicación</string>
+    <string name="widget_last_passed">último · %1$s (%2$s)</string>
+    <string name="widget_milestones_count">%1$d/%2$d hitos</string>
+    <string name="widget_chapter_elapsed">llevas %1$s</string>
+    <string name="widget_more_count">+%1$d más</string>
+    <string name="widget_past_ahead">%1$d pasados · %2$d próximos</string>
+    <string name="widget_this_year_count">%1$d este año</string>
+    <string name="widget_age">edad %1$d</string>
+    <string name="widget_context_next">próximo</string>
+    <string name="widget_context_last">último</string>
+    <string name="widget_context_chapter">capítulo</string>
+    <string name="widget_rel_today">hoy</string>
+    <string name="widget_just_started">recién empezado</string>
+    <string name="widget_rel_future">en %1$s</string>
+    <string name="widget_rel_past">hace %1$s</string>
+    <string name="widget_dur_join">%1$s, %2$s</string>
+    <plurals name="widget_dur_months">
+        <item quantity="one">%1$d mes</item>
+        <item quantity="other">%1$d meses</item>
+    </plurals>
+    <plurals name="widget_dur_years">
+        <item quantity="one">%1$d año</item>
+        <item quantity="other">%1$d años</item>
+    </plurals>
+    <plurals name="widget_dur_days">
+        <item quantity="one">%1$d día</item>
+        <item quantity="other">%1$d días</item>
+    </plurals>
+    <plurals name="widget_years_old">
+        <item quantity="one">%1$d año</item>
+        <item quantity="other">%1$d años</item>
+    </plurals>
+    <plurals name="widget_years_ago">
+        <item quantity="one">hace %1$d año</item>
+        <item quantity="other">hace %1$d años</item>
+    </plurals>
+    <string name="slot_amber">ámbar</string>
+    <string name="slot_rose">rosa</string>
+    <string name="slot_teal">verde azulado</string>
+    <string name="slot_blue">azul</string>
+</resources>

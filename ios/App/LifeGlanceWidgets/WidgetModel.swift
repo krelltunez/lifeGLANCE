@@ -161,7 +161,7 @@ enum WidgetDate {
     static func relativeLabel(_ iso: String) -> String {
         guard let date = dateOnly(iso) else { return "" }
         let now = today()
-        if date == now { return "today" }
+        if date == now { return String(localized: "today") }
         let past = date < now
         let from = past ? date : now
         let to = past ? now : date
@@ -169,13 +169,24 @@ enum WidgetDate {
         let totalDays = utcCalendar.dateComponents([.day], from: from, to: to).day ?? 0
         let years = comps.year ?? 0
         let months = comps.month ?? 0
-        let body: String
-        if years > 0 && months > 0 { body = "\(years) yr\(plural(years)), \(months) mo" }
-        else if years > 0          { body = "\(years) yr\(plural(years))" }
-        else if totalDays > 30     { body = "\(totalDays / 30) mo" }
-        else if totalDays > 0      { body = "\(totalDays) day\(plural(totalDays))" }
-        else { return "today" }
-        return past ? "\(body) ago" : "in \(body)"
+        if years == 0 && totalDays <= 0 { return String(localized: "today") }
+        let body = durationBody(years: years, months: months, totalDays: totalDays)
+        return past ? String(localized: "\(body) ago") : String(localized: "in \(body)")
+    }
+
+    /// "2 yrs, 1 mo" / "4 mo" / "9 days", assembled from localized pieces so each
+    /// language supplies its own unit words and joining (Chinese joins without a
+    /// comma). Callers wrap it in "in …" / "… ago" / "… in" framing, each its own
+    /// localized pattern.
+    private static func durationBody(years: Int, months: Int, totalDays: Int) -> String {
+        let yearsPart = years == 1 ? String(localized: "1 yr") : String(localized: "\(years) yrs")
+        if years > 0 && months > 0 {
+            let monthsPart = String(localized: "\(months) mo")
+            return String(localized: "\(yearsPart), \(monthsPart)")
+        }
+        if years > 0 { return yearsPart }
+        if totalDays > 30 { return String(localized: "\(totalDays / 30) mo") }
+        return totalDays == 1 ? String(localized: "1 day") : String(localized: "\(totalDays) days")
     }
 
     /// Coarse elapsed duration from a past date to today, e.g. "2 yrs, 3 mo".
@@ -183,15 +194,10 @@ enum WidgetDate {
     static func durationWords(_ iso: String) -> String {
         guard let from = dateOnly(iso) else { return "" }
         let now = today()
-        if from >= now { return "just started" }
+        if from >= now { return String(localized: "just started") }
         let comps = utcCalendar.dateComponents([.year, .month], from: from, to: now)
         let totalDays = utcCalendar.dateComponents([.day], from: from, to: now).day ?? 0
-        let years = comps.year ?? 0
-        let months = comps.month ?? 0
-        if years > 0 && months > 0 { return "\(years) yr\(plural(years)), \(months) mo" }
-        if years > 0               { return "\(years) yr\(plural(years))" }
-        if totalDays > 30          { return "\(totalDays / 30) mo" }
-        return "\(totalDays) day\(plural(totalDays))"
+        return durationBody(years: comps.year ?? 0, months: comps.month ?? 0, totalDays: totalDays)
     }
 
     /// Whole years between a birthday and today, or nil if unset / not yet reached.
@@ -233,26 +239,29 @@ enum WidgetDate {
         let formatter = DateFormatter()
         formatter.timeZone = utc
         formatter.locale = Locale.current
+        // A fixed "MMMM d, yyyy" renders English field order in every language;
+        // the localized template yields the locale's own pattern ("d. MMMM yyyy"
+        // for de, "y年M月d日" for zh).
         switch precision {
-        case "year":  formatter.dateFormat = "yyyy"
-        case "month": formatter.dateFormat = "MMMM yyyy"
-        default:      formatter.dateFormat = "MMMM d, yyyy"
+        case "year":  formatter.setLocalizedDateFormatFromTemplate("y")
+        case "month": formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        default:      formatter.setLocalizedDateFormatFromTemplate("yMMMMd")
         }
         return formatter.string(from: date)
     }
 
     static func weekday() -> String { formatToday("EEEE") }
-    static func todayLong() -> String { formatToday("MMMM d, yyyy") }
+    static func todayLong() -> String { formatToday("yMMMMd") }
 
     // Exposed for the timeline-strip widget, which positions milestones by date.
     static func calendarDate(_ iso: String) -> Date? { dateOnly(iso) }
     static func todayDate() -> Date { today() }
 
-    private static func formatToday(_ pattern: String) -> String {
+    private static func formatToday(_ template: String) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = utc
         formatter.locale = Locale.current
-        formatter.dateFormat = pattern
+        formatter.setLocalizedDateFormatFromTemplate(template)
         return formatter.string(from: today())
     }
 
@@ -264,5 +273,4 @@ enum WidgetDate {
         return cal.date(byAdding: .day, value: 1, to: startOfToday) ?? Date().addingTimeInterval(3600)
     }
 
-    private static func plural(_ n: Int) -> String { n != 1 ? "s" : "" }
 }

@@ -22,7 +22,9 @@ struct LifeGlanceWidgetsBundle: WidgetBundle {
 
 // Each color slot is its own widget (so several pinned countdowns can coexist without
 // per-widget configuration). They share PinnedSlotView, parameterized by slot + accent.
-private func slotConfig(kind: String, slot: String, accentHex: String, name: String) -> some WidgetConfiguration {
+// name is a LocalizedStringKey so the literal at each call site goes through
+// the widget bundle's string catalog; a plain String would render verbatim.
+private func slotConfig(kind: String, slot: String, accentHex: String, name: LocalizedStringKey) -> some WidgetConfiguration {
     StaticConfiguration(kind: kind, provider: SnapshotProvider()) { entry in
         PinnedSlotView(entry: entry, slot: slot, accent: Color(hex: accentHex, fallback: Palette.amber))
             .widgetBackground(Palette.bg)

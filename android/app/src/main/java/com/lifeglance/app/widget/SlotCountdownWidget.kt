@@ -31,6 +31,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.lifeglance.app.MainActivity
+import com.lifeglance.app.R
 
 private val SLOT_MILESTONE_KEY = ActionParameters.Key<String>(MainActivity.EXTRA_WIDGET_MILESTONE_ID)
 
@@ -69,7 +70,7 @@ class SlotCountdownWidget(private val slot: String, private val accentArgb: Long
         ) {
             if (milestone == null) {
                 Text(
-                    text = "Pin a milestone to the $slot slot in the app",
+                    text = context.getString(R.string.widget_pin_hint, slotName(context)),
                     maxLines = 3,
                     style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 12.sp),
                 )
@@ -77,12 +78,12 @@ class SlotCountdownWidget(private val slot: String, private val accentArgb: Long
             }
 
             Text(
-                text = "PINNED",
+                text = context.getString(R.string.widget_eyebrow_pinned),
                 style = TextStyle(color = ColorProvider(accent), fontFamily = FontFamily.Monospace, fontSize = 10.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(4.dp))
             Text(
-                text = WidgetData.relativeLabel(milestone.date),
+                text = WidgetData.relativeLabel(context, milestone.date),
                 style = TextStyle(color = ColorProvider(WidgetTheme.TEXT), fontFamily = FontFamily.Monospace, fontSize = 22.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(2.dp))
@@ -97,6 +98,17 @@ class SlotCountdownWidget(private val slot: String, private val accentArgb: Long
             )
         }
     }
+
+    // The slot id is a stable contract with the web layer; only its display
+    // name is translated.
+    private fun slotName(context: Context) = context.getString(
+        when (slot) {
+            "amber" -> R.string.slot_amber
+            "rose"  -> R.string.slot_rose
+            "teal"  -> R.string.slot_teal
+            else    -> R.string.slot_blue
+        }
+    )
 
     private fun openAction(context: Context, milestoneId: String?) =
         actionStartActivity(

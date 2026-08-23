@@ -29,6 +29,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.lifeglance.app.MainActivity
+import com.lifeglance.app.R
 
 /**
  * "Life in numbers" widget: total milestones with a past/ahead split, plus this-year
@@ -61,7 +62,7 @@ class StatsWidget : GlanceAppWidget() {
                 .clickable(actionStartActivity(ComponentName(context, MainActivity::class.java), actionParametersOf())),
         ) {
             Text(
-                text = "MILESTONES",
+                text = context.getString(R.string.widget_eyebrow_milestones),
                 style = TextStyle(color = ColorProvider(WidgetTheme.AMBER), fontFamily = FontFamily.Monospace, fontSize = 10.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(4.dp))
@@ -70,20 +71,20 @@ class StatsWidget : GlanceAppWidget() {
                 style = TextStyle(color = ColorProvider(WidgetTheme.TEXT), fontFamily = FontFamily.Monospace, fontSize = 30.sp, fontWeight = FontWeight.Bold),
             )
             Text(
-                text = "${snapshot?.pastCount ?: 0} past · ${snapshot?.futureCount ?: 0} ahead",
+                text = context.getString(R.string.widget_past_ahead, snapshot?.pastCount ?: 0, snapshot?.futureCount ?: 0),
                 style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 12.sp),
             )
 
             if (tall) {
                 Spacer(GlanceModifier.height(6.dp))
                 Text(
-                    text = "${snapshot?.thisYearCount ?: 0} this year",
+                    text = context.getString(R.string.widget_this_year_count, snapshot?.thisYearCount ?: 0),
                     style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 11.sp),
                 )
                 val age = WidgetData.age(snapshot?.birthday)
                 if (age != null) {
                     Text(
-                        text = "age $age",
+                        text = context.getString(R.string.widget_age, age),
                         style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 11.sp),
                     )
                 }

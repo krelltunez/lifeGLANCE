@@ -27,6 +27,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.lifeglance.app.MainActivity
+import com.lifeglance.app.R
 
 // Glance delivers this ActionParameter to MainActivity as the EXTRA_WIDGET_ACTION extra.
 private val ACTION_KEY = ActionParameters.Key<String>(MainActivity.EXTRA_WIDGET_ACTION)
@@ -57,7 +58,7 @@ class QuickAddWidget : GlanceAppWidget() {
                     style = TextStyle(color = ColorProvider(WidgetTheme.AMBER), fontFamily = FontFamily.Monospace, fontSize = 34.sp, fontWeight = FontWeight.Bold),
                 )
                 Text(
-                    text = "new milestone",
+                    text = context.getString(R.string.widget_new_milestone),
                     maxLines = 1,
                     style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 11.sp),
                 )
