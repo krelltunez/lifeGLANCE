@@ -455,6 +455,22 @@ button, input, select, textarea {
   width: 0.95rem;
   height: 0.95rem;
 }
+/* the language select, dressed as another corner link: the wrapper span
+   carries the icon + .onboarding-link styling (color, font, lowercase,
+   hover); the select inherits all of it and sheds its native chrome */
+.onboarding-language-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  color-scheme: dark;
+}
 
 /* ─── Timeline Preview Strip (onboarding) ──────────────────────────────────── */
 .timeline-preview {

@@ -6,6 +6,7 @@ import Step3Future    from './Step3Future'
 import Step4Reveal    from './Step4Reveal'
 import TimelinePreview from './TimelinePreview'
 import ThemeToggle    from '../ui/ThemeToggle'
+import LanguagePicker from '../settings/LanguagePicker'
 import { addMilestone } from '../../data/milestones'
 import { init as audioInit, startAmbient, stopAmbient } from '../../utils/audio'
 
@@ -20,8 +21,22 @@ function SkipIcon() {
   )
 }
 
+// Globe, same line-icon style. Sits beside the language select, which is
+// dressed as another corner link (see .onboarding-language-select).
+function GlobeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  )
+}
+
 export default function Onboarding({ onComplete }) {
   const { t: tc } = useTranslation('common')
+  const { t: ts } = useTranslation('settings')
   const [step, setStep]               = useState(1)
   const [pastMilestone, setPast]      = useState(null)
   const [futureMilestone, setFuture]  = useState(null)
@@ -61,9 +76,14 @@ export default function Onboarding({ onComplete }) {
       {/* Timeline preview strip appears from step 2 onwards */}
       {step >= 2 && <TimelinePreview milestones={previewMilestones} />}
 
-      {/* Theme toggle + skip, fixed in the corner while there's still a step to skip */}
+      {/* Language + theme toggle + skip, fixed in the corner while there's still a step to skip */}
       {step <= 3 && (
         <div className="onboarding-corner">
+          <span className="onboarding-link onboarding-language">
+            <GlobeIcon />
+            <LanguagePicker className="onboarding-language-select" aria-label={ts('language')} />
+          </span>
+          <span className="onboarding-sep" aria-hidden="true" />
           <ThemeToggle />
           <span className="onboarding-sep" aria-hidden="true" />
           <button className="onboarding-link" onClick={finish}>
