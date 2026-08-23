@@ -5,6 +5,7 @@ import { isMuted, setMuted } from '../../utils/audio'
 import { THEMES, getTheme, setTheme } from '../../utils/theme'
 import { dateFieldOrder, monthNames } from '../../utils/dates'
 import IntegrationSettings from '../dayglance/IntegrationSettings'
+import LanguagePicker from './LanguagePicker'
 
 const TEXT_SIZES_ALL = ['small', 'normal', 'big', 'bigger']
 const TEXT_SIZE_LABELS = {
@@ -225,6 +226,12 @@ export default function SettingsModal({
         {/* ── Display ───────────────────────────────────────────────────── */}
         <div className="settings-section">
           <div className="settings-label">{t('displayLabel')}</div>
+          <div className="settings-idle-timeout">
+            <span className="settings-toggle-label">
+              <label htmlFor="settings-language">{t('language')}</label>
+            </span>
+            <LanguagePicker id="settings-language" className="settings-select" />
+          </div>
           <div className="settings-idle-timeout">
             <span className="settings-toggle-label">{t('themeLabel')}</span>
             <div className="zoom-tabs">

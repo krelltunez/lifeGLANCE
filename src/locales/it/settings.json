@@ -3,6 +3,7 @@
   "textSizeLabel": "dimensione testo",
   "textSizeUnavailable": "impostazione dimensione testo non disponibile su schermi piccoli",
   "displayLabel": "schermo",
+  "language": "Lingua",
   "themeLabel": "Tema",
   "theme_dark": "Scuro",
   "theme_light": "Chiaro",
