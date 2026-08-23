@@ -457,20 +457,26 @@ button, input, select, textarea {
 }
 /* the language select, dressed as another corner link: the wrapper span
    carries the icon + .onboarding-link styling (color, font, lowercase,
-   hover); the select inherits all of it and sheds its native chrome */
-.onboarding-language-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: none;
+   hover). LanguagePicker's inline variant shows the current name as plain
+   text (so the control is exactly as wide as the name, not as wide as the
+   longest option) and stacks the real select on top, invisible but live. */
+.language-picker-inline {
+  position: relative;
+  display: inline-flex;
+}
+.language-picker-inline > select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   border: none;
   padding: 0;
-  color: inherit;
   font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
   cursor: pointer;
   color-scheme: dark;
 }
+.onboarding-language:focus-within { color: var(--text-dim); }
 
 /* ─── Timeline Preview Strip (onboarding) ──────────────────────────────────── */
 .timeline-preview {
