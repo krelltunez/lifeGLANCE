@@ -21,6 +21,7 @@ import { registerDirtyTarget } from './dirty.js'
 import { dbGetAll, dbGetAllChapters } from '../data/db.js'
 import { loadCategories } from '../utils/colors.js'
 import { loadVaultIntentsRootKey, setupVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
+import { DB_CRYPTO_CONFIG } from './cryptoConfig.js'
 import { flushOutbox, isVaultIntentsActive } from '../lib/intentsTransport.js'
 
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
@@ -151,7 +152,11 @@ export const initDbSyncEngine = (opts = {}) => {
     vaultToken: vaultConfig.vaultToken,
     accountId:  vaultConfig.accountId,
     deviceId:   ensureDeviceId(),
-    cryptoDBName: opts.cryptoDBName ?? 'lifeglance-crypto',
+    // DB-tier crypto config: cryptoDBName plus, on native shells, the
+    // SecureStore key hooks (either/or with IndexedDB — see cryptoConfig.js).
+    // An explicit opts.cryptoDBName (tests) still wins.
+    ...DB_CRYPTO_CONFIG,
+    ...(opts.cryptoDBName ? { cryptoDBName: opts.cryptoDBName } : {}),
     vaultClient: opts.vaultClient,
     fetchImpl: opts.fetchImpl,
 

@@ -8,6 +8,7 @@ import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
 import { initDbSyncEngine, getDbSyncEngine } from './sync/dbSync'
+import { FILE_CRYPTO_CONFIG } from './sync/cryptoConfig.js'
 import { combineTierErrors } from './sync/status'
 import { useVaultEventStream } from './hooks/useVaultEventStream'
 import { drainIntentsNow } from './hooks/useIntentPoller'
@@ -174,7 +175,9 @@ export default function App() {
         // only appears when the key genuinely isn't stored (first setup or
         // new device), not on every page load.
         import('@glance-apps/sync').then(({ initSessionKey }) => {
-          initSessionKey({ cryptoDBName: 'lifeglance-crypto' })
+          // Shared file-tier crypto config: carries the SecureStore key hooks
+          // on native shells (either/or with IndexedDB — see cryptoConfig.js).
+          initSessionKey({ ...FILE_CRYPTO_CONFIG })
         })
       })
       .catch((err) => {
