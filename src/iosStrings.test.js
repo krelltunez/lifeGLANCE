@@ -20,7 +20,6 @@ const CATALOGS = [
   'LifeGlanceWidgets/Localizable.xcstrings',
   'LifeGlanceShare/Localizable.xcstrings',
   'App/Localizable.xcstrings',
-  'App/AppShortcuts.xcstrings',
 ]
 const PBXPROJ = join(IOS, 'App.xcodeproj/project.pbxproj')
 
@@ -54,18 +53,6 @@ describe.each(CATALOGS)('%s', (rel) => {
     expect(bad, 'specifier mismatches truncate or crash at render').toEqual([])
   })
 
-  it('keeps ${applicationName} in every shortcut phrase', () => {
-    for (const [key, e] of entries) {
-      if (!key.includes('${applicationName}')) continue
-      for (const [lng, unit] of Object.entries(e.localizations ?? {})) {
-        expect(
-          unit.stringUnit.value.includes('${applicationName}'),
-          `${lng}: "${key}" dropped the app-name token Siri requires`
-        ).toBe(true)
-      }
-    }
-  })
-
   it('holds pt-PT to the European standard', () => {
     const violations = []
     for (const [key, e] of entries) {
@@ -91,6 +78,49 @@ describe.each(CATALOGS)('%s', (rel) => {
   })
 })
 
+// Siri phrases ship as classic per-language AppShortcuts.strings, NOT an
+// .xcstrings catalog: the App target deploys to iOS 16 and Xcode's
+// appshortcutstringsprocessor rejects the catalog form below iOS 17 (this
+// failed the CI build when tried). Keys are the English phrases declared in
+// LifeGlanceAppShortcuts; each must exist in every language and keep the
+// ${applicationName} token Siri requires.
+describe('AppShortcuts.strings', () => {
+  const PHRASES = [
+    'Add a milestone in ${applicationName}',
+    'New milestone in ${applicationName}',
+    'Add a ${applicationName} milestone',
+  ]
+
+  const parseStrings = (path) =>
+    Object.fromEntries(
+      [...readFileSync(path, 'utf8').matchAll(/"((?:[^"\\]|\\.)*)" = "((?:[^"\\]|\\.)*)";/g)].map((m) => [m[1], m[2]])
+    )
+
+  it.each(LANGS)('%s carries every phrase, with the app-name token', (lng) => {
+    const table = parseStrings(join(IOS, `App/${lng}.lproj/AppShortcuts.strings`))
+    for (const phrase of PHRASES) {
+      const value = table[phrase]
+      expect(value, `${lng} is missing "${phrase}"`).toBeTypeOf('string')
+      expect(value.includes('${applicationName}'), `${lng}: "${phrase}" dropped the app-name token Siri requires`).toBe(true)
+    }
+    expect(Object.keys(table).sort()).toEqual([...PHRASES].sort())
+  })
+
+  it.each([
+    ['pt-PT', BRAZILIAN_ONLY],
+    ['pt-BR', EUROPEAN_ONLY],
+  ])('holds %s to its standard', (lng, forbidden) => {
+    const table = parseStrings(join(IOS, `App/${lng}.lproj/AppShortcuts.strings`))
+    const violations = []
+    for (const [key, value] of Object.entries(table)) {
+      for (const [markerName, pattern] of Object.entries(forbidden)) {
+        if (pattern.test(value)) violations.push(`${key}: "${value}" — ${markerName}`)
+      }
+    }
+    expect(violations).toEqual([])
+  })
+})
+
 describe('pbxproj wiring', () => {
   const pbx = readFileSync(PBXPROJ, 'utf8')
 
@@ -100,13 +130,15 @@ describe('pbxproj wiring', () => {
     expect(dupes, 'duplicate ids corrupt the project when Xcode next loads it').toEqual([])
   })
 
-  it('registers the App-target catalogs as files, build files, and resources', () => {
+  it('registers the App-target catalog and shortcut strings as files, build files, and resources', () => {
     expect(pbx.match(/\/\* Localizable\.xcstrings \*\/ = \{isa = PBXFileReference/g)?.length).toBe(1)
-    expect(pbx.match(/\/\* AppShortcuts\.xcstrings \*\/ = \{isa = PBXFileReference/g)?.length).toBe(1)
     expect(pbx.match(/\/\* Localizable\.xcstrings in Resources \*\/ = \{isa = PBXBuildFile/g)?.length).toBe(1)
-    expect(pbx.match(/\/\* AppShortcuts\.xcstrings in Resources \*\/ = \{isa = PBXBuildFile/g)?.length).toBe(1)
-    // definition + group child + resources-phase usage
-    expect(pbx.match(/Localizable\.xcstrings/g)?.length).toBeGreaterThanOrEqual(4)
+    expect(pbx.match(/\/\* AppShortcuts\.strings in Resources \*\/ = \{isa = PBXBuildFile/g)?.length).toBe(1)
+    // the variant group carries one child per language
+    const group = pbx.slice(pbx.indexOf('PBXVariantGroup section'), pbx.indexOf('End PBXVariantGroup section'))
+    for (const lng of LANGS) expect(group, `AppShortcuts.strings variant group missing ${lng}`).toContain(`/* ${lng} */`)
+    // and the iOS-16 constraint stays honoured: no AppShortcuts catalog
+    expect(pbx.includes('AppShortcuts.xcstrings')).toBe(false)
   })
 
   it('syncs the extension folders that carry the other two catalogs', () => {
