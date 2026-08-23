@@ -7,7 +7,7 @@ import { languages, namespaces, loaders, resolveLanguage } from './locales.js'
 // existed would have passed throughout that bug — the assertions below go
 // through the same glob-derived loaders i18n.js resolves at runtime.
 describe('locale bundles', () => {
-  const EXPECTED_LANGUAGES = ['de', 'en', 'es', 'fr', 'it', 'pt', 'zh-CN', 'zh-HK']
+  const EXPECTED_LANGUAGES = ['de', 'en', 'es', 'fr', 'it', 'pt-BR', 'pt-PT', 'zh-CN', 'zh-HK']
   const EXPECTED_NAMESPACES = [
     'billing',
     'chapter',
@@ -144,18 +144,38 @@ describe('locale bundles', () => {
     it('passes through a tag that is already shipped', () => {
       expect(resolveLanguage('de')).toBe('de')
       expect(resolveLanguage('zh-CN')).toBe('zh-CN')
-      expect(resolveLanguage('pt')).toBe('pt')
+      expect(resolveLanguage('pt-BR')).toBe('pt-BR')
+      expect(resolveLanguage('pt-PT')).toBe('pt-PT')
+    })
+
+    // The regression this exists to prevent. Portuguese shipped as a single
+    // BRAZILIAN "pt" locale before the split (the opposite of dayGLANCE and
+    // lastGLANCE), so every existing Portuguese user has "pt" cached in
+    // localStorage; resolving it anywhere but pt-BR would silently switch
+    // them to the other variant.
+    it('moves the pre-split "pt" to Brazilian rather than European or English', () => {
+      expect(resolveLanguage('pt')).toBe('pt-BR')
+    })
+
+    it('sends European-standard Portuguese regions to pt-PT', () => {
+      expect(resolveLanguage('pt-AO')).toBe('pt-PT')
+      expect(resolveLanguage('pt-MZ')).toBe('pt-PT')
+    })
+
+    it('sends other Portuguese regions to Brazilian', () => {
+      expect(resolveLanguage('pt-US')).toBe('pt-BR')
     })
 
     it('matches a regional tag regardless of case', () => {
       expect(resolveLanguage('zh-cn')).toBe('zh-CN')
       expect(resolveLanguage('ZH-HK')).toBe('zh-HK')
+      expect(resolveLanguage('pt-br')).toBe('pt-BR')
+      expect(resolveLanguage('PT-PT')).toBe('pt-PT')
     })
 
     it('reduces a regional tag to a base language that is shipped', () => {
       expect(resolveLanguage('en-US')).toBe('en')
       expect(resolveLanguage('de-AT')).toBe('de')
-      expect(resolveLanguage('pt-BR')).toBe('pt')
     })
 
     // Chinese resolves by script, not by region prefix: Traditional readers
@@ -194,7 +214,7 @@ describe('locale bundles', () => {
     })
 
     it('always returns something the picker can render', () => {
-      for (const reported of ['en', 'pt', 'zh', 'zh-TW', 'de-AT', 'zz', '', undefined]) {
+      for (const reported of ['en', 'pt', 'pt-AO', 'zh', 'zh-TW', 'de-AT', 'zz', '', undefined]) {
         expect(languages).toContain(resolveLanguage(reported))
       }
     })
@@ -204,7 +224,7 @@ describe('locale bundles', () => {
     it('composes with sanitizeLanguageTag for POSIX-style values', async () => {
       const { sanitizeLanguageTag } = await import('./utils/locale.js')
       expect(resolveLanguage(sanitizeLanguageTag('zh_CN.UTF-8'))).toBe('zh-CN')
-      expect(resolveLanguage(sanitizeLanguageTag('pt_BR@posix'))).toBe('pt')
+      expect(resolveLanguage(sanitizeLanguageTag('pt_BR@posix'))).toBe('pt-BR')
       expect(resolveLanguage(sanitizeLanguageTag('C'))).toBe('en')
     })
   })

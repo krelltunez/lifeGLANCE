@@ -3,6 +3,7 @@
   "textSizeLabel": "Textgröße",
   "textSizeUnavailable": "Textgrößeneinstellung auf kleinen Bildschirmen nicht verfügbar",
   "displayLabel": "Anzeige",
+  "language": "Sprache",
   "themeLabel": "Design",
   "theme_dark": "Dunkel",
   "theme_light": "Hell",

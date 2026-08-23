@@ -29,6 +29,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.lifeglance.app.MainActivity
+import com.lifeglance.app.R
 
 /**
  * "On This Day" widget: past milestones sharing today's calendar date. Shows one
@@ -66,14 +67,14 @@ class OnThisDayWidget : GlanceAppWidget() {
                 .clickable(actionStartActivity(ComponentName(context, MainActivity::class.java), actionParametersOf())),
         ) {
             Text(
-                text = "ON THIS DAY",
+                text = context.getString(R.string.widget_eyebrow_on_this_day),
                 style = TextStyle(color = ColorProvider(WidgetTheme.AMBER), fontFamily = FontFamily.Monospace, fontSize = 10.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(6.dp))
 
             if (items.isEmpty()) {
                 Text(
-                    text = "Nothing from today in past years",
+                    text = context.getString(R.string.widget_nothing_on_this_day),
                     maxLines = 2,
                     style = TextStyle(color = ColorProvider(WidgetTheme.MUTED), fontFamily = FontFamily.Monospace, fontSize = 12.sp),
                 )
@@ -87,7 +88,8 @@ class OnThisDayWidget : GlanceAppWidget() {
                     style = TextStyle(color = ColorProvider(WidgetTheme.TEXT), fontFamily = FontFamily.Monospace, fontSize = 14.sp, fontWeight = FontWeight.Bold),
                 )
                 val years = WidgetData.yearsAgo(m.date)
-                val agoLabel = if (years > 0) "$years year${if (years != 1) "s" else ""} ago" else "today"
+                val agoLabel = if (years > 0) context.resources.getQuantityString(R.plurals.widget_years_ago, years, years)
+                               else context.getString(R.string.widget_rel_today)
                 Text(
                     text = "$agoLabel · ${WidgetData.formatDateForPrecision(m.date, m.datePrecision)}",
                     maxLines = 1,
@@ -99,7 +101,7 @@ class OnThisDayWidget : GlanceAppWidget() {
             val remaining = items.size - maxRows
             if (remaining > 0) {
                 Text(
-                    text = "+$remaining more",
+                    text = context.getString(R.string.widget_more_count, remaining),
                     style = TextStyle(color = ColorProvider(WidgetTheme.AMBER), fontFamily = FontFamily.Monospace, fontSize = 10.sp),
                 )
             }

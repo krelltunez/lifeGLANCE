@@ -35,4 +35,65 @@
     <string name="widget_pin_teal_label">Countdown · teal</string>
     <string name="widget_pin_blue_label">Countdown · blue</string>
     <string name="widget_pinned_description">A countdown to the milestone pinned to this color slot in the app.</string>
+
+    <!-- Rendered inside the Glance widgets (widget/*.kt). The EYEBROW strings
+         are display-form headers: translations supply their own casing, since
+         uppercasing is locale-sensitive and Chinese has no case at all. -->
+    <string name="widget_eyebrow_next">NEXT</string>
+    <string name="widget_eyebrow_today">TODAY</string>
+    <string name="widget_eyebrow_chapter">CHAPTER</string>
+    <string name="widget_eyebrow_on_this_day">ON THIS DAY</string>
+    <string name="widget_eyebrow_pinned">PINNED</string>
+    <string name="widget_eyebrow_milestones">MILESTONES</string>
+    <string name="widget_no_upcoming">No upcoming milestones</string>
+    <string name="widget_no_active_chapter">No active chapter</string>
+    <string name="widget_nothing_on_this_day">Nothing from today in past years</string>
+    <string name="widget_new_milestone">new milestone</string>
+    <string name="widget_pin_hint">Pin a milestone to the %1$s slot in the app</string>
+    <string name="widget_last_passed">last · %1$s (%2$s)</string>
+    <string name="widget_milestones_count">%1$d/%2$d milestones</string>
+    <!-- "2 yrs, 3 mo in" — how far into the current chapter you are. -->
+    <string name="widget_chapter_elapsed">%1$s in</string>
+    <string name="widget_more_count">+%1$d more</string>
+    <string name="widget_past_ahead">%1$d past · %2$d ahead</string>
+    <string name="widget_this_year_count">%1$d this year</string>
+    <string name="widget_age">age %1$d</string>
+    <string name="widget_context_next">next</string>
+    <string name="widget_context_last">last</string>
+    <string name="widget_context_chapter">chapter</string>
+
+    <!-- Relative-time pieces assembled by WidgetData.relativeLabel()/durationWords():
+         a duration body ("2 yrs, 1 mo") wrapped in a direction pattern. -->
+    <string name="widget_rel_today">today</string>
+    <string name="widget_just_started">just started</string>
+    <string name="widget_rel_future">in %1$s</string>
+    <string name="widget_rel_past">%1$s ago</string>
+    <!-- Joins the years and months parts; Chinese joins without a comma. -->
+    <string name="widget_dur_join">%1$s, %2$s</string>
+    <plurals name="widget_dur_months">
+        <item quantity="one">%1$d mo</item>
+        <item quantity="other">%1$d mo</item>
+    </plurals>
+    <plurals name="widget_dur_years">
+        <item quantity="one">%1$d yr</item>
+        <item quantity="other">%1$d yrs</item>
+    </plurals>
+    <plurals name="widget_dur_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="widget_years_old">
+        <item quantity="one">%1$d year old</item>
+        <item quantity="other">%1$d years old</item>
+    </plurals>
+    <plurals name="widget_years_ago">
+        <item quantity="one">%1$d year ago</item>
+        <item quantity="other">%1$d years ago</item>
+    </plurals>
+
+    <!-- Display names for the countdown pin slots; the ids stay untranslated. -->
+    <string name="slot_amber">amber</string>
+    <string name="slot_rose">rose</string>
+    <string name="slot_teal">teal</string>
+    <string name="slot_blue">blue</string>
 </resources>

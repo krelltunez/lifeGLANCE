@@ -1,0 +1,9 @@
+/* Siri / Shortcuts phrases for LifeGlanceAppShortcuts (AddMilestoneIntent.swift).
+   AppShortcuts.strings rather than an .xcstrings catalog: the App target deploys
+   to iOS 16 and appshortcutstringsprocessor only accepts the catalog form on
+   iOS 17+. Keys are the English phrases as declared in code; ${applicationName}
+   must survive in every translation. */
+
+"Add a milestone in ${applicationName}" = "Adicionar um marco no ${applicationName}";
+"New milestone in ${applicationName}" = "Novo marco no ${applicationName}";
+"Add a ${applicationName} milestone" = "Adicionar um marco do ${applicationName}";

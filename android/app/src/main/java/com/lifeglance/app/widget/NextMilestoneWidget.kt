@@ -31,6 +31,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.lifeglance.app.MainActivity
+import com.lifeglance.app.R
 
 // Brand palette (mirrors the web app's dark theme tokens in src/index.css).
 private val BG = Color(0xFF0F1117)
@@ -73,19 +74,19 @@ class NextMilestoneWidget : GlanceAppWidget() {
         ) {
             if (next == null) {
                 Text(
-                    text = "No upcoming milestones",
+                    text = context.getString(R.string.widget_no_upcoming),
                     style = TextStyle(color = ColorProvider(MUTED), fontFamily = FontFamily.Monospace, fontSize = 13.sp),
                 )
                 return@Column
             }
 
             Text(
-                text = "NEXT",
+                text = context.getString(R.string.widget_eyebrow_next),
                 style = TextStyle(color = ColorProvider(AMBER), fontFamily = FontFamily.Monospace, fontSize = 10.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(4.dp))
             Text(
-                text = WidgetData.relativeLabel(next.date),
+                text = WidgetData.relativeLabel(context, next.date),
                 style = TextStyle(color = ColorProvider(TEXT), fontFamily = FontFamily.Monospace, fontSize = 22.sp, fontWeight = FontWeight.Bold),
             )
             Spacer(GlanceModifier.height(2.dp))
@@ -104,7 +105,7 @@ class NextMilestoneWidget : GlanceAppWidget() {
             if (prev != null) {
                 Spacer(GlanceModifier.height(8.dp))
                 Text(
-                    text = "last · ${prev.title} (${WidgetData.relativeLabel(prev.date)})",
+                    text = context.getString(R.string.widget_last_passed, prev.title, WidgetData.relativeLabel(context, prev.date)),
                     maxLines = 1,
                     style = TextStyle(color = ColorProvider(MUTED), fontFamily = FontFamily.Monospace, fontSize = 11.sp),
                 )

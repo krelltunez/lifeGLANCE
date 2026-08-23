@@ -1877,7 +1877,8 @@ button, input, select, textarea {
   gap: 0.4rem;
   flex-wrap: wrap;
 }
-.settings-birthday-input {
+.settings-birthday-input,
+.settings-select {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 3px;
@@ -1887,7 +1888,8 @@ button, input, select, textarea {
   padding: 0.3rem 0.5rem;
   color-scheme: dark;
 }
-select.settings-birthday-input {
+select.settings-birthday-input,
+select.settings-select {
   cursor: pointer;
 }
 

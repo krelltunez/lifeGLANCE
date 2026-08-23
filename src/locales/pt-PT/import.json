@@ -1,0 +1,16 @@
+{
+  "title": "importar do calendário",
+  "notice": "A importação é projetada para marcos de vida — aniversários, formaturas, viagens. Desmarque o que não se aplicar.",
+  "allDayEventsFound_one": "{{count}} evento de dia inteiro encontrado",
+  "allDayEventsFound_other": "{{count}} eventos de dia inteiro encontrados",
+  "timedEventsSkipped_one": "· {{count}} evento com horário ignorado",
+  "timedEventsSkipped_other": "· {{count}} eventos com horário ignorados",
+  "noEvents": "Nenhum evento de dia inteiro encontrado neste ficheiro.",
+  "deselectAll": "desmarcar tudo",
+  "selectAll": "selecionar tudo",
+  "titleColumn": "título",
+  "categoryColumn": "categoria",
+  "annual": "anual",
+  "importButton_one": "importar {{count}} marco",
+  "importButton_other": "importar {{count}} marcos"
+}

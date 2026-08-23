@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="widget_next_milestone_label">Prossimo traguardo</string>
+    <string name="widget_next_milestone_description">Il tuo prossimo traguardo, con conto alla rovescia dal vivo.</string>
+    <string name="widget_today_label">Oggi</string>
+    <string name="widget_today_description">La data di oggi e la tua età; nelle dimensioni più grandi anche i traguardi recenti e in arrivo.</string>
+    <string name="widget_current_chapter_label">Capitolo attuale</string>
+    <string name="widget_current_chapter_description">Il capitolo in cui sei ora: a che punto sei e i traguardi passati.</string>
+    <string name="widget_on_this_day_label">Accadde oggi</string>
+    <string name="widget_on_this_day_description">Traguardi della data di oggi negli anni passati.</string>
+    <string name="widget_stats_label">Traguardi</string>
+    <string name="widget_stats_description">I tuoi totali: passati, in arrivo, quest\'anno e la tua età.</string>
+    <string name="widget_quick_add_label">Aggiungi traguardo</string>
+    <string name="widget_quick_add_description">Una scorciatoia a un tocco per aggiungere un nuovo traguardo.</string>
+    <string name="tile_add_milestone_label">Aggiungi traguardo</string>
+    <string name="shortcut_add_short">Aggiungi traguardo</string>
+    <string name="shortcut_add_long">Aggiungi un nuovo traguardo</string>
+    <string name="shortcut_search_short">Cerca</string>
+    <string name="shortcut_search_long">Cerca traguardi</string>
+    <string name="widget_pin_amber_label">Conto alla rovescia · ambra</string>
+    <string name="widget_pin_rose_label">Conto alla rovescia · rosa</string>
+    <string name="widget_pin_teal_label">Conto alla rovescia · verde acqua</string>
+    <string name="widget_pin_blue_label">Conto alla rovescia · blu</string>
+    <string name="widget_pinned_description">Un conto alla rovescia verso il traguardo fissato a questo colore nell\'app.</string>
+    <string name="widget_eyebrow_next">PROSSIMO</string>
+    <string name="widget_eyebrow_today">OGGI</string>
+    <string name="widget_eyebrow_chapter">CAPITOLO</string>
+    <string name="widget_eyebrow_on_this_day">ACCADDE OGGI</string>
+    <string name="widget_eyebrow_pinned">FISSATO</string>
+    <string name="widget_eyebrow_milestones">TRAGUARDI</string>
+    <string name="widget_no_upcoming">Nessun traguardo in arrivo</string>
+    <string name="widget_no_active_chapter">Nessun capitolo attivo</string>
+    <string name="widget_nothing_on_this_day">Niente di oggi negli anni passati</string>
+    <string name="widget_new_milestone">nuovo traguardo</string>
+    <string name="widget_pin_hint">Fissa un traguardo allo slot %1$s nell\'app</string>
+    <string name="widget_last_passed">ultimo · %1$s (%2$s)</string>
+    <string name="widget_milestones_count">%1$d/%2$d traguardi</string>
+    <string name="widget_chapter_elapsed">da %1$s</string>
+    <string name="widget_more_count">+%1$d altri</string>
+    <string name="widget_past_ahead">%1$d passati · %2$d in arrivo</string>
+    <string name="widget_this_year_count">%1$d quest\'anno</string>
+    <string name="widget_age">età %1$d</string>
+    <string name="widget_context_next">prossimo</string>
+    <string name="widget_context_last">ultimo</string>
+    <string name="widget_context_chapter">capitolo</string>
+    <string name="widget_rel_today">oggi</string>
+    <string name="widget_just_started">appena iniziato</string>
+    <string name="widget_rel_future">tra %1$s</string>
+    <string name="widget_rel_past">%1$s fa</string>
+    <string name="widget_dur_join">%1$s, %2$s</string>
+    <plurals name="widget_dur_months">
+        <item quantity="one">%1$d mese</item>
+        <item quantity="other">%1$d mesi</item>
+    </plurals>
+    <plurals name="widget_dur_years">
+        <item quantity="one">%1$d anno</item>
+        <item quantity="other">%1$d anni</item>
+    </plurals>
+    <plurals name="widget_dur_days">
+        <item quantity="one">%1$d giorno</item>
+        <item quantity="other">%1$d giorni</item>
+    </plurals>
+    <plurals name="widget_years_old">
+        <item quantity="one">%1$d anno</item>
+        <item quantity="other">%1$d anni</item>
+    </plurals>
+    <plurals name="widget_years_ago">
+        <item quantity="one">%1$d anno fa</item>
+        <item quantity="other">%1$d anni fa</item>
+    </plurals>
+    <string name="slot_amber">ambra</string>
+    <string name="slot_rose">rosa</string>
+    <string name="slot_teal">verde acqua</string>
+    <string name="slot_blue">blu</string>
+</resources>

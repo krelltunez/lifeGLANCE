@@ -50,10 +50,28 @@ export const namespaces = Object.keys(en).sort()
 
 /**
  * Which regional variant a bare language tag means when more than one ships.
+ *
  * Bare "zh" is overwhelmingly Simplified in practice (script handling for
  * Traditional tags is below, before this table is consulted).
+ *
+ * Bare "pt" MUST stay Brazilian: this repo's single pt locale was written in
+ * the Brazilian standard before the pt-BR/pt-PT split — the OPPOSITE of
+ * dayGLANCE and lastGLANCE, whose pre-split pt was European. Every existing
+ * Portuguese user carries "pt" in localStorage; mapping it anywhere else
+ * would silently change the language under people who never asked for it.
  */
-const REGIONAL_DEFAULTS = { zh: 'zh-CN' }
+const REGIONAL_DEFAULTS = { pt: 'pt-BR', zh: 'zh-CN' }
+
+// Regions whose Portuguese follows the European written standard.
+const EUROPEAN_PT_REGIONS = new Set(['PT', 'AO', 'CV', 'GW', 'MO', 'MZ', 'ST', 'TL'])
+
+function regionOf(tag) {
+  try {
+    return new Intl.Locale(tag).maximize().region
+  } catch {
+    return undefined
+  }
+}
 
 // Simplified and Traditional Chinese are different writing systems, not
 // regional flavours, so Chinese resolves by script rather than by prefix:
@@ -90,6 +108,14 @@ export function resolveLanguage(reported, available = languages) {
   if (base === 'zh') {
     const variant = isTraditionalChinese(reported) ? 'zh-HK' : 'zh-CN'
     if (available.includes(variant)) return variant
+  }
+
+  // A Portuguese tag with an explicit region that writes the European
+  // standard (Portugal and the African/Asian Lusophone countries) reads
+  // better in pt-PT; everything else Portuguese — including bare "pt", via
+  // REGIONAL_DEFAULTS below — stays Brazilian.
+  if (base === 'pt' && reported.includes('-') && EUROPEAN_PT_REGIONS.has(regionOf(reported))) {
+    if (available.includes('pt-PT')) return 'pt-PT'
   }
 
   if (available.includes(base)) return base
