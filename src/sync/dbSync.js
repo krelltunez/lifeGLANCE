@@ -14,7 +14,7 @@
 // React); the refresh reloads React state so the UI reflects merged rows. That
 // is a state bridge, not a cursor bridge.
 
-import { createDbSyncEngine, getSyncPassphrase } from '@glance-apps/sync'
+import { createDbSyncEngine, getSyncPassphrase, isSuppressedError } from '@glance-apps/sync'
 import { makeDbAdapter } from './dbAdapter.js'
 import { makeRealStore } from './dbStore.js'
 import { registerDirtyTarget } from './dirty.js'
@@ -160,6 +160,27 @@ export const initDbSyncEngine = (opts = {}) => {
     vaultClient: opts.vaultClient,
     fetchImpl: opts.fetchImpl,
 
+    // Cursor durability contract (@glance-apps/sync 2.0.0). DECLARED, not
+    // inherited: 2.0.0 flipped the default to 'end-of-pull', so saying nothing
+    // here would silently give up 1.10.0's mid-pagination resume and re-open the
+    // convergence bug that release fixed — a large backlog on a flaky connection
+    // re-downloading from the start on every failure instead of resuming from
+    // the last good page. That regression presents as a network problem, not as
+    // a config gap, so it must be stated rather than assumed.
+    //
+    // 'per-page' is the correct mode for lifeGLANCE because our apply IS durable
+    // on return: applyRemoteEntity goes through dbAdapter straight into
+    // IDB/localStorage, with no per-cycle mirror that a later failure could
+    // discard. A persisted cursor is therefore always behind committed state.
+    // The default flipped because that is not true of every caller (a
+    // commit-only-on-success composer loses rows under 'per-page'), not because
+    // per-page is wrong for the callers it fits.
+    //
+    // An unrecognised value is REFUSED at construction — 'perPage', 'per_page'
+    // and 'PER-PAGE' all throw naming every valid mode — so a typo here fails
+    // loudly instead of quietly restoring the unsafe path.
+    pullCursorCommit: 'per-page',
+
     getLocalEntity:        adapter.getLocalEntity,
     applyRemoteEntity:     adapter.applyRemoteEntity,
     applyRemoteDelete:     adapter.applyRemoteDelete,
@@ -274,13 +295,25 @@ export const initDbSyncEngine = (opts = {}) => {
   // here too — a backgrounded first write can establish the salt before any
   // full sync does.
   //
-  // Honour the sync 1.10 credential halt here as well: pushDirtyRows is a raw
-  // primitive with no halt guard, so without this check every local edit on a
-  // halted device would fire one doomed (401) batch request. The halt is
-  // terminal by design — the cycle stops, and so should push-on-write. Rows
-  // stay marked dirty, so everything pushes once access is restored.
+  // NO APP-SIDE GUARD (sync 2.0.0). This used to carry its own
+  // isCredentialHalted() check, because pushDirtyRows was a raw primitive with
+  // no protections and push-on-write therefore bypassed all of them. 2.0.0's
+  // Phase 4a moved enforcement DOWN into the primitives: pushDirtyRows now
+  // refuses while the credential halt stands, refuses while the push backoff
+  // window is open, and opens/escalates/clears that window itself. The app-side
+  // guard became redundant, and keeping it would only mean two places deciding
+  // the same thing.
+  //
+  // What lifeGLANCE gains here it never had: push-on-write calls pushDirtyRows
+  // directly, so backoff, quota suppression and the credential halt now apply to
+  // every local edit, not just to the 60s cadence cycle.
+  //
+  // Both refusals arrive as a THROW rather than a return value (see
+  // pushDebounced): a halt throws CREDENTIAL_INVALID with halted:true, an open
+  // window throws SYNC_SUPPRESSED. Neither makes a network call, and neither
+  // clears the dirty set — rows stay marked and push once the halt is lifted or
+  // the window lapses.
   const pushNow = async () => {
-    if (engine.isCredentialHalted?.()) return { written: 0, deleted: 0, halted: true }
     await seedSnapshot()
     const r = await engine.pushDirtyRows()
     await bootstrapIntentsRootKey()
@@ -288,7 +321,18 @@ export const initDbSyncEngine = (opts = {}) => {
   }
   const pushDebounced = (ms = 4000) => {
     clearTimeout(_pushTimer)
-    _pushTimer = setTimeout(() => { pushNow().catch(err => console.warn('[dbsync] push failed', err)) }, ms)
+    _pushTimer = setTimeout(() => {
+      pushNow().catch(err => {
+        // Two of these are the engine DELIBERATELY declining, not a failure:
+        // SYNC_SUPPRESSED (an open backoff window — the next cadence cycle
+        // retries) and the credential halt (terminal, and it has its own UI path
+        // via the cycle's onError). Logging either as "push failed" would make a
+        // deliberately stopped device look like it is failing continuously — on
+        // a halted device, once per keystroke-triggered write.
+        if (isSuppressedError(err) || err?.halted) return
+        console.warn('[dbsync] push failed', err)
+      })
+    }, ms)
   }
 
   // Register the dirty target so EVERY local write (not just milestone/chapter
