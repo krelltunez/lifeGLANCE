@@ -13,7 +13,7 @@ describe('reviewerAccess', () => {
 
   // Pinned vector: fails if REVIEWER_SECRET ever changes. That is the point —
   // rotating the secret after a build reaches store review invalidates the
-  // codes already in the review notes (docs/paywall-billing-plan.md Lesson 2).
+  // codes already in the review notes.
   // Only update this vector if the secret is changed deliberately, before any
   // reviewed build carries it.
   it('matches the pinned vector for this app secret', async () => {

@@ -461,26 +461,33 @@ export default function SettingsModal({
           </div>
         )}
 
-        {/* ── Subscription (gated Play builds only) — kept last so the
-            license state is always at the bottom of the sheet ───────────── */}
-        {onOpenSubscription && (
+        {/* ── Subscription — kept last so the license state is always at the
+            bottom of the sheet. Shown on EVERY channel: on an ungated build
+            (web/PWA, GitHub sideload APK, dev) licenseSource is 'channel' and
+            the line reads "This build is fully unlocked." Without it a sideload
+            user has no way to tell their build from the gated Play one — same
+            applicationId, name, icon and version — which is exactly how a
+            "the GitHub APK is showing me the paywall" report starts. The
+            manage/purchase button stays gated: ungated builds have no IAPs. */}
+        {licenseSource && (
           <div className="settings-section">
             <div className="settings-label">{tb('title')}</div>
-            {licenseSource && (
-              <div className="settings-license-line">
-                {tb({
-                  lifetime:     'statusLifetime',
-                  subscription: 'statusSubscription',
-                  reviewer:     'statusReviewer',
-                  none:         'statusNone',
-                }[licenseSource] ?? 'statusNone')}
+            <div className="settings-license-line">
+              {tb({
+                lifetime:     'statusLifetime',
+                subscription: 'statusSubscription',
+                reviewer:     'statusReviewer',
+                channel:      'statusChannel',
+                none:         'statusNone',
+              }[licenseSource] ?? 'statusNone')}
+            </div>
+            {onOpenSubscription && (
+              <div className="settings-backup-row">
+                <button className="btn"
+                  style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                  onClick={() => { onClose(); onOpenSubscription() }}>{tb('manage')}</button>
               </div>
             )}
-            <div className="settings-backup-row">
-              <button className="btn"
-                style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
-                onClick={() => { onClose(); onOpenSubscription() }}>{tb('manage')}</button>
-            </div>
           </div>
         )}
       </div>

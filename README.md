@@ -72,6 +72,51 @@ A native Android app is available on Google Play and as a direct APK download. T
 [**Get it on Obtainium →**](https://github.com/ImranR98/Obtainium)
 <br> *Just point Obtainium to `krelltunez/lifeGLANCE`!*
 
+### Which build am I running?
+
+The two Android builds differ in one way only: the **Play** build is a paid app
+(subscription or one-off lifetime unlock), the **GitHub APK is fully unlocked** —
+no paywall, no billing, every feature on. They otherwise share a package name,
+app name, icon and version, so once installed they look identical. Two ways to
+tell them apart:
+
+- **Settings → subscription.** The GitHub APK says *"This build is fully
+  unlocked."* The Play build shows a purchase status and a *Manage subscription*
+  button instead.
+- **The version.** The sideload APK's version ends in `-github`, e.g.
+  `3.3.1-github` (releases up to 3.3.1 do not carry this marker yet).
+
+**If you are seeing a paywall, you are running the Play build.** Third-party
+mirrors (APKPure, APKMirror, Aptoide and similar) republish the *Play* build
+under the same name and version — only the [Releases
+page](https://github.com/krelltunez/lifeGLANCE/releases) and Obtainium serve the
+ungated one. Switching from the Play build to the sideload APK needs an
+uninstall (the signing keys differ, so Android cannot update one into the
+other), and **uninstalling erases local data — export first**, or set up
+[sync](#sync--storage) before you switch.
+
+### Verifying the APK
+
+Every release publishes `SHA256SUMS.txt` next to the APK:
+
+```bash
+sha256sum -c SHA256SUMS.txt      # run in the folder you downloaded into
+```
+
+The APK is signed with this certificate — any APK claiming to be lifeGLANCE
+with a different fingerprint was not built by us:
+
+```
+SHA-256: 31:7B:61:C1:05:34:F6:6B:4A:51:37:5F:4C:00:43:90:4B:6C:08:C7:AA:AA:AF:24:17:D2:57:64:D0:F3:D0:D0
+```
+
+```bash
+apksigner verify --print-certs lifeglance-github.apk
+```
+
+(The Play copy is re-signed by Google Play App Signing, so it legitimately shows
+a *different* fingerprint — that is itself a way to tell the two apart.)
+
 The Android app ships the full web app in a WebView with native enhancements that aren't possible in a browser:
 
 | Feature | Details |

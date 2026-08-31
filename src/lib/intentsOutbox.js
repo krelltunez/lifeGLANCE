@@ -15,7 +15,7 @@
 // written to disk (structural, not a convention).
 //
 // Mirrors dayGLANCE's outbox shape so the send-side semantics are identical
-// across apps (see docs/glance-intents-transport-reference.md §2).
+// across apps.
 // =============================================================================
 
 const DB_NAME    = 'lifeglance-intents-outbox'
