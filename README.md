@@ -115,7 +115,9 @@ apksigner verify --print-certs lifeglance-github.apk
 ```
 
 (The Play copy is re-signed by Google Play App Signing, so it legitimately shows
-a *different* fingerprint — that is itself a way to tell the two apart.)
+a *different* fingerprint — that is itself a way to tell the two apart. A
+single-engine antivirus flag on the sideload APK is the same story: the two
+signatures differ by design.)
 
 The Android app ships the full web app in a WebView with native enhancements that aren't possible in a browser:
 
