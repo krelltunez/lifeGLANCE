@@ -71,7 +71,7 @@ export default function App() {
   // A reviewer code unlocks the app but leaves no way back to the paywall — the
   // only surface that shows the in-app purchases. The billing engine exposes no
   // revoke, so clear the reviewer-unlock key directly and reload; with no
-  // entitlement the gate (and the IAPs) returns. See docs/reviewer-access-flow.md.
+  // entitlement the gate (and the IAPs) returns.
   const exitReviewerMode = () => {
     try { localStorage.removeItem('glance-billing.reviewer-unlock') } catch { /* storage unavailable */ }
     location.reload()
@@ -318,7 +318,12 @@ export default function App() {
       vaultSkipped={vaultSkipped}
       onOpenCloudSync={() => setCloudSyncOpen(true)}
       onOpenSubscription={billing.gated ? () => setSubscriptionOpen(true) : undefined}
-      licenseSource={billing.gated ? billing.entitlementSource : null}
+      licenseSource={
+        // Passed on every channel, not just gated ones: on an ungated build it
+        // reads 'channel' and settings then says "This build is fully unlocked"
+        // — the only in-app way to tell the sideload build from the Play one.
+        billing.entitlementSource
+      }
       demoLoaded={import.meta.env.VITE_DEMO && demoLoaded}
       onClearDemo={import.meta.env.VITE_DEMO ? handleClearDemo : undefined}
     />
