@@ -7,7 +7,7 @@ Part of the **GLANCE family**: focused, standalone apps connected through a shar
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="75">](https://play.google.com/store/apps/details?id=com.lifeglance.app)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-3.0.1-green.svg)](../../releases)
+[![Version](https://img.shields.io/github/package-json/v/krelltunez/lifeGLANCE?label=version&color=green)](../../releases)
 
 ---
 
@@ -84,7 +84,7 @@ tell them apart:
   unlocked."* The Play build shows a purchase status and a *Manage subscription*
   button instead.
 - **The version.** The sideload APK's version ends in `-github`, e.g.
-  `3.3.1-github` (releases up to 3.3.1 do not carry this marker yet).
+  `3.4.0-github` (releases up to 3.3.1 do not carry this marker yet).
 
 **If you are seeing a paywall, you are running the Play build.** Third-party
 mirrors (APKPure, APKMirror, Aptoide and similar) republish the *Play* build
