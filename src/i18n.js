@@ -42,7 +42,7 @@ export const ready = i18n
       // A detected language can be a POSIX-style value (e.g. "en-US@posix")
       // that is not a valid BCP-47 tag; sanitize it so i18n.language is always
       // safe to pass to Intl, then resolve it onto a language this app ships
-      // (zh-TW -> zh-HK, en-US -> en). Applies to every detection source, the
+      // (zh-Hant-TW -> zh-TW, zh-MO -> zh-HK, en-US -> en). Applies to every detection source, the
       // localStorage cache included, so a stale stored tag is corrected in
       // place on first load with no separate migration.
       convertDetectedLanguage: (lng) => resolveLanguage(sanitizeLanguageTag(lng)),

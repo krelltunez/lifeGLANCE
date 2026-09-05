@@ -51,8 +51,8 @@ export const namespaces = Object.keys(en).sort()
 /**
  * Which regional variant a bare language tag means when more than one ships.
  *
- * Bare "zh" is overwhelmingly Simplified in practice (script handling for
- * Traditional tags is below, before this table is consulted).
+ * Bare "zh" is overwhelmingly Simplified in practice (script and region
+ * handling for Traditional tags is below, before this table is consulted).
  *
  * Bare "pt" MUST stay Brazilian: this repo's single pt locale was written in
  * the Brazilian standard before the pt-BR/pt-PT split — the OPPOSITE of
@@ -74,14 +74,26 @@ function regionOf(tag) {
 }
 
 // Simplified and Traditional Chinese are different writing systems, not
-// regional flavours, so Chinese resolves by script rather than by prefix:
-// zh-TW/zh-MO/zh-Hant-* must land on zh-HK, never on zh-CN. maximize() fills
-// in the likely script for region-only tags (zh-TW -> zh-Hant-TW).
-function isTraditionalChinese(tag) {
+// regional flavours, so Chinese resolves by script first: a Traditional
+// reader must never land on zh-CN, whatever the region. Within Traditional,
+// Hong Kong and Taiwan differ lexically (設置/設定, 用戶/使用者, 導入/匯入 —
+// see scripts/generate-zh-tw.mjs), so the region picks between zh-HK and
+// zh-TW: HK and MO read the Hong Kong file, everything else Traditional —
+// including a bare "zh-Hant", whose likely region is TW — reads the Taiwan
+// one. maximize() fills in the likely script for region-only tags
+// (zh-TW -> zh-Hant-TW) and the likely region for script-only ones.
+const HONG_KONG_REGIONS = new Set(['HK', 'MO'])
+
+function chineseVariant(tag) {
   try {
-    return new Intl.Locale(tag).maximize().script === 'Hant'
+    const { script, region } = new Intl.Locale(tag).maximize()
+    if (script !== 'Hant') return 'zh-CN'
+    return HONG_KONG_REGIONS.has(region) ? 'zh-HK' : 'zh-TW'
   } catch {
-    return /^zh\b.*\b(hant|tw|hk|mo)\b/i.test(tag.replace(/[_-]/g, ' '))
+    const parts = tag.replace(/[_-]/g, ' ')
+    if (/\b(hk|mo)\b/i.test(parts)) return 'zh-HK'
+    if (/\b(hant|tw)\b/i.test(parts)) return 'zh-TW'
+    return 'zh-CN'
   }
 }
 
@@ -106,8 +118,13 @@ export function resolveLanguage(reported, available = languages) {
   const base = reported.split('-')[0].toLowerCase()
 
   if (base === 'zh') {
-    const variant = isTraditionalChinese(reported) ? 'zh-HK' : 'zh-CN'
+    const variant = chineseVariant(reported)
     if (available.includes(variant)) return variant
+    // Either Traditional file beats Simplified for a Traditional reader.
+    if (variant !== 'zh-CN') {
+      const traditional = available.find((l) => l === 'zh-HK' || l === 'zh-TW')
+      if (traditional) return traditional
+    }
   }
 
   // A Portuguese tag with an explicit region that writes the European

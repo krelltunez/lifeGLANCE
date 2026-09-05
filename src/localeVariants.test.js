@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { languages, namespaces, loaders } from './locales.js'
 import { EUROPEAN_ONLY, BRAZILIAN_ONLY } from './ptMarkers.js'
+import { NOT_TAIWANESE } from './zhMarkers.js'
 
 // The marker lists live in src/ptMarkers.js (shared with the native-string
 // tests) — see that file for the calibration story and the ASCII-\b trap.
@@ -86,6 +87,55 @@ describe('Portuguese variant purity', () => {
     expect(
       violations,
       `${lng} is meant to be ${name} Portuguese but ${violations.length} string(s) use the other standard:\n${violations.join('\n')}`
+    ).toEqual([])
+  })
+})
+
+// Traditional Chinese: only the Taiwan file is held to a standard — see
+// zhMarkers.js for why Hong Kong has no forbidden list of its own.
+describe('Taiwan Chinese variant purity', () => {
+  const bundles = {}
+  beforeAll(async () => {
+    await Promise.all(
+      namespaces.map(async (ns) => {
+        bundles[ns] = await loaders['zh-TW'][ns]()
+      })
+    )
+  })
+
+  const flatten = (obj, prefix = '') =>
+    Object.entries(obj).flatMap(([k, v]) => {
+      const key = prefix ? `${prefix}.${k}` : k
+      return v && typeof v === 'object' && !Array.isArray(v) ? flatten(v, key) : [[key, v]]
+    })
+
+  it('ships zh-TW', () => {
+    expect(languages).toContain('zh-TW')
+  })
+
+  it.each(Object.entries(NOT_TAIWANESE))(
+    'the %s pattern matches the word it is named for',
+    (name, pattern) => {
+      expect(pattern.test(name)).toBe(true)
+    }
+  )
+
+  it('zh-TW uses no Hong Kong or mainland term, in all namespaces', () => {
+    const violations = []
+    for (const ns of namespaces) {
+      const strings = flatten(bundles[ns]).filter(([, v]) => typeof v === 'string')
+      for (const [key, value] of strings) {
+        for (const [marker, pattern] of Object.entries(NOT_TAIWANESE)) {
+          const found = value.match(pattern)
+          if (found)
+            violations.push(`  ${ns}:${key}: "${found[0]}" — ${marker}\n      ${value.slice(0, 110)}`)
+        }
+      }
+    }
+
+    expect(
+      violations,
+      `zh-TW is meant to be Taiwan Chinese but ${violations.length} string(s) use another standard:\n${violations.join('\n')}`
     ).toEqual([])
   })
 })
