@@ -1,0 +1,16 @@
+{
+  "title": "從行事曆匯入",
+  "notice": "匯入功能適用於人生要事，例如生日、畢業典禮和旅行。請按重要程度篩選。",
+  "allDayEventsFound_one": "找到{{count}}個全天事件",
+  "allDayEventsFound_other": "找到{{count}}個全天事件",
+  "timedEventsSkipped_one": "·略過{{count}}個定時事件",
+  "timedEventsSkipped_other": "·略過{{count}}個定時事件",
+  "noEvents": "檔案中並未見全天事件",
+  "deselectAll": "取消全選",
+  "selectAll": "全選",
+  "titleColumn": "標題",
+  "categoryColumn": "卷宗",
+  "annual": "年度",
+  "importButton_one": "匯入{{count}}個里程碑",
+  "importButton_other": "匯入{{count}}個里程碑"
+}

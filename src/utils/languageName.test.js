@@ -19,6 +19,7 @@ describe('nativeLanguageName', () => {
     // The 'short' style: the default region name for zh-HK is the official
     // 中國香港特別行政區, far too long for a select option.
     ['zh-HK', '中文（香港）'],
+    ['zh-TW', '中文（台灣）'],
   ])('names %s in its own language', (tag, expected) => {
     expect(nativeLanguageName(tag)).toBe(expected)
   })
@@ -31,7 +32,7 @@ describe('nativeLanguageName', () => {
     }
   })
 
-  // Both Chinese locales (and later both Portuguese ones) must stay
+  // All three Chinese locales (and both Portuguese ones) must stay
   // distinguishable — a regression to base-language names would render two
   // identical options.
   it('gives every shipped language a distinct name', () => {

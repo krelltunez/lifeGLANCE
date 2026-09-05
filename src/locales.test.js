@@ -7,7 +7,7 @@ import { languages, namespaces, loaders, resolveLanguage } from './locales.js'
 // existed would have passed throughout that bug — the assertions below go
 // through the same glob-derived loaders i18n.js resolves at runtime.
 describe('locale bundles', () => {
-  const EXPECTED_LANGUAGES = ['de', 'en', 'es', 'fr', 'it', 'pt-BR', 'pt-PT', 'zh-CN', 'zh-HK']
+  const EXPECTED_LANGUAGES = ['de', 'en', 'es', 'fr', 'it', 'pt-BR', 'pt-PT', 'zh-CN', 'zh-HK', 'zh-TW']
   const EXPECTED_NAMESPACES = [
     'billing',
     'chapter',
@@ -186,11 +186,28 @@ describe('locale bundles', () => {
       expect(resolveLanguage('zh-Hans')).toBe('zh-CN')
     })
 
-    it('sends Traditional Chinese to zh-HK', () => {
-      expect(resolveLanguage('zh-TW')).toBe('zh-HK')
+    // Within Traditional, the region picks the file: Hong Kong and Macau read
+    // zh-HK, Taiwan — and a script-only "zh-Hant", whose likely region is
+    // Taiwan — reads zh-TW.
+    it('sends Hong Kong and Macau Traditional Chinese to zh-HK', () => {
+      expect(resolveLanguage('zh-HK')).toBe('zh-HK')
       expect(resolveLanguage('zh-MO')).toBe('zh-HK')
-      expect(resolveLanguage('zh-Hant')).toBe('zh-HK')
-      expect(resolveLanguage('zh-Hant-TW')).toBe('zh-HK')
+      expect(resolveLanguage('zh-Hant-HK')).toBe('zh-HK')
+      expect(resolveLanguage('zh-Hant-MO')).toBe('zh-HK')
+    })
+
+    it('sends Taiwan and unspecified Traditional Chinese to zh-TW', () => {
+      expect(resolveLanguage('zh-TW')).toBe('zh-TW')
+      expect(resolveLanguage('zh-Hant')).toBe('zh-TW')
+      expect(resolveLanguage('zh-Hant-TW')).toBe('zh-TW')
+    })
+
+    // A Traditional reader never lands on Simplified, even when only the
+    // other Traditional file ships.
+    it('prefers any Traditional file over zh-CN for a Traditional tag', () => {
+      expect(resolveLanguage('zh-TW', ['en', 'zh-CN', 'zh-HK'])).toBe('zh-HK')
+      expect(resolveLanguage('zh-HK', ['en', 'zh-CN', 'zh-TW'])).toBe('zh-TW')
+      expect(resolveLanguage('zh-CN', ['en', 'zh-HK', 'zh-TW'])).toBe('zh-HK')
     })
 
     it('falls back to en for a language that is not shipped', () => {
@@ -214,7 +231,7 @@ describe('locale bundles', () => {
     })
 
     it('always returns something the picker can render', () => {
-      for (const reported of ['en', 'pt', 'pt-AO', 'zh', 'zh-TW', 'de-AT', 'zz', '', undefined]) {
+      for (const reported of ['en', 'pt', 'pt-AO', 'zh', 'zh-TW', 'zh-MO', 'de-AT', 'zz', '', undefined]) {
         expect(languages).toContain(resolveLanguage(reported))
       }
     })
@@ -224,6 +241,7 @@ describe('locale bundles', () => {
     it('composes with sanitizeLanguageTag for POSIX-style values', async () => {
       const { sanitizeLanguageTag } = await import('./utils/locale.js')
       expect(resolveLanguage(sanitizeLanguageTag('zh_CN.UTF-8'))).toBe('zh-CN')
+      expect(resolveLanguage(sanitizeLanguageTag('zh_TW.UTF-8'))).toBe('zh-TW')
       expect(resolveLanguage(sanitizeLanguageTag('pt_BR@posix'))).toBe('pt-BR')
       expect(resolveLanguage(sanitizeLanguageTag('C'))).toBe('en')
     })

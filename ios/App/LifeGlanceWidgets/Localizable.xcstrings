@@ -672,7 +672,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "時間線"
+            "value": "時間軸"
           }
         }
       }
@@ -724,7 +724,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "一眼縱覽今日前後的時間線。"
+            "value": "一眼縱覽今日前後的時間軸。"
           }
         }
       }
@@ -1348,7 +1348,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "時間線"
+            "value": "時間軸"
           }
         }
       }
