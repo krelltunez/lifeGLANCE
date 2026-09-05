@@ -17,7 +17,8 @@
 // reliably bootstrapped on every setup path (dbSync.js). Two GLANCE apps that feed the
 // same passphrase + the same server-owned vault salt derive the byte-identical
 // key and decrypt each other's envelopes. NEVER plaintext on the vault, send or
-// receive. See docs/glance-intents-transport-reference.md §3–§5.
+// receive. The envelope format is the one @glance-apps/intents implements and
+// every GLANCE app shares — change it here only in lockstep with that package.
 // =============================================================================
 
 import {

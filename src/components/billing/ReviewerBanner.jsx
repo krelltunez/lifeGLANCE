@@ -6,8 +6,9 @@ import { useTranslation } from 'react-i18next'
 // through the store. Its action returns to the paywall, which is the only surface
 // that shows the in-app purchases: without a way back, a reviewer who used the
 // code "cannot locate the IAPs" and the app is rejected under App Review 2.1(b).
-// See docs/reviewer-access-flow.md. Colours use --amber-rgb / --amber-bright,
-// which already adapt to light/dark.
+// Exiting clears the reviewer-unlock key and reloads (App.jsx
+// exitReviewerMode). Colours use --amber-rgb / --amber-bright, which already
+// adapt to light/dark.
 export default function ReviewerBanner({ onExit }) {
   const { t } = useTranslation('billing')
   return (

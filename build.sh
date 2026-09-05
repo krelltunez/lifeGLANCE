@@ -27,7 +27,9 @@ done
 
 # Opt-in inspectable WebView for billing/entitlement testing on Play-signed
 # release builds (capacitor.config.js reads CAP_WEBVIEW_DEBUG at cap sync).
-# See docs/paywall-billing-plan.md Lessons 7/8.
+# Play Billing only runs on the Play-signed release build, whose WebView is
+# otherwise not inspectable, so entitlement state can only be reset via
+# chrome://inspect on a build made with this flag.
 if $WEBVIEW_DEBUG; then
   export CAP_WEBVIEW_DEBUG=1
   echo "!!=========================================================================!!"
@@ -84,30 +86,57 @@ if $RELEASE; then
   # Release builds are signed when android/key.properties is present (see
   # android/key.properties.example); without it they fall back to UNSIGNED.
   #
-  # Web assets are built TWICE — the distribution channels differ on purpose
-  # (docs/paywall-billing-plan.md §5):
+  # Web assets are built TWICE — the two distribution channels differ on purpose:
   #   1. VITE_BUILD_CHANNEL=github → sideload APK, UNGATED (no paywall)
   #   2. VITE_BUILD_CHANNEL=play   → Play AAB, GATED (Play Billing paywall)
+  # The channel is baked in at Vite build time: src/billing/billing.js builds a
+  # billing adapter only for 'play' on Android, and @glance-apps/billing treats
+  # a null adapter as ungated, so any other value ships an unlocked app.
   # Each pass runs cap sync, so the native capacitor.config.json is rewritten
   # per build (including the CAP_WEBVIEW_DEBUG flag) without a clean.
+  #
+  # The two artifacts share an applicationId, app name, icon and versionCode —
+  # only the web assets and the signing key differ — so the sideload build is
+  # marked in the two places a user can actually look: the file name
+  # (lifeglance-github.apk, matching dayGLANCE's) and the versionName
+  # (3.3.1-github). Without that, "the GitHub APK is showing me the paywall"
+  # cannot be told apart from "I am running the Play build".
+
+  # The suffix is appended to package.json's version for the sideload APK only
+  # (the AAB must keep the clean x.y.z name Play expects). --version-suffix
+  # still wins for interim builds: 3.3.1-rc1-github.
+  GITHUB_VERSION_SUFFIX="${VERSION_SUFFIX:+$VERSION_SUFFIX-}github"
+
+  # Artifacts this script wrote under its pre-rename names. Left in place they
+  # are indistinguishable from a fresh build in outputs/ and are exactly the
+  # wrong file to attach to a release, so clear them (they were overwritten on
+  # every run anyway).
+  for stale in lifeglance.apk lifeglance-unsigned.apk; do
+    if [ -f "$OUT_DIR/$stale" ]; then
+      echo "==> Removing stale $stale from a pre-rename build..."
+      rm -f "$OUT_DIR/$stale"
+    fi
+  done
 
   echo "==> Building web assets (channel: github, ungated)..."
   cd "$SCRIPT_DIR"
   VITE_BUILD_CHANNEL=github npm run build:mobile
 
-  echo "==> Building sideload APK (ungated)..."
+  echo "==> Building sideload APK (ungated, versionName suffix: -$GITHUB_VERSION_SUFFIX)..."
   cd "$ANDROID_DIR"
-  ./gradlew assembleRelease
+  ./gradlew assembleRelease -PversionNameSuffix="$GITHUB_VERSION_SUFFIX"
 
   # assembleRelease emits app-release-unsigned.apk until signing is configured,
   # and app-release.apk once it is — copy whichever exists.
   APK_REL_DIR="app/build/outputs/apk/release"
   if [ -f "$APK_REL_DIR/app-release.apk" ]; then
-    cp "$APK_REL_DIR/app-release.apk" "$OUT_DIR/lifeglance.apk"
-    echo "    APK → outputs/lifeglance.apk (signed)"
+    APK_OUT="lifeglance-github.apk"
+    cp "$APK_REL_DIR/app-release.apk" "$OUT_DIR/$APK_OUT"
+    echo "    APK → outputs/$APK_OUT (signed)"
   else
-    cp "$APK_REL_DIR/app-release-unsigned.apk" "$OUT_DIR/lifeglance-unsigned.apk"
-    echo "    APK → outputs/lifeglance-unsigned.apk (UNSIGNED — configure signing to publish)"
+    APK_OUT="lifeglance-github-unsigned.apk"
+    cp "$APK_REL_DIR/app-release-unsigned.apk" "$OUT_DIR/$APK_OUT"
+    echo "    APK → outputs/$APK_OUT (UNSIGNED — configure signing to publish)"
   fi
 
   # Second web build produces a new content-hashed bundle; wipe the stale
@@ -124,6 +153,42 @@ if $RELEASE; then
 
   cp "app/build/outputs/bundle/release/app-release.aab" "$OUT_DIR/lifeglance.aab"
   echo "    AAB → outputs/lifeglance.aab"
+
+  # Print the APK's signing certificate. The published fingerprint is in
+  # README.md ("Verifying the APK"); a mismatch means the artifact was not
+  # produced by this keystore. Also catches a missing/misconfigured
+  # key.properties that would otherwise ship an unsigned APK.
+  SDK_DIR="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+  APKSIGNER="$(command -v apksigner || true)"
+  if [ -z "$APKSIGNER" ] && [ -n "$SDK_DIR" ]; then
+    APKSIGNER="$(ls "$SDK_DIR"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+  fi
+  if [ "$APK_OUT" = "lifeglance-github-unsigned.apk" ]; then
+    echo "    (APK is unsigned; skipping signature check)"
+  elif [ -n "$APKSIGNER" ]; then
+    # No `|| true`: set -e is on, so a bad signature stops the release here
+    # rather than at the point someone tries to install the APK.
+    echo "==> Verifying APK signature..."
+    "$APKSIGNER" verify --print-certs "$OUT_DIR/$APK_OUT"
+  else
+    echo "    (apksigner not found on PATH or in \$ANDROID_HOME; skipping signature check)"
+  fi
+
+  # SHA-256 checksums for the release artifacts, written with bare filenames so
+  # `sha256sum -c SHA256SUMS.txt` works wherever they are downloaded to. Publish
+  # it alongside the APK on the GitHub release: it is the user-side proof that
+  # the APK they installed is this build and not a repack from a mirror site
+  # (mirrors redistribute the GATED Play build under the same name and version).
+  echo "==> Writing SHA-256 checksums..."
+  (
+    cd "$OUT_DIR"
+    if command -v sha256sum >/dev/null 2>&1; then
+      sha256sum "$APK_OUT" lifeglance.aab > SHA256SUMS.txt
+    else
+      shasum -a 256 "$APK_OUT" lifeglance.aab > SHA256SUMS.txt
+    fi
+    sed 's/^/    /' SHA256SUMS.txt
+  )
 
   echo ""
   echo "==> Android release build complete. outputs/:"
