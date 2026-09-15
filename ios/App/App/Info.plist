@@ -22,6 +22,14 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<!-- Export compliance: false because the app's encryption uses only
+	     standard, internationally-recognized algorithms (AES-256-GCM,
+	     PBKDF2-SHA-256, HMAC-SHA-256) for end-to-end vault sync and backup
+	     (@glance-apps/sync) in a mass-market app, which qualifies for the EAR
+	     exemption. This makes App Store Connect skip the export-compliance
+	     prompt on every build. Matches dayGLANCE, which settled on the same
+	     answer for the same sync stack (dayglance-ios/project.yml).
+	     Separately, file the annual BIS self-classification report. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CFBundleURLTypes</key>
