@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0DFACE0000000000000000C1 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0DFACE0000000000000000C0 /* PrivacyInfo.xcprivacy */; };
 		0DA92D522FECBEF700F56B1C /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0DA92D512FECBEF700F56B1C /* WidgetKit.framework */; };
 		0DA92D542FECBEF700F56B1C /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0DA92D532FECBEF700F56B1C /* SwiftUI.framework */; };
 		0DA92D612FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0DA92D4F2FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -63,6 +64,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0DFACE0000000000000000C0 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		0DA92D4A2FECBDC700F56B1C /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		0DA92D4F2FECBEF700F56B1C /* LifeGlanceWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LifeGlanceWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		0DA92D512FECBEF700F56B1C /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -209,6 +211,7 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				0DFACE0000000000000000C0 /* PrivacyInfo.xcprivacy */,
 				0DC7A1102FED030000F56B1C /* SpotlightPlugin.swift */,
 				0DC7A2202FED040000F56B1C /* SecureStorePlugin.swift */,
 				0DC7A1002FED020000F56B1C /* AddMilestoneIntent.swift */,
@@ -374,6 +377,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0DFACE0000000000000000C1 /* PrivacyInfo.xcprivacy in Resources */,
 				504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,
 				50B271D11FEDC1A000F3C39B /* public in Resources */,
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,
