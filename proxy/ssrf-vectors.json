@@ -1,0 +1,441 @@
+{
+  "version": 1,
+  "description": "Canonical SSRF address-policy vectors for the GLANCE apps. Each entry is an address, its three-way class, and the verdict every implementation must produce in each posture. Generated file: do not hand-edit.",
+  "generatedBy": "scripts/export-ssrf-vectors.mjs in krelltunez/dayGLANCE",
+  "postures": {
+    "hosted": {
+      "allowPrivate": false,
+      "description": "a shared cloud deployment"
+    },
+    "selfHost": {
+      "allowPrivate": true,
+      "description": "an instance on the operator's own network"
+    }
+  },
+  "vectors": [
+    {
+      "address": "8.8.8.8",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "ordinary public address"
+    },
+    {
+      "address": "203.0.113.10",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "TEST-NET-3, documentation range, routable as far as this policy cares"
+    },
+    {
+      "address": "1.1.1.1",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "ordinary public address"
+    },
+    {
+      "address": "2606:4700::1111",
+      "family": 6,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "ordinary public v6"
+    },
+    {
+      "address": "::ffff:8.8.8.8",
+      "family": 6,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "IPv4-mapped PUBLIC address must not be lumped in with private ones"
+    },
+    {
+      "address": "172.15.0.1",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "one below 172.16.0.0/12"
+    },
+    {
+      "address": "172.32.0.1",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "one above 172.16.0.0/12"
+    },
+    {
+      "address": "100.63.255.255",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "one below the 100.64.0.0/10 CGNAT block"
+    },
+    {
+      "address": "100.128.0.0",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "one above the 100.64.0.0/10 CGNAT block"
+    },
+    {
+      "address": "192.167.0.1",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "one below 192.168.0.0/16"
+    },
+    {
+      "address": "192.169.0.1",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "one above 192.168.0.0/16"
+    },
+    {
+      "address": "198.17.0.1",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "one below 198.18.0.0/15"
+    },
+    {
+      "address": "198.20.0.1",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "one above 198.18.0.0/15"
+    },
+    {
+      "address": "223.255.255.255",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "one below the 224.0.0.0/4 multicast block"
+    },
+    {
+      "address": "192.1.0.1",
+      "family": 4,
+      "class": "ok",
+      "hosted": "allow",
+      "selfHost": "allow",
+      "note": "outside 192.0.0.0/24"
+    },
+    {
+      "address": "10.0.0.5",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "RFC1918, a Docker host or LAN server"
+    },
+    {
+      "address": "10.255.255.255",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "top of 10.0.0.0/8"
+    },
+    {
+      "address": "172.16.0.1",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "bottom of 172.16.0.0/12"
+    },
+    {
+      "address": "172.17.0.1",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "the default Docker bridge"
+    },
+    {
+      "address": "172.31.255.254",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "top of 172.16.0.0/12"
+    },
+    {
+      "address": "192.168.0.1",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "RFC1918, a home LAN NAS"
+    },
+    {
+      "address": "192.168.255.255",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "top of 192.168.0.0/16"
+    },
+    {
+      "address": "127.0.0.1",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "loopback: a server on the same host is a real deployment"
+    },
+    {
+      "address": "127.1.2.3",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "the whole of 127.0.0.0/8 is loopback"
+    },
+    {
+      "address": "100.64.0.0",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "bottom of the CGNAT block, where Tailscale lives"
+    },
+    {
+      "address": "100.101.102.103",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "a Tailscale node"
+    },
+    {
+      "address": "100.127.255.255",
+      "family": 4,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "top of the CGNAT block"
+    },
+    {
+      "address": "::1",
+      "family": 6,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "v6 loopback"
+    },
+    {
+      "address": "fd00::1",
+      "family": 6,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "v6 unique-local"
+    },
+    {
+      "address": "fc00::1",
+      "family": 6,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "bottom of fc00::/7"
+    },
+    {
+      "address": "fd7a:115c:a1e0::1",
+      "family": 6,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "Tailscale's own v6 prefix"
+    },
+    {
+      "address": "::ffff:10.0.0.5",
+      "family": 6,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "IPv4-mapped RFC1918"
+    },
+    {
+      "address": "::ffff:127.0.0.1",
+      "family": 6,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "IPv4-mapped loopback, dotted form"
+    },
+    {
+      "address": "::ffff:7f00:1",
+      "family": 6,
+      "class": "private",
+      "hosted": "deny",
+      "selfHost": "allow",
+      "note": "IPv4-mapped loopback, the compressed hex form dns.lookup emits"
+    },
+    {
+      "address": "169.254.169.254",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "the cloud metadata endpoint; hands out instance credentials"
+    },
+    {
+      "address": "169.254.0.1",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "the rest of the link-local block"
+    },
+    {
+      "address": "0.0.0.0",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "unspecified; on some platforms it lands on loopback"
+    },
+    {
+      "address": "0.1.2.3",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "the rest of 0.0.0.0/8"
+    },
+    {
+      "address": "192.0.0.1",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "IETF protocol assignments"
+    },
+    {
+      "address": "192.0.0.255",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "top of 192.0.0.0/24"
+    },
+    {
+      "address": "198.18.0.1",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "benchmarking"
+    },
+    {
+      "address": "198.19.255.255",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "top of 198.18.0.0/15"
+    },
+    {
+      "address": "224.0.0.1",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "multicast"
+    },
+    {
+      "address": "239.255.255.255",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "top of the multicast block"
+    },
+    {
+      "address": "240.0.0.1",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "reserved"
+    },
+    {
+      "address": "255.255.255.255",
+      "family": 4,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "broadcast"
+    },
+    {
+      "address": "::",
+      "family": 6,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "v6 unspecified"
+    },
+    {
+      "address": "fe80::1",
+      "family": 6,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "v6 link-local"
+    },
+    {
+      "address": "feb0::1",
+      "family": 6,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "top of fe80::/10"
+    },
+    {
+      "address": "ff02::1",
+      "family": 6,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "v6 multicast"
+    },
+    {
+      "address": "::ffff:169.254.169.254",
+      "family": 6,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "IPv4-mapped metadata endpoint, dotted form"
+    },
+    {
+      "address": "::ffff:a9fe:a9fe",
+      "family": 6,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "IPv4-mapped metadata endpoint, compressed hex form"
+    },
+    {
+      "address": "::ffff:0.0.0.0",
+      "family": 6,
+      "class": "always",
+      "hosted": "deny",
+      "selfHost": "deny",
+      "note": "IPv4-mapped unspecified"
+    }
+  ]
+}
