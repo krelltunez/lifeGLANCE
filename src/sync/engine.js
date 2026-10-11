@@ -2,6 +2,7 @@ import { createSyncEngine } from '@glance-apps/sync';
 import { buildPayload, buildBackupPayload, mergePayloads, makeApplyPayload } from './adapter.js';
 import { isNativePlatform, nativeWebdavFetch } from './nativeHttp.js';
 import { FILE_CRYPTO_CONFIG } from './cryptoConfig.js';
+import { normalizeSyncFolder } from './syncFolder.js';
 
 let engine = null;
 // The construction params (ref/setter closures) from App.jsx, kept so the
@@ -16,7 +17,9 @@ const buildEngine = ({ milestonesRef, chaptersRef, setMilestones, setChapters,
   const savedSyncConfig = (() => {
     try { return JSON.parse(localStorage.getItem('lifeglance-cloud-sync-config') || 'null') } catch { return null }
   })()
-  const appFolderName = savedSyncConfig?.folder ?? 'GLANCE/lifeglance'
+  // Normalized on read too, so a folder stored before the fix (or an empty
+  // one) stops producing doubled slashes without being re-entered.
+  const appFolderName = normalizeSyncFolder(savedSyncConfig?.folder)
 
   // Pre-seed so the engine always takes the normal CRDT merge path.
   // Without this, the first sync on a new device triggers onConflict which

@@ -6,6 +6,7 @@ import { describeBackoff, backoffStatusText } from '../../sync/backoffStatus.js'
 import { getDbSyncEngine } from '../../sync/dbSync.js'
 import { verifyVaultCredentials, runVaultSetup, disableVault, VAULT_OUTCOME } from '../../sync/vaultSetup'
 import { resolveWebdavBase } from '../../sync/webdav'
+import { normalizeSyncFolder } from '../../sync/syncFolder.js'
 import { isNativePlatform, nativeRequest } from '../../sync/nativeHttp'
 import { FILE_CRYPTO_CONFIG } from '../../sync/cryptoConfig.js'
 import { runMediaBackfill } from '../../blobs/mediaBackfill'
@@ -210,18 +211,21 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setSaving(true)
     try {
       const webdavBase = resolveWebdavBase(provider, url, username)
+      // Stored and created normalized, so a leading or trailing slash can't
+      // double up in the WebDAV URL (krelltunez/dayGLANCE#2037).
+      const savedFolder = normalizeSyncFolder(folder)
       const baseConfig = {
-        provider, url, username, password, folder, encrypt, enabled: true,
+        provider, url, username, password, folder: savedFolder, encrypt, enabled: true,
         webdavUrl: webdavBase, nextcloudUrl: url, appPassword: password,
       }
-      const dirUrl = `${webdavBase}/${folder}/`
+      const dirUrl = `${webdavBase}/${savedFolder}/`
       await mkdirp(dirUrl, username, password)
 
       // The engine captures the sync folder (appFolderName) only at construction,
       // so a changed folder doesn't take effect until the engine is rebuilt. Save
       // the config first (setConfig persists it), then reconstruct so the very next
       // upload targets the new folder instead of needing a page reload (issue #206).
-      const folderChanged = folder !== (existingConfig?.folder ?? 'GLANCE/lifeglance')
+      const folderChanged = savedFolder !== normalizeSyncFolder(existingConfig?.folder)
 
       if (encrypt) {
         // Shared file-tier crypto config: carries the SecureStore key hooks on
