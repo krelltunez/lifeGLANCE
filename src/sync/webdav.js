@@ -7,6 +7,8 @@
 // same server could pass one test and fail the other (issue #206). These helpers
 // are the single source of truth used by both.
 
+import { normalizeSyncFolder } from './syncFolder.js'
+
 /**
  * Resolve the WebDAV base URL for a provider. Nextcloud exposes files under
  * /remote.php/dav/files/<username>; every other provider (Koofr, generic WebDAV,
@@ -31,7 +33,7 @@ export function buildWebdavConfig({ provider, url, username, password, folder })
     url,
     username,
     password,
-    folder,
+    folder: folder == null ? folder : normalizeSyncFolder(folder),
     enabled: true,
     webdavUrl: resolveWebdavBase(provider, url, username),
     nextcloudUrl: url,

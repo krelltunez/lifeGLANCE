@@ -52,6 +52,20 @@ describe('reinitSyncEngine', () => {
     expect(getSyncEngine()).toBe(rebuilt)
   })
 
+  // krelltunez/dayGLANCE#2037: the package joins the folder into every URL as
+  // `${base}/${folder}/${file}`, so a stored leading slash produced "//webdav/..."
+  // and an empty folder put the sync file at the server root.
+  it('builds the engine with a normalized folder, whatever was stored', async () => {
+    const { initSyncEngine } = await import('./engine.js')
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ folder: '/webdav/GLANCE/lifeglance/' }))
+    initSyncEngine(noopParams)
+    expect(built.at(-1).appFolderName).toBe('webdav/GLANCE/lifeglance')
+
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ folder: '' }))
+    initSyncEngine(noopParams)
+    expect(built.at(-1).appFolderName).toBe('GLANCE/lifeglance')
+  })
+
   it('is a no-op before initSyncEngine has ever run', async () => {
     vi.resetModules()
     const { reinitSyncEngine } = await import('./engine.js')
