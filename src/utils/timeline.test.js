@@ -89,6 +89,27 @@ describe('applyRecurFilter', () => {
   })
 })
 
+
+describe('applyRecurFilter with an injected now', () => {
+  // A yearly series straddling the injected date; the real clock must not matter.
+  const y25 = ms('y25', '2025-09-01T00:00:00Z', 'yearly')
+  const y26 = ms('y26', '2026-09-01T00:00:00Z', 'yearly')
+  const y27 = ms('y27', '2027-09-01T00:00:00Z', 'yearly')
+  const series = [y25, y26, y27]
+  const JUNE_2026 = new Date('2026-06-20T12:00:00Z')
+  const OCT_2026 = new Date('2026-10-11T12:00:00Z')
+
+  it("'next' picks the nearest instance on or after the given now", () => {
+    expect(applyRecurFilter(series, 'next', JUNE_2026).map(m => m.id)).toEqual(['y26'])
+    expect(applyRecurFilter(series, 'next', OCT_2026).map(m => m.id)).toEqual(['y27'])
+  })
+
+  it("'past' and 'future' split on the given now", () => {
+    expect(applyRecurFilter(series, 'past', JUNE_2026).map(m => m.id)).toEqual(['y25'])
+    expect(applyRecurFilter(series, 'future', JUNE_2026).map(m => m.id)).toEqual(['y26', 'y27'])
+  })
+})
+
 describe('computePinchZoom', () => {
   // Mirror of how the timeline maps a screen x to a timestamp, used to assert
   // the point under the pinch midpoint stays fixed.

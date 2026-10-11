@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { buildWidgetSnapshot, WIDGET_SNAPSHOT_VERSION } from './widgetSnapshot'
 
 const NOW = new Date('2026-06-20T12:00:00Z')
@@ -72,6 +72,23 @@ describe('buildWidgetSnapshot', () => {
     expect(snap.next.id).toBe('b-2026')
     expect(snap.counts.future).toBe(1)
     expect(snap.counts.past).toBe(0)
+  })
+
+  it('collapses recurring series against the given now, not the real clock', () => {
+    // The real clock is set well past every instance: if anything inside read
+    // it instead of NOW, the series would collapse to its latest instance.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2030-01-01T00:00:00Z'))
+    try {
+      const milestones = [
+        ms({ id: 'b-2025', title: 'Birthday', date: '2025-09-01T00:00:00Z', recurrence_id: 'bday' }),
+        ms({ id: 'b-2026', title: 'Birthday', date: '2026-09-01T00:00:00Z', recurrence_id: 'bday' }),
+        ms({ id: 'b-2027', title: 'Birthday', date: '2027-09-01T00:00:00Z', recurrence_id: 'bday' }),
+      ]
+      expect(buildWidgetSnapshot(milestones, [], null, NOW).next.id).toBe('b-2026')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('resolves the current chapter with passed/total member counts', () => {
