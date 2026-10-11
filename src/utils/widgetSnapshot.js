@@ -63,7 +63,7 @@ export function buildWidgetSnapshot(milestones = [], chapters = [], birthday = n
   )
 
   // Collapse recurring series so a single instance represents each one.
-  const collapsed = applyRecurFilter(visible, 'next')
+  const collapsed = applyRecurFilter(visible, 'next', now)
 
   const sorted = [...collapsed].sort((a, b) => new Date(a.date) - new Date(b.date))
 

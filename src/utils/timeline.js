@@ -150,9 +150,10 @@ function seededHash(str) {
 //   past   — non-recurring + recurring instances that are in the past
 //   future — non-recurring + recurring instances that are in the future
 //   next   — non-recurring + one instance per series (nearest upcoming, or most recent past)
-export function applyRecurFilter(ms, mode) {
+// `now` defaults to the real clock; pass one when the caller already has its
+// own reference time (buildWidgetSnapshot), so past and upcoming agree with it.
+export function applyRecurFilter(ms, mode, now = new Date()) {
   if (mode === 'all') return ms
-  const now    = new Date()
   const nonRec = ms.filter(m => !m.recurrence_id)
   const rec    = ms.filter(m =>  m.recurrence_id)
   if (mode === 'past')   return [...nonRec, ...rec.filter(m => new Date(m.date) <  now)]
