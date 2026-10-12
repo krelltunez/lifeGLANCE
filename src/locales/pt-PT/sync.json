@@ -140,6 +140,16 @@
     "synced": "Sincronizado {{date}}",
     "lastSynced": "Última sincronização: {{date}}",
     "syncFailed": "A sincronização falhou",
-    "unavailable": "A pasta de sincronização está indisponível: {{error}}"
+    "unavailable": "A pasta de sincronização está indisponível: {{error}}",
+    "eventsHint": "Os intents de outras apps GLANCE chegam num segundo ficheiro na pasta: glance-events.json.",
+    "eventsChosen": "Ficheiro de eventos: {{name}}",
+    "eventsNotChosen": "Nenhum ficheiro de eventos escolhido.",
+    "rosterHint": "A lista partilhada é um ficheiro na pasta: glance-users.json.",
+    "rosterChosen": "Ficheiro da lista: {{name}}",
+    "rosterNotChosen": "Nenhum ficheiro da lista escolhido.",
+    "fileChoose": "Escolher ficheiro",
+    "fileCreate": "Criar ficheiro",
+    "fileChange": "Mudar de ficheiro",
+    "fileForget": "Esquecer ficheiro"
   }
 }

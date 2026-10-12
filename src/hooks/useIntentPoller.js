@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { pollEvents, isWebdavIntentsActive, isVaultIntentsActive, flushOutbox } from '../lib/intentsTransport.js'
+import { pollEvents, isWebdavIntentsActive, isVaultIntentsActive, isDirectAccessIntentsActive, resolveDirectAccessKey, loadIntentsConfig, flushOutbox } from '../lib/intentsTransport.js'
 import { drainVaultIntents } from '../lib/intentsVaultTransport.js'
+import { drainDirectAccessIntents } from '../lib/intentsDirectAccessTransport.js'
+import { directAccessTransport } from '../sync/directAccess.js'
 import { ACTIONS, SOURCE_APPS } from '@glance-apps/intents'
 
 // Whether an inbound envelope is something lifeGLANCE actually handles:
@@ -66,13 +68,36 @@ export function useIntentPoller({
     }
   }, [])
 
+  // The Direct Access event set (docs/direct-access.md): a local file read, so
+  // it runs on the transport's own 15 s cadence below as well as on the poll.
+  // A sealed envelope this device cannot open, or a sender with the encrypt
+  // switch on and no key, asks for the sync passphrase through the window
+  // event App.jsx turns into the passphrase modal; unlocking dispatches
+  // lifeglance:intents-key-ready, which re-runs the poll.
+  const lastDaHeldRef = useRef(false)
+  const runDirectAccess = useCallback(async () => {
+    if (!isDirectAccessIntentsActive()) return
+    const { keyNeeded } = await drainDirectAccessIntents(handleInbound, {
+      isEnabled: isDirectAccessIntentsActive,
+      resolveKey: resolveDirectAccessKey,
+      eventsPath: () => loadIntentsConfig().eventsPath,
+    })
+    if (keyNeeded && !lastDaHeldRef.current) {
+      activityRef.current?.({ type: 'held', payload: { count: 1 } })
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lifeglance:passphrase-required'))
+    }
+    lastDaHeldRef.current = keyNeeded
+  }, [handleInbound])
+
   const runPoll = useCallback(async () => {
     const webdav = isWebdavIntentsActive()
     const vault  = isVaultIntentsActive()
-    if (!webdav && !vault) return
+    const direct = isDirectAccessIntentsActive()
+    if (!webdav && !vault && !direct) return
 
-    // RECEIVE both tiers (independent cursors; one being down never blocks the other).
+    // RECEIVE every tier (independent cursors; one being down never blocks the others).
     if (webdav) await pollEvents(handleInbound)
+    if (direct) await runDirectAccess().catch(err => console.warn('[intents] direct access drain failed:', err))
     if (vault) {
       const { heldForKey = 0 } = (await drainVaultIntents(handleInbound)) ?? {}
       // Held-pending-key intents must be observable. Record the state in the
@@ -87,7 +112,29 @@ export function useIntentPoller({
     // SEND: drain the durable outbox on the poll cadence (delivers anything held
     // from a previous session or while a target's key/connection was absent).
     await flushOutbox().catch(err => console.warn('[intents] outbox flush failed:', err))
-  }, [handleInbound])
+  }, [handleInbound, runDirectAccess])
+
+  // The folder tier's own cadence: the transport's poll, the foreground kick
+  // and its change signal (a folder picked, re-enabled or back from away).
+  // Inert while Direct Access is not the selected transport.
+  useEffect(() => {
+    if (!directAccessTransport.isSupported()) return
+    const tick = () => {
+      if (!isDirectAccessIntentsActive()) return
+      runDirectAccess()
+        .then(() => flushOutbox())
+        .catch(err => console.warn('[intents] direct access tick failed:', err))
+    }
+    const id = setInterval(tick, directAccessTransport.pollMs)
+    const onVisible = () => { if (document.visibilityState === 'visible') tick() }
+    document.addEventListener('visibilitychange', onVisible)
+    const unsubscribe = directAccessTransport.onChanged(tick)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+      unsubscribe()
+    }
+  }, [runDirectAccess])
 
   useEffect(() => {
     runPoll() // app start / mount: receive + flush anything persisted from a previous session

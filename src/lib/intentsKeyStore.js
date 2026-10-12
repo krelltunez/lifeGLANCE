@@ -11,6 +11,12 @@
 //     server-owned vault salt (/salt/:accountId). Written by the vault setup /
 //     first-sync bootstrap; read by the vault intents transport and blobCrypto.
 //
+//   • 'direct-access-root-key' — the Direct Access intents key, derived from
+//     the salt the folder's event set names (intentsDirectAccessKey.js), and
+//     stored WITH that salt so a file naming another salt is seen as a new
+//     key rather than opened with the wrong one. Written by the Direct Access
+//     key resolver; read by its deliverer and its receive loop.
+//
 // They were ONE slot originally, which collided: a device with WebDAV-intents
 // encryption on AND vault sync on wrote both a WebDAV-salt key and a vault-salt
 // key into the same record (last-writer-wins), breaking blob and/or vault-intents
@@ -23,10 +29,12 @@ const DB_NAME       = 'lifeglance-intents-crypto'
 const STORE_NAME    = 'keys'
 const KEY_ID        = 'intents-root-key'   // WebDAV file-tier intents key (WebDAV salt)
 const VAULT_KEY_ID  = 'vault-root-key'     // vault intents + blob key (vault salt)
+const DIRECT_ACCESS_KEY_ID = 'direct-access-root-key'   // { saltB64, key }: the event set's salt and the key for it
 const INTENTS_CONFIG_KEY = 'lifeglance-intents-config'
 
 let _rootKey      = null   // WebDAV-slot cache; survives re-renders, not page reload
 let _vaultRootKey = null   // vault-slot cache; distinct from the WebDAV slot
+let _directAccessRecord = null   // Direct Access slot cache: { saltB64, key } or null
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -122,6 +130,24 @@ export async function setupVaultIntentsRootKey(passphrase, vaultSalt) {
   await saveToIDB(key, VAULT_KEY_ID)
   _vaultRootKey = key
   return key
+}
+
+// ── Direct Access intents key ('direct-access-root-key') ──────────────────────
+
+// The cached { saltB64, key } record, or the stored one on first call; null
+// when none, when the record is malformed, or when IndexedDB is unavailable.
+export async function loadDirectAccessIntentsKey() {
+  if (_directAccessRecord) return _directAccessRecord
+  let r = null
+  try { r = await loadFromIDB(DIRECT_ACCESS_KEY_ID) } catch { r = null }
+  _directAccessRecord = r && typeof r.saltB64 === 'string' && r.key ? r : null
+  return _directAccessRecord
+}
+
+// Persists the key with the salt it was derived from. Writes ONLY its own slot.
+export async function storeDirectAccessIntentsKey(record) {
+  _directAccessRecord = record
+  await saveToIDB(record, DIRECT_ACCESS_KEY_ID)
 }
 
 // ── Shared helper ─────────────────────────────────────────────────────────────

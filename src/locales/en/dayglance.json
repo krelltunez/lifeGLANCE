@@ -40,5 +40,12 @@
   "integrationNote": "lifeGLANCE and dayGLANCE must share the same delivery mechanism (the same WebDAV endpoint + events path, or the same GLANCEvault account). Milestones you mark \"track as dayGLANCE Goal\" will appear as goals in dayGLANCE; Goal completions and date changes sync back here.",
   "toastGoalAdded": "dayGLANCE Goal added: \"{{title}}\"",
   "toastGoalCompleted": "Goal completed in dayGLANCE: \"{{title}}\"",
-  "toastGoalDeleted": "dayGLANCE Goal deleted — \"{{title}}\" still exists here."
+  "toastGoalDeleted": "dayGLANCE Goal deleted — \"{{title}}\" still exists here.",
+  "transportDirectAccess": "Direct Access folder",
+  "directAccessTransportNote": "Uses the folder connected under Cloud Sync. Other GLANCE apps on the same folder leave intents in one shared file there, and read yours.",
+  "directAccessNotConnected": "No Direct Access folder is connected. Connect one in Cloud Sync first; until then this transport stays inactive.",
+  "directAccessEncryptedNote": "The event file is encrypted with your sync passphrase, like the Direct Access sync file.",
+  "directAccessPlaintextNote": "The event file is written as plain text, like the Direct Access sync file. Turn on \"Encrypt the file\" in Cloud Sync to encrypt both.",
+  "directAccessPassphraseRequired": "Direct Access intents are encrypted with your sync passphrase. Enter it to send and receive them on this device.",
+  "directAccessKeyReady": "Key ready. Passphrase not stored; not needed again on this device."
 }

@@ -140,6 +140,16 @@
     "synced": "已于 {{date}} 同步",
     "lastSynced": "上次同步：{{date}}",
     "syncFailed": "同步失败",
-    "unavailable": "同步文件夹不可用：{{error}}"
+    "unavailable": "同步文件夹不可用：{{error}}",
+    "eventsHint": "来自其他 GLANCE 应用的意图会到达文件夹中的第二个文件：glance-events.json。",
+    "eventsChosen": "事件文件：{{name}}",
+    "eventsNotChosen": "尚未选择事件文件。",
+    "rosterHint": "共享名单是文件夹中的一个文件：glance-users.json。",
+    "rosterChosen": "名单文件：{{name}}",
+    "rosterNotChosen": "尚未选择名单文件。",
+    "fileChoose": "选择文件",
+    "fileCreate": "创建文件",
+    "fileChange": "更换文件",
+    "fileForget": "忘记文件"
   }
 }

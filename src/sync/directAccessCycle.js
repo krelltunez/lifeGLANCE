@@ -37,7 +37,7 @@ import { buildEnginePayload, applyEnginePayload } from './engine.js'
 import { mergePayloads as defaultMergePayloads } from './adapter.js'
 import { FILE_CRYPTO_CONFIG } from './cryptoConfig.js'
 import { lastLocalEditAt as defaultLastLocalEditAt } from './localEditStamp.js'
-import { ensureDeviceId } from './dbSync.js'
+import { ensureDeviceId } from './deviceId.js'
 import { TOMBSTONE_RETENTION_DAYS } from './tombstoneRetention.js'
 
 /** Shared with the WebDAV engine (`${storageKeyPrefix}-cloud-sync-local-modified`): when this device last changed synced data. */

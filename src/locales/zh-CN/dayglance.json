@@ -40,5 +40,12 @@
   "integrationNote": "请确认 lifeGLANCE 与 dayGLANCE 使用相同的「WebDAV服务器地址」及「Events存放路径」。标记为 \"dayGLANCE Goal\" 的里程碑，将加入 dayGLANCE 的 Goals，并双向同步完成状态与日期变更。",
   "toastGoalAdded": "已添加至 dayGLANCE Goal:「{{title}}」",
   "toastGoalCompleted": "已完成 dayGLANCE Goal:「{{title}}」",
-  "toastGoalDeleted": "已删除 dayGLANCE Goal:「{{title}}」，里程碑依然在此。"
+  "toastGoalDeleted": "已删除 dayGLANCE Goal:「{{title}}」，里程碑依然在此。",
+  "transportDirectAccess": "直接访问文件夹",
+  "directAccessTransportNote": "使用在“云同步”中连接的文件夹。使用同一文件夹的其他 GLANCE 应用会把意图写入其中一个共享文件，并读取您的意图。",
+  "directAccessNotConnected": "尚未连接直接访问文件夹。请先在“云同步”中连接文件夹；在此之前，此传输方式保持停用。",
+  "directAccessEncryptedNote": "事件文件使用您的同步口令加密，与直接访问同步文件相同。",
+  "directAccessPlaintextNote": "事件文件以明文写入，与直接访问同步文件相同。在“云同步”中开启“加密文件”即可同时加密两者。",
+  "directAccessPassphraseRequired": "直接访问意图使用您的同步口令加密。请输入口令，以便在此设备上收发意图。",
+  "directAccessKeyReady": "密钥已就绪。口令不会被保存；此设备无需再次输入。"
 }

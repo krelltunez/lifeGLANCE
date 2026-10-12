@@ -140,6 +140,16 @@
     "synced": "Synchronisé {{date}}",
     "lastSynced": "Dernière sync : {{date}}",
     "syncFailed": "Échec de la sync",
-    "unavailable": "Le dossier de synchronisation est indisponible : {{error}}"
+    "unavailable": "Le dossier de synchronisation est indisponible : {{error}}",
+    "eventsHint": "Les intents des autres applications GLANCE arrivent dans un second fichier du dossier : glance-events.json.",
+    "eventsChosen": "Fichier des événements : {{name}}",
+    "eventsNotChosen": "Aucun fichier d'événements choisi.",
+    "rosterHint": "La liste partagée est un fichier du dossier : glance-users.json.",
+    "rosterChosen": "Fichier de la liste : {{name}}",
+    "rosterNotChosen": "Aucun fichier de liste choisi.",
+    "fileChoose": "Choisir un fichier",
+    "fileCreate": "Créer le fichier",
+    "fileChange": "Changer de fichier",
+    "fileForget": "Oublier le fichier"
   }
 }

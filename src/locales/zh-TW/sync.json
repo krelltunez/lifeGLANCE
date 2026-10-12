@@ -140,6 +140,16 @@
     "synced": "已於 {{date}} 同步",
     "lastSynced": "上次同步：{{date}}",
     "syncFailed": "同步失敗",
-    "unavailable": "同步資料夾無法使用：{{error}}"
+    "unavailable": "同步資料夾無法使用：{{error}}",
+    "eventsHint": "來自其他 GLANCE 應用程式的意圖會到達資料夾中的第二個檔案：glance-events.json。",
+    "eventsChosen": "事件檔案：{{name}}",
+    "eventsNotChosen": "尚未選擇事件檔案。",
+    "rosterHint": "共用名單是資料夾中的一個檔案：glance-users.json。",
+    "rosterChosen": "名單檔案：{{name}}",
+    "rosterNotChosen": "尚未選擇名單檔案。",
+    "fileChoose": "選擇檔案",
+    "fileCreate": "建立檔案",
+    "fileChange": "更改檔案",
+    "fileForget": "忘記檔案"
   }
 }

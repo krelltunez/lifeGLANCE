@@ -22,10 +22,10 @@ import { dbGetAll, dbGetAllChapters } from '../data/db.js'
 import { loadCategories } from '../utils/colors.js'
 import { loadVaultIntentsRootKey, setupVaultIntentsRootKey } from '../lib/intentsKeyStore.js'
 import { DB_CRYPTO_CONFIG } from './cryptoConfig.js'
+import { ensureDeviceId } from './deviceId.js'
 import { flushOutbox, isVaultIntentsActive } from '../lib/intentsTransport.js'
 
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
-const DEVICE_ID_KEY  = 'lifeglance-db-sync-device-id'
 const SEEDED_KEY     = 'lifeglance-db-sync-seeded'
 const CREDENTIAL_HALT_KEY = 'lifeglance-db-sync-credential-halt'
 
@@ -103,18 +103,7 @@ export const readVaultConfig = () => {
 
 // Stable per-device id (persisted once), so the server-side device cursor tracks
 // this device across reloads.
-// Exported for the Direct Access cycle, which stamps the folder file with the
-// same id (its writtenBy header ranks relays between devices).
-export const ensureDeviceId = () => {
-  let id = localStorage.getItem(DEVICE_ID_KEY)
-  if (!id) {
-    id = (typeof crypto !== 'undefined' && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : `dev-${Date.now()}-${Math.floor(Math.random() * 1e9)}`
-    localStorage.setItem(DEVICE_ID_KEY, id)
-  }
-  return id
-}
+// The device id lives in deviceId.js (shared with the Direct Access cycles).
 
 /**
  * Constructs the DB sync engine if the vault is configured, else returns null.

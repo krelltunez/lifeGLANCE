@@ -5,8 +5,10 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   isWebdavIntentsActive,
   isVaultIntentsActive,
+  isDirectAccessIntentsActive,
   isIntegrationEnabled,
   computeIntentTargets,
+  buildIntentDeliverers,
   saveIntentsConfig,
 } from './intentsTransport.js'
 
@@ -32,8 +34,26 @@ describe('transport gating', () => {
   it('everything off by default', () => {
     expect(isWebdavIntentsActive()).toBe(false)
     expect(isVaultIntentsActive()).toBe(false)
+    expect(isDirectAccessIntentsActive()).toBe(false)
     expect(isIntegrationEnabled()).toBe(false)
     expect(computeIntentTargets()).toEqual([])
+  })
+
+  it('Direct Access transport: active only when enabled + selected + a folder is connected on a shell with the plugin', () => {
+    const folder = (supported, connected) => ({ isSupported: () => supported, isConnected: () => connected })
+    saveIntentsConfig({ enabled: true, transport: 'directAccess' })
+    expect(isDirectAccessIntentsActive(folder(true, true))).toBe(true)
+    expect(isDirectAccessIntentsActive(folder(true, false))).toBe(false)
+    expect(isDirectAccessIntentsActive(folder(false, true))).toBe(false)
+    // The default transport has no plugin under node: nothing is active, nothing targeted.
+    expect(isDirectAccessIntentsActive()).toBe(false)
+    expect(isIntegrationEnabled()).toBe(false)
+    expect(computeIntentTargets()).toEqual([])
+    expect(Object.keys(buildIntentDeliverers())).toEqual([])
+    saveIntentsConfig({ enabled: true, transport: 'webdav', webdavUrl: 'https://dav.example' })
+    expect(isDirectAccessIntentsActive(folder(true, true))).toBe(false)
+    saveIntentsConfig({ enabled: false, transport: 'directAccess' })
+    expect(isDirectAccessIntentsActive(folder(true, true))).toBe(false)
   })
 
   it('WebDAV transport: active only when enabled + selected + URL present', () => {

@@ -140,6 +140,16 @@
     "synced": "Sincronizzato {{date}}",
     "lastSynced": "Ultima sincronizzazione: {{date}}",
     "syncFailed": "Sincronizzazione fallita",
-    "unavailable": "La cartella di sincronizzazione non è disponibile: {{error}}"
+    "unavailable": "La cartella di sincronizzazione non è disponibile: {{error}}",
+    "eventsHint": "Gli intent delle altre app GLANCE arrivano in un secondo file nella cartella: glance-events.json.",
+    "eventsChosen": "File degli eventi: {{name}}",
+    "eventsNotChosen": "Nessun file degli eventi scelto.",
+    "rosterHint": "L'elenco condiviso è un file nella cartella: glance-users.json.",
+    "rosterChosen": "File dell'elenco: {{name}}",
+    "rosterNotChosen": "Nessun file dell'elenco scelto.",
+    "fileChoose": "Scegli file",
+    "fileCreate": "Crea file",
+    "fileChange": "Cambia file",
+    "fileForget": "Dimentica file"
   }
 }
