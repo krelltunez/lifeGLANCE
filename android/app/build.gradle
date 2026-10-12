@@ -117,6 +117,10 @@ dependencies {
     implementation "androidx.glance:glance-appwidget:$rootProject.ext.glanceVersion"
     implementation "androidx.work:work-runtime-ktx:$rootProject.ext.workManagerVersion"
 
+    // DocumentFile walks the SAF tree the Direct Access folder plugin holds
+    // (directaccess/DirectAccessRepository.kt).
+    implementation "androidx.documentfile:documentfile:1.0.1"
+
     // OkHttp backs WebDavHttpPlugin — HttpURLConnection (behind CapacitorHttp)
     // rejects WebDAV verbs like PROPFIND/MKCOL; OkHttp accepts any method.
     implementation "com.squareup.okhttp3:okhttp:4.12.0"

@@ -11,6 +11,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.getcapacitor.BridgeActivity;
 import com.glanceapps.billing.BillingBridgePlugin;
+import com.lifeglance.app.directaccess.DirectAccessPlugin;
 import com.lifeglance.app.media.MediaPickerPlugin;
 import com.lifeglance.app.sse.VaultSsePlugin;
 import com.lifeglance.app.widget.WidgetData;
@@ -30,6 +31,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(VaultSsePlugin.class);
         registerPlugin(MediaPickerPlugin.class);
         registerPlugin(SecureStorePlugin.class);
+        registerPlugin(DirectAccessPlugin.class);
         super.onCreate(savedInstanceState);
         handleWidgetIntent(getIntent());
         handleShareIntent(getIntent());

@@ -13,5 +13,6 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(VaultSsePlugin())
         bridge?.registerPluginInstance(SpotlightPlugin())
         bridge?.registerPluginInstance(SecureStorePlugin())
+        bridge?.registerPluginInstance(DirectAccessPlugin())
     }
 }
