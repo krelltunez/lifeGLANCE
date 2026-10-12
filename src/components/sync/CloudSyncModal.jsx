@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import DirectAccessSection from './DirectAccessSection'
 import { getSyncEngine, reinitSyncEngine } from '../../sync/engine'
 import { isSyncing, syncErrorText, SYNC_ERROR_I18N_KEYS } from '../../sync/status'
 import { describeBackoff, backoffStatusText } from '../../sync/backoffStatus.js'
@@ -89,7 +90,10 @@ function SyncDot({ syncStatus, syncError, syncHalted }) {
   )
 }
 
-export default function CloudSyncModal({ syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onClose }) {
+// directAccess: { runSync, lastError } from useDirectAccessSync (App.jsx); the
+// folder tier's section renders the transport's own state and needs nothing
+// else from this dialog.
+export default function CloudSyncModal({ syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, directAccess, onClose }) {
   const { t, i18n } = useTranslation('sync')
   const { t: tc } = useTranslation('common')
   const engine = getSyncEngine()
@@ -707,6 +711,9 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
             </>
           )}
         </div>
+
+        {/* ── Direct Access (folder) tier — docs/direct-access.md ──────────── */}
+        <DirectAccessSection runSync={directAccess?.runSync ?? (async () => {})} lastError={directAccess?.lastError ?? null} />
 
         {/* Last synced */}
         {lastSynced && (

@@ -103,7 +103,9 @@ export const readVaultConfig = () => {
 
 // Stable per-device id (persisted once), so the server-side device cursor tracks
 // this device across reloads.
-const ensureDeviceId = () => {
+// Exported for the Direct Access cycle, which stamps the folder file with the
+// same id (its writtenBy header ranks relays between devices).
+export const ensureDeviceId = () => {
   let id = localStorage.getItem(DEVICE_ID_KEY)
   if (!id) {
     id = (typeof crypto !== 'undefined' && crypto.randomUUID)

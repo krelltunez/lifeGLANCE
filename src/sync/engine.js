@@ -3,6 +3,7 @@ import { buildPayload, buildBackupPayload, mergePayloads, makeApplyPayload } fro
 import { isNativePlatform, nativeWebdavFetch } from './nativeHttp.js';
 import { FILE_CRYPTO_CONFIG } from './cryptoConfig.js';
 import { normalizeSyncFolder } from './syncFolder.js';
+import { withoutLocalEditStamp } from './localEditStamp.js';
 
 let engine = null;
 // The construction params (ref/setter closures) from App.jsx, kept so the
@@ -10,9 +11,10 @@ let engine = null;
 // construction time changes. See reinitSyncEngine.
 let savedInitParams = null;
 
-const buildEngine = ({ milestonesRef, chaptersRef, setMilestones, setChapters,
-  setSyncStatus, setSyncError, setSyncHalted, setLastSynced, setShowPassphraseModal,
-  setVaultSkipped }) => {
+// The refs and the data setters are read from savedInitParams at call time by
+// buildEnginePayload / applyEnginePayload below, not captured here.
+const buildEngine = ({ setSyncStatus, setSyncError, setSyncHalted, setLastSynced,
+  setShowPassphraseModal, setVaultSkipped }) => {
 
   const savedSyncConfig = (() => {
     try { return JSON.parse(localStorage.getItem('lifeglance-cloud-sync-config') || 'null') } catch { return null }
@@ -42,9 +44,9 @@ const buildEngine = ({ milestonesRef, chaptersRef, setMilestones, setChapters,
     appId: 'lifeglance',
     appName: 'lifeGLANCE',
 
-    buildPayload: () => buildPayload(milestonesRef, chaptersRef),
+    buildPayload: () => buildEnginePayload(),
     buildBackupPayload,
-    applyPayload: makeApplyPayload(setMilestones, setChapters),
+    applyPayload: applyEnginePayload,
     mergePayloads,
 
     proxyUrl: import.meta.env.VITE_WEBDAV_PROXY_URL ?? '',
@@ -112,3 +114,21 @@ export const reinitSyncEngine = () => {
 };
 
 export const getSyncEngine = () => engine;
+
+// The payload and the apply this engine runs, for the Direct Access cycle
+// (directAccessCycle.js), which syncs the same data through a folder and must
+// build and apply exactly what WebDAV does. Both read the construction params
+// at call time, so a rebuilt engine and the cycle never disagree. Before
+// initSyncEngine has run there is nothing to build or apply.
+export const buildEnginePayload = () => {
+  if (!savedInitParams) throw new Error('sync engine not initialised')
+  return buildPayload(savedInitParams.milestonesRef, savedInitParams.chaptersRef)
+}
+// The apply reaches saveCategories, which marks the categories bundle dirty
+// (so the vault tier pushes a change that arrived by file); without the hold
+// that would also stamp a local edit and make the Direct Access cycle relay
+// it at once instead of after the originating device's own write.
+export const applyEnginePayload = withoutLocalEditStamp((data, opts) => {
+  if (!savedInitParams) throw new Error('sync engine not initialised')
+  return makeApplyPayload(savedInitParams.setMilestones, savedInitParams.setChapters)(data, opts)
+})
