@@ -140,6 +140,16 @@
     "synced": "Synchronisiert {{date}}",
     "lastSynced": "Zuletzt synchronisiert: {{date}}",
     "syncFailed": "Sync fehlgeschlagen",
-    "unavailable": "Der Sync-Ordner ist nicht verfügbar: {{error}}"
+    "unavailable": "Der Sync-Ordner ist nicht verfügbar: {{error}}",
+    "eventsHint": "Intents anderer GLANCE-Apps kommen in einer zweiten Datei im Ordner an: glance-events.json.",
+    "eventsChosen": "Ereignisdatei: {{name}}",
+    "eventsNotChosen": "Keine Ereignisdatei gewählt.",
+    "rosterHint": "Die gemeinsame Mitgliederliste ist eine Datei im Ordner: glance-users.json.",
+    "rosterChosen": "Mitgliederdatei: {{name}}",
+    "rosterNotChosen": "Keine Mitgliederdatei gewählt.",
+    "fileChoose": "Datei wählen",
+    "fileCreate": "Datei erstellen",
+    "fileChange": "Datei ändern",
+    "fileForget": "Datei vergessen"
   }
 }

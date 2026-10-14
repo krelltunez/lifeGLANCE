@@ -140,6 +140,16 @@
     "synced": "Synced {{date}}",
     "lastSynced": "Last synced: {{date}}",
     "syncFailed": "Sync failed",
-    "unavailable": "The sync folder is unavailable: {{error}}"
+    "unavailable": "The sync folder is unavailable: {{error}}",
+    "eventsHint": "Intents from other GLANCE apps arrive in a second file in the folder: glance-events.json.",
+    "eventsChosen": "Events file: {{name}}",
+    "eventsNotChosen": "No events file chosen.",
+    "rosterHint": "The shared roster is a file in the folder: glance-users.json.",
+    "rosterChosen": "Roster file: {{name}}",
+    "rosterNotChosen": "No roster file chosen.",
+    "fileChoose": "Choose file",
+    "fileCreate": "Create file",
+    "fileChange": "Change file",
+    "fileForget": "Forget file"
   }
 }

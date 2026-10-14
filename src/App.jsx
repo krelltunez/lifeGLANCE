@@ -201,6 +201,15 @@ export default function App() {
     onEncryptedUnreadable: () => setShowPassphraseModal(true),
   })
 
+  // The Direct Access intents poller cannot reach the passphrase modal; it
+  // asks through this event (useIntentPoller.js) when the event set holds a
+  // sealed envelope this device has no key for.
+  useEffect(() => {
+    const onRequired = () => setShowPassphraseModal(true)
+    window.addEventListener('lifeglance:passphrase-required', onRequired)
+    return () => window.removeEventListener('lifeglance:passphrase-required', onRequired)
+  }, [])
+
   // GLANCEvault SSE push: instant drains of the same sync/intents paths the
   // intervals below poll. Purely additive — the polls stay the correctness
   // backstop, and the hook is inert unless the vault is enabled (and re-reads
@@ -382,6 +391,9 @@ export default function App() {
             getDbSyncEngine()?.sync()
             // And the folder tier, which may have been held on an envelope.
             void directAccess.runSync()
+            // Intents held for the key (the Direct Access event set derives
+            // its key from the passphrase now in memory) re-drain at once.
+            window.dispatchEvent(new Event('lifeglance:intents-key-ready'))
           }}
         />
       )}

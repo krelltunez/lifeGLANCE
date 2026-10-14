@@ -19,6 +19,9 @@ import { loadIntentsRootKey, setupIntentsEncryption, makeDeriveFn } from './inte
 import { isNativePlatform, nativeWebdavResponse } from '../sync/nativeHttp.js'
 import { enqueue, flush } from './intentsOutbox.js'
 import { readVaultIntentsConnection, makeVaultDeliverer } from './intentsVaultTransport.js'
+import { createDirectAccessDeliverer } from './intentsDirectAccessTransport.js'
+import { resolveDirectAccessIntentsKey } from './intentsDirectAccessKey.js'
+import { directAccessTransport } from '../sync/directAccess.js'
 
 const CONFIG_KEY = 'lifeglance-intents-config'
 const CURSOR_KEY = 'lifeglance-intents-cursor'
@@ -26,7 +29,7 @@ const SALT_FILENAME = 'intents-encryption-salt.json'
 
 export const DEFAULT_CONFIG = {
   enabled:           false,
-  transport:         'webdav',   // 'webdav' | 'vault' — the delivery mechanism (either/or)
+  transport:         'webdav',   // 'webdav' | 'vault' | 'directAccess' — the delivery mechanism (one of)
   webdavUrl:         '',   // https://cloud.example.com/remote.php/dav/files/user
   webdavUser:        '',
   webdavPass:        '',
@@ -72,11 +75,21 @@ export function isVaultIntentsActive() {
   return cfg.enabled === true && cfg.transport === 'vault' && !!readVaultIntentsConnection()
 }
 
-// The integration is enabled AND its selected transport is usable (either tier).
+// Direct Access is the selected intents transport AND a folder is connected on
+// this device (connected or temporarily unreachable: the deliverer holds while
+// it is away). The folder is picked under Cloud Sync (docs/direct-access.md);
+// the event set is one file in it, shared with the other GLANCE apps.
+export function isDirectAccessIntentsActive(transport = directAccessTransport) {
+  const cfg = loadIntentsConfig()
+  if (!(cfg.enabled === true && cfg.transport === 'directAccess')) return false
+  return transport.isSupported() && transport.isConnected()
+}
+
+// The integration is enabled AND its selected transport is usable (any tier).
 // Used to gate the send-side UI (the "track as goal" affordance, the activity
 // log) and the receive poller — regardless of which transport is chosen.
 export function isIntegrationEnabled() {
-  return isWebdavIntentsActive() || isVaultIntentsActive()
+  return isWebdavIntentsActive() || isVaultIntentsActive() || isDirectAccessIntentsActive()
 }
 
 function loadCursor() {
@@ -207,6 +220,22 @@ async function writeSharedSalt(cfg, saltBytes) {
   if (!res.ok) throw new Error(`Failed to write shared salt: ${res.status}`)
 }
 
+// The WebDAV shared salt as base64, or null when WebDAV intents are not
+// configured or the salt file is absent. The Direct Access key resolver asks
+// for it so a device that already runs WebDAV intents seeds the folder's event
+// set with the same salt and the key it holds is the folder's key too.
+export async function fetchSharedSaltB64() {
+  const cfg = loadIntentsConfig()
+  if (!cfg.enabled || !cfg.webdavUrl.trim()) return null
+  const bytes = await loadSharedSalt(cfg)
+  return bytes ? btoa(String.fromCharCode(...bytes)) : null
+}
+
+// The salt the folder's event set names (or this device brings) and the root
+// key for it, for the Direct Access deliverer and the poller's key check.
+export const resolveDirectAccessKey = (transport = directAccessTransport) =>
+  resolveDirectAccessIntentsKey({ transport, eventsPath: loadIntentsConfig().eventsPath, webdavSalt: fetchSharedSaltB64 })
+
 // Sets up intents encryption for this device. Reads or creates the shared salt,
 // derives the root key from the passphrase, and persists it to IDB.
 export async function enableIntentsEncryption(passphrase) {
@@ -270,6 +299,17 @@ export async function deliverToWebdav(intent) {
   }
 }
 
+// ── Direct Access deliverer (folder tier) ─────────────────────────────────────
+//
+// The event-set file in the folder (intentsDirectAccessTransport.js). Encrypts
+// iff the Direct Access encrypt switch is on; holds without a key.
+
+export const deliverToDirectAccess = createDirectAccessDeliverer({
+  isEnabled: () => isDirectAccessIntentsActive(),
+  resolveKey: resolveDirectAccessKey,
+  eventsPath: () => loadIntentsConfig().eventsPath,
+})
+
 // ── Emit: build the RAW intent, enqueue durably, flush ────────────────────────
 
 // Raw intents ({ event_id, action, payload, emitted_by }) — NEVER envelopes. The
@@ -321,6 +361,7 @@ export function computeIntentTargets() {
   const targets = []
   if (isWebdavIntentsActive()) targets.push('webdav')
   if (isVaultIntentsActive())  targets.push('vault')
+  if (isDirectAccessIntentsActive()) targets.push('directAccess')
   return targets
 }
 
@@ -330,6 +371,7 @@ export function buildIntentDeliverers() {
   const deliverers = {}
   if (isWebdavIntentsActive()) deliverers.webdav = deliverToWebdav
   if (isVaultIntentsActive())  deliverers.vault  = makeVaultDeliverer()
+  if (isDirectAccessIntentsActive()) deliverers.directAccess = deliverToDirectAccess
   return deliverers
 }
 

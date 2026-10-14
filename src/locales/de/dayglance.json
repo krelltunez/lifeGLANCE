@@ -40,5 +40,12 @@
   "integrationNote": "lifeGLANCE und dayGLANCE müssen auf denselben WebDAV-Endpunkt und denselben Ereignispfad zeigen. Als «als dayGLANCE-Ziel verfolgen» markierte Meilensteine erscheinen als Ziele in dayGLANCE; Zielbestätigungen und Datumsänderungen synchronisieren sich hier.",
   "toastGoalAdded": "dayGLANCE-Ziel hinzugefügt: « {{title}} »",
   "toastGoalCompleted": "« {{title}} » in dayGLANCE abgeschlossen",
-  "toastGoalDeleted": "dayGLANCE-Ziel gelöscht — « {{title}} » ist hier noch vorhanden."
+  "toastGoalDeleted": "dayGLANCE-Ziel gelöscht — « {{title}} » ist hier noch vorhanden.",
+  "transportDirectAccess": "Direktzugriff-Ordner",
+  "directAccessTransportNote": "Nutzt den unter Cloud-Sync verbundenen Ordner. Andere GLANCE-Apps am selben Ordner legen Intents dort in einer gemeinsamen Datei ab und lesen deine.",
+  "directAccessNotConnected": "Kein Direktzugriff-Ordner verbunden. Verbinde zuerst einen unter Cloud-Sync; bis dahin bleibt dieser Transport inaktiv.",
+  "directAccessEncryptedNote": "Die Ereignisdatei wird mit deiner Sync-Passphrase verschlüsselt, wie die Direktzugriff-Sync-Datei.",
+  "directAccessPlaintextNote": "Die Ereignisdatei wird im Klartext geschrieben, wie die Direktzugriff-Sync-Datei. Schalte unter Cloud-Sync „Datei verschlüsseln“ ein, um beide zu verschlüsseln.",
+  "directAccessPassphraseRequired": "Direktzugriff-Intents werden mit deiner Sync-Passphrase verschlüsselt. Gib sie ein, um sie auf diesem Gerät zu senden und zu empfangen.",
+  "directAccessKeyReady": "Schlüssel bereit. Passphrase nicht gespeichert; auf diesem Gerät nicht erneut nötig."
 }

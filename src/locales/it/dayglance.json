@@ -40,5 +40,12 @@
   "integrationNote": "lifeGLANCE e dayGLANCE devono puntare allo stesso endpoint WebDAV e allo stesso percorso eventi. I traguardi contrassegnati come «traccia come obiettivo dayGLANCE» appariranno come obiettivi in dayGLANCE; le convalide degli obiettivi e le modifiche alle date si sincronizzano qui.",
   "toastGoalAdded": "Obiettivo dayGLANCE aggiunto: « {{title}} »",
   "toastGoalCompleted": "« {{title}} » completato in dayGLANCE",
-  "toastGoalDeleted": "Obiettivo dayGLANCE eliminato — « {{title}} » esiste ancora qui."
+  "toastGoalDeleted": "Obiettivo dayGLANCE eliminato — « {{title}} » esiste ancora qui.",
+  "transportDirectAccess": "Cartella ad accesso diretto",
+  "directAccessTransportNote": "Usa la cartella collegata in Sincronizzazione cloud. Le altre app GLANCE sulla stessa cartella vi lasciano i propri intent in un file condiviso e leggono i tuoi.",
+  "directAccessNotConnected": "Nessuna cartella ad accesso diretto collegata. Collegane prima una in Sincronizzazione cloud; fino ad allora questo trasporto resta inattivo.",
+  "directAccessEncryptedNote": "Il file degli eventi è cifrato con la tua passphrase di sincronizzazione, come il file di sincronizzazione ad accesso diretto.",
+  "directAccessPlaintextNote": "Il file degli eventi viene scritto in chiaro, come il file di sincronizzazione ad accesso diretto. Attiva \"Cifra il file\" in Sincronizzazione cloud per cifrarli entrambi.",
+  "directAccessPassphraseRequired": "Gli intent ad accesso diretto sono cifrati con la tua passphrase di sincronizzazione. Inseriscila per inviarli e riceverli su questo dispositivo.",
+  "directAccessKeyReady": "Chiave pronta. Passphrase non memorizzata; non servirà più su questo dispositivo."
 }
