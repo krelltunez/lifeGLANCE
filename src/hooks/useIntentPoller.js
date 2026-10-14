@@ -4,13 +4,32 @@ import { drainVaultIntents } from '../lib/intentsVaultTransport.js'
 import { ACTIONS, SOURCE_APPS } from '@glance-apps/intents'
 
 // Whether an inbound envelope is something lifeGLANCE actually handles:
-//   - a Goal that dayGLANCE pushed to us (create), or
+//   - a Goal that dayGLANCE pushed to us (create),
+//   - a timeline entry lastGLANCE People pushed to us (create, entity_type
+//     "milestone": a contact logged with someone opted in), or
 //   - a state-change notify about a task that originated here.
 // The sibling apps (dayGLANCE, lastGLANCE) share the same WebDAV events
 // directory, so we also see their traffic — e.g. lastGLANCE chore events.
 // Those aren't actionable here and shouldn't clutter the activity log.
+export const MILESTONE_ENTITY_TYPE = 'milestone'
+
+export function isLastglanceMilestone({ action, emitted_by, payload } = {}) {
+  return action === ACTIONS.CREATE && emitted_by === SOURCE_APPS.LASTGLANCE &&
+    payload?.entity_type === MILESTONE_ENTITY_TYPE
+}
+
+// A `due` of YYYY-MM-DD is a local day. new Date('2026-10-14') would read it
+// as UTC midnight, which is the evening before west of Greenwich.
+export function localDay(due) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(due ?? '')
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12)
+  const d = due ? new Date(due) : new Date()
+  return Number.isNaN(d.getTime()) ? new Date() : d
+}
+
 export function isRelevantInboundEvent({ action, emitted_by, payload } = {}) {
   if (action === ACTIONS.CREATE && emitted_by === SOURCE_APPS.DAYGLANCE) return true
+  if (isLastglanceMilestone({ action, emitted_by, payload })) return true
   if (action === ACTIONS.NOTIFY && payload?.source_app === SOURCE_APPS.LIFEGLANCE) return true
   return false
 }
@@ -26,24 +45,28 @@ export function drainIntentsNow() { activeIntentDrain?.() }
 // Calls the appropriate handler for each inbound event:
 //   onInboundCreate(payload)  — dayGLANCE pushed a new Goal → create milestone
 //   onInboundNotify(payload)  — state change on a lG-originated task in dayGLANCE
+//   onInboundMilestone(payload, event_id) — lastGLANCE sent a timeline entry
 //   onActivityEntry(entry)    — optional; receives { type, filename, payload } for the activity log
 //
 // Polling runs immediately on mount, then every `intervalMin` minutes (default 2).
 export function useIntentPoller({
   onInboundCreate,
   onInboundNotify,
+  onInboundMilestone,
   onActivityEntry,
   intervalMin = 2,
 }) {
   // Keep handler refs stable so the interval closure always sees the latest props.
   const createRef  = useRef(onInboundCreate)
   const notifyRef  = useRef(onInboundNotify)
+  const milestoneRef = useRef(onInboundMilestone)
   const activityRef = useRef(onActivityEntry)
   // Last count of intents held pending the vault key, so the activity log records
   // the state only when it CHANGES (a 2-min poll cadence must not flood it).
   const lastHeldRef = useRef(0)
   useEffect(() => { createRef.current  = onInboundCreate  }, [onInboundCreate])
   useEffect(() => { notifyRef.current  = onInboundNotify  }, [onInboundNotify])
+  useEffect(() => { milestoneRef.current = onInboundMilestone }, [onInboundMilestone])
   useEffect(() => { activityRef.current = onActivityEntry }, [onActivityEntry])
 
   // The application logic is transport-agnostic: WebDAV pollEvents and the vault
@@ -61,6 +84,8 @@ export function useIntentPoller({
 
     if (action === ACTIONS.CREATE && emitted_by === SOURCE_APPS.DAYGLANCE) {
       await createRef.current?.(payload, event_id)
+    } else if (isLastglanceMilestone(envelope)) {
+      await milestoneRef.current?.(payload, event_id)
     } else if (action === ACTIONS.NOTIFY && payload.source_app === SOURCE_APPS.LIFEGLANCE) {
       await notifyRef.current?.(payload)
     }
