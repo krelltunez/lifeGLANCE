@@ -39,7 +39,7 @@ import { useIdleMode } from '../../hooks/useIdleMode.js'
 import { enterFullscreen, exitFullscreen, isFullscreen } from '../../utils/fullscreen.js'
 import { toggleTheme } from '../../utils/theme'
 import { relativeLabel, ageAtDate } from '../../utils/dates'
-import { useIntentPoller } from '../../hooks/useIntentPoller.js'
+import { useIntentPoller, localDay } from '../../hooks/useIntentPoller.js'
 import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
 import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
@@ -321,6 +321,33 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Inbound: lastGLANCE People sent a contact as a timeline entry ("Sam
+  // reached out", on the day it happened). A plain milestone, not linked to
+  // dayGLANCE. The interaction id dedupes a re-delivery, as event_id would not
+  // across two lastGLANCE devices.
+  const handleInboundMilestone = useCallback(async (payload, event_id) => {
+    if (!payload.title) return
+    try {
+      const id = payload.source_entity_id ? `lastglance-${payload.source_entity_id}` : event_id
+      if (id && milestonesRef.current.some(m => m.id === id)) return
+      const m = await addMilestone({
+        id,
+        title:          payload.title,
+        date:           localDay(payload.due),
+        date_precision: 'day',
+        category:       'personal',
+        note:           payload.notes ?? '',
+      })
+      setMilestones(prev => {
+        const next = [...prev, m]
+        pushHistory(next)
+        return next
+      })
+    } catch (err) {
+      console.error('[intents] inbound lastGLANCE milestone failed:', err)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Inbound: dayGLANCE notifying of a state change on one of our milestones.
   const handleInboundNotify = useCallback(async (payload) => {
     const { event, source_entity_id, due, completed_at, title } = payload
@@ -366,6 +393,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   useIntentPoller({
     onInboundCreate:  handleInboundCreate,
     onInboundNotify:  handleInboundNotify,
+    onInboundMilestone: handleInboundMilestone,
     onActivityEntry:  appendActivityEntry,
     intervalMin:      intentsConfig?.pollIntervalMin ?? 2,
   })
