@@ -11,6 +11,7 @@
 // applied remote row is never re-marked dirty — no push loops.
 
 import { bundleEntityId } from './entityIds.js'
+import { markLocalEdit } from './localEditStamp.js'
 
 let _target = null
 
@@ -18,7 +19,11 @@ let _target = null
 export function registerDirtyTarget(engine) { _target = engine }
 
 export function markDirty(entityId) {
-  if (entityId == null || !_target) return
+  if (entityId == null) return
+  // Every local write passes here: the Direct Access relay rule reads this
+  // stamp (localEditStamp.js), so it is set before the vault target check.
+  markLocalEdit()
+  if (!_target) return
   try { _target.markDirty(entityId) }
   catch (err) { if (import.meta?.env?.DEV) console.warn('[dbsync] markDirty failed', err) }
 }

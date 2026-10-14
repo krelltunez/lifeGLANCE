@@ -7,6 +7,7 @@ import SyncPassphraseModal from './components/sync/SyncPassphraseModal'
 import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
+import { useDirectAccessSync } from './hooks/useDirectAccessSync'
 import { initDbSyncEngine, getDbSyncEngine } from './sync/dbSync'
 import { FILE_CRYPTO_CONFIG } from './sync/cryptoConfig.js'
 import { combineTierErrors } from './sync/status'
@@ -40,6 +41,9 @@ export default function App() {
   // Drives a transient toast (TimelineView) and a durable amber note (CloudSyncModal).
   const [vaultSkipped, setVaultSkipped] = useState(null)
   const [showPassphraseModal, setShowPassphraseModal] = useState(false)
+  // True once the sync engine exists: the Direct Access cycle builds and
+  // applies through it (engine.js buildEnginePayload / applyEnginePayload).
+  const [syncEngineReady, setSyncEngineReady] = useState(false)
   const [cloudSyncOpen, setCloudSyncOpen] = useState(false)
 
   // Demo-data state (hosted-eval only). Presence of the persisted demo-state key
@@ -151,6 +155,7 @@ export default function App() {
           setShowPassphraseModal,
           setVaultSkipped,
         })
+        setSyncEngineReady(true)
 
         // GLANCEvault database-sync engine, constructed ALONGSIDE the WebDAV
         // engine above. Returns null (fully inert) unless the vault is enabled in
@@ -185,6 +190,16 @@ export default function App() {
         setScreen('onboarding')
       })
   }, [])
+
+  // Direct Access (docs/direct-access.md): the folder tier's poll and its
+  // prompts. Inert on the web and on a shell without the plugin. A file this
+  // device cannot read raises the same passphrase prompt the other tiers use;
+  // onUnlocked below kicks a cycle so the folder is read with the key.
+  const directAccess = useDirectAccessSync({
+    ready: syncEngineReady,
+    onKeyNeeded: () => setShowPassphraseModal(true),
+    onEncryptedUnreadable: () => setShowPassphraseModal(true),
+  })
 
   // GLANCEvault SSE push: instant drains of the same sync/intents paths the
   // intervals below poll. Purely additive — the polls stay the correctness
@@ -351,6 +366,7 @@ export default function App() {
           syncHalted={displayHalted}
           lastSynced={lastSynced}
           vaultSkipped={vaultSkipped}
+          directAccess={directAccess}
           onClose={() => setCloudSyncOpen(false)}
         />
       )}
@@ -364,6 +380,8 @@ export default function App() {
             // vault intents/blob key derives (bootstrapIntentsRootKey) and held
             // intents flush.
             getDbSyncEngine()?.sync()
+            // And the folder tier, which may have been held on an envelope.
+            void directAccess.runSync()
           }}
         />
       )}
