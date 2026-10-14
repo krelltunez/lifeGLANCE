@@ -19,6 +19,7 @@
 		0DC7A1012FED020000F56B1C /* AddMilestoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC7A1002FED020000F56B1C /* AddMilestoneIntent.swift */; };
 		7B5F62012E3D110100D5E3A1 /* VaultSseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5F62002E3D110100D5E3A1 /* VaultSseClient.swift */; };
 		7B5F62032E3D110100D5E3A1 /* VaultSsePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */; };
+		0DDA0002000000000000DA02 /* DirectAccessPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDA0001000000000000DA01 /* DirectAccessPlugin.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -78,6 +79,7 @@
 		0DC7A1002FED020000F56B1C /* AddMilestoneIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMilestoneIntent.swift; sourceTree = "<group>"; };
 		7B5F62002E3D110100D5E3A1 /* VaultSseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultSseClient.swift; sourceTree = "<group>"; };
 		7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultSsePlugin.swift; sourceTree = "<group>"; };
+		0DDA0001000000000000DA01 /* DirectAccessPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectAccessPlugin.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -218,6 +220,7 @@
 				0DA92D752FECE9F200F56B1C /* MainViewController.swift */,
 				7B5F62002E3D110100D5E3A1 /* VaultSseClient.swift */,
 				7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */,
+				0DDA0001000000000000DA01 /* DirectAccessPlugin.swift */,
 				0DA92D712FECC30800F56B1C /* WidgetBridgePlugin.swift */,
 				0DA92D4A2FECBDC700F56B1C /* App.entitlements */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -415,6 +418,7 @@
 				0DA92D762FECE9F200F56B1C /* MainViewController.swift in Sources */,
 				7B5F62012E3D110100D5E3A1 /* VaultSseClient.swift in Sources */,
 				7B5F62032E3D110100D5E3A1 /* VaultSsePlugin.swift in Sources */,
+				0DDA0002000000000000DA02 /* DirectAccessPlugin.swift in Sources */,
 				0DC7A1012FED020000F56B1C /* AddMilestoneIntent.swift in Sources */,
 				0DC7A1112FED030000F56B1C /* SpotlightPlugin.swift in Sources */,
 				0DC7A2212FED040000F56B1C /* SecureStorePlugin.swift in Sources */,
