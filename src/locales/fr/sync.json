@@ -61,6 +61,7 @@
   "locked": "La synchronisation est verrouillée par un autre appareil — réessayez dans un instant.",
   "networkError": "Erreur réseau — vérifiez votre connexion et réessayez.",
   "preconditionFailed": "Un autre appareil a mis à jour en premier — nouvelle tentative.",
+  "payloadTooLarge": "Le fichier de synchronisation est trop volumineux pour votre serveur ou un proxy placé devant lui (413). Rien n'a été envoyé et vos données sont en sécurité sur cet appareil. Les modifications des autres appareils continuent d'arriver ; l'envoi sera retenté dans 30 minutes.",
   "passphraseRequired": "Entrez votre phrase secrète de synchronisation pour continuer.",
   "appIdMismatch": "Ces données de synchronisation appartiennent à une autre application.",
   "schemaForwardIncompatible": "Ces données de synchronisation proviennent d'une version plus récente de l'application — veuillez mettre à jour l'application.",

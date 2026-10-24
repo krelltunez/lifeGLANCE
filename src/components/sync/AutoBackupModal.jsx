@@ -232,7 +232,9 @@ function HistoryTab() {
     async function load() {
       try {
         const engine = getSyncEngine()
-        const backups = await engine?.autoBackupDB?.listBackups?.() ?? []
+        // Metadata only: the list shows frequency and time, and listBackups
+        // would load every backup's full payload (up to 66 copies) to show it.
+        const backups = await engine?.autoBackupDB?.listBackupMeta?.() ?? []
         setRecords(backups)
       } catch {
         setRecords([])
@@ -254,7 +256,7 @@ function HistoryTab() {
   return (
     <div>
       {records.map((r, i) => (
-        <div key={i} style={{
+        <div key={r.id ?? i} style={{
           display: 'flex',
           justifyContent: 'space-between',
           padding: '0.5rem 0',

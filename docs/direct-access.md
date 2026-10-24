@@ -43,7 +43,11 @@ in the order that document gives, so the same folder carries all three apps:
    so there is no first-run prompt; an encrypted file this device cannot
    read is never written over; a device without the key tries its cached key
    once, then raises the passphrase prompt the other tiers use, and
-   unlocking kicks a cycle.
+   unlocking kicks a cycle. Since `@glance-apps/sync` 2.3 a poll that reads
+   the same file text a settled cycle read, with this device's payload
+   unchanged and no relay pending, stops at the read (`skipped: unchanged`);
+   the hook carries the cycle state that holds it, and a full cycle runs at
+   least every 10 minutes regardless.
 3. **The intents transport (done).** dayGLANCE's single event-set file
    `GLANCE/events/glance-events.json` (`src/lib/intentsEventSet.js`), as a
    third delivery mechanism beside WebDAV and GLANCEvault in the dayGLANCE

@@ -21,8 +21,10 @@ export default async function handler(req, res) {
     throw err;
   }
 
+  // if-none-match: the sync engine's conditional GET, so an unchanged file is a
+  // bodyless 304 rather than a full download on every poll.
   const headers = {};
-  for (const h of ['authorization', 'x-webdav-auth', 'content-type', 'if-match', 'depth', 'destination']) {
+  for (const h of ['authorization', 'x-webdav-auth', 'content-type', 'if-match', 'if-none-match', 'depth', 'destination']) {
     if (req.headers[h]) headers[h] = req.headers[h];
   }
 

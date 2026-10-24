@@ -16,6 +16,9 @@ export const isSyncing = (status) =>
 //   LOCKED                      — 423: another device holds the lock.
 //   NETWORK_ERROR               — connection failed / unclassified transport error.
 //   PRECONDITION_FAILED         — 412: another device wrote first; retried.
+//   PAYLOAD_TOO_LARGE           — 413: the server (or a proxy in front of it)
+//                                 refused the upload for its size; uploads back
+//                                 off 30 min while downloads go on (sync 2.3+).
 //   PASSPHRASE_REQUIRED         — encryption is on but no passphrase is in session.
 //   APP_ID_MISMATCH             — the remote file belongs to a different app.
 //   SCHEMA_FORWARD_INCOMPATIBLE — the remote file is from a newer app version.
@@ -43,6 +46,7 @@ export const SYNC_ERROR_I18N_KEYS = {
   LOCKED: 'locked',
   NETWORK_ERROR: 'networkError',
   PRECONDITION_FAILED: 'preconditionFailed',
+  PAYLOAD_TOO_LARGE: 'payloadTooLarge',
   PASSPHRASE_REQUIRED: 'passphraseRequired',
   APP_ID_MISMATCH: 'appIdMismatch',
   SCHEMA_FORWARD_INCOMPATIBLE: 'schemaForwardIncompatible',
