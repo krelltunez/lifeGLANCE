@@ -21,7 +21,7 @@ please read it before attempting to restore an auto-open.
 The app-side hooks are wired: `WidgetStore.consumePendingShare()`
 (`WidgetModel.swift`), the `share` field in
 `WidgetBridgePlugin.consumeLaunchTarget`, and the `share` host in
-`AppDelegate.handleWidgetDeepLink`. The web layer already consumes it
+`LaunchTarget.handle(url:)` (SceneDelegate.swift). The web layer already consumes it
 (`TimelineView` → `shareToMilestoneDraft`), so **no JS changes are needed**.
 
 ## Target registration
