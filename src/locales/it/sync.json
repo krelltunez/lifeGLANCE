@@ -152,5 +152,25 @@
     "fileCreate": "Crea file",
     "fileChange": "Cambia file",
     "fileForget": "Dimentica file"
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "Sincronizza con iCloud",
+    "onHint": "La tua cronologia resta allineata su ogni iPhone e iPad con il tuo ID Apple. Niente da configurare.",
+    "offHint": "Disattivato su questo dispositivo. La copia in iCloud e gli altri dispositivi restano invariati.",
+    "syncNow": "Sincronizza ora",
+    "syncing": "Sincronizzazione…",
+    "synced": "Sincronizzato {{when}}",
+    "lastSynced": "Ultima sincronizzazione: {{when}}",
+    "unavailable": "iCloud non è disponibile: {{error}}",
+    "firstRun": {
+      "title": "Ripristinare da iCloud?",
+      "body": "iCloud contiene dati di lifeGLANCE dai tuoi altri dispositivi. Traguardi in iCloud: {{count}}.",
+      "lastModified": "Ultima modifica: {{when}}",
+      "restore": "Ripristina da iCloud",
+      "restoreHint": "Porta la tua cronologia su questo dispositivo e mantienila sincronizzata.",
+      "startFresh": "Ricomincia da zero su questo dispositivo",
+      "startFreshHint": "Disattiva qui la sincronizzazione iCloud. La copia in iCloud resta e puoi riattivarla più tardi nella sincronizzazione cloud."
+    }
   }
 }

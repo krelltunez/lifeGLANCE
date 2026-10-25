@@ -152,5 +152,25 @@
     "fileCreate": "Crear archivo",
     "fileChange": "Cambiar archivo",
     "fileForget": "Olvidar archivo"
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "Sincronizar con iCloud",
+    "onHint": "Tu línea de tiempo se mantiene al día en cada iPhone y iPad con tu ID de Apple. No hay nada que configurar.",
+    "offHint": "Desactivado en este dispositivo. La copia en iCloud y tus otros dispositivos no cambian.",
+    "syncNow": "Sincronizar ahora",
+    "syncing": "Sincronizando…",
+    "synced": "Sincronizado {{when}}",
+    "lastSynced": "Última sincronización: {{when}}",
+    "unavailable": "iCloud no está disponible: {{error}}",
+    "firstRun": {
+      "title": "¿Restaurar desde iCloud?",
+      "body": "iCloud tiene datos de lifeGLANCE de tus otros dispositivos. Hitos en iCloud: {{count}}.",
+      "lastModified": "Último cambio: {{when}}",
+      "restore": "Restaurar desde iCloud",
+      "restoreHint": "Trae tu línea de tiempo a este dispositivo y mantenla sincronizada.",
+      "startFresh": "Empezar de cero en este dispositivo",
+      "startFreshHint": "Desactiva aquí la sincronización con iCloud. La copia en iCloud se conserva y puedes activarla más tarde en la sincronización en la nube."
+    }
   }
 }

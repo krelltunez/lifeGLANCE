@@ -152,5 +152,25 @@
     "fileCreate": "创建文件",
     "fileChange": "更换文件",
     "fileForget": "忘记文件"
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "通过 iCloud 同步",
+    "onHint": "你的时间线会在登录同一 Apple ID 的每台 iPhone 和 iPad 上保持同步，无需任何设置。",
+    "offHint": "已在此设备上关闭。iCloud 中的副本和你的其他设备不受影响。",
+    "syncNow": "立即同步",
+    "syncing": "正在同步…",
+    "synced": "已同步 {{when}}",
+    "lastSynced": "上次同步：{{when}}",
+    "unavailable": "iCloud 不可用：{{error}}",
+    "firstRun": {
+      "title": "从 iCloud 恢复？",
+      "body": "iCloud 中有来自你其他设备的 lifeGLANCE 数据。iCloud 中的里程碑：{{count}}。",
+      "lastModified": "最后更改：{{when}}",
+      "restore": "从 iCloud 恢复",
+      "restoreHint": "将你的时间线带到此设备并保持同步。",
+      "startFresh": "在此设备上重新开始",
+      "startFreshHint": "在此关闭 iCloud 同步。iCloud 中的副本会保留，你之后可以在云端同步中重新开启。"
+    }
   }
 }

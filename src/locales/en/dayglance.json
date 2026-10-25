@@ -42,10 +42,13 @@
   "toastGoalCompleted": "Goal completed in dayGLANCE: \"{{title}}\"",
   "toastGoalDeleted": "dayGLANCE Goal deleted — \"{{title}}\" still exists here.",
   "transportDirectAccess": "Direct Access folder",
+  "transportICloud": "iCloud",
   "directAccessTransportNote": "Uses the folder connected under Cloud Sync. Other GLANCE apps on the same folder leave intents in one shared file there, and read yours.",
   "directAccessNotConnected": "No Direct Access folder is connected. Connect one in Cloud Sync first; until then this transport stays inactive.",
   "directAccessEncryptedNote": "The event file is encrypted with your sync passphrase, like the Direct Access sync file.",
   "directAccessPlaintextNote": "The event file is written as plain text, like the Direct Access sync file. Turn on \"Encrypt the file\" in Cloud Sync to encrypt both.",
   "directAccessPassphraseRequired": "Direct Access intents are encrypted with your sync passphrase. Enter it to send and receive them on this device.",
-  "directAccessKeyReady": "Key ready. Passphrase not stored; not needed again on this device."
+  "directAccessKeyReady": "Key ready. Passphrase not stored; not needed again on this device.",
+  "icloudTransportNote": "Uses dayGLANCE's iCloud events folder, so dayGLANCE and lastGLANCE on your iPhone or iPad exchange intents with nothing else to set up. Always plain text there, protected by Apple's iCloud encryption. The other apps need their iCloud intents turned on too.",
+  "icloudUnavailableNote": "iCloud isn't available on this device. Sign in to iCloud and turn on iCloud Drive; until then this transport stays inactive."
 }

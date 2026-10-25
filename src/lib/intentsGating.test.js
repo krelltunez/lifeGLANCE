@@ -6,6 +6,7 @@ import {
   isWebdavIntentsActive,
   isVaultIntentsActive,
   isDirectAccessIntentsActive,
+  isICloudIntentsActive,
   isIntegrationEnabled,
   computeIntentTargets,
   buildIntentDeliverers,
@@ -54,6 +55,22 @@ describe('transport gating', () => {
     expect(isDirectAccessIntentsActive(folder(true, true))).toBe(false)
     saveIntentsConfig({ enabled: false, transport: 'directAccess' })
     expect(isDirectAccessIntentsActive(folder(true, true))).toBe(false)
+  })
+
+  it('iCloud transport: active only when enabled + selected on a shell with the plugin', () => {
+    const plugin = () => ({})
+    saveIntentsConfig({ enabled: true, transport: 'icloud' })
+    expect(isICloudIntentsActive(plugin)).toBe(true)
+    expect(isICloudIntentsActive(() => null)).toBe(false)
+    // No plugin under node: nothing is active, nothing targeted.
+    expect(isICloudIntentsActive()).toBe(false)
+    expect(isIntegrationEnabled()).toBe(false)
+    expect(computeIntentTargets()).toEqual([])
+    expect(Object.keys(buildIntentDeliverers())).toEqual([])
+    saveIntentsConfig({ enabled: true, transport: 'webdav', webdavUrl: 'https://dav.example' })
+    expect(isICloudIntentsActive(plugin)).toBe(false)
+    saveIntentsConfig({ enabled: false, transport: 'icloud' })
+    expect(isICloudIntentsActive(plugin)).toBe(false)
   })
 
   it('WebDAV transport: active only when enabled + selected + URL present', () => {

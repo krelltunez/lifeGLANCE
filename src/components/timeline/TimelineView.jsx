@@ -39,7 +39,7 @@ import { useIdleMode } from '../../hooks/useIdleMode.js'
 import { enterFullscreen, exitFullscreen, isFullscreen } from '../../utils/fullscreen.js'
 import { toggleTheme } from '../../utils/theme'
 import { relativeLabel, ageAtDate } from '../../utils/dates'
-import { useIntentPoller, localDay } from '../../hooks/useIntentPoller.js'
+import { useIntentPoller, localDay, lastglanceMilestoneId, inboundAlreadyHandled } from '../../hooks/useIntentPoller.js'
 import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
 import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
@@ -299,7 +299,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const handleInboundCreate = useCallback(async (payload, event_id) => {
     if (!payload.title) return
     try {
-      if (event_id && milestonesRef.current.some(m => m.id === event_id)) return
+      // Existing or deleted: a replayed create must not bring it back.
+      if (inboundAlreadyHandled(event_id, milestonesRef.current)) return
       const m = await addMilestone({
         id:               event_id,
         title:            payload.title,
@@ -328,8 +329,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const handleInboundMilestone = useCallback(async (payload, event_id) => {
     if (!payload.title) return
     try {
-      const id = payload.source_entity_id ? `lastglance-${payload.source_entity_id}` : event_id
-      if (id && milestonesRef.current.some(m => m.id === id)) return
+      const id = lastglanceMilestoneId(payload, event_id)
+      if (inboundAlreadyHandled(id, milestonesRef.current)) return
       const m = await addMilestone({
         id,
         title:          payload.title,

@@ -5,6 +5,7 @@ import { readVaultIntentsConnection } from '../../lib/intentsVaultTransport.js'
 import { isNativePlatform, nativeWebdavResponse } from '../../sync/nativeHttp.js'
 import { directAccessTransport } from '../../sync/directAccess.js'
 import DirectAccessFileRow from '../sync/DirectAccessFileRow.jsx'
+import { icloudBridge } from '../../native/icloud.js'
 
 const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy'
 
@@ -98,6 +99,18 @@ export default function IntegrationSettings() {
   // encrypt switch is, under the sync passphrase: when it is on and this
   // device has no key for the folder's salt, the passphrase is asked for
   // here, once, so the opt-in never ends with intents silently held.
+  // iCloud (docs/icloud-sync.md): dayGLANCE's events folder in its iCloud
+  // container, offered on the iOS shell only. Probed when selected so a
+  // signed-out device says why nothing moves.
+  const icloudSupported = !!icloudBridge()
+  const [icloudReachable, setIcloudReachable] = useState(true)
+  useEffect(() => {
+    if (!(cfg.enabled && transport === 'icloud')) return
+    let live = true
+    icloudBridge()?.available().then((ok) => { if (live) setIcloudReachable(ok) })
+    return () => { live = false }
+  }, [cfg.enabled, transport])
+
   const da = useSyncExternalStore(directAccessTransport.subscribe, directAccessTransport.getSnapshot, directAccessTransport.getSnapshot)
   const daSelected = cfg.enabled && transport === 'directAccess'
   const [daKey, setDaKey] = useState('unknown')   // unknown | ready | needed
@@ -180,6 +193,17 @@ export default function IntegrationSettings() {
                     onChange={() => update({ transport: 'directAccess' })}
                   />
                   <span className="settings-toggle-label">{t('transportDirectAccess')}</span>
+                </label>
+              )}
+              {icloudSupported && (
+                <label className="recurrence-toggle-row" style={{ gap: '0.4rem', cursor: 'pointer', margin: 0 }}>
+                  <input
+                    type="radio"
+                    name="intents-transport"
+                    checked={transport === 'icloud'}
+                    onChange={() => update({ transport: 'icloud' })}
+                  />
+                  <span className="settings-toggle-label">{t('transportICloud')}</span>
                 </label>
               )}
             </div>
@@ -360,6 +384,17 @@ export default function IntegrationSettings() {
                   )}
                   <DirectAccessFileRow slot="events" />
                 </>
+              )}
+            </div>
+          )}
+
+          {transport === 'icloud' && (
+            <div className="settings-intents-field">
+              <p className="settings-note" style={{ marginTop: 0 }}>{t('icloudTransportNote')}</p>
+              {!icloudReachable && (
+                <p className="settings-note intents-test-err" style={{ marginTop: '0.4rem' }}>
+                  {t('icloudUnavailableNote')}
+                </p>
               )}
             </div>
           )}

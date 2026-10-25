@@ -2,6 +2,25 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Zero-config iCloud sync (ICloudPlugin.swift, docs/icloud-sync.md).
+	     iCloud.com.lifeglance holds this app's sync file; iCloud.com.dayglance
+	     is dayGLANCE's container, whose GLANCE/events/ carries the intents the
+	     GLANCE apps exchange. Both must be assigned to the com.lifeglance App ID
+	     in the Apple Developer portal (iCloud with iCloud Documents). -->
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.com.lifeglance</string>
+		<string>iCloud.com.dayglance</string>
+	</array>
+	<key>com.apple.developer.ubiquity-container-identifiers</key>
+	<array>
+		<string>iCloud.com.lifeglance</string>
+		<string>iCloud.com.dayglance</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudDocuments</string>
+	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.lifeglance</string>

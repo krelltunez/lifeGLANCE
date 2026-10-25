@@ -42,10 +42,13 @@
   "toastGoalCompleted": "已完成 dayGLANCE Goal:「{{title}}」",
   "toastGoalDeleted": "已删除 dayGLANCE Goal:「{{title}}」，里程碑依然在此。",
   "transportDirectAccess": "直接访问文件夹",
+  "transportICloud": "iCloud",
   "directAccessTransportNote": "使用在“云同步”中连接的文件夹。使用同一文件夹的其他 GLANCE 应用会把意图写入其中一个共享文件，并读取您的意图。",
   "directAccessNotConnected": "尚未连接直接访问文件夹。请先在“云同步”中连接文件夹；在此之前，此传输方式保持停用。",
   "directAccessEncryptedNote": "事件文件使用您的同步口令加密，与直接访问同步文件相同。",
   "directAccessPlaintextNote": "事件文件以明文写入，与直接访问同步文件相同。在“云同步”中开启“加密文件”即可同时加密两者。",
   "directAccessPassphraseRequired": "直接访问意图使用您的同步口令加密。请输入口令，以便在此设备上收发意图。",
-  "directAccessKeyReady": "密钥已就绪。口令不会被保存；此设备无需再次输入。"
+  "directAccessKeyReady": "密钥已就绪。口令不会被保存；此设备无需再次输入。",
+  "icloudTransportNote": "使用 dayGLANCE 的 iCloud 事件文件夹，让你 iPhone 或 iPad 上的 dayGLANCE 和 lastGLANCE 无需其他设置即可交换意图。那里的内容始终为纯文本，由 Apple 的 iCloud 加密保护。其他应用也需要开启 iCloud 意图。",
+  "icloudUnavailableNote": "此设备上的 iCloud 不可用。请登录 iCloud 并开启 iCloud 云盘；在此之前该方式保持停用。"
 }

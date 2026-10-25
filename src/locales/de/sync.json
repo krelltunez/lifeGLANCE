@@ -152,5 +152,25 @@
     "fileCreate": "Datei erstellen",
     "fileChange": "Datei ändern",
     "fileForget": "Datei vergessen"
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "Mit iCloud synchronisieren",
+    "onHint": "Deine Zeitleiste bleibt auf jedem iPhone und iPad mit deiner Apple-ID abgeglichen. Keine Einrichtung nötig.",
+    "offHint": "Auf diesem Gerät aus. Die Kopie in iCloud und deine anderen Geräte bleiben unberührt.",
+    "syncNow": "Jetzt synchronisieren",
+    "syncing": "Synchronisiert…",
+    "synced": "Synchronisiert {{when}}",
+    "lastSynced": "Zuletzt synchronisiert: {{when}}",
+    "unavailable": "iCloud ist nicht verfügbar: {{error}}",
+    "firstRun": {
+      "title": "Aus iCloud wiederherstellen?",
+      "body": "In iCloud liegen lifeGLANCE-Daten von deinen anderen Geräten. Meilensteine in iCloud: {{count}}.",
+      "lastModified": "Zuletzt geändert {{when}}",
+      "restore": "Aus iCloud wiederherstellen",
+      "restoreHint": "Hole deine Zeitleiste auf dieses Gerät und halte sie synchron.",
+      "startFresh": "Auf diesem Gerät neu beginnen",
+      "startFreshHint": "Schaltet die iCloud-Synchronisierung hier aus. Die Kopie in iCloud bleibt, und du kannst sie später in der Cloud-Synchronisierung einschalten."
+    }
   }
 }

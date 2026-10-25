@@ -8,6 +8,9 @@ import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
 import { useDirectAccessSync } from './hooks/useDirectAccessSync'
+import { useSnapshotFileSync } from './hooks/useSnapshotFileSync'
+import { icloudTransport } from './sync/icloud'
+import ICloudFirstRunModal from './components/sync/ICloudFirstRunModal'
 import { initDbSyncEngine, getDbSyncEngine } from './sync/dbSync'
 import { FILE_CRYPTO_CONFIG } from './sync/cryptoConfig.js'
 import { combineTierErrors } from './sync/status'
@@ -201,6 +204,16 @@ export default function App() {
     onEncryptedUnreadable: () => setShowPassphraseModal(true),
   })
 
+  // iCloud (docs/icloud-sync.md): zero-config sync in the app's own container
+  // on iOS, on unless switched off on this device. Plaintext under Apple's
+  // iCloud encryption, so it never asks for a passphrase; a fresh install
+  // facing iCloud data is asked before anything is restored (firstRun).
+  const icloud = useSnapshotFileSync({
+    transport: icloudTransport,
+    ready: syncEngineReady,
+    onKeyNeeded: () => setShowPassphraseModal(true),
+  })
+
   // The Direct Access intents poller cannot reach the passphrase modal; it
   // asks through this event (useIntentPoller.js) when the event set holds a
   // sealed envelope this device has no key for.
@@ -376,9 +389,15 @@ export default function App() {
           lastSynced={lastSynced}
           vaultSkipped={vaultSkipped}
           directAccess={directAccess}
+          icloud={icloud}
           onClose={() => setCloudSyncOpen(false)}
         />
       )}
+      <ICloudFirstRunModal
+        info={icloud.firstRun}
+        onRestore={icloud.acceptFirstRun}
+        onStartFresh={icloud.declineFirstRun}
+      />
       {showPassphraseModal && (
         <SyncPassphraseModal
           onClose={() => setShowPassphraseModal(false)}
@@ -391,6 +410,7 @@ export default function App() {
             getDbSyncEngine()?.sync()
             // And the folder tier, which may have been held on an envelope.
             void directAccess.runSync()
+            void icloud.runSync()
             // Intents held for the key (the Direct Access event set derives
             // its key from the passphrase now in memory) re-drain at once.
             window.dispatchEvent(new Event('lifeglance:intents-key-ready'))

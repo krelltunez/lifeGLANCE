@@ -42,10 +42,13 @@
   "toastGoalCompleted": "« {{title}} » in dayGLANCE abgeschlossen",
   "toastGoalDeleted": "dayGLANCE-Ziel gelöscht — « {{title}} » ist hier noch vorhanden.",
   "transportDirectAccess": "Direktzugriff-Ordner",
+  "transportICloud": "iCloud",
   "directAccessTransportNote": "Nutzt den unter Cloud-Sync verbundenen Ordner. Andere GLANCE-Apps am selben Ordner legen Intents dort in einer gemeinsamen Datei ab und lesen deine.",
   "directAccessNotConnected": "Kein Direktzugriff-Ordner verbunden. Verbinde zuerst einen unter Cloud-Sync; bis dahin bleibt dieser Transport inaktiv.",
   "directAccessEncryptedNote": "Die Ereignisdatei wird mit deiner Sync-Passphrase verschlüsselt, wie die Direktzugriff-Sync-Datei.",
   "directAccessPlaintextNote": "Die Ereignisdatei wird im Klartext geschrieben, wie die Direktzugriff-Sync-Datei. Schalte unter Cloud-Sync „Datei verschlüsseln“ ein, um beide zu verschlüsseln.",
   "directAccessPassphraseRequired": "Direktzugriff-Intents werden mit deiner Sync-Passphrase verschlüsselt. Gib sie ein, um sie auf diesem Gerät zu senden und zu empfangen.",
-  "directAccessKeyReady": "Schlüssel bereit. Passphrase nicht gespeichert; auf diesem Gerät nicht erneut nötig."
+  "directAccessKeyReady": "Schlüssel bereit. Passphrase nicht gespeichert; auf diesem Gerät nicht erneut nötig.",
+  "icloudTransportNote": "Nutzt den iCloud-Ereignisordner von dayGLANCE, sodass dayGLANCE und lastGLANCE auf deinem iPhone oder iPad Intents ohne weitere Einrichtung austauschen. Dort immer als Klartext, geschützt durch die iCloud-Verschlüsselung von Apple. In den anderen Apps müssen die iCloud-Intents ebenfalls eingeschaltet sein.",
+  "icloudUnavailableNote": "iCloud ist auf diesem Gerät nicht verfügbar. Melde dich bei iCloud an und schalte iCloud Drive ein; bis dahin bleibt dieser Weg inaktiv."
 }
