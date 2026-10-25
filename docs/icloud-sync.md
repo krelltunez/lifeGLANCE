@@ -80,6 +80,14 @@ cadence in `useIntentPoller`, keeps its own strict filename cursor
 handed over once), and stops at a file still downloading so it is read on a
 later poll. dayGLANCE prunes old event files from the folder.
 
+A device choosing a transport for the first time has no cursor, so it replays
+every event file still in the folder; on iCloud that is any second iPhone or
+iPad. The inbound create handlers therefore skip an id that exists OR is
+tombstoned (`inboundAlreadyHandled` in `useIntentPoller.js`): re-adding a
+deleted goal or lastGLANCE contact entry would stamp it newer than its
+tombstone, and the merge would resurrect it on every device. Tombstones age out
+after 90 days, so a deletion older than that is not covered.
+
 ## Setting it up (once, in the Apple Developer portal)
 
 1. Create the iCloud container `iCloud.com.lifeglance`.

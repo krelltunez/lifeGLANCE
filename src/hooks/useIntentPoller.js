@@ -4,6 +4,7 @@ import { drainVaultIntents } from '../lib/intentsVaultTransport.js'
 import { drainDirectAccessIntents } from '../lib/intentsDirectAccessTransport.js'
 import { pollICloudIntents } from '../lib/intentsICloudTransport.js'
 import { directAccessTransport } from '../sync/directAccess.js'
+import { getMilestoneTombstones } from '../sync/tombstones.js'
 import { ACTIONS, SOURCE_APPS } from '@glance-apps/intents'
 
 // Whether an inbound envelope is something lifeGLANCE actually handles:
@@ -28,6 +29,25 @@ export function localDay(due) {
   if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12)
   const d = due ? new Date(due) : new Date()
   return Number.isNaN(d.getTime()) ? new Date() : d
+}
+
+// The id an inbound lastGLANCE timeline entry is stored under: the interaction
+// id, so two lastGLANCE devices (or one entry read by two lifeGLANCE devices)
+// make one milestone, where event_id would make two.
+export function lastglanceMilestoneId(payload, event_id) {
+  return payload?.source_entity_id ? `lastglance-${payload.source_entity_id}` : event_id
+}
+
+// Whether an inbound create has already been handled: the milestone exists, or
+// it was deleted here or on a synced device. A poll with no cursor (a device
+// choosing a transport for the first time, routinely a second iPhone or iPad
+// on iCloud) replays every event file still in the folder; re-adding a deleted
+// entry would stamp it newer than its tombstone, and the merge would then
+// resurrect it on every device. Tombstones age out after 90 days, so an older
+// deletion is not covered.
+export function inboundAlreadyHandled(id, milestones, tombstones = getMilestoneTombstones()) {
+  if (!id) return false
+  return milestones.some(m => m.id === id) || Object.prototype.hasOwnProperty.call(tombstones ?? {}, id)
 }
 
 export function isRelevantInboundEvent({ action, emitted_by, payload } = {}) {
