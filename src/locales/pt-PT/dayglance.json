@@ -42,10 +42,13 @@
   "toastGoalCompleted": "« {{title}} » concluído no dayGLANCE",
   "toastGoalDeleted": "Objetivo dayGLANCE eliminado — « {{title}} » ainda existe aqui.",
   "transportDirectAccess": "Pasta de acesso direto",
+  "transportICloud": "iCloud",
   "directAccessTransportNote": "Usa a pasta conectada em Sincronização na nuvem. Outras apps GLANCE na mesma pasta deixam aí os seus intents num ficheiro comum e leem os seus.",
   "directAccessNotConnected": "Nenhuma pasta de acesso direto conectada. Conecte uma primeiro em Sincronização na nuvem; até lá, este transporte permanece inativo.",
   "directAccessEncryptedNote": "O ficheiro de eventos é encriptado com a sua frase-passe de sincronização, como o ficheiro de sincronização de acesso direto.",
   "directAccessPlaintextNote": "O ficheiro de eventos é escrito em texto simples, como o ficheiro de sincronização de acesso direto. Ative \"Encriptar o ficheiro\" em Sincronização na nuvem para encriptar os dois.",
   "directAccessPassphraseRequired": "Os intents de acesso direto são encriptados com a sua frase-passe de sincronização. Insira-a para os enviar e recebê-los neste dispositivo.",
-  "directAccessKeyReady": "Chave pronta. A frase não é armazenada; não será necessária de novo neste dispositivo."
+  "directAccessKeyReady": "Chave pronta. A frase não é armazenada; não será necessária de novo neste dispositivo.",
+  "icloudTransportNote": "Usa a pasta de eventos do iCloud do dayGLANCE, para que o dayGLANCE e o lastGLANCE no seu iPhone ou iPad troquem intents sem mais nada para configurar. Lá eles ficam sempre em texto simples, protegidos pela encriptação do iCloud da Apple. Os outros apps também devem estar com os intents do iCloud ativados.",
+  "icloudUnavailableNote": "O iCloud não está disponível neste dispositivo. Entre no iCloud e ative o iCloud Drive; até lá, este meio fica inativo."
 }

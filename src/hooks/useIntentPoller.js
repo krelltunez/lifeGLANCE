@@ -1,7 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { pollEvents, isWebdavIntentsActive, isVaultIntentsActive, isDirectAccessIntentsActive, resolveDirectAccessKey, loadIntentsConfig, flushOutbox } from '../lib/intentsTransport.js'
+import { pollEvents, isWebdavIntentsActive, isVaultIntentsActive, isDirectAccessIntentsActive, isICloudIntentsActive, resolveDirectAccessKey, loadIntentsConfig, flushOutbox } from '../lib/intentsTransport.js'
 import { drainVaultIntents } from '../lib/intentsVaultTransport.js'
 import { drainDirectAccessIntents } from '../lib/intentsDirectAccessTransport.js'
+import { pollICloudIntents } from '../lib/intentsICloudTransport.js'
 import { directAccessTransport } from '../sync/directAccess.js'
 import { ACTIONS, SOURCE_APPS } from '@glance-apps/intents'
 
@@ -118,11 +119,14 @@ export function useIntentPoller({
     const webdav = isWebdavIntentsActive()
     const vault  = isVaultIntentsActive()
     const direct = isDirectAccessIntentsActive()
-    if (!webdav && !vault && !direct) return
+    const icloud = isICloudIntentsActive()
+    if (!webdav && !vault && !direct && !icloud) return
 
     // RECEIVE every tier (independent cursors; one being down never blocks the others).
     if (webdav) await pollEvents(handleInbound)
     if (direct) await runDirectAccess().catch(err => console.warn('[intents] direct access drain failed:', err))
+    // dayGLANCE's iCloud events folder, on this poll's cadence (dayGLANCE's own).
+    if (icloud) await pollICloudIntents(handleInbound).catch(err => console.warn('[intents] iCloud poll failed:', err))
     if (vault) {
       const { heldForKey = 0 } = (await drainVaultIntents(handleInbound)) ?? {}
       // Held-pending-key intents must be observable. Record the state in the

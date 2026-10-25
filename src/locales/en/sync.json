@@ -152,5 +152,25 @@
     "fileCreate": "Create file",
     "fileChange": "Change file",
     "fileForget": "Forget file"
+  },
+  "icloud": {
+    "title": "iCloud",
+    "switchLabel": "Sync with iCloud",
+    "onHint": "Your timeline stays in step on every iPhone and iPad signed in to your Apple ID. Nothing to set up.",
+    "offHint": "Off on this device. The copy in iCloud and your other devices are untouched.",
+    "syncNow": "Sync now",
+    "syncing": "Syncing…",
+    "synced": "Synced {{when}}",
+    "lastSynced": "Last synced: {{when}}",
+    "unavailable": "iCloud is unavailable: {{error}}",
+    "firstRun": {
+      "title": "Restore from iCloud?",
+      "body": "iCloud holds lifeGLANCE data from your other devices. Milestones in iCloud: {{count}}.",
+      "lastModified": "Last changed {{when}}",
+      "restore": "Restore from iCloud",
+      "restoreHint": "Bring your timeline onto this device and keep it in sync.",
+      "startFresh": "Start fresh on this device",
+      "startFreshHint": "Turn iCloud sync off here. The copy in iCloud stays, and you can turn it on later in Cloud Sync."
+    }
   }
 }

@@ -211,6 +211,8 @@ The Android app ships the full web app in a WebView with native enhancements tha
 
 By default all data stays on your device, stored locally using IndexedDB — nothing is sent anywhere. Cross-device sync is opt-in: when you enable it, your timeline is synced to a WebDAV server or GLANCEvault instance that **you** choose and control, and can be end-to-end encrypted with a passphrase so the server only ever sees ciphertext.
 
+On iPhone and iPad, the app syncs through **iCloud** with nothing to set up: every device signed in to the same Apple ID stays in step, protected by Apple's iCloud encryption. It can be switched off per device in Cloud Sync, and a fresh install that finds a timeline in iCloud asks before restoring it. See [docs/icloud-sync.md](docs/icloud-sync.md).
+
 | Store | Contents |
 |---|---|
 | IndexedDB `milestones` | Milestone records (text fields, flags) |
@@ -230,7 +232,7 @@ Media blobs are fetched lazily, only when you open a milestone detail or click p
 
 ## Privacy
 
-lifeGLANCE has no backend of its own, no analytics, and no tracking. Beyond loading the app and the Courier Prime font (cached after first load), network activity happens only when *you* opt in: syncing to the server you configure, and — in the app-store build — subscription checks through your app store's billing. Your timeline data is yours alone.
+lifeGLANCE has no backend of its own, no analytics, and no tracking. Beyond loading the app and the Courier Prime font (cached after first load), network activity happens only when *you* opt in: syncing to the server you configure, iCloud sync on iPhone and iPad (on by default there, kept in your own iCloud account), and — in the app-store build — subscription checks through your app store's billing. Your timeline data is yours alone.
 
 ---
 

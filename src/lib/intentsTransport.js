@@ -22,6 +22,8 @@ import { readVaultIntentsConnection, makeVaultDeliverer } from './intentsVaultTr
 import { createDirectAccessDeliverer } from './intentsDirectAccessTransport.js'
 import { resolveDirectAccessIntentsKey } from './intentsDirectAccessKey.js'
 import { directAccessTransport } from '../sync/directAccess.js'
+import { createICloudDeliverer } from './intentsICloudTransport.js'
+import { icloudBridge } from '../native/icloud.js'
 
 const CONFIG_KEY = 'lifeglance-intents-config'
 const CURSOR_KEY = 'lifeglance-intents-cursor'
@@ -29,7 +31,7 @@ const SALT_FILENAME = 'intents-encryption-salt.json'
 
 export const DEFAULT_CONFIG = {
   enabled:           false,
-  transport:         'webdav',   // 'webdav' | 'vault' | 'directAccess' — the delivery mechanism (one of)
+  transport:         'webdav',   // 'webdav' | 'vault' | 'directAccess' | 'icloud' — the delivery mechanism (one of)
   webdavUrl:         '',   // https://cloud.example.com/remote.php/dav/files/user
   webdavUser:        '',
   webdavPass:        '',
@@ -85,11 +87,19 @@ export function isDirectAccessIntentsActive(transport = directAccessTransport) {
   return transport.isSupported() && transport.isConnected()
 }
 
+// iCloud is the selected intents transport AND this is the iOS shell with the
+// plugin. iCloud itself being away (signed out, iCloud Drive off) is not
+// checked here: the deliverer holds and the poll skips until it is back.
+export function isICloudIntentsActive(bridge = icloudBridge) {
+  const cfg = loadIntentsConfig()
+  return cfg.enabled === true && cfg.transport === 'icloud' && !!bridge()
+}
+
 // The integration is enabled AND its selected transport is usable (any tier).
 // Used to gate the send-side UI (the "track as goal" affordance, the activity
 // log) and the receive poller — regardless of which transport is chosen.
 export function isIntegrationEnabled() {
-  return isWebdavIntentsActive() || isVaultIntentsActive() || isDirectAccessIntentsActive()
+  return isWebdavIntentsActive() || isVaultIntentsActive() || isDirectAccessIntentsActive() || isICloudIntentsActive()
 }
 
 function loadCursor() {
@@ -310,6 +320,15 @@ export const deliverToDirectAccess = createDirectAccessDeliverer({
   eventsPath: () => loadIntentsConfig().eventsPath,
 })
 
+// ── iCloud deliverer ──────────────────────────────────────────────────────────
+//
+// dayGLANCE's events folder in its iCloud container (intentsICloudTransport.js).
+// Always plaintext; holds while off or while iCloud is away.
+
+export const deliverToICloud = createICloudDeliverer({
+  isEnabled: () => isICloudIntentsActive(),
+})
+
 // ── Emit: build the RAW intent, enqueue durably, flush ────────────────────────
 
 // Raw intents ({ event_id, action, payload, emitted_by }) — NEVER envelopes. The
@@ -362,6 +381,7 @@ export function computeIntentTargets() {
   if (isWebdavIntentsActive()) targets.push('webdav')
   if (isVaultIntentsActive())  targets.push('vault')
   if (isDirectAccessIntentsActive()) targets.push('directAccess')
+  if (isICloudIntentsActive()) targets.push('icloud')
   return targets
 }
 
@@ -372,6 +392,7 @@ export function buildIntentDeliverers() {
   if (isWebdavIntentsActive()) deliverers.webdav = deliverToWebdav
   if (isVaultIntentsActive())  deliverers.vault  = makeVaultDeliverer()
   if (isDirectAccessIntentsActive()) deliverers.directAccess = deliverToDirectAccess
+  if (isICloudIntentsActive()) deliverers.icloud = deliverToICloud
   return deliverers
 }
 
