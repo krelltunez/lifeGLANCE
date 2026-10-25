@@ -1,7 +1,7 @@
 import SwiftUI
 import WidgetKit
 
-// Deep-link URLs a widget tap opens the app with. AppDelegate parses these into a
+// Deep-link URLs a widget tap opens the app with. SceneDelegate (LaunchTarget) parses these into a
 // pending target the web layer consumes on resume (mirrors the Android handoff).
 private func milestoneURL(_ id: String?) -> URL? {
     if let id = id, let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {

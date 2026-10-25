@@ -83,7 +83,7 @@ Two departures from the original sketch, both deliberate:
   to be provisioned by hand.
 - **`WidgetModel.swift` is *not* added to this target's membership.**
   `ShareViewController` writes to `UserDefaults(suiteName:)` inline instead, the
-  same self-contained approach `AppDelegate` uses. Sharing one file across two
+  same self-contained approach `SceneDelegate` uses. Sharing one file across two
   synchronized-folder targets requires a `membershipExceptions` entry, which is
   more machinery than a three-line write is worth. §4's `WidgetStore` additions
   are still needed — but only for the **App** target's read side (§5).
@@ -227,7 +227,7 @@ with no notification code or permission anywhere, and introducing its first
 permission prompt for share convenience is a poor trade in a no-account,
 local-first app. Revisit only if notifications arrive for another reason.
 
-Do not re-add an auto-open attempt. `AppDelegate.handleWidgetDeepLink` has no
+Do not re-add an auto-open attempt. `LaunchTarget.handle(url:)` (SceneDelegate.swift) has no
 `share` case for the same reason.
 
 ### 4. `WidgetStore` additions (`WidgetModel.swift`)
@@ -270,12 +270,12 @@ if let share = WidgetStore.consumePendingShare() {
 }
 ```
 
-### 6. `AppDelegate` — nothing to do
+### 6. `SceneDelegate` — nothing to do
 
 Originally this section added a `case "share": break` so the deep link was
 visibly handled. That case has been **removed**: `lifeglance://share` is never
 fired, because the extension cannot open the app (§3a). A comment in
-`handleWidgetDeepLink` records why, so the absence reads as deliberate.
+`LaunchTarget.handle(url:)` (SceneDelegate.swift) records why, so the absence reads as deliberate.
 
 ## Data contract (must match Android/JS)
 

@@ -21,7 +21,7 @@ import UniformTypeIdentifiers
 //
 // Kept self-contained — it writes to the App Group inline rather than importing the
 // widgets' WidgetStore — so the extension target only needs this one Swift file, the
-// same approach AppDelegate.handleWidgetDeepLink already uses on the app side.
+// same approach LaunchTarget.handle(url:) (SceneDelegate.swift) already uses on the app side.
 @objc(ShareViewController)
 final class ShareViewController: UIViewController {
 

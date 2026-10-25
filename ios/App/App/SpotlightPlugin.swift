@@ -20,7 +20,7 @@ import CoreSpotlight
 // milestones hidden from the main timeline are never in the payload.
 //
 // Tap-through: a result tap delivers CSSearchableItemActionType via
-// NSUserActivity — handled in AppDelegate, which stashes the item id as
+// NSUserActivity — handled in SceneDelegate (LaunchTarget), which stashes the item id as
 // pending_target, the exact contract a widget tap uses. The web layer then pans
 // to and opens that milestone with zero new JS.
 @objc(SpotlightPlugin)
