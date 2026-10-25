@@ -31,9 +31,12 @@ if (INSECURE_TLS) {
   console.warn('[webdav-proxy] WEBDAV_PROXY_INSECURE_TLS enabled — upstream HTTPS cert verification is OFF')
 }
 
+// if-none-match carries the sync engine's conditional GET (@glance-apps/sync
+// 2.3 idle gate): an unchanged file comes back as a bodyless 304 instead of the
+// whole file on every poll.
 const FORWARD_REQ_HEADERS = [
   'authorization', 'x-webdav-auth', 'content-type',
-  'if-match', 'depth', 'destination',
+  'if-match', 'if-none-match', 'depth', 'destination',
 ]
 const FORWARD_RES_HEADERS = [
   'content-type', 'etag', 'last-modified', 'dav', 'allow',

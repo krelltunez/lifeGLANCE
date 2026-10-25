@@ -61,6 +61,7 @@
   "locked": "Sync is locked by another device — try again in a moment.",
   "networkError": "Network error — check your connection and try again.",
   "preconditionFailed": "Another device updated first — retrying.",
+  "payloadTooLarge": "The sync file is too large for your server or a proxy in front of it (413). Nothing was uploaded and your data is safe on this device. Changes from other devices still arrive; uploading retries in 30 minutes.",
   "passphraseRequired": "Enter your sync passphrase to continue.",
   "appIdMismatch": "This sync data belongs to a different app.",
   "schemaForwardIncompatible": "This sync data is from a newer app version — please update the app.",

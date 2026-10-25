@@ -48,6 +48,7 @@ describe('syncErrorText', () => {
       LOCKED: 'locked',
       NETWORK_ERROR: 'networkError',
       PRECONDITION_FAILED: 'preconditionFailed',
+      PAYLOAD_TOO_LARGE: 'payloadTooLarge',
       PASSPHRASE_REQUIRED: 'passphraseRequired',
       APP_ID_MISMATCH: 'appIdMismatch',
       SCHEMA_FORWARD_INCOMPATIBLE: 'schemaForwardIncompatible',

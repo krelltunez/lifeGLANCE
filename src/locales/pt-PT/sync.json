@@ -61,6 +61,7 @@
   "locked": "A sincronização está bloqueada por outro dispositivo — tente novamente em instantes.",
   "networkError": "Erro de rede — verifique a sua ligação e tente novamente.",
   "preconditionFailed": "Outro dispositivo atualizou primeiro — a tentar novamente.",
+  "payloadTooLarge": "O ficheiro de sincronização é grande demais para o seu servidor ou para um proxy à frente dele (413). Nada foi enviado e os seus dados estão seguros neste dispositivo. As alterações de outros dispositivos ainda são recebidas; o envio será tentado novamente em 30 minutos.",
   "passphraseRequired": "Insira a sua frase-passe de sincronização para continuar.",
   "appIdMismatch": "Estes dados de sincronização pertencem a outra aplicação.",
   "schemaForwardIncompatible": "Estes dados de sincronização são de uma versão mais recente da aplicação — atualize a aplicação.",

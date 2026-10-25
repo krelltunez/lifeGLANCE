@@ -61,6 +61,7 @@
   "locked": "其他设备正在同步，请稍后再试",
   "networkError": "网络不稳: 请检查连线后再试",
   "preconditionFailed": "其他设备刚更新了数据，正在重新同步",
+  "payloadTooLarge": "同步文件对您的服务器或其前方的代理来说过大（413）。未上传任何内容，您的数据在本设备上安全无虞。其他设备的更改仍会同步到本设备；30 分钟后将重试上传。",
   "passphraseRequired": "输入加密金钥以继续同步",
   "appIdMismatch": "此同步数据属于其他应用程序",
   "schemaForwardIncompatible": "请更新APP: 此同步数据来自较新的版本",

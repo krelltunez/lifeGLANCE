@@ -1,6 +1,6 @@
 {
   "name": "lifeglance",
-  "version": "3.4.0",
+  "version": "3.5.0",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -33,7 +33,7 @@
     "@capacitor/share": "8.0.1",
     "@glance-apps/billing": "0.2.2",
     "@glance-apps/intents": "1.4.0",
-    "@glance-apps/sync": "2.1.2",
+    "@glance-apps/sync": "2.3.0",
     "date-fns": "^3.6.0",
     "i18next": "^26.3.1",
     "i18next-browser-languagedetector": "^8.2.1",
