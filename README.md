@@ -132,7 +132,7 @@ The Android app ships the full web app in a WebView with native enhancements tha
 
 | Timeline | Milestone detail |
 |:-:|:-:|
-| ![lifeGLANCE timeline](play-assets/screenshots/phone/01-timeline.png) | ![Milestone detail](play-assets/screenshots/phone/02-milestone-detail.png) |
+| ![lifeGLANCE timeline](store-assets/play/phone/01-decades.png) | ![Milestone detail](store-assets/play/tablet10/02-milestone-detail.png) |
 
 ---
 

@@ -1,24 +1,34 @@
-// Generates Google Play Store screenshots (phone + tablet) by driving the built
-// web app with Chromium via Playwright, seeded from the demo backup
-// (lifeglance-jake-chen-test.json).
+// Generates the App Store and Google Play screenshots by driving the built web
+// app with Chromium via Playwright, seeded from the demo backup
+// (lifeglance-jake-chen-test.json) re-dated to run time.
 //
 //   npm run screenshots
-//     → builds the app, serves dist/ in-process, seeds the demo data, and
-//       captures every SCENE at every DEVICE into play-assets/screenshots/<device>/.
+//     → builds the app, serves dist/ in-process, captures every PANE, writes the
+//       Play frames straight out, then hands the panes to
+//       scripts/compose-apple-frames.py to build the captioned Apple canvases.
 //
-// To change what gets shot in future, edit DEVICES / SCENES below and re-run —
-// that's the whole point of this file: one command regenerates the full set.
+// Output (see store-assets/README.md):
+//   store-assets/play/<device>/      raw app surface, full bleed, no caption
+//   store-assets/apple/<device>/     captioned canvases composed from the panes
+//
+// lifeGLANCE's house style is NO device chrome: no bezels, no status bars, no
+// home indicators. The app surface bleeds to the canvas edges. The Apple iPhone
+// canvas is portrait and the app is landscape, which is why that canvas stacks
+// two landscape panes — one shot, two moments.
 //
 // Env overrides:
 //   URL=<origin>          serve from an already-running server instead of dist/
-//   CHROMIUM_PATH=<bin>   browser binary (defaults to the Playwright chromium;
-//                         on CI, `npx playwright install chromium` then unset this)
+//   CHROMIUM_PATH=<bin>   browser binary (otherwise auto-detected)
 //   PORT=<n>              local port for the built-in static server
+//   KEEP_PANES=1          leave the intermediate pane captures on disk and print
+//                         where, for debugging a composition
 
 import { chromium } from 'playwright-core'
-import { readFile, mkdir, rm, stat, access } from 'node:fs/promises'
-import { createReadStream } from 'node:fs'
+import { readFile, mkdir, rm, stat, access, writeFile } from 'node:fs/promises'
+import { createReadStream, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { spawn } from 'node:child_process'
+import { tmpdir } from 'node:os'
 import http from 'node:http'
 import path from 'node:path'
 
@@ -27,80 +37,96 @@ import path from 'node:path'
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(ROOT, 'dist')
 const DEMO = path.join(ROOT, 'src', 'demo', 'lifeglance-jake-chen-test.json')
-const OUT  = path.join(ROOT, 'play-assets', 'screenshots')
+const OUT  = path.join(ROOT, 'store-assets')
+const PANES = path.join(tmpdir(), `lifeglance-panes-${process.pid}`)
 const PORT = Number(process.env.PORT || 4173)
 const BASE = process.env.URL || `http://localhost:${PORT}`
-const CHROMIUM = process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
-const BIRTHDAY = '1998-11-03' // Jake's birth date → ages render on milestones/detail
 
-// CSS viewport picks the app's responsive layout; deviceScaleFactor upscales to
-// Play's pixel dimensions. lifeGLANCE is a LANDSCAPE app (it shows a "rotate your
-// device" prompt in portrait), so these are landscape; each ≤ 3840 px, ratio ≤ 2:1.
-// The CSS widths are sized to a real device's landscape logical resolution so the
-// header and timeline breathe (a too-narrow viewport packs everything together).
-const DEVICES = [
-  { id: 'phone',    width: 960,  height: 540, scale: 2 },   // → 1920 × 1080
-  { id: 'tablet7',  width: 1280, height: 800, scale: 1.5 }, // → 1920 × 1200
-  { id: 'tablet10', width: 1280, height: 800, scale: 2 },   // → 2560 × 1600
-]
+// Playwright's browser directory is versioned, so a hardcoded path goes stale
+// the moment the image is rebuilt — it already had, pointing at chromium-1194
+// when this container shipped 1243 under a different chrome-linux64/ layout.
+// Resolve instead: the stable symlink first, then any versioned install.
+function findChromium() {
+  if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH
+  const candidates = [
+    '/opt/pw-browsers/chromium',
+    ...['chrome-linux64/chrome', 'chrome-linux/chrome'].flatMap(suffix =>
+      ['1243', '1194'].map(v => `/opt/pw-browsers/chromium-${v}/${suffix}`)),
+  ]
+  const hit = candidates.find(p => existsSync(p))
+  if (!hit) {
+    throw new Error(
+      'no Chromium found. Set CHROMIUM_PATH, or run `npx playwright install chromium`.',
+    )
+  }
+  return hit
+}
 
-// Each scene starts on a seeded timeline; `setup` navigates to the shot. Keep
-// scenes independent — the page is re-seeded fresh for every (device, scene).
-const SCENES = [
-  { id: 'timeline', devices: ['phone', 'tablet7', 'tablet10'],
-    async setup(page, device) {
-      // Show milestone CARDS, not clustered dots. Pick the zoom by device:
-      //   phone   → 'weeks' (±3 mo): the narrow viewport only breathes with one
-      //             hero card, so keep the window tight.
-      //   tablets → 'months' (±18 mo): the wide viewport has room, so open the
-      //             window to a ~3-year span that fills the frame with SEVERAL
-      //             individual cards, cluster badges, and colored chapter bars —
-      //             far more interesting than a single lonely card. ('years' and
-      //             wider collapse everything into clustered dots — no cards.)
-      // Both are presets, never the sloppy 'custom'. ArrowLeft then focuses
-      // successively older past milestones (milestone-relative, so it composes
-      // the same at any zoom), panning the dense "today" burst off-frame.
-      const tablet = device.id !== 'phone'
-      await setZoom(page, tablet ? 'months' : 'weeks')
-      for (let i = 0; i < 3; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(350) }
-      await page.waitForTimeout(600)
-    } },
+/* ------------------------------------------------------------------ seed ---
+ * The demo backup was authored around a notional "today" of 12 July 2026, and
+ * a timeline seed rots: every milestone it calls upcoming becomes past, the
+ * future half of the app empties out, and the relative ages ("1 yr, 8 mo ago",
+ * "27 y.o.") drift. So shift the whole story to run time instead of pinning it.
+ *
+ * A uniform shift in DAYS, not years: it keeps every interval, age and chapter
+ * span exactly as authored, and it lands "today" at the same point in the story
+ * the set was composed around — which is what keeps the timeline busy near the
+ * today marker. Shifting by whole years would preserve calendar dates but leave
+ * an eight-month hole either side of today, and every shot looks at today.
+ */
+const SEED_ANCHOR = Date.UTC(2026, 6, 12) // the notional "today" the demo was written for
+const DAY = 86400000
 
-  { id: 'milestone-detail', devices: ['phone', 'tablet10'],
-    async setup(page) {
-      // Open a specific milestone's detail sheet via search ('/' → type → pick):
-      // handleSearchSelect calls setDetail(). More reliable than clicking a
-      // clustered SVG node, which would drill into a chapter instead.
-      await page.keyboard.press('/')
-      const input = page.locator('.search-input')
-      await input.waitFor({ timeout: 4000 })
-      await input.fill('High school graduation')
-      await page.waitForTimeout(300)
-      await page.locator('.search-result').first().click()
-      await page.waitForTimeout(600)
-    } },
+// Milestones whose title asserts a calendar date. A day shift would put
+// Thanksgiving in March, which is the one break a reader would actually catch.
+// These keep their authored date. (The annual recurrences — Dustin's birthday,
+// the Vegas trip — need no exemption: every instance shifts together, so the
+// series stays internally consistent on whatever date it lands.)
+const CALENDAR_LOCKED = [/thanksgiving/i, /new year/i, /christmas/i]
 
-  { id: 'add-milestone', devices: ['phone'],
-    async setup(page) {
-      await page.locator('.add-milestone-btn').first().click()
-      await page.waitForTimeout(500)
-    } },
+function redate(demo, now = new Date()) {
+  const shift = Math.round((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - SEED_ANCHOR) / DAY)
+  const move = (iso) => new Date(Date.parse(iso) + shift * DAY).toISOString()
 
-  { id: 'filter', devices: ['phone'],
-    async setup(page) {
-      await page.locator('.filter-compact').first().click()
-      await page.waitForTimeout(400)
-    } },
+  const milestones = demo.milestones.map(m => ({
+    ...m,
+    date: CALENDAR_LOCKED.some(re => re.test(m.title)) ? m.date : move(m.date),
+  }))
+  const chapters = demo.chapters.map(c => ({
+    ...c,
+    start: c.start ? move(c.start) : c.start,
+    end:   c.end   ? move(c.end)   : c.end,
+  }))
 
-  { id: 'settings', devices: ['phone', 'tablet7'],
-    async setup(page) {
-      await page.getByRole('button', { name: /^settings$/i }).first().click()
-      await page.waitForTimeout(500)
-    } },
-]
+  // "On this day" only renders a button when some past milestone shares today's
+  // month and day, so a shot of it is otherwise a coin flip. Nudge every past
+  // milestone already within a week of the anniversary onto it — a 2-6 day move
+  // that costs nothing and reliably fills the panel from several different years.
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const nudged = []
+  for (const m of milestones) {
+    const d = new Date(Date.parse(m.date))
+    if (d >= today) continue
+    const anniv = Date.UTC(d.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+    const off = Math.round((d.getTime() - anniv) / DAY)
+    if (Math.abs(off) > 7 || off === 0) continue
+    // Set the calendar fields rather than subtracting `off` days: not every
+    // seed timestamp is UTC midnight, and the rounding there lands a day out.
+    const moved = new Date(d)
+    moved.setUTCMonth(today.getUTCMonth(), today.getUTCDate())
+    m.date = moved.toISOString()
+    nudged.push(`${m.title} (${off > 0 ? '-' : '+'}${Math.abs(off)}d)`)
+  }
 
-// Pick a zoom preset. The control is a dropdown on narrow viewports and inline
-// tabs on wide ones, so handle both.
+  const birthdayMs = Date.parse(demo.milestones.find(m => /was born/i.test(m.title))?.date ?? '1998-11-03')
+  const birthday = new Date(birthdayMs + shift * DAY).toISOString().slice(0, 10)
+  return { milestones, chapters, birthday, shift, nudged }
+}
+
+/* ---------------------------------------------------------------- scenes ---
+ * Each returns with the app sitting on the shot. Keep them independent: the
+ * page is re-seeded fresh for every pane.
+ */
 async function setZoom(page, label) {
   const dropdown = page.locator('.zoom-dropdown-btn')
   if (await dropdown.count()) {
@@ -113,10 +139,140 @@ async function setZoom(page, label) {
   await page.waitForTimeout(700)
 }
 
+// Centre the timeline on a milestone by searching for it. Selecting a result
+// opens the detail sheet (handleSearchSelect calls setDetail), so close it again
+// when the shot wants the timeline itself — the pan survives the close.
+async function focusMilestone(page, query, { keepDetail = false } = {}) {
+  await page.keyboard.press('/')
+  const input = page.locator('.search-input')
+  await input.waitFor({ timeout: 4000 })
+  await input.fill(query)
+  await page.waitForTimeout(350)
+  await page.locator('.search-result').first().click()
+  await page.waitForTimeout(650)
+  if (!keepDetail) {
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(500)
+  }
+}
+
+const scenes = {
+  // The whole life in one span. The today marker and the age readout are what
+  // have to survive Apple's search-results thumbnail, so this stays wide open.
+  decades: async (page) => {
+    await setZoom(page, '30yr')
+    await page.waitForTimeout(700)
+  },
+  // The close end of the same span: individual cards, dates, ages.
+  weeks: async (page) => {
+    await setZoom(page, 'weeks')
+    for (let i = 0; i < 2; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(320) }
+    await page.waitForTimeout(600)
+  },
+  // Several chapter ribbons at once, so the banding reads as structure.
+  chaptersWide: async (page) => {
+    await setZoom(page, 'years')
+    await focusMilestone(page, 'College graduation')
+  },
+  // One labelled ribbon over the milestones it contains — the chapter idea
+  // explaining itself rather than decorating the axis.
+  chaptersClose: async (page) => {
+    await setZoom(page, 'months')
+    await focusMilestone(page, 'Promoted to senior analyst')
+  },
+  // The half of the pitch the old set never showed.
+  futureView: async (page) => {
+    await page.keyboard.press('f')
+    await page.waitForTimeout(500)
+    await setZoom(page, 'months')
+    await page.keyboard.press('ArrowRight')
+    await page.waitForTimeout(700)
+  },
+  futureCountdown: async (page) => {
+    await setZoom(page, 'months')
+    await focusMilestone(page, "Brother Tyler's wedding", { keepDetail: true })
+  },
+  onThisDay: async (page) => {
+    const btn = page.locator('.otd-btn')
+    await btn.waitFor({ timeout: 8000 })
+    await btn.first().click()
+    await page.waitForTimeout(600)
+  },
+  onThisDayContext: async (page) => {
+    await setZoom(page, 'months')
+    await focusMilestone(page, 'First day at Brex', { keepDetail: true })
+  },
+  // The precision tabs are the point: "as exact or as fuzzy as you like".
+  addMilestone: async (page) => {
+    await page.locator('.add-milestone-btn').first().click()
+    await page.waitForTimeout(600)
+    await page.locator('.precision-tabs').waitFor({ timeout: 4000 })
+    await page.keyboard.type('Weekend in the Catskills', { delay: 12 })
+    const year = page.locator('.sheet input[type="number"]').last()
+    await year.fill('2019')
+    await page.waitForTimeout(350)
+  },
+  // Tablet scenes.
+  ipadTimeline: async (page) => {
+    await setZoom(page, 'years')
+    await page.waitForTimeout(800)
+  },
+  wideTimeline: async (page) => {
+    await setZoom(page, 'months')
+    for (let i = 0; i < 3; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(320) }
+    await page.waitForTimeout(600)
+  },
+  milestoneDetail: async (page) => {
+    await focusMilestone(page, 'College graduation', { keepDetail: true })
+  },
+}
+
+/* ----------------------------------------------------------------- panes ---
+ * A pane is one raw app capture: viewport picks the responsive layout, scale
+ * picks the output pixels. Nothing here knows about canvases or captions.
+ */
+const PHONE_APPLE = { width: 900, height: 600, scale: 2 }   // → 1800 x 1200, composed down to 1320 x 880
+const PHONE_PLAY  = { width: 960, height: 540, scale: 2 }   // → 1920 x 1080, Play phone slot as shipped
+const TAB7        = { width: 1280, height: 800, scale: 1.5 } // → 1920 x 1200
+const TAB10       = { width: 1280, height: 800, scale: 2 }   // → 2560 x 1600
+const IPAD        = { width: 1376, height: 792, scale: 2 }   // → 2752 x 1584, under the 480px caption band
+// The add sheet is a modal: at the wider phone viewport it floated in a sea of
+// dimmed backdrop. A tighter viewport lets the sheet carry the pane.
+const SHEET_APPLE = { width: 760, height: 690, scale: 2 }   // → 1520 x 1380; tall enough that the sheet is not clipped
+// Same 16:9 Play phone slot, but a taller CSS viewport so the add sheet fits
+// instead of being cut off mid-category-row: 1120 x 630 x 1.7143 = 1920 x 1080.
+const SHEET_PLAY  = { width: 1120, height: 630, scale: 1920 / 1120 }
+
+const PANE_SET = [
+  // Apple iPhone — two panes per shot, stacked by the compositor.
+  { id: 'iphone/01a', vp: PHONE_APPLE, scene: 'decades' },
+  { id: 'iphone/01b', vp: PHONE_APPLE, scene: 'weeks' },
+  { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chaptersWide' },
+  { id: 'iphone/02b', vp: PHONE_APPLE, scene: 'chaptersClose' },
+  { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView' },
+  { id: 'iphone/03b', vp: PHONE_APPLE, scene: 'futureCountdown' },
+  { id: 'iphone/04a', vp: PHONE_APPLE, scene: 'onThisDay' },
+  { id: 'iphone/04b', vp: PHONE_APPLE, scene: 'onThisDayContext' },
+  { id: 'iphone/05a', vp: SHEET_APPLE, scene: 'addMilestone' },
+  // Apple iPad — one pane per shot.
+  { id: 'ipad/06a', vp: IPAD, scene: 'ipadTimeline' },
+  { id: 'ipad/07a', vp: IPAD, scene: 'milestoneDetail' },
+  // Google Play — written straight out, no composition.
+  { id: 'play/phone/01-decades',       vp: PHONE_PLAY, scene: 'decades' },
+  { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chaptersClose' },
+  { id: 'play/phone/03-future',        vp: PHONE_PLAY, scene: 'futureCountdown' },
+  { id: 'play/phone/04-on-this-day',   vp: PHONE_PLAY, scene: 'onThisDay' },
+  { id: 'play/phone/05-add-milestone', vp: SHEET_PLAY, scene: 'addMilestone' },
+  { id: 'play/tablet7/01-timeline',    vp: TAB7,  scene: 'wideTimeline' },
+  { id: 'play/tablet7/02-milestone-detail', vp: TAB7, scene: 'milestoneDetail' },
+  { id: 'play/tablet10/01-timeline',   vp: TAB10, scene: 'wideTimeline' },
+  { id: 'play/tablet10/02-milestone-detail', vp: TAB10, scene: 'milestoneDetail' },
+]
+
 // Seed the demo backup straight into IndexedDB (mirroring restoreMilestones in
 // src/data/milestones.js) so the app boots into a populated timeline — no
 // onboarding, no UI restore. DB name/version/stores mirror src/data/db.js.
-async function seed(page, demo) {
+async function seed(page, data) {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(900) // let initDB() create the 'lifeglance' DB + stores
   await page.evaluate(async ({ milestones, chapters, birthday }) => {
@@ -142,15 +298,14 @@ async function seed(page, demo) {
     })
     localStorage.setItem('lifeglance-birthday', birthday)
     localStorage.setItem('lifeglance-birthday-updated-at', new Date(0).toISOString())
-  }, { milestones: demo.milestones, chapters: demo.chapters, birthday: BIRTHDAY })
+  }, { milestones: data.milestones, chapters: data.chapters, birthday: data.birthday })
 
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.locator('.add-milestone-btn').first().waitFor({ timeout: 15000 })
   await page.waitForTimeout(800) // timeline entrance animation settles
 }
 
-// Minimal static server for dist/ with SPA fallback — no external dev server,
-// no child process to manage.
+// Minimal static server for dist/ with SPA fallback.
 const MIME = {
   '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.css': 'text/css', '.json': 'application/json', '.png': 'image/png',
@@ -173,6 +328,14 @@ function serveDist(dir, port) {
   return new Promise((resolve) => server.listen(port, () => resolve(server)))
 }
 
+function run(cmd, args) {
+  return new Promise((resolve, reject) => {
+    const p = spawn(cmd, args, { stdio: 'inherit' })
+    p.on('error', reject)
+    p.on('close', code => code === 0 ? resolve() : reject(new Error(`${cmd} exited ${code}`)))
+  })
+}
+
 async function main() {
   if (!process.env.URL) {
     await access(path.join(DIST, 'index.html')).catch(() => {
@@ -180,48 +343,64 @@ async function main() {
     })
   }
   const demo = JSON.parse(await readFile(DEMO, 'utf8'))
+  const data = redate(demo)
+  console.log(`Seed re-dated +${data.shift}d to today; birthday ${data.birthday}`)
+  if (data.nudged.length) console.log(`  on-this-day nudges: ${data.nudged.join(', ')}`)
+
   const server = process.env.URL ? null : await serveDist(DIST, PORT)
-  // --no-sandbox / --disable-dev-shm-usage: the standard flags for headless
-  // Chromium in containers/CI (avoids /dev/shm exhaustion and sandbox issues).
   const browser = await chromium.launch({
-    executablePath: CHROMIUM,
+    executablePath: findChromium(),
     args: ['--no-sandbox', '--disable-dev-shm-usage'],
   })
-  const results = []
+  const failed = []
   try {
-    for (const device of DEVICES) {
-      const scenes = SCENES.filter(s => s.devices.includes(device.id))
-      if (!scenes.length) continue
-      await mkdir(path.join(OUT, device.id), { recursive: true })
-      let n = 0
-      for (const scene of scenes) {
-        const ctx = await browser.newContext({
-          viewport: { width: device.width, height: device.height },
-          deviceScaleFactor: device.scale,
-          serviceWorkers: 'block', // avoid the PWA SW caching a stale shell
-          colorScheme: 'dark',
-        })
-        const page = await ctx.newPage()
-        const file = path.join(OUT, device.id, `${String(++n).padStart(2, '0')}-${scene.id}.png`)
-        try {
-          await seed(page, demo)
-          await scene.setup(page, device)
-          await page.screenshot({ path: file })
-          console.log(`  ✓ ${device.id}/${path.basename(file)}`)
-        } catch (err) {
-          results.push(false)
-          console.log(`  ✗ ${device.id}/${scene.id} — ${err.message.split('\n')[0]}`)
-        }
-        await ctx.close()
+    for (const pane of PANE_SET) {
+      // A play/* pane is a finished frame; everything else is raw material.
+      const isPlay = pane.id.startsWith('play/')
+      const file = path.join(isPlay ? OUT : PANES, `${pane.id}.png`)
+      await mkdir(path.dirname(file), { recursive: true })
+      const ctx = await browser.newContext({
+        viewport: { width: pane.vp.width, height: pane.vp.height },
+        deviceScaleFactor: pane.vp.scale,
+        serviceWorkers: 'block', // avoid the PWA SW caching a stale shell
+        colorScheme: 'dark',
+      })
+      const page = await ctx.newPage()
+      try {
+        await seed(page, data)
+        await scenes[pane.scene](page)
+        await page.screenshot({ path: file })
+        console.log(`  ✓ ${pane.id}`)
+      } catch (err) {
+        failed.push(pane.id)
+        console.log(`  ✗ ${pane.id} — ${err.message.split('\n')[0]}`)
       }
+      await ctx.close()
     }
   } finally {
     await browser.close()
     server?.close()
   }
-  console.log('\nDone → play-assets/screenshots/')
-  if (results.includes(false)) process.exitCode = 1
+
+  if (failed.length) {
+    console.error(`\n${failed.length} pane(s) failed: ${failed.join(', ')}`)
+    process.exitCode = 1
+    return
+  }
+
+  await writeFile(path.join(PANES, 'seed-info.json'), JSON.stringify(data, null, 2))
+  console.log('\nComposing Apple canvases…')
+  await run('python3', [path.join(ROOT, 'scripts', 'compose-apple-frames.py'), PANES, OUT])
+
+  if (process.env.KEEP_PANES) console.log(`\nPanes kept at ${PANES}`)
+  else await rm(PANES, { recursive: true, force: true })
+  console.log(`Done → ${path.relative(ROOT, OUT)}/`)
 }
 
-await rm(OUT, { recursive: true, force: true })
+// Clear only the generated galleries: store-assets/README.md is hand-written
+// and lives in the same directory, so removing OUT wholesale would eat it.
+for (const gallery of ['apple', 'play']) {
+  await rm(path.join(OUT, gallery), { recursive: true, force: true })
+}
+await rm(PANES, { recursive: true, force: true })
 await main()
