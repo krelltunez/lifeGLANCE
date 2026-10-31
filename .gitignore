@@ -5,5 +5,11 @@ outputs/
 *.local
 .env
 
+# Python bytecode. scripts/compose-apple-frames.py is importable (the store
+# screenshot pipeline loads it, and so does anything comparing frame variants),
+# so importing it drops a __pycache__ beside it.
+__pycache__/
+*.pyc
+
 # Claude Code agent worktrees (ephemeral; never commit)
 .claude/worktrees/
