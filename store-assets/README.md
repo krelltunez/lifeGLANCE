@@ -14,7 +14,7 @@ out, and composes the Apple canvases. Everything is declared in
 
 | Slot | Canvas | Files |
 |---|---|---|
-| `apple/iphone69/` | 1320 × 2868 portrait | 5 |
+| `apple/iphone-dynamic-island/` | 1206 × 2622 portrait | 5 |
 | `apple/ipad13/` | 2752 × 2064 landscape | 2 |
 | `play/phone/` | 1920 × 1080 landscape | 5 |
 | `play/tablet7/` | 1920 × 1200 landscape | 2 |
@@ -22,6 +22,74 @@ out, and composes the Apple canvases. Everything is declared in
 
 `apple/captions.json` is written alongside the frames and carries the caption
 text of each Apple shot, so the listing copy and the images cannot drift apart.
+
+## The iPhone canvas
+
+App Store Connect retired the 6.9" slot. The iPhone galleries are now **iPhone
+with Dynamic Island (medium display)**, which accepts 1206 × 2622 or
+1179 × 2556, and **iPhone Duo**. We use the larger of the two.
+
+Its aspect is within 0.06% of the old 1320 × 2868, so the composition carried
+over untouched: `PHONE_K` in the compositor rescales the tuned geometry and the
+type is re-rendered at the new size rather than downsampled. Tablet slots are
+unchanged, so the iPad frames were unaffected by the change.
+
+## Three settings carry these frames
+
+None needs code; all three are ordinary user settings written before the
+reload. Each one is load-bearing, and the frames fall apart without it.
+
+- **`lifeglance-clustering = false`.** With clustering on, every wide zoom
+  collapses milestones into numbered circles and *no card draws at all* —
+  `Timeline.jsx` routes only single-member groups to the card renderer — so the
+  frame is an empty axis. This is the binary gate: no amount of density or
+  viewport tuning substitutes for it.
+- **`lifeglance-text-size = small`.** `CARD_W`, `CARD_H2` and `CARD_STEP` all
+  scale off `remPx` (19 at `small` against 22 at `normal`), so one step down
+  makes cards narrower *and* shorter — fewer horizontal collisions and an extra
+  lane to resolve the rest. The cheapest lever on card pile-up.
+- **Viewport height ≤ 900 CSS px.** `Timeline.jsx` flips to `compactLayout` at
+  `(max-height: 900px)`, which pins the axis near the bottom and stacks every
+  card above it. That is the arrangement these frames want. Within the mode the
+  lane count rises with height, so each viewport sits as close to 900 as its
+  output aspect allows — 792 bought four lanes, 880 buys six — and
+  `deviceScaleFactor` absorbs the difference so output pixels never change.
+
+The trap worth knowing: capture at 792 px and the frames look broken in a way
+that reads as a seed problem. It is not. It is compact layout forcing every
+card above a bottom-pinned axis with too few lanes to separate them.
+
+## Why the seed is thinned
+
+The lane algorithm can only offer about six lanes. A ±10 year view of the full
+52-milestone seed needs roughly **24** to place its cards without collisions, so
+they land on top of each other. Viewport and text size together buy two or three
+lanes, not eighteen — thinning is the only lever that closes that gap, and
+`KEEP_EVERY = 3` is where the collisions stop.
+
+Three supports around it:
+
+- **`PROTECTED`** — scenes look milestones up by title, so thinning must never
+  drop the ones a shot depends on.
+- **`EXCLUDE`** — the months either side of today are the seed's busiest stretch
+  and several entries there are protected, so one unprotected card landed on its
+  neighbours in every wide shot. Dropping it clears the last collision.
+- **`HORIZON`** — the thinned timeline otherwise dead-ends in early 2029 with a
+  decade of bare axis to its right. Three aspirational entries, deliberately
+  unevenly spaced, carry the eye to the edge of the window. They follow threads
+  the persona already has rather than inventing a new life.
+
+One density for every gallery, so the past/future counters — which are visible
+in the frames — agree across a listing.
+
+## Zoom choice: `years`, not `30yr`
+
+A preset names its **half**-range, so `30yr` is a *sixty* year window. On a
+27-year-old that leaves the outer thirds bare and crushes everything into the
+middle, where it piles up no matter how hard the seed is thinned. `years` is
+twenty years: it loses the childhood, but it spreads cards across the full width
+and the today marker and age readout — the two things that must survive Apple's
+thumbnail — are more legible for it.
 
 ## House style: no device chrome
 

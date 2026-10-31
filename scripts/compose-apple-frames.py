@@ -135,21 +135,33 @@ def fit_width(path, width):
 
 
 # ----------------------------------------------------------------- shots ---
-IPHONE_W, IPHONE_H = 1320, 2868
+# App Store Connect retired the 6.9" slot. The iPhone galleries are now
+# "iPhone with Dynamic Island (medium display)", which takes 1179 x 2556 or
+# 1206 x 2622, and "iPhone Duo". 1206 x 2622 is the larger of the two and its
+# aspect is within 0.06% of the old 1320 x 2868, so the composition carries over
+# unchanged — PHONE_K rescales the geometry and the type is re-rendered at the
+# new size rather than downsampled. Tablet slots are unchanged.
+IPHONE_W, IPHONE_H = 1206, 2622
+PHONE_K = IPHONE_W / 1320          # geometry below was tuned against the old canvas
 IPAD_W, IPAD_H = 2752, 2064
 IPAD_BAND = 480        # caption band; the pane fills the rest, bleeding to three edges
-PANE_GAP = 36
+PANE_GAP = round(36 * PHONE_K)
+
+
+def k(v):
+    """Scale a length tuned against the 1320-wide canvas to the current one."""
+    return round(v * PHONE_K)
 
 SHOTS = [
-    dict(kind="iphone", out="iphone69/01-decades.png", panes=["iphone/01a", "iphone/01b"],
-         eyebrow="DECADES TO WEEKS", l1="See your whole life,", l2="at a glance."),
-    dict(kind="iphone", out="iphone69/02-chapters.png", panes=["iphone/02a", "iphone/02b"],
+    dict(kind="iphone", out="iphone-dynamic-island/01-decades.png", panes=["iphone/01a", "iphone/01b"],
+         eyebrow="YEARS TO MONTHS", l1="See your whole life,", l2="at a glance."),
+    dict(kind="iphone", out="iphone-dynamic-island/02-chapters.png", panes=["iphone/02a", "iphone/02b"],
          eyebrow="CHAPTERS", l1="The eras you lived,", l2="drawn to scale."),
-    dict(kind="iphone", out="iphone69/03-future.png", panes=["iphone/03a", "iphone/03b"],
+    dict(kind="iphone", out="iphone-dynamic-island/03-future.png", panes=["iphone/03a", "iphone/03b"],
          eyebrow="THE FUTURE HALF", l1="Half your timeline", l2="hasn't happened yet."),
-    dict(kind="iphone", out="iphone69/04-on-this-day.png", panes=["iphone/04a", "iphone/04b"],
+    dict(kind="iphone", out="iphone-dynamic-island/04-on-this-day.png", panes=["iphone/04a", "iphone/04b"],
          eyebrow="ON THIS DAY", l1="What today meant", l2="in every other year."),
-    dict(kind="iphone", out="iphone69/05-add-milestone.png", panes=["iphone/05a"],
+    dict(kind="iphone", out="iphone-dynamic-island/05-add-milestone.png", panes=["iphone/05a"],
          eyebrow="ADD A MILESTONE", l1="Some memories have a date.", l2="Others have a year.",
          bullets=["Works fully offline.", "No account, no analytics.",
                   "Your life stays on your device."]),
@@ -163,8 +175,8 @@ SHOTS = [
 def compose_iphone(shot, pane_dir, out_path):
     canvas = build_bg(IPHONE_W, IPHONE_H)
     draw_caption(canvas, shot["eyebrow"], shot["l1"], shot["l2"],
-                 eb_y=150, eb_size=34, eb_track=10,
-                 head_y=236, head_size=132, head_pad=210)
+                 eb_y=k(150), eb_size=k(34), eb_track=k(10),
+                 head_y=k(236), head_size=k(132), head_pad=k(210))
 
     panes = [fit_width(pane_dir / f"{p}.png", IPHONE_W) for p in shot["panes"]]
     block_h = sum(p.height for p in panes) + PANE_GAP * (len(panes) - 1)
@@ -172,18 +184,19 @@ def compose_iphone(shot, pane_dir, out_path):
     if shot.get("bullets"):
         # One pane plus the privacy block: seat the pane just under the caption
         # and give the bullets the whole remaining column to centre in.
-        top = 760
+        top = k(760)
     else:
         # Two panes: centre the stack in the space below the caption, so the
         # bottom margin reads as deliberate rather than left over.
-        top = 620 + (IPHONE_H - 620 - block_h) // 2
+        top = k(620) + (IPHONE_H - k(620) - block_h) // 2
     y = top
     for p in panes:
         canvas.paste(p, (0, y))
         y += p.height + PANE_GAP
 
     if shot.get("bullets"):
-        draw_bullets(canvas, shot["bullets"], top + block_h, IPHONE_H - 60)
+        draw_bullets(canvas, shot["bullets"], top + block_h, IPHONE_H - k(60),
+                     size=k(56), gap=k(130))
 
     canvas.save(out_path)
     return canvas.size
