@@ -137,12 +137,20 @@ const HORIZON = [
 // lane count. Shot 2 wants the opposite in its lower pane: a tight run sitting
 // on one era. One seed cannot be both, so there are two. They are separate
 // screenshots, so the differing milestone counters are never seen together.
+// One seed for all five phone shots now that they are landscape: a pane gets
+// the full canvas width, so the collisions that forced the portrait frames
+// onto two seeds stop being the constraint. Twelve or so, spread across the
+// span rather than bunched in one decade.
+//
+// The three the on-this-day nudge moves onto today's date are deliberately in
+// here — shot 4's button only renders when some past milestone shares today's
+// month and day.
 const WIDE_TITLES = [
-  /Jake was born/i, /Family got a dog/i, /Got driver's license/i,
-  /Promoted to senior analyst/i, /Promotion to manager/i,
+  /Jake was born/i, /Family got a dog/i, /Parents' 25th anniversary/i,
+  /Got driver's license/i, /First day at Brex/i,
+  /Promoted to senior analyst/i, /Backpacked Europe/i, /Moved to Astoria/i,
+  /Started at Figma/i, /Promotion to manager/i,
 ]
-// Shot 2 only: the Brex-era run its zoomed pane is of.
-const WIDE_CLUSTER = [/Moved to Astoria/i, /Started at Figma/i]
 const WIDE_HORIZON = [
   { daysAhead: 2145, title: 'Six months in Lisbon',      category: 'travel', date_precision: 'month' },
   { daysAhead: 4260, title: "Parents' 50th anniversary", category: 'family', date_precision: 'year'  },
@@ -161,9 +169,8 @@ function horizonEntries(spec, now, offset = 0) {
   }))
 }
 
-function wideSeed(milestones, now, withCluster = false) {
-  const want = withCluster ? [...WIDE_TITLES, ...WIDE_CLUSTER] : WIDE_TITLES
-  return [...milestones.filter(m => want.some(re => re.test(m.title))),
+function wideSeed(milestones, now) {
+  return [...milestones.filter(m => WIDE_TITLES.some(re => re.test(m.title))),
           ...horizonEntries(WIDE_HORIZON, now, 1)]
 }
 
@@ -212,10 +219,8 @@ function redate(demo, now = new Date()) {
   const birthday = new Date(birthdayMs + shift * DAY).toISOString().slice(0, 10)
   const shaped = thinAndExtend(milestones, now)
   const wide = wideSeed(milestones, now)
-  const wideCluster = wideSeed(milestones, now, true)
-  return { milestones: shaped, wide, wideCluster, chapters, birthday, shift, nudged,
-           counts: `${milestones.length} seeded -> ${shaped.length} standard, `
-                 + `${wide.length} wide, ${wideCluster.length} wide+cluster` }
+  return { milestones: shaped, wide, chapters, birthday, shift, nudged,
+           counts: `${milestones.length} seeded -> ${shaped.length} standard, ${wide.length} wide` }
 }
 
 /* ---------------------------------------------------------------- scenes ---
@@ -288,12 +293,17 @@ const scenes = {
     await page.waitForTimeout(600)
   },
   // Several chapter ribbons at once, so the banding reads as structure.
+  // 'years', not 'months'. Zooming in makes a single ribbon span the pane but
+  // it is still a hairline and the rest of the frame empties out; at 'years'
+  // several eras are in shot at once with their names and durations, which is
+  // what "drawn to scale" actually means. A ribbon is a thin band by design —
+  // this is as much of the frame as it can honestly be.
   chaptersWide: async (page) => {
     await setZoom(page, 'years')
     // Must be a title the pane's own seed actually contains — a scene that
     // searches for a milestone thinned out of its seed dies on a 30s click
     // timeout rather than anything legible.
-    await focusMilestone(page, 'Started at Figma')
+    await focusMilestone(page, 'Promoted to senior analyst')
   },
   // One labelled ribbon over the milestones it contains — the chapter idea
   // explaining itself rather than decorating the axis.
@@ -305,9 +315,10 @@ const scenes = {
   futureView: async (page) => {
     await page.keyboard.press('f')
     await page.waitForTimeout(500)
-    await setZoom(page, 'months')
-    await page.keyboard.press('ArrowRight')
-    await page.waitForTimeout(700)
+    // '30yr' rather than 'months': the spread seed's future entries are years
+    // apart, so a narrow window shows an empty axis and the counter alone.
+    await setZoom(page, '30yr')
+    await page.waitForTimeout(900)
   },
   futureCountdown: async (page) => {
     await setZoom(page, 'months')
@@ -358,55 +369,43 @@ const scenes = {
 // mode the lane count rises with height, so each viewport sits as close to 900
 // CSS px as its output aspect allows: 792 bought four lanes, 880 buys six.
 // deviceScaleFactor absorbs the difference, so output pixels are unchanged.
-const PHONE_APPLE = { width: 1206, height: 860, scale: 1 }    // → 1206 x 860 1:1, two stacked per canvas
-// Shots 1 and 2 went to a single pane on the theory that the collisions came
-// from stacking two. They did not — they came from seed density, and the wide
-// seed below is what fixed them. A single pane cannot fill this canvas either:
-// compactLayout caps a pane near 900px, so one leaves most of the frame empty,
-// and clearing the cap centres the axis so a sparse timeline hugs it and
-// leaves the PANE empty instead. Two stacked landscape panes fill a portrait
-// canvas; that is why the set is built that way.
-const PHONE_TALL = { width: 1206, height: 860, scale: 1 }     // → 1206 x 860
-// Shot 2 wants the chapter ribbons to be the subject. A narrower CSS viewport
-// would draw them larger, but anything 1024px or under in portrait trips the
-// app's rotate-your-device overlay, which covers the whole screen. So it keeps
-// the wide viewport and enlarges the band the other way, through text size:
-// CHAPTER_ROW_H is remPx * 0.62, so 'big' lifts the ribbons from 12px to 16px
-// and their labels with them.
-const PHONE_BAND = { ...PHONE_TALL }
-const PHONE_PLAY  = { width: 1200, height: 675, scale: 1.6 }  // → 1920 x 1080, Play phone slot as shipped
+// Landscape, one pane per canvas. The Apple pane fills everything right of the
+// caption column (2622 - 1010); the Play canvas is raw app surface edge to
+// edge, as that gallery has always been. Both render 1:1 or 2:1, so nothing is
+// resampled. Heights clear the 900px compactLayout threshold, which is what we
+// want here: the axis centres and cards alternate above and below it, filling
+// a short wide pane instead of stacking against one edge.
+const PHONE_APPLE = { width: 1612, height: 1206, scale: 1 }  // → 1612 x 1206
+const PHONE_PLAY  = { width: 1320, height: 660,  scale: 2 }  // → 2640 x 1320, Play's 2:1 cap
+// Shots 4 and 5 are dialogs. A dialog is a fixed width in CSS px, so in a
+// 1612px-wide viewport it is a small box adrift in a dimmed pane; a narrower
+// viewport scaled up to the same output makes it the subject.
+const PHONE_MODAL = { width: 1100, height: 823, scale: 1612 / 1100 } // → 1612 x 1206
+const PLAY_MODAL  = { width: 900,  height: 450, scale: 2640 / 900 }  // → 2640 x 1320
+// The add sheet is a much longer form than the on-this-day panel, so it needs
+// more CSS height to fit uncut — which means magnifying it slightly less.
+const PHONE_SHEET = { width: 1340, height: 1002, scale: 1612 / 1340 } // → 1612 x 1206
+const PLAY_SHEET  = { width: 1180, height: 590,  scale: 2640 / 1180 } // → 2640 x 1320
 const TAB7        = { width: 1422, height: 889, scale: 1.35 } // → 1920 x 1200
 const TAB10       = { width: 1422, height: 889, scale: 1.8 }  // → 2560 x 1600
 const IPAD        = { width: 1529, height: 880, scale: 1.8 }  // → 2752 x 1584, under the 480px caption band
-// The add sheet is a modal: at the wider phone viewport it floated in a sea of
-// dimmed backdrop. A tighter viewport lets the sheet carry the pane.
-const SHEET_APPLE = { width: 760, height: 690, scale: 2 }   // → 1520 x 1380; tall enough that the sheet is not clipped
-// Same 16:9 Play phone slot, but a taller CSS viewport so the add sheet fits
-// instead of being cut off mid-category-row: 1120 x 630 x 1.7143 = 1920 x 1080.
-const SHEET_PLAY  = { width: 1120, height: 630, scale: 1920 / 1120 }
 
 const PANE_SET = [
-  // Apple iPhone — two panes per shot, stacked by the compositor.
-  { id: 'iphone/01a', vp: PHONE_TALL, scene: 'wholeLife',    seed: 'wide' },
-  // The close-up pane takes the cluster seed: a seed spread wide enough for
-  // shot 1's sixty-year pane has nothing at all inside an 18-month window.
-  { id: 'iphone/01b', vp: PHONE_TALL, scene: 'closeUp',      seed: 'wideCluster' },
-  { id: 'iphone/02a', vp: PHONE_TALL, scene: 'chaptersWide', seed: 'wideCluster' },
-  { id: 'iphone/02b', vp: PHONE_BAND, scene: 'chapterBand',  seed: 'wideCluster', text: 'big' },
-  { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView' },
-  { id: 'iphone/03b', vp: PHONE_APPLE, scene: 'futureCountdown' },
-  { id: 'iphone/04a', vp: PHONE_APPLE, scene: 'onThisDay' },
-  { id: 'iphone/04b', vp: PHONE_APPLE, scene: 'onThisDayContext' },
-  { id: 'iphone/05a', vp: SHEET_APPLE, scene: 'addMilestone' },
-  // Apple iPad — one pane per shot.
+  // Apple iPhone — one landscape pane per shot.
+  { id: 'iphone/01a', vp: PHONE_APPLE, scene: 'wholeLife',    seed: 'wide' },
+  { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chaptersWide', seed: 'wide' },
+  { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView',   seed: 'wide' },
+  { id: 'iphone/04a', vp: PHONE_MODAL, scene: 'onThisDay',    seed: 'wide' },
+  { id: 'iphone/05a', vp: PHONE_SHEET, scene: 'addMilestone', seed: 'wide' },
+  // Apple iPad — unchanged.
   { id: 'ipad/06a', vp: IPAD, scene: 'ipadTimeline' },
   { id: 'ipad/07a', vp: IPAD, scene: 'milestoneDetail' },
   // Google Play — written straight out, no composition.
-  { id: 'play/phone/01-decades',       vp: PHONE_PLAY, scene: 'wholeLife' },
-  { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chaptersClose' },
-  { id: 'play/phone/03-future',        vp: PHONE_PLAY, scene: 'futureCountdown' },
-  { id: 'play/phone/04-on-this-day',   vp: PHONE_PLAY, scene: 'onThisDay' },
-  { id: 'play/phone/05-add-milestone', vp: SHEET_PLAY, scene: 'addMilestone' },
+  { id: 'play/phone/01-decades',       vp: PHONE_PLAY, scene: 'wholeLife',    seed: 'wide' },
+  { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chaptersWide', seed: 'wide' },
+  { id: 'play/phone/03-future',        vp: PHONE_PLAY, scene: 'futureView',   seed: 'wide' },
+  { id: 'play/phone/04-on-this-day',   vp: PLAY_MODAL, scene: 'onThisDay',    seed: 'wide' },
+  { id: 'play/phone/05-add-milestone', vp: PLAY_SHEET, scene: 'addMilestone', seed: 'wide' },
   { id: 'play/tablet7/01-timeline',    vp: TAB7,  scene: 'wideTimeline' },
   { id: 'play/tablet7/02-milestone-detail', vp: TAB7, scene: 'milestoneDetail' },
   { id: 'play/tablet10/01-timeline',   vp: TAB10, scene: 'wideTimeline' },

@@ -14,25 +14,41 @@ out, and composes the Apple canvases. Everything is declared in
 
 | Slot | Canvas | Files |
 |---|---|---|
-| `apple/iphone-dynamic-island/` | 1206 × 2622 portrait | 5 |
+| `apple/iphone-dynamic-island/` | 2622 × 1206 landscape | 5 |
 | `apple/ipad13/` | 2752 × 2064 landscape | 2 |
-| `play/phone/` | 1920 × 1080 landscape | 5 |
+| `play/phone/` | 2640 × 1320 landscape | 5 |
 | `play/tablet7/` | 1920 × 1200 landscape | 2 |
 | `play/tablet10/` | 2560 × 1600 landscape | 2 |
 
 `apple/captions.json` is written alongside the frames and carries the caption
 text of each Apple shot, so the listing copy and the images cannot drift apart.
 
-## The iPhone canvas
+## The iPhone canvas is landscape
 
 App Store Connect retired the 6.9" slot. The iPhone galleries are now **iPhone
-with Dynamic Island (medium display)**, which accepts 1206 × 2622 or
-1179 × 2556, and **iPhone Duo**. We use the larger of the two.
+with Dynamic Island (medium display)** and **iPhone Duo**, and the first
+accepts landscape as well as portrait: 2556 × 1179, 1179 × 2556, 2622 × 1206,
+1206 × 2622. We use **2622 × 1206**.
 
-Its aspect is within 0.06% of the old 1320 × 2868, so the composition carried
-over untouched: `PHONE_K` in the compositor rescales the tuned geometry and the
-type is re-rendered at the new size rather than downsampled. Tablet slots are
-unchanged, so the iPad frames were unaffected by the change.
+Landscape is not a cosmetic choice — it removes the problem every earlier round
+of these frames was fighting. lifeGLANCE is landscape-locked, so a portrait
+canvas can only hold the app as a short band, which forced two stacked panes,
+which halved the lanes available to the card layout, which made cards collide.
+One landscape pane fills a landscape canvas the way the iPad frames always did.
+No stacking, no half-height panes, no collisions from either.
+
+### Caption left, pane right
+
+2622 × 1206 is very wide and short. The house layout puts the caption above the
+device, which at this aspect squeezes both into nothing, so the phone frames
+put the caption in a **column to the left** (`CAPTION_COL`, 1010px) with the
+pane bleeding to the top, right and bottom edges. The caption treatment is
+otherwise unchanged, and the background glow moves to sit behind it
+(`glow_x`). Shot 5's privacy bullets sit under the caption in that column,
+beside the dialog rather than below it — there is no below on a 1206px canvas.
+
+The iPad frames keep the caption band above the pane: at 2752 × 2064 there is
+room for it, and they were already working.
 
 ## Three settings carry these frames
 
@@ -59,6 +75,15 @@ The trap worth knowing: capture at 792 px and the frames look broken in a way
 that reads as a seed problem. It is not. It is compact layout forcing every
 card above a bottom-pinned axis with too few lanes to separate them.
 
+## Dialog shots render smaller
+
+A dialog is a fixed width in CSS pixels, so in a 1612px-wide viewport it is a
+small box adrift in a dimmed pane. Shots 4 and 5 therefore use narrower CSS
+viewports scaled up to the same output pixels (`PHONE_MODAL`, `PHONE_SHEET`),
+which makes the dialog the subject. The add sheet is a much longer form than
+the on-this-day panel, so it gets more CSS height and slightly less
+magnification — otherwise it is cut off at the foot of the pane.
+
 ## Why the seed is thinned
 
 The lane algorithm can only offer about six lanes. A ±10 year view of the full
@@ -82,7 +107,28 @@ Three supports around it:
 One density for every gallery, so the past/future counters — which are visible
 in the frames — agree across a listing.
 
-## Zoom choice: `years`, not `30yr`
+The five phone shots use a separate, sparser seed again (`WIDE_TITLES` plus
+`WIDE_HORIZON`): about a dozen milestones spread from 1999 to 2049 rather than
+bunched in one decade. The three that the on-this-day nudge moves onto today's
+date are deliberately among them, because shot 4's button only renders when
+some past milestone shares today's month and day.
+
+## Zoom choices
+
+Shot 1 is `30yr` — a *sixty* year window, since a preset names its half-range —
+and with the sparse seed and the full landscape width it holds, carrying cards
+from 1999 to 2049.
+
+Shot 3 is `30yr` too rather than `months`: the sparse seed's future entries are
+years apart, so a narrow window shows an empty axis and the counter alone.
+
+Shot 2 is `years`. Zooming further in makes a single ribbon span the pane, but
+it is still a hairline and the rest of the frame empties out; at `years`
+several eras are in shot at once with their names and durations on them, which
+is what "drawn to scale" means. A ribbon is a thin band by design — this is as
+much of a frame as it can honestly be.
+
+### The old portrait note, kept for the record
 
 A preset names its **half**-range, so `30yr` is a *sixty* year window. On a
 27-year-old that leaves the outer thirds bare and crushes everything into the
