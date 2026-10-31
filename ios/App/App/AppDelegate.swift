@@ -7,7 +7,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // RevenueCat, before the scene loads MainViewController and its web
+        // view: BillingBridgePlugin reads the cached entitlement and prices
+        // this starts fetching. The key is the lifeGLANCE RevenueCat project's
+        // public Apple SDK key (not interchangeable with lastGLANCE's).
+        RevenueCatBilling.shared.configure(apiKey: "appl_QqAOGMhzlQloaQEiUnqyzndgVAo")
         return true
     }
 

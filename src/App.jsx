@@ -71,7 +71,8 @@ export default function App() {
   }
 
   // Entitlement engine — inert (ungated, 'channel' source) everywhere except
-  // the Play Android build, which is the only channel that gets an adapter.
+  // the store builds (Play on Android, the iOS app), the only ones that get an
+  // adapter (src/billing/billing.js).
   const billing = useSubscription()
   const [subscriptionOpen, setSubscriptionOpen] = useState(false)
 
@@ -86,7 +87,7 @@ export default function App() {
 
   // Dev-only: force the paywall on the web build so the gate + reviewer flow can
   // be exercised with `npm run dev` (visit /?wall). The real gate is
-  // Play-Android-only, and the ungated engine always reports isUnlocked, so this
+  // store-builds-only, and the ungated engine always reports isUnlocked, so this
   // path can't key off it — show unless already reviewer-unlocked.
   const devWall = import.meta.env.DEV && new URLSearchParams(location.search).has('wall')
 
