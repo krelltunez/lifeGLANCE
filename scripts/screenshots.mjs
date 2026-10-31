@@ -132,16 +132,17 @@ const HORIZON = [
 // the right of a sixty-year window is not dead. Marketing data — it does not
 // have to be a plausible life, only a legible one. Every other shot keeps the
 // ordinary seed, so nothing else in the set moves.
+// Shot 1 spans sixty years, where a card covers roughly seven years of axis,
+// so its milestones have to be that far apart or they collide whatever the
+// lane count. Shot 2 wants the opposite in its lower pane: a tight run sitting
+// on one era. One seed cannot be both, so there are two. They are separate
+// screenshots, so the differing milestone counters are never seen together.
 const WIDE_TITLES = [
-  /Jake was born/i, /First day of school/i, /Family got a dog/i,
-  /Parents' 25th anniversary/i, /Got driver's license/i,
-  /College graduation/i, /Promoted to senior analyst/i, /Started at Figma/i,
-  /Promotion to manager/i, /Buy first apartment/i,
-  // Shot 2 zooms into the Brex era, and the caption wants a *run* of
-  // milestones sitting on the ribbon rather than a lone card. These two put
-  // company in that window; they are spread enough not to crowd shot 1.
-  /Moved to Astoria/i, /Japan solo trip/i,
+  /Jake was born/i, /Family got a dog/i, /Got driver's license/i,
+  /Promoted to senior analyst/i, /Promotion to manager/i,
 ]
+// Shot 2 only: the Brex-era run its zoomed pane is of.
+const WIDE_CLUSTER = [/Moved to Astoria/i, /Started at Figma/i]
 const WIDE_HORIZON = [
   { daysAhead: 2145, title: 'Six months in Lisbon',      category: 'travel', date_precision: 'month' },
   { daysAhead: 4260, title: "Parents' 50th anniversary", category: 'family', date_precision: 'year'  },
@@ -160,8 +161,9 @@ function horizonEntries(spec, now, offset = 0) {
   }))
 }
 
-function wideSeed(milestones, now) {
-  return [...milestones.filter(m => WIDE_TITLES.some(re => re.test(m.title))),
+function wideSeed(milestones, now, withCluster = false) {
+  const want = withCluster ? [...WIDE_TITLES, ...WIDE_CLUSTER] : WIDE_TITLES
+  return [...milestones.filter(m => want.some(re => re.test(m.title))),
           ...horizonEntries(WIDE_HORIZON, now, 1)]
 }
 
@@ -210,8 +212,10 @@ function redate(demo, now = new Date()) {
   const birthday = new Date(birthdayMs + shift * DAY).toISOString().slice(0, 10)
   const shaped = thinAndExtend(milestones, now)
   const wide = wideSeed(milestones, now)
-  return { milestones: shaped, wide, chapters, birthday, shift, nudged,
-           counts: `${milestones.length} seeded -> ${shaped.length} standard, ${wide.length} wide` }
+  const wideCluster = wideSeed(milestones, now, true)
+  return { milestones: shaped, wide, wideCluster, chapters, birthday, shift, nudged,
+           counts: `${milestones.length} seeded -> ${shaped.length} standard, `
+                 + `${wide.length} wide, ${wideCluster.length} wide+cluster` }
 }
 
 /* ---------------------------------------------------------------- scenes ---
@@ -278,13 +282,18 @@ const scenes = {
   // with a single milestone in it.
   closeUp: async (page) => {
     await setZoom(page, 'months')
+    await focusMilestone(page, 'Promoted to senior analyst')
+    return
     for (let i = 0; i < 2; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(320) }
     await page.waitForTimeout(600)
   },
   // Several chapter ribbons at once, so the banding reads as structure.
   chaptersWide: async (page) => {
     await setZoom(page, 'years')
-    await focusMilestone(page, 'College graduation')
+    // Must be a title the pane's own seed actually contains — a scene that
+    // searches for a milestone thinned out of its seed dies on a 30s click
+    // timeout rather than anything legible.
+    await focusMilestone(page, 'Started at Figma')
   },
   // One labelled ribbon over the milestones it contains — the chapter idea
   // explaining itself rather than decorating the axis.
@@ -350,25 +359,21 @@ const scenes = {
 // CSS px as its output aspect allows: 792 bought four lanes, 880 buys six.
 // deviceScaleFactor absorbs the difference, so output pixels are unchanged.
 const PHONE_APPLE = { width: 1206, height: 860, scale: 1 }    // → 1206 x 860 1:1, two stacked per canvas
-// Shots 1 and 2 are a single pane rather than two stacked, which is what fixes
-// the collisions: one pane gets the lanes that were previously split between
-// two. 900 CSS px is the tallest a pane can be and still trip compactLayout,
-// and compact is what we want here — it pins the axis low and stacks cards
-// upward so they fill the pane. Clearing 900 instead centres the axis, and a
-// sparse timeline then hugs it and leaves two thirds of the PANE empty, which
-// reads as a broken screenshot. Empty background reads as layout; empty app
-// does not.
-const PHONE_TALL = { width: 1206, height: 900, scale: 1 }     // → 1206 x 900
+// Shots 1 and 2 went to a single pane on the theory that the collisions came
+// from stacking two. They did not — they came from seed density, and the wide
+// seed below is what fixed them. A single pane cannot fill this canvas either:
+// compactLayout caps a pane near 900px, so one leaves most of the frame empty,
+// and clearing the cap centres the axis so a sparse timeline hugs it and
+// leaves the PANE empty instead. Two stacked landscape panes fill a portrait
+// canvas; that is why the set is built that way.
+const PHONE_TALL = { width: 1206, height: 860, scale: 1 }     // → 1206 x 860
 // Shot 2 wants the chapter ribbons to be the subject. A narrower CSS viewport
 // would draw them larger, but anything 1024px or under in portrait trips the
 // app's rotate-your-device overlay, which covers the whole screen. So it keeps
 // the wide viewport and enlarges the band the other way, through text size:
 // CHAPTER_ROW_H is remPx * 0.62, so 'big' lifts the ribbons from 12px to 16px
 // and their labels with them.
-// Captured at 2x so the compositor can crop into it and still have real pixels:
-// the chapter band is the subject of shot 2, and a 1x pane cannot be magnified
-// without going soft.
-const PHONE_BAND = { ...PHONE_TALL, scale: 2 }
+const PHONE_BAND = { ...PHONE_TALL }
 const PHONE_PLAY  = { width: 1200, height: 675, scale: 1.6 }  // → 1920 x 1080, Play phone slot as shipped
 const TAB7        = { width: 1422, height: 889, scale: 1.35 } // → 1920 x 1200
 const TAB10       = { width: 1422, height: 889, scale: 1.8 }  // → 2560 x 1600
@@ -382,8 +387,12 @@ const SHEET_PLAY  = { width: 1120, height: 630, scale: 1920 / 1120 }
 
 const PANE_SET = [
   // Apple iPhone — two panes per shot, stacked by the compositor.
-  { id: 'iphone/01a', vp: PHONE_TALL, scene: 'wholeLife', seed: 'wide' },
-  { id: 'iphone/02a', vp: PHONE_BAND, scene: 'chapterBand', seed: 'wide', text: 'big' },
+  { id: 'iphone/01a', vp: PHONE_TALL, scene: 'wholeLife',    seed: 'wide' },
+  // The close-up pane takes the cluster seed: a seed spread wide enough for
+  // shot 1's sixty-year pane has nothing at all inside an 18-month window.
+  { id: 'iphone/01b', vp: PHONE_TALL, scene: 'closeUp',      seed: 'wideCluster' },
+  { id: 'iphone/02a', vp: PHONE_TALL, scene: 'chaptersWide', seed: 'wideCluster' },
+  { id: 'iphone/02b', vp: PHONE_BAND, scene: 'chapterBand',  seed: 'wideCluster', text: 'big' },
   { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView' },
   { id: 'iphone/03b', vp: PHONE_APPLE, scene: 'futureCountdown' },
   { id: 'iphone/04a', vp: PHONE_APPLE, scene: 'onThisDay' },
@@ -519,7 +528,7 @@ async function main() {
       })
       const page = await ctx.newPage()
       try {
-        await seed(page, pane.seed === 'wide' ? { ...data, milestones: data.wide } : data, pane.text)
+        await seed(page, pane.seed ? { ...data, milestones: data[pane.seed] } : data, pane.text)
         await scenes[pane.scene](page)
         await page.screenshot({ path: file })
         console.log(`  ✓ ${pane.id}`)

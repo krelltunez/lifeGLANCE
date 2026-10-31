@@ -166,15 +166,20 @@ SHOTS = [
     # Shots 1 and 2 are a single full-height pane. Stacking two panes gave each
     # half the canvas height, which halved the lanes and was the direct cause of
     # the card collisions in these two frames.
-    dict(kind="iphone", out="iphone-dynamic-island/01-decades.png", panes=["iphone/01a"], full=True,
+    dict(kind="iphone", out="iphone-dynamic-island/01-decades.png",
+         panes=["iphone/01a", "iphone/01b"],
          eyebrow="DECADES TO WEEKS", l1="See your whole life,", l2="at a glance."),
-    # Cropped into the 2x capture at 1:1, which doubles the band's size without
-    # resampling: compact layout parks the axis near the foot of the pane, so
-    # uncropped the ribbon is a strip along the bottom under a half-empty pane.
-    # The crop drops the empty head and the footer chrome and leaves the run of
-    # milestones sitting on their labelled era, which is the caption's claim.
-    dict(kind="iphone", out="iphone-dynamic-island/02-chapters.png", panes=["iphone/02a"], full=True,
-         crop=(0.25, 0.75, 0.38, 0.88),
+    # Upper pane: the eras across the timeline, drawn to their real lengths.
+    # Lower pane: zoomed to months, where a ribbon is wide enough to carry its
+    # name and duration, with the milestones it contains sitting on it. The
+    # pair is the caption — the scale, then one era at readable size.
+    #
+    # A magnified crop of the band was tried here and abandoned: every window
+    # that held the ribbon also clipped the card titles above it or dragged in
+    # the footer chrome below, because compact layout parks all three within a
+    # couple of hundred pixels of each other.
+    dict(kind="iphone", out="iphone-dynamic-island/02-chapters.png",
+         panes=["iphone/02a", "iphone/02b"],
          eyebrow="CHAPTERS", l1="The eras you lived,", l2="drawn to scale."),
     dict(kind="iphone", out="iphone-dynamic-island/03-future.png", panes=["iphone/03a", "iphone/03b"],
          eyebrow="THE FUTURE HALF", l1="Half your timeline", l2="hasn't happened yet."),
@@ -192,8 +197,9 @@ SHOTS = [
 
 
 def compose_iphone(shot, pane_dir, out_path):
-    panes = [fit_width(pane_dir / f"{p}.png", IPHONE_W, shot.get("crop"))
-             for p in shot["panes"]]
+    crops = shot.get("crops") or [None] * len(shot["panes"])
+    panes = [fit_width(pane_dir / f"{p}.png", IPHONE_W, c)
+             for p, c in zip(shot["panes"], crops)]
     block_h = sum(p.height for p in panes) + PANE_GAP * (len(panes) - 1)
 
     if shot.get("full"):
