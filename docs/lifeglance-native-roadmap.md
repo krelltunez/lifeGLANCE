@@ -2,6 +2,12 @@
 
 Status: planning doc, not a spec. Intended as shared context for implementation work.
 
+Last trued up against the tree: **31 October 2026**, at the point the iOS app
+was readied for App Store submission. The two rounds before that shipped
+without updating this file, so treat an un-dated claim here with suspicion and
+check `MainViewController.swift` / `MainActivity.java` for what is actually
+registered.
+
 Scope: native platform features for the lifeGLANCE Capacitor builds (Android + iOS). Both platforms already build and run.
 
 ---
@@ -19,7 +25,18 @@ lifeGLANCE media (photos, audio, video) currently lives in IndexedDB:
 - Audio/video key: `${milestone_id}` (same as `media_id`)
 - Stored as `{ id, blob, mimeType }` tuples
 - Relevant code: `src/data/db.js` (`dbPutPhoto`, `dbGetPhoto`, `dbPutMedia`, `dbGetMedia`), `src/data/milestones.js` (schema fields `has_photo`, `media_type`, `media_id`, `photo_id`), `src/components/timeline/TimelineView.jsx` (upload + persist on save)
-- Only metadata syncs. Blobs are stranded on the originating device.
+
+**Update (Oct 2026): blobs are no longer stranded.** `src/blobs/` now carries
+media through GLANCEvault — `blobTransport.js` (encrypt → existence-check →
+resumable upload → finalize, and download → decrypt), `blobCrypto.js`,
+`thumbnail.js`, `milestoneMedia.js`, and `mediaBackfill.js` to migrate the
+existing local-only library. New attachments round-trip on save; the local
+IndexedDB store stays as source and fallback. Crypto stayed in the one shared
+JS path, as this document required.
+
+That closes the sync half of the byte plane. It does **not** close the native
+half: the blob store is a JS/network client, so Swift and Kotlin still cannot
+read media bytes. See *Blocked* below, where the blocker has changed shape.
 
 Native code cannot read IndexedDB. This splits native features cleanly:
 
@@ -50,7 +67,13 @@ It is infrastructure, not a feature. Nobody sees it. Every read-side native surf
 1. The projection write hangs off the same debounced on-change hook as push-on-write, but **must also flush on `visibilitychange` / `pagehide`**. Background-tab timer throttling can prevent a debounced flush from firing. A stale projection when the user pulls down a widget is that bug in a new costume.
 2. Any native-originated mutation (write-back from a notification or intent) **stamps a stable `transitionId` at the native mutation point** and the JS drain **preserves** it, never regenerates it. Re-stamping on drain produces duplicate events across devices.
 
-Note: since widgets are already shipped, some form of projection store already exists. Worth confirming whether it is a deliberate reusable plugin or something narrower built just to feed the widget, before the next surface lands on it.
+**Answered (Oct 2026): it is reusable, and three surfaces now ride on it.** On
+iOS the App Group store behind `WidgetBridgePlugin` feeds the widgets, carries
+the `pending_target` / `pending_action` contract that `SceneDelegate` writes and
+`consumeLaunchTarget()` drains, and is the path a tapped Spotlight result and
+the add-a-milestone App Intent both take. On Android the equivalent is
+`WidgetData.kt`. Extend that contract for a new surface rather than growing a
+parallel bridge.
 
 ---
 
@@ -58,15 +81,34 @@ Note: since widgets are already shipped, some form of projection store already e
 
 | Feature | Platforms |
 |---|---|
-| Widgets | Android (Jetpack Glance) + iOS (WidgetKit) |
+| Widgets | Android (Jetpack Glance, 10 providers) + iOS (WidgetKit, 11 widgets) |
 | Share targets | Both |
-| Ambient / watch mode | Both (keep-awake + auto-run, already present) |
+| Ambient / watch mode | Both (keep-awake + auto-run) |
 | Lock Screen widget families | iOS (accessory circular / rectangular / inline) |
 | App Intents: add-a-milestone | iOS (Siri + Shortcuts) |
+| Quick Settings tile, long-press shortcuts | Android |
+| **Photo Picker** | Android (`MediaPickerPlugin.kt`) |
+| **SAF `ACTION_OPEN_DOCUMENT`** | Android (same plugin, audio/video) |
+| **Core Spotlight** | iOS (`SpotlightPlugin.swift` + `src/utils/spotlightIndex.js`) |
+| **Zero-config iCloud sync** | iOS (`ICloudPlugin.swift`, `docs/icloud-sync.md`) |
+| **Direct Access folder/file sync** | Both (`docs/direct-access.md`) |
+| **Secure store / device verification** | Both (`docs/secure-store-device-verification.md`) |
+| **Vault SSE** | Both |
+| **Store billing** | Android (Play) + iOS (RevenueCat / StoreKit 2) |
+| **UIScene lifecycle** | iOS (required by the iOS 27 SDK; without it the app is killed at launch) |
 
-Both iOS entries are device-verified, not merely shipped.
+The bolded rows all landed after this table was last written. Registered
+plugins are the ground truth: seven on iOS (`MainViewController.swift`) and
+seven on Android (`MainActivity.java`).
 
-**iOS now targets 16.0** (raised from 15.0), which both of those required. Worth
+The Lock Screen families and the App Intent are device-verified. The camera
+path is **not**: `NSCameraUsageDescription` / `NSMicrophoneUsageDescription`
+were added to `Info.plist` in Oct 2026 because WKWebView's `<input type=file>`
+capture runs in-process and terminates the app without them, but that has only
+been reasoned from the code — the Simulator has no camera. Verify on hardware.
+
+**iOS now targets 16.0** (raised from 15.0), which the Lock Screen families and
+the App Intent both required. Worth
 knowing before planning further iOS work: anything gated on iOS 16 is now free,
 and StandBy (17+) is the next threshold if it is ever wanted — though it stays
 explicitly skipped below.
@@ -86,18 +128,29 @@ it as a bug.
 
 | Feature | Platform | Notes |
 |---|---|---|
-| Photo Picker | Android | Permission-free image/video import. Works today despite IndexedDB media because import is foreground and one-shot. |
-| SAF `ACTION_OPEN_DOCUMENT` | Android | Audio import. Photo Picker is visual-only. Also permission-free. |
-| Material You / Monet theming | Android | Wallpaper-derived palette. Makes a personal timeline feel personal. |
+| Material You / Monet theming | Android | Wallpaper-derived palette. Makes a personal timeline feel personal. Still unbuilt: the app runs on a plain `AppTheme` with no `DynamicColors` call. |
 
-### Photo Picker implementation note
+The Photo Picker and SAF entries that used to sit here **shipped** — see *Done*.
 
-Capacitor-idiomatic path: do **not** intercept `WebChromeClient.onShowFileChooser`. Instead call a native plugin (Camera/Gallery plugin, or a thin custom one) that fires the `PickVisualMedia` / `PickMultipleVisualMedia` ActivityResult contract and hands the URI back to JS.
+### Photo Picker: what shipped
 
-- No `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO` declared, no permission prompt
-- The URI grant is temporary and scoped. Copy bytes into app-owned storage immediately.
-- Use `Capacitor.convertFileSrc()` so JS can `fetch(url).then(r => r.blob())` straight into `dbPutMedia`. Avoids ~33% base64 inflation, which matters for video.
-- The existing web storage path is unchanged. It just receives URIs from a nicer picker.
+As specified. `MediaPickerPlugin.kt` fires the ActivityResult contracts and
+hands the URI back; `WebChromeClient.onShowFileChooser` was not intercepted. No
+`READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO` is declared and there is no permission
+prompt. `Capacitor.convertFileSrc()` carries the bytes as a stream rather than
+base64.
+
+The JS side is `src/native/mediaPicker.js`, whose return contract distinguishes
+"no native picker here" (`null`) from "user cancelled" (`{ cancelled: true }`),
+so web and iOS fall through to the hidden `<input type="file">` unchanged.
+
+**That fall-through has an iOS consequence worth knowing**, because it is not
+obvious from either side: iOS registers no `MediaPicker`, so every iOS attach
+goes through the raw file input, whose action sheet offers "Take Photo or
+Video" — an in-process capture. That is why iOS needs camera and microphone
+usage strings in `Info.plist` and Android does not. Guarded by
+`src/native/mediaCaptureIosParity.test.js`; if an iOS picker is ever added,
+that test fails and points at this reasoning.
 
 ### App Intents scoping — shipped as specified
 
@@ -124,21 +177,46 @@ Listed for completeness. These apply to all three GLANCE apps.
 | BiometricPrompt / Face ID app lock | Both | |
 | Splash screen, predictive back, per-app language | Both | Native polish. Per-app language ties to the i18n work. |
 
+None of the above has landed as of Oct 2026, with one partial: `WorkManager`
+is in the tree but only to refresh widgets (`WidgetRefreshWorker.kt`), not as a
+sync scheduler. There is no `BGTaskScheduler`, no associated-domains or
+`autoVerify` app-links entry on either platform, and no biometric lock.
+
 **Two intent surfaces, not one.** Keep a signature-permission **trusted** channel that only co-signed GLANCE apps can fire, and a separate **lower-privilege** automation surface for Tasker (forgeable by design, simple commands). Given the dedup/`transitionId` integrity history, do not let any app that learns the action strings forge events into the trusted stream.
 
 ---
 
 ## Blocked on GLANCEvault (byte plane)
 
-All three unblock together when `MediaStore` / `BlobProvider` lands.
+**The blocker has changed shape.** GLANCEvault's blob store landed (see
+*Metadata plane vs byte plane* above), so media now syncs and thumbnails are
+generated. What is still missing is a way for **native** code to read those
+bytes: `src/blobs/` is a JS/network client, and a widget or provider cannot
+call it.
 
-| Feature | Platform | Why blocked |
+So these three no longer wait on a blob store existing. They wait on a native
+bridge to the one that does.
+
+| Feature | Platform | Why still blocked |
 |---|---|---|
-| DocumentsProvider | Android | Needs native byte ownership. A `ContentProvider` can be queried while the app is backgrounded, and you cannot reliably drive a headless WebView to fetch blobs from IndexedDB on demand. |
+| DocumentsProvider | Android | Needs native byte ownership. A `ContentProvider` can be queried while the app is backgrounded, and you cannot reliably drive a headless WebView to fetch blobs on demand. |
 | File Provider extension | iOS | Same wall. iOS twin of DocumentsProvider. |
-| Photos / thumbnails in widgets | Both | Widgets can show text and dates only until native can read media bytes. |
+| Photos / thumbnails in widgets | Both | Widgets render text and dates only. Confirmed: no widget on either platform reads user media — the only images anywhere in the widget targets are SF Symbols (`Image(systemName:)`) for the Lock Screen accessories. |
+
+The widget case is now the cheapest of the three and no longer needs the full
+abstraction: thumbnails already exist (`src/blobs/thumbnail.js`), and the
+projection store is already a native-readable mirror the WebView keeps fresh.
+Writing decrypted thumbnail bytes into the App Group / app-private directory
+alongside the projection would put photos in widgets without any provider work.
+The cost is decrypted media at rest outside IndexedDB, which is a privacy
+decision rather than an engineering one, and should be made deliberately.
 
 ### The eventual shape
+
+**Partly built.** The GLANCEvault blob client in `src/blobs/` is the network
+half of this and is content-addressed, so it already behaves like `getBytes` /
+`putBytes` / `has` over the wire. What is described below is still the right
+shape for the *native* half, which does not exist.
 
 A byte-source abstraction mirroring the `GlanceTransport` pattern: `getBytes(id)`, `putBytes(id, stream)`, `has(id)`, `delete(id)`. The sync and encryption pipeline depends only on the interface.
 
@@ -153,13 +231,21 @@ The `documentId` scheme lines up naturally with the existing `media_id` / `photo
 
 Two pre-existing problems this also fixes (both blob-store shaped, not wrapper shaped): media stranded on the originating device, and the base64-in-JSON backup path failing on sizable video.
 
+Status of those two: **the first is fixed** by the blob store — media reaches
+other devices, and `mediaBackfill.js` migrates libraries that predate it. The
+second is sidestepped rather than solved: audio and video are simply excluded
+from the JSON backup, which README states, so a restore still loses
+attachments. A blob-aware export is the real fix and is not built.
+
 ---
 
 ## Later / optional
 
+Core Spotlight has moved out of this table and into *Done* — it shipped as
+described, a read-only consumer of the projection store.
+
 | Feature | Platform | Notes |
 |---|---|---|
-| Core Spotlight + `NSUserActivity` | iOS | Read-only consumer of the projection. System search into a life timeline is a strong fit. Obvious first v1.1 addition. |
 | Watch mode as Dream Service | Android | A Dream Service is a full custom window (unlike a widget) and can host a WebView, so watch mode could run as a true charging-triggered system screensaver. Real net-new reach; no iOS equivalent. Lifecycle is fiddly and spinning up a WebView with full web context inside a Dream is heavyweight. |
 | Live / interactive wallpaper | Android | On-this-day or slow timeline scroll. |
 | Journaling Suggestions | iOS | Distinctive import funnel for a memory app. iOS-only, use-case-gated, privacy-walled (only what the user picks). |
@@ -184,19 +270,34 @@ Already implemented (keep-awake + auto-run). Two things worth being deliberate a
 
 ## Suggested next slice
 
-Both iOS items from the previous slice — Lock Screen widget families and the
-add-a-milestone App Intent — are done and verified on device. **The iOS
-ready-to-build list is now empty**: what remains for iOS is either blocked on
-GLANCEvault's byte plane or in *Later / optional*.
+The previous edition sent the centre of gravity to Android on the strength of
+the Photo Picker and SAF. Both shipped, and so did Core Spotlight, iCloud sync,
+Direct Access, billing and the UIScene adoption. So the board has moved a long
+way since this file was last true, and the shortlist is now short.
 
-So the centre of gravity moves to Android:
+What is actually left, in rough order of value per unit of work:
 
-1. **Photo Picker (Android).** Real user-facing win, removes a scary permission prompt, zero architectural risk, no byte-plane dependency. Unchanged from the last round, and now the clear front-runner.
-2. **SAF `ACTION_OPEN_DOCUMENT` (Android).** Pairs naturally with the Photo Picker — same import surface, covers the audio case the visual-only picker cannot.
+1. **Photos in widgets (both).** The most visible remaining gap in a memory
+   app, and much cheaper than it was: thumbnails exist and the projection store
+   is already a native-readable mirror, so this needs decrypted thumbnail bytes
+   written beside the projection rather than any provider work. It carries one
+   real decision — decrypted media at rest outside IndexedDB — which should be
+   made deliberately rather than discovered in review.
+2. **Material You / Monet (Android).** The last item on the old ready-to-build
+   list, still unbuilt, still zero architectural risk.
+3. **BGTaskScheduler / WorkManager sync (both).** Called the highest-leverage
+   cross-cutting win when this file was written, and nothing since has
+   contradicted that. `WidgetRefreshWorker` shows the Android plumbing already
+   works; the gap is using it for sync rather than widget refresh.
 
-If an iOS slice is wanted instead, **Core Spotlight** (in *Later / optional*) is
-the strongest candidate: it is a read-only consumer of the projection store that
-already exists, so it needs no new infrastructure, and system search into a life
-timeline is a good fit.
+Not on the list, deliberately: DocumentsProvider and the File Provider
+extension. Both still need native byte ownership, and neither is worth building
+before the cheaper widget-photo path has proved out how native reads blob bytes.
 
-Nothing above touches the blocked byte plane.
+### Before the next slice, verify on hardware
+
+Carried over from the App Store readiness pass and not yet done: the iOS camera
+and microphone capture path. The usage strings are in `Info.plist` and a test
+guards them, but the crash they prevent has only been reasoned about — neither
+CI nor the Simulator can reach it. Attach a photo via "Take Photo", and attach
+media via video capture, on a real device.

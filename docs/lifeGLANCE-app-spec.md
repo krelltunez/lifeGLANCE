@@ -1,20 +1,56 @@
 *Working document. Captures sequencing, architectural decisions, and open questions.*
 
+Status checked against the tree on **31 October 2026**.
+
 ---
 ## Sequencing
 
-- **v3.5: Lives and iOS app**
-  - iOS app in progress
+**v3.5 shipped as the iOS app. Lives did not ship with it and is not yet
+built.** The two were planned as one release; the iOS app was the half that was
+ready, and holding the platform launch for a feature of this size was not
+worth it. Everything in the Lives section below stands as the design — it is
+pending work, not a record of what exists.
+
+- **v3.5: iOS app** — *shipped*
+  - Native iOS app: widgets (Home and Lock Screen), share extension, Siri and
+    Shortcuts, Core Spotlight, zero-config iCloud sync, Direct Access, App Store
+    billing. See `docs/lifeglance-native-roadmap.md` for the full surface.
+  - Shipped alongside the existing web, Docker and Android builds.
+
+- **Lives** — *designed, not built, not yet scheduled*
   - "Lives" is a new top-level entity; existing data migrates to default "Me" Life
   - Sync layer expands from single-implicit-Life to multi-explicit-Life with no architectural change (envelope was already multi-Life capable)
   - Compare/overlay view (date-aligned default)
   - Export/import as the v1 contribution path
   - Repositions product from self-tracking to biographical record-keeping
-  - Launches across web, Docker, Android and iOS simultaneously
+
+### What exists of Lives today
+
+Only the sync envelope, which was built multi-Life-capable from the start and
+is the one part of this that is real:
+
+- `src/sync/entityIds.js` carries `life_id`, commented as "currently the single
+  'default' Life".
+- `src/sync/adapter.js` ships the whole `lives.default` bundle and merges it.
+
+There is **no** `life_id` on the milestone schema, no Life entity, no Life
+switcher, no compare view, and no migration. Nothing in the UI mentions Lives.
+So the claim above that the sync layer expands "with no architectural change"
+is still untested — it is a design expectation, not a demonstrated one.
+
+The practical consequence for whoever picks this up: the envelope work is done,
+and the entity, the Life-scoping of chapters and milestones, the switcher, the
+compare view and the migration are all still ahead.
 
 ---
 
-## Lives (v3.5)
+## Lives (unscheduled — see Sequencing)
+
+> **On the version numbers below.** This section was drafted when Lives was
+> planned for v3.0, then re-tagged v3.5, and it still says v3.0 / v3.1 / v2.0 in
+> places. Lives shipped in neither. Read those as *"the release Lives lands in"*
+> and *"the one after"* rather than as real version numbers, and do not
+> renumber them on a guess — the sequencing is a decision, not a typo.
 
 Multiple complete timelines, each representing a different person (or pet, or other living or non-living subject). Examples: "Me", "Mom", "Dad". Switchable from a dropdown. Each Life owns its own Chapters and milestones.
 
@@ -85,7 +121,11 @@ The current schema proposes `relationshipToUser?` as a field on Life. The altern
 
 **Sync envelope and artifact-relevant data.** The sync layer is being designed Life-aware. It should also be designed export-aware: artifact-relevant metadata (photos, attachments, rich-text descriptions, external links) should sync as well as the structured data does, not as a second-class concern. If the export experience depends on a photo that didn't make it to the device generating the artifact, the experience fails.
 
-**Resolved by GLANCEvault.** Media storage already exists in GLANCEvault and is therefore inherited by GLANCEvault Pro. That gives Lives a real byte path on day one and sets the sync tiering story: **WebDAV carries structured data; GLANCEvault carries everything.** This is a cleaner line than "best-effort" for the WebDAV demotion copy, and it makes the Pro pitch concrete for the non-self-hosting family-history user, who is likely the least technical person in the audience and the one with the most photos.
+**Resolved by GLANCEvault — and now actually built.** As of Oct 2026 lifeGLANCE
+carries media through GLANCEvault blobs itself (`src/blobs/`: encrypted
+content-addressed upload and download, thumbnails, and a backfill for libraries
+that predate it), so the byte path is no longer a plan Lives would inherit — it
+exists and is in use. Media storage already exists in GLANCEvault and is therefore inherited by GLANCEvault Pro. That gives Lives a real byte path on day one and sets the sync tiering story: **WebDAV carries structured data; GLANCEvault carries everything.** This is a cleaner line than "best-effort" for the WebDAV demotion copy, and it makes the Pro pitch concrete for the non-self-hosting family-history user, who is likely the least technical person in the audience and the one with the most photos.
 
 Two follow-ons this creates for GLANCEvault Pro rather than for lifeGLANCE:
 
