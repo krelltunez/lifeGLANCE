@@ -121,20 +121,55 @@ const HORIZON = [
   { daysAhead: 3135, title: 'Director (goal)',        category: 'career', date_precision: 'year'  },
 ]
 
-function thinAndExtend(milestones, now) {
-  const keep = milestones
-    .filter(m => !EXCLUDE.some(re => re.test(m.title)))
-    .filter((m, i) => i % KEEP_EVERY === 0 || PROTECTED.some(re => re.test(m.title)))
+// Shots 1 and 2 show the widest spans in the set, and the ordinary seed is the
+// wrong shape for them: about twenty of its milestones sit between 2017 and
+// 2030 while the eighteen years before that are nearly bare, so the cards pile
+// into one decade however many lanes the layout offers. This is a seed problem,
+// not a layout one.
+//
+// So those two shots get their own: thirteen milestones hand-picked from the
+// same persona and spaced across five decades, plus two far-future entries so
+// the right of a sixty-year window is not dead. Marketing data — it does not
+// have to be a plausible life, only a legible one. Every other shot keeps the
+// ordinary seed, so nothing else in the set moves.
+const WIDE_TITLES = [
+  /Jake was born/i, /First day of school/i, /Family got a dog/i,
+  /Parents' 25th anniversary/i, /Got driver's license/i,
+  /College graduation/i, /Promoted to senior analyst/i, /Started at Figma/i,
+  /Promotion to manager/i, /Buy first apartment/i,
+  // Shot 2 zooms into the Brex era, and the caption wants a *run* of
+  // milestones sitting on the ribbon rather than a lone card. These two put
+  // company in that window; they are spread enough not to crowd shot 1.
+  /Moved to Astoria/i, /Japan solo trip/i,
+]
+const WIDE_HORIZON = [
+  { daysAhead: 2145, title: 'Six months in Lisbon',      category: 'travel', date_precision: 'month' },
+  { daysAhead: 4260, title: "Parents' 50th anniversary", category: 'family', date_precision: 'year'  },
+  { daysAhead: 8280, title: 'Turning fifty',             category: 'personal', date_precision: 'year'  },
+]
+
+function horizonEntries(spec, now, offset = 0) {
   const base = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  const horizon = HORIZON.map((h, i) => ({
-    id: `90000${i}-0000-4000-8000-00000000000${i}`,
+  return spec.map((h, i) => ({
+    id: `9${offset}000${i}-0000-4000-8000-00000000000${i}`,
     title: h.title, category: h.category, date_precision: h.date_precision,
     date: new Date(base + h.daysAhead * DAY).toISOString(),
     direction: 'future', color: null, note: '', url: null,
     recurrence: null, recurrence_id: null,
     created_at: new Date(base).toISOString(), updated_at: new Date(base).toISOString(),
   }))
-  return [...keep, ...horizon]
+}
+
+function wideSeed(milestones, now) {
+  return [...milestones.filter(m => WIDE_TITLES.some(re => re.test(m.title))),
+          ...horizonEntries(WIDE_HORIZON, now, 1)]
+}
+
+function thinAndExtend(milestones, now) {
+  const keep = milestones
+    .filter(m => !EXCLUDE.some(re => re.test(m.title)))
+    .filter((m, i) => i % KEEP_EVERY === 0 || PROTECTED.some(re => re.test(m.title)))
+  return [...keep, ...horizonEntries(HORIZON, now, 0)]
 }
 
 function redate(demo, now = new Date()) {
@@ -174,8 +209,9 @@ function redate(demo, now = new Date()) {
   const birthdayMs = Date.parse(demo.milestones.find(m => /was born/i.test(m.title))?.date ?? '1998-11-03')
   const birthday = new Date(birthdayMs + shift * DAY).toISOString().slice(0, 10)
   const shaped = thinAndExtend(milestones, now)
-  return { milestones: shaped, chapters, birthday, shift, nudged,
-           counts: `${milestones.length} seeded -> ${shaped.length} after thinning + horizon` }
+  const wide = wideSeed(milestones, now)
+  return { milestones: shaped, wide, chapters, birthday, shift, nudged,
+           counts: `${milestones.length} seeded -> ${shaped.length} standard, ${wide.length} wide` }
 }
 
 /* ---------------------------------------------------------------- scenes ---
@@ -220,8 +256,22 @@ const scenes = {
   // marker and age readout — the two things that must survive Apple's
   // thumbnail — are more legible for it.
   wholeLife: async (page) => {
-    await setZoom(page, 'years')
-    await page.waitForTimeout(700)
+    await setZoom(page, '30yr')
+    await page.waitForTimeout(900)
+  },
+
+  // Chapters as the subject rather than a strip under the cards: 'years' is the
+  // widest zoom at which the ribbons still carry their labels and durations.
+  // Chapters as the subject. The trap here is zooming OUT to get more of them
+  // in: a ribbon only carries its label and duration when the bar is wide
+  // enough, so at 'years' on a phone-width pane they degrade to unlabelled
+  // stripes and cropping just magnifies stripes. 'months' makes one era span
+  // most of the frame WITH its name and length on it, and the milestones it
+  // contains sit above — which is the idea the caption is selling.
+  chapterBand: async (page) => {
+    await setZoom(page, 'months')
+    await focusMilestone(page, 'Promoted to senior analyst')
+    await page.waitForTimeout(400)
   },
   // The close end of the same span: individual cards, dates, ages. 'months'
   // rather than 'weeks' because the thinned seed leaves a +/-3 month window
@@ -300,6 +350,25 @@ const scenes = {
 // CSS px as its output aspect allows: 792 bought four lanes, 880 buys six.
 // deviceScaleFactor absorbs the difference, so output pixels are unchanged.
 const PHONE_APPLE = { width: 1206, height: 860, scale: 1 }    // → 1206 x 860 1:1, two stacked per canvas
+// Shots 1 and 2 are a single pane rather than two stacked, which is what fixes
+// the collisions: one pane gets the lanes that were previously split between
+// two. 900 CSS px is the tallest a pane can be and still trip compactLayout,
+// and compact is what we want here — it pins the axis low and stacks cards
+// upward so they fill the pane. Clearing 900 instead centres the axis, and a
+// sparse timeline then hugs it and leaves two thirds of the PANE empty, which
+// reads as a broken screenshot. Empty background reads as layout; empty app
+// does not.
+const PHONE_TALL = { width: 1206, height: 900, scale: 1 }     // → 1206 x 900
+// Shot 2 wants the chapter ribbons to be the subject. A narrower CSS viewport
+// would draw them larger, but anything 1024px or under in portrait trips the
+// app's rotate-your-device overlay, which covers the whole screen. So it keeps
+// the wide viewport and enlarges the band the other way, through text size:
+// CHAPTER_ROW_H is remPx * 0.62, so 'big' lifts the ribbons from 12px to 16px
+// and their labels with them.
+// Captured at 2x so the compositor can crop into it and still have real pixels:
+// the chapter band is the subject of shot 2, and a 1x pane cannot be magnified
+// without going soft.
+const PHONE_BAND = { ...PHONE_TALL, scale: 2 }
 const PHONE_PLAY  = { width: 1200, height: 675, scale: 1.6 }  // → 1920 x 1080, Play phone slot as shipped
 const TAB7        = { width: 1422, height: 889, scale: 1.35 } // → 1920 x 1200
 const TAB10       = { width: 1422, height: 889, scale: 1.8 }  // → 2560 x 1600
@@ -313,10 +382,8 @@ const SHEET_PLAY  = { width: 1120, height: 630, scale: 1920 / 1120 }
 
 const PANE_SET = [
   // Apple iPhone — two panes per shot, stacked by the compositor.
-  { id: 'iphone/01a', vp: PHONE_APPLE, scene: 'wholeLife' },
-  { id: 'iphone/01b', vp: PHONE_APPLE, scene: 'closeUp' },
-  { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chaptersWide' },
-  { id: 'iphone/02b', vp: PHONE_APPLE, scene: 'chaptersClose' },
+  { id: 'iphone/01a', vp: PHONE_TALL, scene: 'wholeLife', seed: 'wide' },
+  { id: 'iphone/02a', vp: PHONE_BAND, scene: 'chapterBand', seed: 'wide', text: 'big' },
   { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView' },
   { id: 'iphone/03b', vp: PHONE_APPLE, scene: 'futureCountdown' },
   { id: 'iphone/04a', vp: PHONE_APPLE, scene: 'onThisDay' },
@@ -340,10 +407,10 @@ const PANE_SET = [
 // Seed the demo backup straight into IndexedDB (mirroring restoreMilestones in
 // src/data/milestones.js) so the app boots into a populated timeline — no
 // onboarding, no UI restore. DB name/version/stores mirror src/data/db.js.
-async function seed(page, data) {
+async function seed(page, data, textSize = 'small') {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(900) // let initDB() create the 'lifeglance' DB + stores
-  await page.evaluate(async ({ milestones, chapters, birthday }) => {
+  await page.evaluate(async ({ milestones, chapters, birthday, textSize }) => {
     const clean = milestones.map(({ photo_uri: _drop, ...m }) => ({
       mainTimelineVisibility: 'inherit',
       dayglance_linked: false, dayglance_task_id: null,
@@ -377,8 +444,8 @@ async function seed(page, data) {
     // AND shorter — fewer horizontal collisions and an extra lane to resolve
     // the ones that remain. It is the cheapest lever on card pile-up.
     localStorage.setItem('lifeglance-clustering', 'false')
-    localStorage.setItem('lifeglance-text-size', 'small')
-  }, { milestones: data.milestones, chapters: data.chapters, birthday: data.birthday })
+    localStorage.setItem('lifeglance-text-size', textSize)
+  }, { milestones: data.milestones, chapters: data.chapters, birthday: data.birthday, textSize })
 
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.locator('.add-milestone-btn').first().waitFor({ timeout: 15000 })
@@ -433,9 +500,13 @@ async function main() {
     executablePath: findChromium(),
     args: ['--no-sandbox', '--disable-dev-shm-usage'],
   })
+  // ONLY=iphone/01,iphone/02 renders just those panes and leaves every other
+  // committed frame untouched — the rest of the set is signed off.
+  const only = process.env.ONLY?.split(',').map(x => x.trim()).filter(Boolean)
+  const panes = only ? PANE_SET.filter(p => only.some(o => p.id.startsWith(o))) : PANE_SET
   const failed = []
   try {
-    for (const pane of PANE_SET) {
+    for (const pane of panes) {
       // A play/* pane is a finished frame; everything else is raw material.
       const isPlay = pane.id.startsWith('play/')
       const file = path.join(isPlay ? OUT : PANES, `${pane.id}.png`)
@@ -448,7 +519,7 @@ async function main() {
       })
       const page = await ctx.newPage()
       try {
-        await seed(page, data)
+        await seed(page, pane.seed === 'wide' ? { ...data, milestones: data.wide } : data, pane.text)
         await scenes[pane.scene](page)
         await page.screenshot({ path: file })
         console.log(`  ✓ ${pane.id}`)
@@ -480,8 +551,10 @@ async function main() {
 
 // Clear only the generated galleries: store-assets/README.md is hand-written
 // and lives in the same directory, so removing OUT wholesale would eat it.
-for (const gallery of ['apple', 'play']) {
-  await rm(path.join(OUT, gallery), { recursive: true, force: true })
+if (!process.env.ONLY) {
+  for (const gallery of ['apple', 'play']) {
+    await rm(path.join(OUT, gallery), { recursive: true, force: true })
+  }
 }
 await rm(PANES, { recursive: true, force: true })
 await main()

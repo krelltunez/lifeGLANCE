@@ -14,6 +14,7 @@ The kit's background loop is per-pixel Python, which costs ~40s on a 2752x2064
 canvas. Vectorised here with numpy; the output is the same image.
 """
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -125,10 +126,19 @@ def draw_bullets(canvas, bullets, top, bottom, size=56, gap=130):
         d.text((x + dot_r * 2 + dot_gap, ly), text, font=f, fill=fg)
 
 
-def fit_width(path, width):
+def fit_width(path, width, crop=None):
     """Load a pane and scale it to the canvas width. Full bleed: no bezel, no
-    mask, no shadow — the app surface runs to both edges."""
+    mask, no shadow — the app surface runs to both edges.
+
+    `crop` is (x0, x1, y0, y1) as fractions of the capture. Cropping to a
+    region narrower than the capture and then fitting to the canvas width
+    magnifies it — the only way to make a 16px chapter band the subject of a
+    frame rather than a strip under the cards."""
     im = Image.open(path).convert("RGB")
+    if crop:
+        x0, x1, y0, y1 = crop
+        im = im.crop((round(x0 * im.width), round(y0 * im.height),
+                      round(x1 * im.width), round(y1 * im.height)))
     if im.width != width:
         im = im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
     return im
@@ -153,9 +163,18 @@ def k(v):
     return round(v * PHONE_K)
 
 SHOTS = [
-    dict(kind="iphone", out="iphone-dynamic-island/01-decades.png", panes=["iphone/01a", "iphone/01b"],
-         eyebrow="YEARS TO MONTHS", l1="See your whole life,", l2="at a glance."),
-    dict(kind="iphone", out="iphone-dynamic-island/02-chapters.png", panes=["iphone/02a", "iphone/02b"],
+    # Shots 1 and 2 are a single full-height pane. Stacking two panes gave each
+    # half the canvas height, which halved the lanes and was the direct cause of
+    # the card collisions in these two frames.
+    dict(kind="iphone", out="iphone-dynamic-island/01-decades.png", panes=["iphone/01a"], full=True,
+         eyebrow="DECADES TO WEEKS", l1="See your whole life,", l2="at a glance."),
+    # Cropped into the 2x capture at 1:1, which doubles the band's size without
+    # resampling: compact layout parks the axis near the foot of the pane, so
+    # uncropped the ribbon is a strip along the bottom under a half-empty pane.
+    # The crop drops the empty head and the footer chrome and leaves the run of
+    # milestones sitting on their labelled era, which is the caption's claim.
+    dict(kind="iphone", out="iphone-dynamic-island/02-chapters.png", panes=["iphone/02a"], full=True,
+         crop=(0.25, 0.75, 0.38, 0.88),
          eyebrow="CHAPTERS", l1="The eras you lived,", l2="drawn to scale."),
     dict(kind="iphone", out="iphone-dynamic-island/03-future.png", panes=["iphone/03a", "iphone/03b"],
          eyebrow="THE FUTURE HALF", l1="Half your timeline", l2="hasn't happened yet."),
@@ -173,13 +192,33 @@ SHOTS = [
 
 
 def compose_iphone(shot, pane_dir, out_path):
+    panes = [fit_width(pane_dir / f"{p}.png", IPHONE_W, shot.get("crop"))
+             for p in shot["panes"]]
+    block_h = sum(p.height for p in panes) + PANE_GAP * (len(panes) - 1)
+
+    if shot.get("full"):
+        # One pane, bleeding to the bottom edge. A compact-layout pane tops out
+        # near 900px tall, so the caption centres in whatever is left above it
+        # rather than sitting pinned to the top — otherwise the frame is a
+        # caption and a screenshot with a thousand pixels of nothing between
+        # them. The glow follows the caption, so the light stays behind the type.
+        pane = panes[0]
+        pane_top = IPHONE_H - pane.height
+        cap_block = k(420)
+        eb_y = max(k(150), (pane_top - cap_block) // 2)
+        canvas = build_bg(IPHONE_W, IPHONE_H,
+                          glow_y=(eb_y + cap_block * 0.45) / IPHONE_H)
+        draw_caption(canvas, shot["eyebrow"], shot["l1"], shot["l2"],
+                     eb_y=eb_y, eb_size=k(34), eb_track=k(10),
+                     head_y=eb_y + k(86), head_size=k(132), head_pad=k(210))
+        canvas.paste(pane, (0, pane_top))
+        canvas.save(out_path)
+        return canvas.size
+
     canvas = build_bg(IPHONE_W, IPHONE_H)
     draw_caption(canvas, shot["eyebrow"], shot["l1"], shot["l2"],
                  eb_y=k(150), eb_size=k(34), eb_track=k(10),
                  head_y=k(236), head_size=k(132), head_pad=k(210))
-
-    panes = [fit_width(pane_dir / f"{p}.png", IPHONE_W) for p in shot["panes"]]
-    block_h = sum(p.height for p in panes) + PANE_GAP * (len(panes) - 1)
 
     if shot.get("bullets"):
         # One pane plus the privacy block: seat the pane just under the caption
@@ -221,15 +260,20 @@ def compose_ipad(shot, pane_dir, out_path):
 
 def main():
     pane_dir, out_dir = Path(sys.argv[1]), Path(sys.argv[2])
+    # Mirrors ONLY in screenshots.mjs: rebuild just these shots and leave every
+    # other committed frame exactly as it is.
+    only = [x.strip() for x in os.environ.get("ONLY", "").split(",") if x.strip()]
     made = []
     for shot in SHOTS:
+        if only and not any(p.startswith(o) for o in only for p in shot["panes"]):
+            continue
         dest = out_dir / "apple" / shot["out"]
         dest.parent.mkdir(parents=True, exist_ok=True)
         size = (compose_iphone if shot["kind"] == "iphone" else compose_ipad)(shot, pane_dir, dest)
         made.append((dest.relative_to(out_dir), size))
         print(f"  ✓ apple/{shot['out']}  {size[0]} x {size[1]}")
     (out_dir / "apple" / "captions.json").write_text(json.dumps(
-        [{k: s[k] for k in ("out", "eyebrow", "l1", "l2")} for s in SHOTS], indent=2) + "\n")
+        [{f: sh[f] for f in ("out", "eyebrow", "l1", "l2")} for sh in SHOTS], indent=2) + "\n")
     return made
 
 
