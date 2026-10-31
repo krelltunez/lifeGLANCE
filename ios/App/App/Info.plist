@@ -45,6 +45,25 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Media attach goes through <input type="file"> on iOS: the native
+	     Photo Picker / SAF path in src/native/mediaPicker.js is Android-only, so
+	     AddMilestoneSheet.jsx falls through to the hidden inputs
+	     (accept="image/*" and accept="audio/*,video/*"). WKWebView answers those
+	     with an action sheet that includes "Take Photo or Video", and that
+	     capture runs IN THIS PROCESS — so without these keys iOS terminates the
+	     app the moment the user picks it. Not reproducible in CI (the shell is
+	     not compiled) or in the Simulator (no camera); guarded by
+	     src/native/mediaCaptureIosParity.test.js.
+	     Camera and microphone are required by that path. The photo-library key is
+	     defensive: current iOS serves the library through an out-of-process
+	     picker that needs no string, but older or variant WebKit paths have used an
+	     in-process picker that does. -->
+	<key>NSCameraUsageDescription</key>
+	<string>lifeGLANCE uses the camera only when you choose Take Photo or Video while attaching media to a milestone. Your photos and videos stay on your device.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>lifeGLANCE uses the microphone only when you record a video to attach to a milestone. Your recordings stay on your device.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>lifeGLANCE opens your photo library only when you pick a photo or video to attach to a milestone, and reads just the item you choose.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<!-- The UIScene lifecycle: required for apps built with the iOS 27 SDK,
