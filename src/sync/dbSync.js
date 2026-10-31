@@ -24,6 +24,7 @@ import { loadVaultIntentsRootKey, setupVaultIntentsRootKey } from '../lib/intent
 import { DB_CRYPTO_CONFIG } from './cryptoConfig.js'
 import { ensureDeviceId } from './deviceId.js'
 import { flushOutbox, isVaultIntentsActive } from '../lib/intentsTransport.js'
+import { createRosterEngine } from './rosterVault.js'
 
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
 const SEEDED_KEY     = 'lifeglance-db-sync-seeded'
@@ -185,6 +186,11 @@ export const initDbSyncEngine = (opts = {}) => {
 
   holder.markDirty = engine.markDirty
 
+  // The household roster every GLANCE app shares (glance-users), pulled after
+  // each lifeGLANCE cycle so it rides the same triggers. Read-only here
+  // (rosterVault.js), and it never fails the lifeGLANCE cycle.
+  const roster = createRosterEngine(vaultConfig, { fetchImpl: opts.fetchImpl, vaultClient: opts.vaultClient, createEngine: opts.createRosterEngine })
+
   // HWM=0 full-snapshot seed: on first activation, mark every entity this device
   // already holds dirty so a brand-new vault device uploads its whole state. The
   // pull cursor defaults to 0, so it also pulls everything the account has.
@@ -276,6 +282,7 @@ export const initDbSyncEngine = (opts = {}) => {
     await seedSnapshot()
     const r = await engine.sync()
     await bootstrapIntentsRootKey()   // salt is now established — give the blob/intents key its late bootstrap
+    await roster.sync()
     await refresh()
     return r
   }
@@ -334,6 +341,6 @@ export const initDbSyncEngine = (opts = {}) => {
   // all entity types.
   registerDirtyTarget({ markDirty: (id) => { engine.markDirty(id); pushDebounced() } })
 
-  _dbEngine = { engine, sync, pushNow, pushDebounced, seedSnapshot, refresh, markDirty: engine.markDirty }
+  _dbEngine = { engine, sync, pushNow, pushDebounced, seedSnapshot, refresh, markDirty: engine.markDirty, roster }
   return _dbEngine
 }
