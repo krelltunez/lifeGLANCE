@@ -1,30 +1,30 @@
 [
   {
-    "out": "iphone69/01-decades.png",
-    "eyebrow": "DECADES TO WEEKS",
+    "out": "iphone-dynamic-island/01-decades.png",
+    "eyebrow": "YEARS TO MONTHS",
     "l1": "See your whole life,",
     "l2": "at a glance."
   },
   {
-    "out": "iphone69/02-chapters.png",
+    "out": "iphone-dynamic-island/02-chapters.png",
     "eyebrow": "CHAPTERS",
     "l1": "The eras you lived,",
     "l2": "drawn to scale."
   },
   {
-    "out": "iphone69/03-future.png",
+    "out": "iphone-dynamic-island/03-future.png",
     "eyebrow": "THE FUTURE HALF",
     "l1": "Half your timeline",
     "l2": "hasn't happened yet."
   },
   {
-    "out": "iphone69/04-on-this-day.png",
+    "out": "iphone-dynamic-island/04-on-this-day.png",
     "eyebrow": "ON THIS DAY",
     "l1": "What today meant",
     "l2": "in every other year."
   },
   {
-    "out": "iphone69/05-add-milestone.png",
+    "out": "iphone-dynamic-island/05-add-milestone.png",
     "eyebrow": "ADD A MILESTONE",
     "l1": "Some memories have a date.",
     "l2": "Others have a year."

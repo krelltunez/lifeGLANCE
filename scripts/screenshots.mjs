@@ -84,6 +84,59 @@ const DAY = 86400000
 // series stays internally consistent on whatever date it lands.)
 const CALENDAR_LOCKED = [/thanksgiving/i, /new year/i, /christmas/i]
 
+// Scenes look these up by title, so thinning must never drop them.
+const PROTECTED = [
+  /Brother Tyler's wedding/i, /First day at Brex/i, /Backpacked Europe/i,
+  /Parents' 25th anniversary/i, /Promoted to senior analyst/i,
+  /College graduation/i, /Thanksgiving/i, /30th birthday trip/i,
+]
+
+// Dropped outright. The months either side of today are the busiest stretch of
+// the seed and several entries there are protected, so one unprotected card
+// lands on top of its neighbours in every wide shot. This is the least
+// interesting of that cluster, and cutting it clears the last collision.
+const EXCLUDE = [/Lease renewal decision/i]
+
+// Keep every Nth milestone. At the wide zooms the seed is far denser than the
+// lane algorithm can place: a +/-10 year view needs ~24 lanes to lay 47
+// milestones out without collisions and the layout can offer at most six, so
+// the cards land on top of each other. Thinning is the only lever that closes
+// that gap — viewport and text size together buy two or three lanes, not
+// eighteen. Applied globally rather than per-view so every frame in a gallery
+// agrees on the past/future counters, which are visible in the shot.
+// One value for every gallery. It was briefly split, phone against tablet,
+// to rescue shot 1 — but the real fault there was the zoom, not the density
+// (see the `wholeLife` scene), and splitting it gave the two galleries
+// different "past N milestones" counters for no benefit.
+const KEEP_EVERY = 3
+
+// The thinned timeline otherwise dead-ends in early 2029 with a decade of bare
+// axis to its right. Three aspirational entries, deliberately unevenly spaced,
+// carry the eye out to the edge of the window. They follow the persona's
+// existing threads (the apartment, the travel habit, the management track)
+// rather than inventing a new life.
+const HORIZON = [
+  { daysAhead: 1248, title: 'Pay off the mortgage',   category: 'home',   date_precision: 'year'  },
+  { daysAhead: 2145, title: 'Six months in Lisbon',   category: 'travel', date_precision: 'month' },
+  { daysAhead: 3135, title: 'Director (goal)',        category: 'career', date_precision: 'year'  },
+]
+
+function thinAndExtend(milestones, now) {
+  const keep = milestones
+    .filter(m => !EXCLUDE.some(re => re.test(m.title)))
+    .filter((m, i) => i % KEEP_EVERY === 0 || PROTECTED.some(re => re.test(m.title)))
+  const base = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const horizon = HORIZON.map((h, i) => ({
+    id: `90000${i}-0000-4000-8000-00000000000${i}`,
+    title: h.title, category: h.category, date_precision: h.date_precision,
+    date: new Date(base + h.daysAhead * DAY).toISOString(),
+    direction: 'future', color: null, note: '', url: null,
+    recurrence: null, recurrence_id: null,
+    created_at: new Date(base).toISOString(), updated_at: new Date(base).toISOString(),
+  }))
+  return [...keep, ...horizon]
+}
+
 function redate(demo, now = new Date()) {
   const shift = Math.round((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - SEED_ANCHOR) / DAY)
   const move = (iso) => new Date(Date.parse(iso) + shift * DAY).toISOString()
@@ -120,7 +173,9 @@ function redate(demo, now = new Date()) {
 
   const birthdayMs = Date.parse(demo.milestones.find(m => /was born/i.test(m.title))?.date ?? '1998-11-03')
   const birthday = new Date(birthdayMs + shift * DAY).toISOString().slice(0, 10)
-  return { milestones, chapters, birthday, shift, nudged }
+  const shaped = thinAndExtend(milestones, now)
+  return { milestones: shaped, chapters, birthday, shift, nudged,
+           counts: `${milestones.length} seeded -> ${shaped.length} after thinning + horizon` }
 }
 
 /* ---------------------------------------------------------------- scenes ---
@@ -157,15 +212,22 @@ async function focusMilestone(page, query, { keepDetail = false } = {}) {
 }
 
 const scenes = {
-  // The whole life in one span. The today marker and the age readout are what
-  // have to survive Apple's search-results thumbnail, so this stays wide open.
-  decades: async (page) => {
-    await setZoom(page, '30yr')
+  // The widest span that still fills the pane. '30yr' is a SIXTY year window
+  // (the preset names its half-range), which on a 27-year life leaves the outer
+  // thirds bare and crushes everything into the middle, where it piles up no
+  // matter how hard the seed is thinned. 'years' is twenty years: it loses the
+  // childhood, but it spreads the cards across the full width, and the today
+  // marker and age readout — the two things that must survive Apple's
+  // thumbnail — are more legible for it.
+  wholeLife: async (page) => {
+    await setZoom(page, 'years')
     await page.waitForTimeout(700)
   },
-  // The close end of the same span: individual cards, dates, ages.
-  weeks: async (page) => {
-    await setZoom(page, 'weeks')
+  // The close end of the same span: individual cards, dates, ages. 'months'
+  // rather than 'weeks' because the thinned seed leaves a +/-3 month window
+  // with a single milestone in it.
+  closeUp: async (page) => {
+    await setZoom(page, 'months')
     for (let i = 0; i < 2; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(320) }
     await page.waitForTimeout(600)
   },
@@ -231,11 +293,17 @@ const scenes = {
  * A pane is one raw app capture: viewport picks the responsive layout, scale
  * picks the output pixels. Nothing here knows about canvases or captions.
  */
-const PHONE_APPLE = { width: 900, height: 600, scale: 2 }   // → 1800 x 1200, composed down to 1320 x 880
-const PHONE_PLAY  = { width: 960, height: 540, scale: 2 }   // → 1920 x 1080, Play phone slot as shipped
-const TAB7        = { width: 1280, height: 800, scale: 1.5 } // → 1920 x 1200
-const TAB10       = { width: 1280, height: 800, scale: 2 }   // → 2560 x 1600
-const IPAD        = { width: 1376, height: 792, scale: 2 }   // → 2752 x 1584, under the 480px caption band
+// Viewport heights are chosen, not inherited. Timeline.jsx flips to
+// compactLayout at (max-height: 900px), which pins the axis near the bottom and
+// stacks every card above it — the arrangement these frames want. Within that
+// mode the lane count rises with height, so each viewport sits as close to 900
+// CSS px as its output aspect allows: 792 bought four lanes, 880 buys six.
+// deviceScaleFactor absorbs the difference, so output pixels are unchanged.
+const PHONE_APPLE = { width: 1206, height: 860, scale: 1 }    // → 1206 x 860 1:1, two stacked per canvas
+const PHONE_PLAY  = { width: 1200, height: 675, scale: 1.6 }  // → 1920 x 1080, Play phone slot as shipped
+const TAB7        = { width: 1422, height: 889, scale: 1.35 } // → 1920 x 1200
+const TAB10       = { width: 1422, height: 889, scale: 1.8 }  // → 2560 x 1600
+const IPAD        = { width: 1529, height: 880, scale: 1.8 }  // → 2752 x 1584, under the 480px caption band
 // The add sheet is a modal: at the wider phone viewport it floated in a sea of
 // dimmed backdrop. A tighter viewport lets the sheet carry the pane.
 const SHEET_APPLE = { width: 760, height: 690, scale: 2 }   // → 1520 x 1380; tall enough that the sheet is not clipped
@@ -245,8 +313,8 @@ const SHEET_PLAY  = { width: 1120, height: 630, scale: 1920 / 1120 }
 
 const PANE_SET = [
   // Apple iPhone — two panes per shot, stacked by the compositor.
-  { id: 'iphone/01a', vp: PHONE_APPLE, scene: 'decades' },
-  { id: 'iphone/01b', vp: PHONE_APPLE, scene: 'weeks' },
+  { id: 'iphone/01a', vp: PHONE_APPLE, scene: 'wholeLife' },
+  { id: 'iphone/01b', vp: PHONE_APPLE, scene: 'closeUp' },
   { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chaptersWide' },
   { id: 'iphone/02b', vp: PHONE_APPLE, scene: 'chaptersClose' },
   { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView' },
@@ -258,7 +326,7 @@ const PANE_SET = [
   { id: 'ipad/06a', vp: IPAD, scene: 'ipadTimeline' },
   { id: 'ipad/07a', vp: IPAD, scene: 'milestoneDetail' },
   // Google Play — written straight out, no composition.
-  { id: 'play/phone/01-decades',       vp: PHONE_PLAY, scene: 'decades' },
+  { id: 'play/phone/01-decades',       vp: PHONE_PLAY, scene: 'wholeLife' },
   { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chaptersClose' },
   { id: 'play/phone/03-future',        vp: PHONE_PLAY, scene: 'futureCountdown' },
   { id: 'play/phone/04-on-this-day',   vp: PHONE_PLAY, scene: 'onThisDay' },
@@ -298,6 +366,18 @@ async function seed(page, data) {
     })
     localStorage.setItem('lifeglance-birthday', birthday)
     localStorage.setItem('lifeglance-birthday-updated-at', new Date(0).toISOString())
+    // Both are ordinary user settings, and both are load-bearing for these shots.
+    //
+    // clustering: with it on, every wide zoom collapses milestones into numbered
+    // circles and no card draws at all (Timeline.jsx line ~286 routes only
+    // single-member groups to the card renderer), so the frame is an empty axis.
+    //
+    // text size: CARD_W, CARD_H2 and CARD_STEP all scale off remPx (19 at
+    // 'small' against 22 at 'normal'), so dropping a step makes cards narrower
+    // AND shorter — fewer horizontal collisions and an extra lane to resolve
+    // the ones that remain. It is the cheapest lever on card pile-up.
+    localStorage.setItem('lifeglance-clustering', 'false')
+    localStorage.setItem('lifeglance-text-size', 'small')
   }, { milestones: data.milestones, chapters: data.chapters, birthday: data.birthday })
 
   await page.reload({ waitUntil: 'domcontentloaded' })
@@ -345,6 +425,7 @@ async function main() {
   const demo = JSON.parse(await readFile(DEMO, 'utf8'))
   const data = redate(demo)
   console.log(`Seed re-dated +${data.shift}d to today; birthday ${data.birthday}`)
+  console.log(`  ${data.counts}`)
   if (data.nudged.length) console.log(`  on-this-day nudges: ${data.nudged.join(', ')}`)
 
   const server = process.env.URL ? null : await serveDist(DIST, PORT)
