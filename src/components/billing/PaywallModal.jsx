@@ -27,7 +27,7 @@ const ERROR_KEYS = {
   7: 'errorOwned',
 }
 
-// Paywall surface for gated (Play) builds, in two modes:
+// Paywall surface for gated store builds (Play, App Store), in two modes:
 //
 // - mode='gate'   — the hard gate rendered at the app root while locked. Not
 //   dismissible: no close affordance, overlay clicks ignored. Unlocking (a
@@ -96,12 +96,12 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
   }
 
   // Trial copy is driven entirely by the store, never a hardcoded length:
-  //  - ineligible user  → non-trial headline, no trial claims (the Play sheet
-  //    won't grant one, so we must not advertise it).
+  //  - ineligible user  → non-trial headline, no trial claims (the store's
+  //    purchase sheet won't grant one, so we must not advertise it).
   //  - eligible, store has reported trialDays → lead with the real length.
   //  - eligible, store hasn't answered yet → generic "free trial" copy with NO
   //    number, so we never show a duration that could differ from the actual
-  //    Play offer (which would misrepresent the terms).
+  //    store offer (which would misrepresent the terms).
   const knownTrialDays = typeof trialDays === 'number' && trialDays > 0 ? trialDays : null
   const headline = !trialEligible
     ? t('headline')

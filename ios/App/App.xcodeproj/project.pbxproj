@@ -21,6 +21,9 @@
 		7B5F62032E3D110100D5E3A1 /* VaultSsePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */; };
 		0DDA0002000000000000DA02 /* DirectAccessPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDA0001000000000000DA01 /* DirectAccessPlugin.swift */; };
 		0DDA0004000000000000DA04 /* ICloudPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DDA0003000000000000DA03 /* ICloudPlugin.swift */; };
+		0DB111000000000000000B02 /* BillingBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DB111000000000000000B01 /* BillingBridgePlugin.swift */; };
+		0DB111000000000000000B04 /* RevenueCatBilling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DB111000000000000000B03 /* RevenueCatBilling.swift */; };
+		0DB111000000000000000B07 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 0DB111000000000000000B06 /* RevenueCat */; };
 		0DCE5CE0000000000000D002 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DCE5CE0000000000000D001 /* SceneDelegate.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
@@ -83,6 +86,8 @@
 		7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultSsePlugin.swift; sourceTree = "<group>"; };
 		0DDA0001000000000000DA01 /* DirectAccessPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectAccessPlugin.swift; sourceTree = "<group>"; };
 		0DDA0003000000000000DA03 /* ICloudPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ICloudPlugin.swift; sourceTree = "<group>"; };
+		0DB111000000000000000B01 /* BillingBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BillingBridgePlugin.swift; sourceTree = "<group>"; };
+		0DB111000000000000000B03 /* RevenueCatBilling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatBilling.swift; sourceTree = "<group>"; };
 		0DCE5CE0000000000000D001 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
@@ -158,6 +163,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+				0DB111000000000000000B07 /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -226,6 +232,8 @@
 				7B5F62022E3D110100D5E3A1 /* VaultSsePlugin.swift */,
 				0DDA0001000000000000DA01 /* DirectAccessPlugin.swift */,
 				0DDA0003000000000000DA03 /* ICloudPlugin.swift */,
+				0DB111000000000000000B01 /* BillingBridgePlugin.swift */,
+				0DB111000000000000000B03 /* RevenueCatBilling.swift */,
 				0DCE5CE0000000000000D001 /* SceneDelegate.swift */,
 				0DA92D712FECC30800F56B1C /* WidgetBridgePlugin.swift */,
 				0DA92D4A2FECBDC700F56B1C /* App.entitlements */,
@@ -308,6 +316,7 @@
 			name = App;
 			packageProductDependencies = (
 				4D22ABE82AF431CB00220026 /* CapApp-SPM */,
+				0DB111000000000000000B06 /* RevenueCat */,
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
@@ -355,6 +364,7 @@
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
 				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
+				0DB111000000000000000B05 /* XCLocalSwiftPackageReference "Packages/RevenueCatBinary" */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -426,6 +436,8 @@
 				7B5F62032E3D110100D5E3A1 /* VaultSsePlugin.swift in Sources */,
 				0DDA0002000000000000DA02 /* DirectAccessPlugin.swift in Sources */,
 				0DDA0004000000000000DA04 /* ICloudPlugin.swift in Sources */,
+				0DB111000000000000000B02 /* BillingBridgePlugin.swift in Sources */,
+				0DB111000000000000000B04 /* RevenueCatBilling.swift in Sources */,
 				0DCE5CE0000000000000D002 /* SceneDelegate.swift in Sources */,
 				0DC7A1012FED020000F56B1C /* AddMilestoneIntent.swift in Sources */,
 				0DC7A1112FED030000F56B1C /* SpotlightPlugin.swift in Sources */,
@@ -837,6 +849,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "CapApp-SPM";
 		};
+		0DB111000000000000000B05 /* XCLocalSwiftPackageReference "Packages/RevenueCatBinary" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/RevenueCatBinary;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -844,6 +860,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;
 			productName = "CapApp-SPM";
+		};
+		0DB111000000000000000B06 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0DB111000000000000000B05 /* XCLocalSwiftPackageReference "Packages/RevenueCatBinary" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
