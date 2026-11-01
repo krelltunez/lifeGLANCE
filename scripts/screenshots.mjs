@@ -84,6 +84,29 @@ const DAY = 86400000
 // series stays internally consistent on whatever date it lands.)
 const CALENDAR_LOCKED = [/thanksgiving/i, /new year/i, /christmas/i]
 
+// Whole-year nudges applied after the global shift, for milestones that
+// collide with a neighbour in a particular frame.
+//
+// Backpacked Europe landed two months from "Started at Figma", which put their
+// cards on top of each other just left of centre in shot 1 — the only overlap
+// left in the set, in the first image of the listing. A year is the right unit
+// rather than a few months: it keeps the milestone in NOVEMBER, so it still
+// matches today's month and day and stays in shot 4's on-this-day list, and
+// November 2021 is still inside the Brex years span (Sep 2020 - Aug 2024), so
+// shot 2's chapter view is unchanged.
+//
+// Moving the Figma milestone instead would have been worse: it is the boundary
+// of the Figma era chapter, so shifting it drags the chapter with it.
+const YEAR_SHIFT = [
+  [/Backpacked Europe/i, -1],
+  // Semester abroad (May 2020), College graduation (Sep 2020) and First day at
+  // Brex (Nov 2020) sit inside six months of each other, which at the years
+  // zoom is three cards fighting over one card-width of axis. The other two
+  // are load-bearing — the graduation is what shot 7 opens, and Brex is a
+  // member of the chapter shot 2 drills into — so this is the one that moves.
+  [/Semester abroad/i, -1],
+]
+
 // Scenes look these up by title, so thinning must never drop them.
 const PROTECTED = [
   /Brother Tyler's wedding/i, /First day at Brex/i, /Backpacked Europe/i,
@@ -95,7 +118,29 @@ const PROTECTED = [
 // the seed and several entries there are protected, so one unprotected card
 // lands on top of its neighbours in every wide shot. This is the least
 // interesting of that cluster, and cutting it clears the last collision.
-const EXCLUDE = [/Lease renewal decision/i]
+// Dropped from the standard seed, which only the tablet frames use. Measured
+// rather than guessed: at the years zoom a card is 148 CSS px wide, and the
+// worst stack in that window was EIGHT cards against about five lanes, so
+// collisions were arithmetically unavoidable. These four bring it to five.
+//
+// Each is half of a pair that sits within a few pixels of its neighbour, where
+// no lane arrangement helps because the cards are at the same x:
+//   Dustin's birthday     7 days after Brother Tyler's wedding  (~3px)
+//   Thanksgiving          9 days before it                      (~2px)
+//   Annual guy's trip     a week from Promoted to senior analyst (~6px)
+//   Lease renewal         a long-standing one near today
+// In each case the one kept is the stronger card and the one dropped is
+// recurring filler or an errand.
+const EXCLUDE = [
+  /Lease renewal decision/i,
+  /Dustin's birthday/i,
+  /Thanksgiving/i,
+  /Annual guy's trip/i,
+  // Eight months before the wedding, which is half a card at this zoom, so it
+  // sat behind it. A year's shift would only move it onto the NYC half
+  // marathon, two months away, so it goes instead.
+  /Biggest bonus yet/i,
+]
 
 // Keep every Nth milestone. At the wide zooms the seed is far denser than the
 // lane algorithm can place: a +/-10 year view needs ~24 lanes to lay 47
@@ -240,6 +285,14 @@ function redate(demo, now = new Date()) {
     ...m,
     date: CALENDAR_LOCKED.some(re => re.test(m.title)) ? m.date : move(m.date),
   }))
+  for (const m of milestones) {
+    const years = YEAR_SHIFT.find(([re]) => re.test(m.title))?.[1]
+    if (!years) continue
+    const d = new Date(Date.parse(m.date))
+    d.setUTCFullYear(d.getUTCFullYear() + years)
+    m.date = d.toISOString()
+  }
+
   const chapters = demo.chapters.map(c => ({
     ...c,
     start: c.start ? move(c.start) : c.start,
@@ -444,13 +497,18 @@ const PLAY_MODAL  = { width: 1100, height: 896, scale: 1620 / 1100 } // → 1620
 // more CSS height to fit uncut — which means magnifying it slightly less.
 const PHONE_SHEET = { width: 1340, height: 1002, scale: 1612 / 1340 } // → 1612 x 1206
 const PLAY_SHEET  = { width: 1340, height: 1092, scale: 1620 / 1340 } // → 1620 x 1320
-// Both tablet panes clear the 900px compactLayout threshold, so the axis
-// centres and cards alternate above and below it. They carry the same
-// 24-milestone seed as the iPad frame at two thirds its width, and in compact
-// layout — every card stacked above a low axis — that is not enough lanes and
-// they collide.
-const TAB7        = { width: 1920, height: 919,  scale: 1 }    // → 1920 x 919, under a 280px band
-const TAB10       = { width: 2048, height: 983,  scale: 1.25 } // → 2560 x 1229, under a 370px band
+// Both tablets render at the same CSS size and differ only in output
+// resolution, so the two frames are the same picture at two scales. 861/864
+// keeps them under the 900px compactLayout threshold, matching the iPad frame:
+// axis low, every card above it. They were briefly pushed over that threshold
+// to cure collisions, which cured them but left the tablets laid out
+// differently from the iPad — cards either side of a centred axis — and the
+// galleries no longer matched. 1800 CSS px is wider than the iPad's 1529, so
+// there are more horizontal slots and five lanes either way; the collisions
+// were a consequence of the narrow 1422 viewport used before, not of compact
+// layout itself.
+const TAB7        = { width: 1800, height: 861, scale: 1920 / 1800 } // → 1920 x 919, under a 280px band
+const TAB10       = { width: 1800, height: 864, scale: 2560 / 1800 } // → 2560 x 1229, under a 370px band
 const IPAD        = { width: 1529, height: 880, scale: 1.8 }  // → 2752 x 1584, under the 480px caption band
 
 const PANE_SET = [
