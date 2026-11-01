@@ -113,6 +113,84 @@ bunched in one decade. The three that the on-this-day nudge moves onto today's
 date are deliberately among them, because shot 4's button only renders when
 some past milestone shares today's month and day.
 
+## The tablet span is arithmetic, not taste
+
+Card collisions on the tablet frames are a geometry problem with a closed form,
+so they are solved before rendering rather than spotted in a render afterwards.
+Three measured quantities fix everything:
+
+| | iPad `06` | Play tablet7 / tablet10 |
+|---|---|---|
+| Timeline area | **1529 px** | **1800 px** |
+| Card width | 148 px (`remPx * 7.8` at `small`) | 148 px |
+| Tiers | **4 above the axis, 0 below** | **4 above, 0 below** |
+
+`compactLayout` pins the axis low and forces every card above it, so there is no
+below. The tier count is
+`maxLane = floor((msAxisY - MAX_CONN - CARD_H2 - TOP_RESERVE) / CARD_STEP)`,
+which is 3 — lanes 0..3 — in all three panes, and 4 is the ceiling: five tiers
+would need a wrapper 784 px tall, i.e. a viewport over 900, which leaves compact
+layout altogether.
+
+From those, two constraints on any candidate span:
+
+- **Separation.** Two milestones sharing a tier must be at least one card width
+  apart, so `minSep(years) = 148 * span / W`. On the iPad that is
+  `0.0968 * span`; on the tablets `0.0822 * span`. At the old twenty-year window
+  it came to **1.94 years** (iPad) and **1.64** (tablets) — wider than several
+  real gaps in the seed, which is why cards sat on top of each other.
+- **Edges.** A card is centred on its tick, then clamped by
+  `max(4, min(x - CARD_W/2, w - CARD_W - 4))`. A tick closer than
+  `CARD_W/2 + 4 = 78 px` to an edge is clamped away from its own tick and reads
+  as cut off — this, not density, is what cropped "High school graduation". So
+  the first and last in-span milestones must sit `78 * span / W` years inside the
+  edges.
+
+**The chosen window is 14 years, 2017-01 to 2031-01**, for all three tablet
+panes: 14 milestones in span, 14 cards drawn, zero overlaps, zero clipping, 8
+past and 6 future. It is the only span clean on all three, and it sits at the
+midpoint of the clean band on each — the band is ~40 days wide on the iPad and
+~120 on the tablets, so the span is set from a measured offset rather than a
+round number.
+
+`TABLET_HALF` and `TABLET_SHIFT` override the half-span and the offset for
+re-tuning, both driven through the app's own custom-zoom input and a drag, so
+nothing here depends on test hooks.
+
+### Why a narrower span alone was not enough
+
+A twenty-year window is infeasible on its face: the busiest card-width stretch
+of the seed holds four milestones against four tiers, with no slack. But
+narrowing does not fix it either, because `assignLanes` picks its algorithm on
+density. Below an average of three temporal neighbours it runs a force-directed
+relaxation; above, greedy interval packing. Every one of these spans is sparse
+enough to take the relaxation, and the relaxation rounds each card's continuous
+position to a lane, which can land two neighbours in the same one *while leaving
+a lane empty*. An exhaustive sweep — spans 10 to 60 years, offsets ±9 years in
+7-day steps, 16,500 combinations per frame — found no iPad window that was both
+clean and contained today: every clean one held 8 cards and sat entirely in the
+past or entirely in the future.
+
+So the fix belonged in `assignLanes`, not in the span or the seed: when the
+relaxation's result still has two cards sharing a lane within one card width, it
+falls through to the greedy packer, which is exact for that. Where the
+relaxation already succeeds its tighter, centre-weighted result is kept, so this
+only ever trades a broken layout for a correct one. `timeline.test.js` guards it.
+
+That was a live bug, not a screenshot workaround — any user with a dozen
+milestones over ~15 years on a tablet saw the same overlap with a tier going
+unused.
+
+### MEASURE=1
+
+`MEASURE=<path>` makes every bare-timeline pane report its own geometry after
+capture: timeline width, span, px/year, minimum separation, the milestones whose
+dates fall inside the visible span, the number of cards actually drawn, exact
+rectangle overlaps, and any card clamped away from its tick. A fully occluded
+card is invisible in a PNG, so the in-span/drawn reconciliation is the only way
+to catch one; `MISMATCH` in that line means something is hidden. Sheet and
+dialog scenes are skipped — their overlays make the count meaningless.
+
 ## Zoom choices
 
 Shot 1 is `30yr` — a *sixty* year window, since a preset names its half-range —

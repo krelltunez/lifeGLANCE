@@ -344,6 +344,24 @@ async function setZoom(page, label) {
   await page.waitForTimeout(700)
 }
 
+// Slide the visible window by `years` (positive = later) by dragging the
+// timeline. Timeline.jsx computes panMs as startPan - dx * msPerPx, so a drag
+// of dx px shifts the window by -dx * msPerPx; dragging left moves it later.
+async function panYears(page, years, spanYears) {
+  const box = await page.locator('.timeline-svg-wrap').first().boundingBox()
+  const dx  = -(years / spanYears) * box.width
+  const y   = box.y + box.height * 0.5
+  const x0  = box.x + box.width * 0.5
+  await page.mouse.move(x0, y)
+  await page.mouse.down()
+  // Several steps: moveDrag runs per mousemove, so one jump is fine, but a few
+  // keeps the gesture inside the element on large shifts.
+  for (let i = 1; i <= 8; i++) await page.mouse.move(x0 + (dx * i) / 8, y)
+  await page.mouse.up()
+  await page.mouse.move(4, 4)
+  await page.waitForTimeout(600)
+}
+
 // Centre the timeline on a milestone by searching for it. Selecting a result
 // opens the detail sheet (handleSearchSelect calls setDetail), so close it again
 // when the shot wants the timeline itself — the pan survives the close.
@@ -462,12 +480,170 @@ const scenes = {
   // while the iPad ran this one. There was no reason for the two to
   // disagree, so they no longer do.
   tabletTimeline: async (page) => {
-    await setZoom(page, 'years')
+    // Span is chosen per frame, not inherited from a preset. The 'years' preset
+    // is a 20-year window (HALF_RANGE_MS names the half-range), which at these
+    // widths puts same-tier milestones closer together than one card width —
+    // i.e. guarantees collisions. TABLET_HALF sets the half-span in years and
+    // TABLET_SHIFT slides the window by N years (positive = later), both via
+    // the app's own controls, so the arithmetic in store-assets/README.md can
+    // be re-derived from the UI.
+    // 14-year window, 2017-01 to 2031-01: the one span that is provably clean
+    // on all three tablet panes. Derived, not eyeballed — see the arithmetic in
+    // store-assets/README.md. MEASURE=1 re-checks it on every render.
+    const half  = Number(process.env.TABLET_HALF  ?? 7)
+    const shift = Number(process.env.TABLET_SHIFT ?? -2.82)
+    await setZoom(page, 'custom')
+    const input = page.locator('.custom-zoom-input').first()
+    await input.waitFor({ timeout: 4000 })
+    await input.fill(String(half))
+    await page.waitForTimeout(700)
+    if (shift) await panYears(page, shift, half * 2)
     await page.waitForTimeout(800)
   },
   milestoneDetail: async (page) => {
     await focusMilestone(page, 'College graduation', { keepDetail: true })
   },
+}
+
+/* ----------------------------------------------------------------- measure ---
+ * Read the rendered geometry back out of the DOM. Fully occluded cards are
+ * invisible in a PNG, so a visual pass cannot catch them: the only honest
+ * check is to count the milestones whose dates fall inside the visible span
+ * and compare that with the number of cards actually drawn.
+ *
+ * Everything here is measured, not assumed — the timeline width comes from the
+ * wrapper's content box, the span from two year ticks, the axis from the
+ * full-width axis line, and the lane pitch from the distinct card Y values.
+ */
+async function measurePane(page) {
+  /* global document -- the evaluate() bodies below run in the page, not in Node. */
+  const dom = await page.evaluate(() => {
+    const wrap = document.querySelector('.timeline-svg-wrap')
+    const r    = wrap.getBoundingClientRect()
+    const svg  = wrap.querySelector('svg')
+    const W = r.width, H = r.height
+    const num = (el, a) => Number(el.getAttribute(a))
+
+    const axis = [...svg.querySelectorAll('line')].find(l =>
+      Math.abs(num(l, 'x1')) < 1 && Math.abs(num(l, 'x2') - W) < 2 &&
+      l.getAttribute('y1') === l.getAttribute('y2'))
+
+    // Tick labels sit on one baseline, axisY + 20 (Timeline.jsx). Matching on
+    // "looks like a year" alone also catches the today label and any card whose
+    // date line is a bare year, which wrecks the span arithmetic.
+    const tickY = axis ? num(axis, 'y1') + 20 : null
+    const yearTicks = [...svg.querySelectorAll('text')]
+      .filter(t => /^\d{4}$/.test((t.textContent || '').trim()))
+      .filter(t => tickY != null && Math.abs(num(t, 'y') - tickY) < 0.6)
+      .map(t => ({ year: Number(t.textContent.trim()), x: num(t, 'x') }))
+      .sort((a, b) => a.x - b.x)
+
+    const rects = [...svg.querySelectorAll('rect')]
+    const tally = new Map()
+    for (const q of rects) {
+      const wv = Math.round(num(q, 'width'))
+      if (wv > 80) tally.set(wv, (tally.get(wv) || 0) + 1)
+    }
+    const cardW = [...tally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+
+    const cards = []
+    for (const q of rects) {
+      if (Math.round(num(q, 'width')) !== cardW) continue
+      let g = q.closest('g')
+      while (g && !g.querySelector('circle')) g = g.parentElement?.closest('g')
+      const scope = g || q.parentElement
+      const texts = [...scope.querySelectorAll('text')]
+        .map(t => (t.textContent || '').trim()).filter(Boolean)
+      const circles = [...scope.querySelectorAll('circle')]
+        .map(c => ({ cx: num(c, 'cx'), cy: num(c, 'cy') }))
+      const dot = circles.sort((a, b) => b.cy - a.cy)[0] ?? null
+      cards.push({
+        cardX: num(q, 'x'), cardY: num(q, 'y'), cardH: num(q, 'height'),
+        tickX: dot?.cx ?? null, dotY: dot?.cy ?? null, texts: texts.slice(0, 3),
+      })
+    }
+
+    return { W, H, axisY: axis ? num(axis, 'y1') : null, cardW, yearTicks, cards }
+  })
+
+  const all = await page.evaluate(() => new Promise((res, rej) => {
+    const rq = indexedDB.open('lifeglance', 6)
+    rq.onerror = () => rej(rq.error)
+    rq.onsuccess = () => {
+      const g = rq.result.transaction('milestones', 'readonly')
+        .objectStore('milestones').getAll()
+      g.onsuccess = () => res(g.result.map(m => ({ title: m.title, date: m.date })))
+      g.onerror = () => rej(g.error)
+    }
+  }))
+
+  // Span from two year ticks: x is linear in time, so two points fix it.
+  const YR = 365.25 * 24 * 3600 * 1000
+  const { yearTicks: ticks, W, cardW } = dom
+  let startMs = null, endMs = null
+  if (ticks.length >= 2) {
+    const a = ticks[0], b = ticks[ticks.length - 1]
+    const ta = Date.UTC(a.year, 0, 1), tb = Date.UTC(b.year, 0, 1)
+    const msPerPx = (tb - ta) / (b.x - a.x)
+    startMs = ta - a.x * msPerPx
+    endMs   = startMs + W * msPerPx
+  }
+  const spanYears = startMs == null ? null : (endMs - startMs) / YR
+
+  const inSpan = all
+    .filter(m => { const t = Date.parse(m.date); return t >= startMs && t <= endMs })
+    .sort((x, y) => Date.parse(x.date) - Date.parse(y.date))
+
+  // Lane pitch: distinct card Y values, bottom-up.
+  const ys = [...new Set(dom.cards.map(c => Math.round(c.cardY)))].sort((p, q) => q - p)
+
+  // Overlaps: true rectangle intersection. Connector length is jittered per
+  // card (connRand) and a one-line title makes a shorter card, so two cards in
+  // the same lane do not share a Y — keying on equal Y misses exactly the
+  // fully-occluded cards this check exists to find.
+  const overlaps = []
+  for (let i = 0; i < dom.cards.length; i++)
+    for (let j = i + 1; j < dom.cards.length; j++) {
+      const A = dom.cards[i], B = dom.cards[j]
+      const ox = Math.min(A.cardX + cardW, B.cardX + cardW) - Math.max(A.cardX, B.cardX)
+      const oy = Math.min(A.cardY + A.cardH, B.cardY + B.cardH) - Math.max(A.cardY, B.cardY)
+      if (ox <= 0 || oy <= 0) continue
+      const frac = (ox * oy) / (cardW * Math.min(A.cardH, B.cardH))
+      overlaps.push({
+        a: A.texts[0], b: B.texts[0],
+        ox: Math.round(ox), oy: Math.round(oy), frac: Number(frac.toFixed(2)),
+      })
+    }
+  overlaps.sort((x, y) => y.frac - x.frac)
+
+  // Clipped: a card whose X was clamped away from its own tick.
+  const clipped = dom.cards
+    .filter(c => c.tickX != null && Math.abs(c.cardX + cardW / 2 - c.tickX) > 2)
+    .map(c => ({ title: c.texts[0], tickX: Math.round(c.tickX), cardX: Math.round(c.cardX) }))
+
+  return {
+    W, H: dom.H, axisY: dom.axisY, msAxisY: dom.cards[0]?.dotY ?? null,
+    yearTicks: ticks,
+    cardW, cardH: dom.cards[0]?.cardH ?? null,
+    lanePitch: ys.length > 1 ? ys[0] - ys[1] : null,
+    laneYs: ys, lanesUsed: ys.length,
+    span: startMs == null ? null : {
+      from: new Date(startMs).toISOString().slice(0, 10),
+      to:   new Date(endMs).toISOString().slice(0, 10),
+      years: Number(spanYears.toFixed(2)),
+    },
+    pxPerYear: spanYears == null ? null : Number((W / spanYears).toFixed(1)),
+    minSepYears: spanYears == null ? null : Number((cardW / (W / spanYears)).toFixed(2)),
+    totalMilestones: all.length,
+    inSpan: inSpan.map(m => `${m.date.slice(0, 10)}  ${m.title}`),
+    inSpanCount: inSpan.length,
+    cardsDrawn: dom.cards.length,
+    overlaps, clipped,
+    cards: dom.cards.map(c => ({
+      title: c.texts[0], x: Math.round(c.tickX), cardX: Math.round(c.cardX),
+      cardY: Math.round(c.cardY), cardH: c.cardH,
+    })).sort((a, b) => a.x - b.x),
+  }
 }
 
 /* ----------------------------------------------------------------- panes ---
@@ -641,6 +817,7 @@ async function main() {
   const only = process.env.ONLY?.split(',').map(x => x.trim()).filter(Boolean)
   const panes = only ? PANE_SET.filter(p => only.some(o => p.id.startsWith(o))) : PANE_SET
   const failed = []
+  const measurements = {}
   try {
     for (const pane of panes) {
       // Every pane is raw material now: Play frames are composed with the
@@ -658,7 +835,20 @@ async function main() {
         await seed(page, pane.seed ? { ...data, milestones: data[pane.seed] } : data, pane.text)
         await scenes[pane.scene](page)
         await page.screenshot({ path: file })
-        console.log(`  ✓ ${pane.id}`)
+        // Only the bare-timeline scenes are measurable: the others have a sheet
+        // or dialog over the timeline, whose own rects and hidden cards make the
+        // in-span/drawn reconciliation meaningless.
+        const MEASURABLE = new Set(['wholeLife', 'chapterDrill', 'futureView', 'tabletTimeline'])
+        if (process.env.MEASURE && MEASURABLE.has(pane.scene)) {
+          const m = await measurePane(page)
+          measurements[pane.id] = m
+          const ok = m.inSpanCount === m.cardsDrawn ? 'ok' : 'MISMATCH'
+          console.log(`  ✓ ${pane.id}  w=${m.W} span=${m.span?.years}y minSep=${m.minSepYears}y ` +
+            `lanes=${m.lanesUsed}@${m.lanePitch}px  inSpan=${m.inSpanCount} drawn=${m.cardsDrawn} ${ok} ` +
+            `overlaps=${m.overlaps.length} clipped=${m.clipped.length}`)
+        } else {
+          console.log(`  ✓ ${pane.id}`)
+        }
       } catch (err) {
         failed.push(pane.id)
         console.log(`  ✗ ${pane.id} — ${err.message.split('\n')[0]}`)
@@ -674,6 +864,13 @@ async function main() {
     console.error(`\n${failed.length} pane(s) failed: ${failed.join(', ')}`)
     process.exitCode = 1
     return
+  }
+
+  if (process.env.MEASURE) {
+    const dest = process.env.MEASURE === '1'
+      ? path.join(PANES, 'measurements.json') : process.env.MEASURE
+    await writeFile(dest, JSON.stringify(measurements, null, 2))
+    console.log(`\nMeasurements → ${dest}`)
   }
 
   await writeFile(path.join(PANES, 'seed-info.json'), JSON.stringify(data, null, 2))
