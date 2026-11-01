@@ -403,14 +403,14 @@ const scenes = {
     await page.waitForTimeout(350)
   },
   // Tablet scenes.
-  ipadTimeline: async (page) => {
+  // The wide timeline, shared by the iPad frame and both Play tablet
+  // frames. They used to differ: the Play tablets ran a months-zoom scene
+  // with arrow navigation, left over from the original Play-only set,
+  // while the iPad ran this one. There was no reason for the two to
+  // disagree, so they no longer do.
+  tabletTimeline: async (page) => {
     await setZoom(page, 'years')
     await page.waitForTimeout(800)
-  },
-  wideTimeline: async (page) => {
-    await setZoom(page, 'months')
-    for (let i = 0; i < 3; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(320) }
-    await page.waitForTimeout(600)
   },
   milestoneDetail: async (page) => {
     await focusMilestone(page, 'College graduation', { keepDetail: true })
@@ -434,18 +434,23 @@ const scenes = {
 // want here: the axis centres and cards alternate above and below it, filling
 // a short wide pane instead of stacking against one edge.
 const PHONE_APPLE = { width: 1612, height: 1206, scale: 1 }  // → 1612 x 1206
-const PHONE_PLAY  = { width: 1320, height: 660,  scale: 2 }  // → 2640 x 1320, Play's 2:1 cap
+const PHONE_PLAY  = { width: 1620, height: 1320, scale: 1 }  // → 1620 x 1320, right of a 1020px caption column
 // Shots 4 and 5 are dialogs. A dialog is a fixed width in CSS px, so in a
 // 1612px-wide viewport it is a small box adrift in a dimmed pane; a narrower
 // viewport scaled up to the same output makes it the subject.
 const PHONE_MODAL = { width: 1100, height: 823, scale: 1612 / 1100 } // → 1612 x 1206
-const PLAY_MODAL  = { width: 900,  height: 450, scale: 2640 / 900 }  // → 2640 x 1320
+const PLAY_MODAL  = { width: 1100, height: 896, scale: 1620 / 1100 } // → 1620 x 1320
 // The add sheet is a much longer form than the on-this-day panel, so it needs
 // more CSS height to fit uncut — which means magnifying it slightly less.
 const PHONE_SHEET = { width: 1340, height: 1002, scale: 1612 / 1340 } // → 1612 x 1206
-const PLAY_SHEET  = { width: 1180, height: 590,  scale: 2640 / 1180 } // → 2640 x 1320
-const TAB7        = { width: 1422, height: 889, scale: 1.35 } // → 1920 x 1200
-const TAB10       = { width: 1422, height: 889, scale: 1.8 }  // → 2560 x 1600
+const PLAY_SHEET  = { width: 1340, height: 1092, scale: 1620 / 1340 } // → 1620 x 1320
+// Both tablet panes clear the 900px compactLayout threshold, so the axis
+// centres and cards alternate above and below it. They carry the same
+// 24-milestone seed as the iPad frame at two thirds its width, and in compact
+// layout — every card stacked above a low axis — that is not enough lanes and
+// they collide.
+const TAB7        = { width: 1920, height: 919,  scale: 1 }    // → 1920 x 919, under a 280px band
+const TAB10       = { width: 2048, height: 983,  scale: 1.25 } // → 2560 x 1229, under a 370px band
 const IPAD        = { width: 1529, height: 880, scale: 1.8 }  // → 2752 x 1584, under the 480px caption band
 
 const PANE_SET = [
@@ -456,18 +461,18 @@ const PANE_SET = [
   { id: 'iphone/04a', vp: PHONE_MODAL, scene: 'onThisDay',    seed: 'wide' },
   { id: 'iphone/05a', vp: PHONE_SHEET, scene: 'addMilestone', seed: 'wide' },
   // Apple iPad — unchanged.
-  { id: 'ipad/06a', vp: IPAD, scene: 'ipadTimeline' },
+  { id: 'ipad/06a', vp: IPAD, scene: 'tabletTimeline' },
   { id: 'ipad/07a', vp: IPAD, scene: 'milestoneDetail' },
   // Google Play — written straight out, no composition.
-  { id: 'play/phone/01-decades',       vp: PHONE_PLAY, scene: 'wholeLife',    seed: 'wide' },
-  { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chapterDrill', seed: 'wide', text: 'big' },
-  { id: 'play/phone/03-future',        vp: PHONE_PLAY, scene: 'futureView',   seed: 'future' },
-  { id: 'play/phone/04-on-this-day',   vp: PLAY_MODAL, scene: 'onThisDay',    seed: 'wide' },
-  { id: 'play/phone/05-add-milestone', vp: PLAY_SHEET, scene: 'addMilestone', seed: 'wide' },
-  { id: 'play/tablet7/01-timeline',    vp: TAB7,  scene: 'wideTimeline' },
-  { id: 'play/tablet7/02-milestone-detail', vp: TAB7, scene: 'milestoneDetail' },
-  { id: 'play/tablet10/01-timeline',   vp: TAB10, scene: 'wideTimeline' },
-  { id: 'play/tablet10/02-milestone-detail', vp: TAB10, scene: 'milestoneDetail' },
+  { id: 'play/phone/01a', vp: PHONE_PLAY, scene: 'wholeLife',    seed: 'wide' },
+  { id: 'play/phone/02a', vp: PHONE_PLAY, scene: 'chapterDrill', seed: 'wide', text: 'big' },
+  { id: 'play/phone/03a', vp: PHONE_PLAY, scene: 'futureView',   seed: 'future' },
+  { id: 'play/phone/04a', vp: PLAY_MODAL, scene: 'onThisDay',    seed: 'wide' },
+  { id: 'play/phone/05a', vp: PLAY_SHEET, scene: 'addMilestone', seed: 'wide' },
+  { id: 'play/tablet7/01a', vp: TAB7,  scene: 'tabletTimeline' },
+  { id: 'play/tablet7/02a', vp: TAB7, scene: 'milestoneDetail' },
+  { id: 'play/tablet10/01a', vp: TAB10, scene: 'tabletTimeline' },
+  { id: 'play/tablet10/02a', vp: TAB10, scene: 'milestoneDetail' },
 ]
 
 // Seed the demo backup straight into IndexedDB (mirroring restoreMilestones in
@@ -580,9 +585,9 @@ async function main() {
   const failed = []
   try {
     for (const pane of panes) {
-      // A play/* pane is a finished frame; everything else is raw material.
-      const isPlay = pane.id.startsWith('play/')
-      const file = path.join(isPlay ? OUT : PANES, `${pane.id}.png`)
+      // Every pane is raw material now: Play frames are composed with the
+      // same captions as their Apple counterparts rather than shipped bare.
+      const file = path.join(PANES, `${pane.id}.png`)
       await mkdir(path.dirname(file), { recursive: true })
       const ctx = await browser.newContext({
         viewport: { width: pane.vp.width, height: pane.vp.height },
