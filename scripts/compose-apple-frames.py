@@ -176,11 +176,12 @@ def k(v):
 SHOTS = [
     dict(kind="iphone", out="iphone-dynamic-island/01-decades.png", panes=["iphone/01a"],
          eyebrow="DECADES TO WEEKS", l1="See your whole life,", l2="at a glance."),
-    # Cropped to the ribbon band plus the cards either side of it. Uncropped,
-    # the ribbons are a thin line with a third of the pane empty beneath them
-    # and the cards dominating a frame whose caption is about chapters.
+    # Drilled into one chapter, so the era IS the frame: its label and duration
+    # are on screen, only its own milestones are in it, and a four-year span
+    # with a handful of cards fills the width without collisions or dead space.
+    # A full pane like every other shot — the crop-and-fade this replaced cut
+    # the app chrome and clipped cards, which read as a broken render.
     dict(kind="iphone", out="iphone-dynamic-island/02-chapters.png", panes=["iphone/02a"],
-         band=80,
          eyebrow="CHAPTERS", l1="The eras you lived,", l2="drawn to scale."),
     dict(kind="iphone", out="iphone-dynamic-island/03-future.png", panes=["iphone/03a"],
          eyebrow="THE FUTURE HALF", l1="Half your timeline", l2="hasn't happened yet."),
@@ -197,44 +198,6 @@ SHOTS = [
     dict(kind="ipad", out="ipad13/07-milestone.png", panes=["ipad/07a"],
          eyebrow="IN CONTEXT", l1="One moment,", l2="and everything around it."),
 ]
-
-
-def band_crop(pane, fade, head=0.07, foot=0.86, pad=26):
-    """Crop a pane to the rows that actually carry content, and feather the two
-    cut edges.
-
-    The boundaries are measured, not fixed fractions. Fixed fractions sliced
-    cards in half at the fade, which reads as damage rather than as a crop, and
-    they go stale the moment the lane assignment shifts. `head` and `foot`
-    exclude the app's own header and footer bars, which otherwise set the
-    extent to the whole pane; between them the first and last rows carrying ink
-    bound the band, so every card is whole and the fades land on empty space.
-
-    Full width is kept deliberately and the sides are not faded: every other
-    frame in the set is a full-width pane, and feathering the sides would make
-    this one read as a different treatment rather than the same app window
-    cropped.
-    """
-    import numpy as np
-    a = np.asarray(pane.convert("L")).astype(float)
-    lo, hi = round(head * pane.height), round(foot * pane.height)
-    rows = (a[lo:hi] > 55).mean(axis=1)
-    ink = np.where(rows > 0.004)[0]
-    if len(ink) == 0:
-        return pane, Image.new("L", pane.size, 255)
-    y0 = max(0, lo + ink[0] - pad)
-    y1 = min(pane.height, lo + ink[-1] + pad)
-
-    band = pane.crop((0, y0, pane.width, y1))
-    mask = Image.new("L", band.size, 255)
-    px = mask.load()
-    span = min(fade, band.height // 2)
-    for y in range(span):
-        v = round(255 * y / span)
-        for x in range(band.width):
-            px[x, y] = v
-            px[x, band.height - 1 - y] = v
-    return band, mask
 
 
 def compose_iphone(shot, pane_dir, out_path):
@@ -269,11 +232,7 @@ def compose_iphone(shot, pane_dir, out_path):
         top = eb_y + cap_h + 110
         draw_bullets(canvas, bullets, top, top + bul_h,
                      size=bul_size, gap=bul_gap, cx=cx)
-    if shot.get("band"):
-        band, mask = band_crop(pane, shot["band"])
-        canvas.paste(band, (CAPTION_COL, (IPHONE_H - band.height) // 2), mask)
-    else:
-        canvas.paste(pane, (CAPTION_COL, 0))
+    canvas.paste(pane, (CAPTION_COL, 0))
     canvas.save(out_path)
     return canvas.size
 

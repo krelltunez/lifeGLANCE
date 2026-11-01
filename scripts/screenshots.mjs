@@ -196,15 +196,33 @@ const FUTURE_DROP = [
 // The cost is that this shot's "future -> N milestones" counter reads higher
 // than the other frames'. A fuller frame is worth more than a counter nobody
 // cross-checks between screenshots.
-const FUTURE_ADD = [
-  /Thanksgiving/i, /Dad's 60th birthday/i, /Run the NYC Marathon/i,
-  /Buy first apartment/i,
+// Placed at explicit offsets rather than taken at their seed dates: the seed
+// bunches its future into 2027-2029, and a 'years' window needs roughly 1.9
+// years between cards before they stop colliding. Titles and categories are
+// the persona's; only the spacing is chosen.
+//
+// This stays a shot-3-only seed, and that is load-bearing rather than
+// incidental. Shot 1 is a SIXTY year window, where a card covers about 5.5
+// years of axis, so six to eight milestones inside 2027-2035 cannot be spread
+// far enough apart to avoid piling up there — the two shots want mutually
+// exclusive things from one seed. Keeping them separate is what protects shot
+// 1. The cost is that this frame's "future -> N" counter reads higher than the
+// others'.
+const FUTURE_HORIZON = [
+  { daysAhead: 150,  title: "Brother Tyler's wedding",            category: 'family', date_precision: 'day'   },
+  { daysAhead: 660,  title: "Dad's 60th birthday",                category: 'family', date_precision: 'day'   },
+  { daysAhead: 1080, title: 'Run the NYC Marathon',               category: 'health', date_precision: 'day'   },
+  { daysAhead: 1500, title: '30th birthday trip - Japan round 2', category: 'travel', date_precision: 'month' },
+  { daysAhead: 2900, title: "Annual guy's trip to Vegas",         category: 'travel', date_precision: 'month' },
 ]
+// Thanksgiving comes from the seed proper, where its date is calendar-locked,
+// so it lands on the real date a few weeks out rather than a chosen offset.
+const FUTURE_ADD = [/Thanksgiving/i]
 
 function futureSeed(milestones, now) {
   const extra = milestones.filter(m => FUTURE_ADD.some(re => re.test(m.title)))
   return [...wideSeed(milestones, now).filter(m => !FUTURE_DROP.some(re => re.test(m.title))),
-          ...extra]
+          ...extra, ...horizonEntries(FUTURE_HORIZON, now, 2)]
 }
 
 function thinAndExtend(milestones, now) {
@@ -303,20 +321,33 @@ const scenes = {
     await page.waitForTimeout(900)
   },
 
-  // Chapters as the subject rather than a strip under the cards: 'years' is the
-  // widest zoom at which the ribbons still carry their labels and durations.
-  // Several chapter ribbons at once, so the banding reads as structure.
-  // 'years', not 'months'. Zooming in makes a single ribbon span the pane but
-  // it is still a hairline and the rest of the frame empties out; at 'years'
-  // several eras are in shot at once with their names and durations, which is
-  // what "drawn to scale" actually means. A ribbon is a thin band by design —
-  // this is as much of the frame as it can honestly be.
-  chaptersWide: async (page) => {
+  // Drill into one chapter, which is the app's own answer to "show me this
+  // era": handleChapterClick zooms to the chapter's span and filters the
+  // timeline to its members. That makes the chapter the literal subject —
+  // its label, its duration, its own milestones — instead of a ribbon
+  // competing with everything else on the axis, and it demonstrates a real
+  // feature rather than a cropped screenshot.
+  //
+  // The ribbon is an unclassed <g> in the SVG, so it is reached through its
+  // label text; the click handler is on the group and the text sits inside
+  // it. Timeline.jsx debounces the click by 250ms to tell it from a
+  // double-click, and the drill then animates, hence the wait.
+  chapterDrill: async (page) => {
     await setZoom(page, 'years')
-    // Must be a title the pane's own seed actually contains — a scene that
-    // searches for a milestone thinned out of its seed dies on a 30s click
-    // timeout rather than anything legible.
-    await focusMilestone(page, 'Promoted to senior analyst')
+    await page.waitForTimeout(600)
+    const ribbon = page.locator('svg text', { hasText: 'The Brex years' }).first()
+    await ribbon.waitFor({ timeout: 8000 })
+    await ribbon.click({ force: true })
+    await page.waitForTimeout(1800)
+    // The drill fits the chapter with 15% padding a side, which at this card
+    // width is just under half a card — so a milestone at either end of the
+    // era has its card clipped by the frame edge. Widening the custom zoom
+    // gives the boundary cards room. The drill filters by membership, not by
+    // date, so a wider window still shows this chapter's milestones only.
+    const zoomInput = page.locator('.custom-zoom-input')
+    await zoomInput.waitFor({ timeout: 5000 })
+    await zoomInput.fill('3')
+    await page.waitForTimeout(1000)
   },
   // One labelled ribbon over the milestones it contains — the chapter idea
   // explaining itself rather than decorating the axis.
@@ -413,7 +444,7 @@ const IPAD        = { width: 1529, height: 880, scale: 1.8 }  // → 2752 x 1584
 const PANE_SET = [
   // Apple iPhone — one landscape pane per shot.
   { id: 'iphone/01a', vp: PHONE_APPLE, scene: 'wholeLife',    seed: 'wide' },
-  { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chaptersWide', seed: 'wide', text: 'big' },
+  { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chapterDrill', seed: 'wide', text: 'big' },
   { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView',   seed: 'future' },
   { id: 'iphone/04a', vp: PHONE_MODAL, scene: 'onThisDay',    seed: 'wide' },
   { id: 'iphone/05a', vp: PHONE_SHEET, scene: 'addMilestone', seed: 'wide' },
@@ -422,7 +453,7 @@ const PANE_SET = [
   { id: 'ipad/07a', vp: IPAD, scene: 'milestoneDetail' },
   // Google Play — written straight out, no composition.
   { id: 'play/phone/01-decades',       vp: PHONE_PLAY, scene: 'wholeLife',    seed: 'wide' },
-  { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chaptersWide', seed: 'wide', text: 'big' },
+  { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chapterDrill', seed: 'wide', text: 'big' },
   { id: 'play/phone/03-future',        vp: PHONE_PLAY, scene: 'futureView',   seed: 'future' },
   { id: 'play/phone/04-on-this-day',   vp: PLAY_MODAL, scene: 'onThisDay',    seed: 'wide' },
   { id: 'play/phone/05-add-milestone', vp: PLAY_SHEET, scene: 'addMilestone', seed: 'wide' },
@@ -438,6 +469,13 @@ const PANE_SET = [
 async function seed(page, data, textSize = 'small') {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(900) // let initDB() create the 'lifeglance' DB + stores
+  // A chapter's milestoneIds still list everything it had in the full seed, so
+  // after thinning the drill-in header claims "17 members" over five cards.
+  // Trim each chapter's membership to the milestones that actually exist.
+  const present = new Set(data.milestones.map(m => m.id))
+  const chapters = data.chapters.map(c => ({
+    ...c, milestoneIds: (c.milestoneIds ?? []).filter(id => present.has(id)),
+  }))
   await page.evaluate(async ({ milestones, chapters, birthday, textSize }) => {
     const clean = milestones.map(({ photo_uri: _drop, ...m }) => ({
       mainTimelineVisibility: 'inherit',
@@ -473,7 +511,7 @@ async function seed(page, data, textSize = 'small') {
     // the ones that remain. It is the cheapest lever on card pile-up.
     localStorage.setItem('lifeglance-clustering', 'false')
     localStorage.setItem('lifeglance-text-size', textSize)
-  }, { milestones: data.milestones, chapters: data.chapters, birthday: data.birthday, textSize })
+  }, { milestones: data.milestones, chapters, birthday: data.birthday, textSize })
 
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.locator('.add-milestone-btn').first().waitFor({ timeout: 15000 })
