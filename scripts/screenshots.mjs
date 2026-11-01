@@ -188,8 +188,23 @@ const FUTURE_DROP = [
   /Moved to Astoria/i, /Started at Figma/i,
 ]
 
+// ...and gains near-term ones. With only the shared horizon entries the frame
+// was three cards in twenty years of empty axis, which looks barren whatever
+// the caption says. These come from the same persona and fill 2026-2029, so
+// the eye has somewhere to travel between today and the far goals.
+//
+// The cost is that this shot's "future -> N milestones" counter reads higher
+// than the other frames'. A fuller frame is worth more than a counter nobody
+// cross-checks between screenshots.
+const FUTURE_ADD = [
+  /Thanksgiving/i, /Dad's 60th birthday/i, /Run the NYC Marathon/i,
+  /Buy first apartment/i,
+]
+
 function futureSeed(milestones, now) {
-  return wideSeed(milestones, now).filter(m => !FUTURE_DROP.some(re => re.test(m.title)))
+  const extra = milestones.filter(m => FUTURE_ADD.some(re => re.test(m.title)))
+  return [...wideSeed(milestones, now).filter(m => !FUTURE_DROP.some(re => re.test(m.title))),
+          ...extra]
 }
 
 function thinAndExtend(milestones, now) {
