@@ -271,27 +271,6 @@ const scenes = {
 
   // Chapters as the subject rather than a strip under the cards: 'years' is the
   // widest zoom at which the ribbons still carry their labels and durations.
-  // Chapters as the subject. The trap here is zooming OUT to get more of them
-  // in: a ribbon only carries its label and duration when the bar is wide
-  // enough, so at 'years' on a phone-width pane they degrade to unlabelled
-  // stripes and cropping just magnifies stripes. 'months' makes one era span
-  // most of the frame WITH its name and length on it, and the milestones it
-  // contains sit above — which is the idea the caption is selling.
-  chapterBand: async (page) => {
-    await setZoom(page, 'months')
-    await focusMilestone(page, 'Promoted to senior analyst')
-    await page.waitForTimeout(400)
-  },
-  // The close end of the same span: individual cards, dates, ages. 'months'
-  // rather than 'weeks' because the thinned seed leaves a +/-3 month window
-  // with a single milestone in it.
-  closeUp: async (page) => {
-    await setZoom(page, 'months')
-    await focusMilestone(page, 'Promoted to senior analyst')
-    return
-    for (let i = 0; i < 2; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(320) }
-    await page.waitForTimeout(600)
-  },
   // Several chapter ribbons at once, so the banding reads as structure.
   // 'years', not 'months'. Zooming in makes a single ribbon span the pane but
   // it is still a hairline and the rest of the frame empties out; at 'years'
