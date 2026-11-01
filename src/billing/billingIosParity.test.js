@@ -51,13 +51,93 @@ describe('iOS BillingBridge plugin parity', () => {
     expect(swift).toContain('notifyListeners("billingEvent"')
   })
 
-  it('keeps the real-status override out of Release builds', () => {
-    // The override lives only between `#if DEBUG` and `#else` in getStatus.
-    const debug = swift.slice(swift.indexOf('#if DEBUG'), swift.indexOf('#else'))
-    const release = swift.slice(swift.indexOf('#else'), swift.indexOf('#endif'))
-    expect(debug).toContain('UserDefaults.standard.bool(forKey: "GlanceBillingRealStatus")')
-    expect(release).not.toContain('GlanceBillingRealStatus')
-    expect(swift.match(/GlanceBillingRealStatus"/g)?.length).toBe(1)
+  // The two Debug-only billing overrides, as launch-argument UserDefaults keys.
+  // `-GlanceBillingRealStatus` reports the real entitlement from the first read;
+  // `-GlanceBillingStartLocked` reports inactive for the adapter's two mount
+  // reads and the real entitlement after them, so a Debug build can be opened
+  // at the paywall and unlocked by a real Restore on a device that already owns
+  // the subscription. Neither may exist in a Release build.
+  const OVERRIDES = ['GlanceBillingRealStatus', 'GlanceBillingStartLocked']
+
+  /**
+   * Splits Swift source into the text only a DEBUG build compiles and the text
+   * a Release build can reach, by walking the preprocessor nesting.
+   *
+   * This replaces a slice-by-first-index version, and the reason matters: that
+   * one took `release` as everything between the FIRST `#else` and the FIRST
+   * `#endif`. Adding a second `#if DEBUG` block to the file ahead of getStatus
+   * put an `#endif` before that `#else`, which made the slice EMPTY — so
+   * `expect(release).not.toContain(...)` passed while asserting nothing at all.
+   * An unrecognised directive throws rather than being skipped, for the same
+   * reason.
+   */
+  function partition(src) {
+    const debugOnly = []
+    const inRelease = []
+    // One frame per open conditional: whether the branch now open is DEBUG-only.
+    const stack = []
+    for (const raw of src.split('\n')) {
+      // Prose is not code. The overrides are named in the comments above
+      // getStatus, which sit outside the guard on purpose.
+      const line = raw.replace(/\/\/.*$/, '')
+      const t = line.trim()
+      if (t.startsWith('#')) {
+        if (t === '#if DEBUG') stack.push({ isDebug: true, inDebugBranch: true })
+        else if (/^#if\b/.test(t)) stack.push({ isDebug: false, inDebugBranch: false })
+        else if (t === '#else') {
+          const top = stack[stack.length - 1]
+          if (!top) throw new Error('#else with no open #if')
+          top.inDebugBranch = top.isDebug ? false : top.inDebugBranch
+        } else if (t === '#endif') {
+          if (!stack.pop()) throw new Error('#endif with no open #if')
+        } else throw new Error(`unhandled preprocessor directive: ${t}`)
+        continue
+      }
+      ;(stack.some((f) => f.isDebug && f.inDebugBranch) ? debugOnly : inRelease).push(line)
+    }
+    if (stack.length > 0) throw new Error('unterminated #if')
+    return { debugOnly: debugOnly.join('\n'), inRelease: inRelease.join('\n') }
+  }
+
+  it('keeps both Debug-only overrides out of Release builds', () => {
+    const { debugOnly, inRelease } = partition(swift)
+    // The parse found both branches of getStatus, so neither side is empty and
+    // the assertions below cannot pass vacuously.
+    expect(debugOnly).toContain('"active": true')
+    expect(inRelease).toContain('let status = billing.status()')
+
+    for (const key of OVERRIDES) {
+      expect(debugOnly, `${key} must be read in the DEBUG branch`)
+        .toContain(`UserDefaults.standard.bool(forKey: "${key}")`)
+      expect(inRelease, `${key} must not be reachable in Release`).not.toContain(key)
+      // Read in exactly one place, so there is no second site to drift.
+      expect(swift.match(new RegExp(`forKey: "${key}"`, 'g'))?.length).toBe(1)
+    }
+  })
+
+  it('fakes nothing but the initial status read under -GlanceBillingStartLocked', () => {
+    // The whole point of that override: the app opens locked, and then every
+    // real path runs. A branch on it inside any other method would mean a
+    // Restore that "worked" without RevenueCat having said so.
+    // Comments stripped first: the section comment above getStatus names the
+    // override, and it trails the body of whichever method precedes it.
+    const code = swift.replace(/\/\/.*$/gm, '')
+    const touching = code
+      .split(/@objc func /)
+      .slice(1)
+      .filter((b) => b.includes('GlanceBillingStartLocked'))
+      .map((b) => b.slice(0, b.indexOf('(')))
+    expect(touching).toEqual(['getStatus'])
+
+    // And the suppression is bounded: a counter the reads run out of, not a
+    // flag that holds the app locked for the life of the process.
+    const debug = partition(swift).debugOnly
+    expect(debug).toContain('startLockedReads < Self.startLockedSuppressedReads')
+    expect(debug).toContain('startLockedReads += 1')
+    // Two, because the adapter's onMount does exactly two getStatus reads (one
+    // immediate, one at mountRereadMs) — @glance-apps/billing 0.2.2, the same
+    // version lastGLANCE pins.
+    expect(swift).toMatch(/startLockedSuppressedReads = 2\b/)
   })
 
   it('never reports a trial for a product with no introductory offer', () => {
