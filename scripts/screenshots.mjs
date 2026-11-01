@@ -348,6 +348,13 @@ const scenes = {
     await zoomInput.waitFor({ timeout: 5000 })
     await zoomInput.fill('3')
     await page.waitForTimeout(1000)
+    // Park the cursor off the ribbon before the capture. Clicking it leaves
+    // the pointer sitting there, and the ribbon's onMouseEnter sets a hover
+    // tooltip that only onMouseLeave clears — fill() focuses the input without
+    // moving the mouse, so the tip stayed up and rendered as a stray box
+    // floating on the band. Moving the mouse fires the leave.
+    await page.mouse.move(4, 4)
+    await page.waitForTimeout(500)
   },
   // One labelled ribbon over the milestones it contains — the chapter idea
   // explaining itself rather than decorating the axis.
