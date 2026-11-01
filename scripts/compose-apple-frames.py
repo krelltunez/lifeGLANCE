@@ -84,25 +84,48 @@ def build_bg(w, h, glow_y=0.16, glow_x=0.5):
 
 
 def draw_caption(canvas, eyebrow, l1, l2, *, eb_y, eb_size, eb_track,
-                 head_y, head_size, head_pad, line_ratio=1.14, cx=None, column=None):
+                 head_y, head_size, head_pad, line_ratio=1.14, cx=None, column=None,
+                 limit=None):
     """Kit caption pattern: tracked all-caps eyebrow in the brand colour, then
     two Lora lines — warm white above, brand-colour italic below. Shrinks the
     headline to fit rather than wrapping, exactly as the kit framers do."""
     d = ImageDraw.Draw(canvas)
     if cx is None:
         cx = canvas.width // 2
-    tracked(d, cx, eb_y, eyebrow, sans(eb_size), VIOLET, eb_track)
 
     size = head_size
     target = (column or canvas.width) - head_pad
     longest = max(d.textlength(l1, font=serif(size)), d.textlength(l2, font=serif(size, it=True)))
     if longest > target:
         size = int(size * target / longest)
-    f1, f2 = serif(size), serif(size, it=True)
-    lh = int(size * line_ratio)
-    d.text((cx - d.textlength(l1, font=f1) / 2, head_y), l1, font=f1, fill=WARM_WHITE)
-    d.text((cx - d.textlength(l2, font=f2) / 2, head_y + lh), l2, font=f2, fill=VIOLET)
-    return head_y + lh + int(size * 1.25)   # ink bottom, roughly
+
+    # Keep the real ink inside `limit`. The head_y/eb_y fractions were tuned on
+    # a caption whose second line has no descender; one that does ("and
+    # everything around it.") hangs 12px past the iPad band and the pane, which
+    # starts exactly at the band line, slices the tails off the y and the g.
+    # Lift the whole block by the excess first — there is slack above the
+    # eyebrow — and only shrink the headline if lifting alone cannot do it, so
+    # a caption that already fits is left exactly where it was.
+    dy = 0
+    for _ in range(40):
+        f1, f2 = serif(size), serif(size, it=True)
+        lh = int(size * line_ratio)
+        bottom = max(d.textbbox((0, head_y), l1, font=f1)[3],
+                     d.textbbox((0, head_y + lh), l2, font=f2)[3])
+        if limit is None or bottom <= limit:
+            dy = 0
+            break
+        dy = min(bottom - limit, eb_y // 2)   # never crowd the top edge
+        if bottom - dy <= limit:
+            break
+        size -= 2
+    else:
+        dy = min(bottom - limit, eb_y // 2)
+
+    tracked(d, cx, eb_y - dy, eyebrow, sans(eb_size), VIOLET, eb_track)
+    d.text((cx - d.textlength(l1, font=f1) / 2, head_y - dy), l1, font=f1, fill=WARM_WHITE)
+    d.text((cx - d.textlength(l2, font=f2) / 2, head_y + lh - dy), l2, font=f2, fill=VIOLET)
+    return bottom - dy
 
 
 def draw_bullets(canvas, bullets, top, bottom, size=56, gap=130, cx=None):
@@ -274,7 +297,8 @@ def compose_band(sh, lay, pane):
     draw_caption(canvas, sh["eyebrow"], sh["l1"], sh["l2"],
                  eb_y=round(70 * u), eb_size=round(44 * u), eb_track=round(15 * u),
                  head_y=round(132 * u), head_size=round(150 * u),
-                 head_pad=round(560 * u), line_ratio=1.12)
+                 head_pad=round(560 * u), line_ratio=1.12,
+                 limit=band - round(16 * u))
     canvas.paste(pane, (0, H - pane.height))
     return canvas
 

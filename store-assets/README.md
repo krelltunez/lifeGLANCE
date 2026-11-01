@@ -234,6 +234,13 @@ the kit (v2.1) is the part that makes the GLANCE listings look like one family:
   for the eyebrow. Lora is vendored in `scripts/assets/fonts` (SIL OFL).
 - **Caption pattern** — tracked all-caps eyebrow in the brand colour, then two
   Lora lines: warm white above, brand-colour italic below, ending in a period.
+  On the band layouts the pane starts exactly at the band line, so the caption
+  is held to a measured ink limit rather than to the `head_y` fraction: the
+  fraction was tuned on a second line with no descender, and one that has them
+  ("and everything around it.") hangs 8–12px past the band and has the tails
+  sliced off its y and g. A caption that overflows is lifted by the excess —
+  there is slack above the eyebrow — and only shrunk if lifting alone cannot do
+  it, so a caption that already fits is left exactly where it was.
 - **Bullet pattern** — Lora italic, text alternating warm white and brand
   colour, each dot the inverse of its line's text colour, dots centred on the
   line's real ink box.
