@@ -84,6 +84,21 @@ const DAY = 86400000
 // series stays internally consistent on whatever date it lands.)
 const CALENDAR_LOCKED = [/thanksgiving/i, /new year/i, /christmas/i]
 
+// Whole-year nudges applied after the global shift, for milestones that
+// collide with a neighbour in a particular frame.
+//
+// Backpacked Europe landed two months from "Started at Figma", which put their
+// cards on top of each other just left of centre in shot 1 — the only overlap
+// left in the set, in the first image of the listing. A year is the right unit
+// rather than a few months: it keeps the milestone in NOVEMBER, so it still
+// matches today's month and day and stays in shot 4's on-this-day list, and
+// November 2021 is still inside the Brex years span (Sep 2020 - Aug 2024), so
+// shot 2's chapter view is unchanged.
+//
+// Moving the Figma milestone instead would have been worse: it is the boundary
+// of the Figma era chapter, so shifting it drags the chapter with it.
+const YEAR_SHIFT = [[/Backpacked Europe/i, -1]]
+
 // Scenes look these up by title, so thinning must never drop them.
 const PROTECTED = [
   /Brother Tyler's wedding/i, /First day at Brex/i, /Backpacked Europe/i,
@@ -240,6 +255,14 @@ function redate(demo, now = new Date()) {
     ...m,
     date: CALENDAR_LOCKED.some(re => re.test(m.title)) ? m.date : move(m.date),
   }))
+  for (const m of milestones) {
+    const years = YEAR_SHIFT.find(([re]) => re.test(m.title))?.[1]
+    if (!years) continue
+    const d = new Date(Date.parse(m.date))
+    d.setUTCFullYear(d.getUTCFullYear() + years)
+    m.date = d.toISOString()
+  }
+
   const chapters = demo.chapters.map(c => ({
     ...c,
     start: c.start ? move(c.start) : c.start,
