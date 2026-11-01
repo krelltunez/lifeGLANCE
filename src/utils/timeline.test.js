@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyRecurFilter, computePinchZoom, PINCH_MIN_HALF_MS, PINCH_MAX_HALF_MS } from './timeline'
+import { applyRecurFilter, assignLanes, computePinchZoom, PINCH_MIN_HALF_MS, PINCH_MAX_HALF_MS } from './timeline'
 
 // Helper to build a minimal milestone-like object
 function ms(id, dateStr, recurrence_id = null) {
@@ -162,5 +162,74 @@ describe('computePinchZoom', () => {
     const r = computePinchZoom(args)
     const after = timeUnderMid(r.panMs, r.halfMs, args.midX, args.width, 0.88)
     expect(after).toBeCloseTo(before, 3)
+  })
+})
+
+describe('assignLanes lane separation', () => {
+  const YR  = 365.25 * 24 * 3600 * 1000
+  const DAY = 24 * 3600 * 1000
+
+  // Two cards may share a lane only if they are at least one card width apart.
+  function conflicts(laned, cardTimeSpan) {
+    const bad = []
+    for (let i = 0; i < laned.length; i++) {
+      for (let j = i + 1; j < laned.length; j++) {
+        const a = laned[i], b = laned[j]
+        if (a.above !== b.above || a.lane !== b.lane) continue
+        if (Math.abs(new Date(a.date) - new Date(b.date)) < cardTimeSpan)
+          bad.push([a.id, b.id])
+      }
+    }
+    return bad
+  }
+
+  // A dozen milestones over ~14 years on a tablet-width timeline. This is
+  // sparse enough to take the force-directed path (avg neighbours < 3), which
+  // on its own rounds neighbouring cards into the same lane and leaves a lane
+  // unused. Regression guard for the store-screenshot tablet frames.
+  const sparseButColliding = [
+    ms('a', '2017-10-07'), ms('b', '2019-05-06'), ms('c', '2020-09-06'),
+    ms('d', '2020-11-01'), ms('e', '2021-11-01'), ms('f', '2022-08-08'),
+    ms('g', '2024-01-24'), ms('h', '2025-02-23'), ms('i', '2026-12-05'),
+    ms('j', '2027-06-21'), ms('k', '2027-10-21'), ms('l', '2029-02-21'),
+    ms('m', '2029-04-23'), ms('n', '2030-04-02'),
+  ]
+
+  it('never leaves two cards overlapping in the same lane', () => {
+    // 148px card on a 1529px timeline spanning 14 years
+    const cardTimeSpan = (14 * YR / 1529) * 148
+    const laned = assignLanes(sparseButColliding, 3, cardTimeSpan, true)
+    expect(laned).toHaveLength(sparseButColliding.length)
+    expect(conflicts(laned, cardTimeSpan)).toEqual([])
+  })
+
+  it('holds across a range of widths and spans', () => {
+    for (const width of [1529, 1800, 2200]) {
+      for (const spanYears of [10, 12, 14, 16, 20]) {
+        const cardTimeSpan = (spanYears * YR / width) * 148
+        const laned = assignLanes(sparseButColliding, 3, cardTimeSpan, true)
+        expect(conflicts(laned, cardTimeSpan), `${width}px / ${spanYears}y`).toEqual([])
+      }
+    }
+  })
+
+  it('still packs cards that cannot be separated into the lanes available', () => {
+    // Five milestones inside one card width against four lanes: the fifth has
+    // nowhere to go, so a conflict is expected rather than an exception.
+    const crowd = [0, 1, 2, 3, 4].map(i => ms(`c${i}`, new Date(Date.UTC(2026, 0, 1 + i * 10)).toISOString()))
+    const laned = assignLanes(crowd, 3, 365 * DAY, true)
+    expect(laned).toHaveLength(5)
+    expect(new Set(laned.map(m => m.lane)).size).toBe(4) // all four lanes used
+  })
+
+  it('keeps every milestone and assigns a lane within range', () => {
+    const cardTimeSpan = (14 * YR / 1529) * 148
+    const laned = assignLanes(sparseButColliding, 3, cardTimeSpan, true)
+    expect(laned.map(m => m.id).sort()).toEqual(sparseButColliding.map(m => m.id).sort())
+    for (const m of laned) {
+      expect(m.lane).toBeGreaterThanOrEqual(0)
+      expect(m.lane).toBeLessThanOrEqual(3)
+      expect(m.above).toBe(true)
+    }
   })
 })

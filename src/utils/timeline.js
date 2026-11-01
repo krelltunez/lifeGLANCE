@@ -178,6 +178,21 @@ export function applyRecurFilter(ms, mode, now = new Date()) {
 // force-directed produces worse results than a simple sequential scan.
 //
 // connRand (independent seeded hash) drives connector-length jitter in the renderer.
+//
+// Returns true when two cards on the same side share a lane while sitting
+// closer together than one card width — i.e. they will be drawn overlapping.
+function hasLaneConflict(cards, cardTimeSpan) {
+  if (!(cardTimeSpan > 0)) return false
+  for (let i = 0; i < cards.length; i++) {
+    for (let j = i + 1; j < cards.length; j++) {
+      const a = cards[i], b = cards[j]
+      if (a.above !== b.above || a.lane !== b.lane) continue
+      if (Math.abs(new Date(a.date) - new Date(b.date)) < cardTimeSpan) return true
+    }
+  }
+  return false
+}
+
 export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0, forceAbove = false) {
   const sorted = [...milestones].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
@@ -245,7 +260,15 @@ export function assignLanes(milestones, maxLane = 0, cardTimeSpan = 0, forceAbov
       for (const c of group)
         result.push({ ...c.m, above: c.above, lane: Math.round(Math.max(0, Math.min(maxLane, c.pos))), connRand: c.connRand })
     result.sort((a, b) => new Date(a.date) - new Date(b.date))
-    return result
+    // The relaxation minimises crowding but guarantees nothing: rounding each
+    // card's continuous position to a lane can land two neighbours in the same
+    // one, and it does so while leaving a lane unused — a dozen milestones over
+    // ~15 years on a tablet reliably draws cards on top of each other. Greedy
+    // packing below is exact for that, so verify and fall through rather than
+    // return a layout that is known to overlap. When the relaxation succeeds
+    // its tighter, centre-weighted result is kept, so this only ever trades a
+    // broken layout for a correct one.
+    if (!hasLaneConflict(result, cardTimeSpan)) return result
   }
 
   // ── Greedy interval packing (dense views) ─────────────────────────────────
