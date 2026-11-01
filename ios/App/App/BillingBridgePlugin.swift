@@ -53,18 +53,64 @@ public class BillingBridgePlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve()
     }
 
+    // Debug builds (Xcode Debug configuration) always read as Pro: no paywall
+    // during local development. Release and TestFlight builds do not define
+    // DEBUG (SWIFT_ACTIVE_COMPILATION_CONDITIONS), so everything in this
+    // section is compiled out of them.
+    //
+    // Both overrides are LAUNCH ARGUMENTS, set in Xcode under Edit Scheme >
+    // Run > Arguments > Arguments Passed On Launch. A `-key value` pair lands
+    // in UserDefaults' argument domain for that launch only, and the read
+    // counter below lives in memory, so nothing either override does outlives
+    // the process: untick the argument, or launch from the home screen, and
+    // the default behaviour is back with nothing written to disk.
+    //
+    //   -GlanceBillingRealStatus YES
+    //       Report the real entitlement from the first read onward, so a Debug
+    //       build gates exactly as a store build does.
+    //
+    //   -GlanceBillingStartLocked YES
+    //       Report inactive for the mount reads, then the real entitlement
+    //       from the next read onward. The app opens at the paywall and
+    //       NOTHING ELSE IS FAKED: refresh(), purchase(), getProductPrices()
+    //       and getTrialEligibility() are untouched and talk to RevenueCat as
+    //       usual, so a Restore tap runs the real refresh path, finds the
+    //       entitlement and unlocks the app. That unlock is the test passing.
+    //
+    //       It exists because the locked-install restore path is otherwise
+    //       untestable on a device that already owns the subscription:
+    //       deleting and reinstalling re-unlocks from the Apple ID, and a
+    //       sandbox subscription will not lapse for about a week. The same
+    //       block is what makes the paywall reachable for a screenshot of it,
+    //       which App Store Connect asks for alongside the subscription.
+    //
+    // WHY A READ COUNT AND NOT A TIMER. The adapter's mount sequence is
+    // exactly two status reads — one immediately, one re-read at
+    // mountRereadMs — and no further read happens without a user action (a
+    // Restore tap, or the app regaining visibility). Suppressing a fixed two
+    // reads is therefore independent of both timing and ordering: it cannot
+    // swallow the read that follows a Restore tap, however fast the tap
+    // arrives, which any window measured in seconds eventually would. Should
+    // the adapter ever change its mount sequence, this fails OPEN — the app
+    // unlocks by itself, visibly, in a Debug build.
+
+    #if DEBUG
+    /// Status reads already served while `-GlanceBillingStartLocked` is in
+    /// force. In memory for the life of the process by design.
+    private var startLockedReads = 0
+
+    /// The two mount reads. Both are the initial read; the third read is the
+    /// first one a person can have caused.
+    private static let startLockedSuppressedReads = 2
+    #endif
+
     @objc func getStatus(_ call: CAPPluginCall) {
-        // Debug builds (Xcode Debug configuration) always read as Pro: no paywall
-        // during local development. Release and TestFlight builds do not define
-        // DEBUG (SWIFT_ACTIVE_COMPILATION_CONDITIONS), so this is compiled out.
-        //
-        // To see the real reading (and the paywall) in a Debug build, launch
-        // with `-GlanceBillingRealStatus YES` (Xcode: Edit Scheme > Run >
-        // Arguments Passed On Launch). A `-key value` launch argument lands in
-        // UserDefaults' argument domain for that launch only, so removing or
-        // unticking it restores the default.
         #if DEBUG
-        if UserDefaults.standard.bool(forKey: "GlanceBillingRealStatus") {
+        let startLocked = UserDefaults.standard.bool(forKey: "GlanceBillingStartLocked")
+        if startLocked, startLockedReads < Self.startLockedSuppressedReads {
+            startLockedReads += 1
+            call.resolve(["active": false, "productId": NSNull()])
+        } else if startLocked || UserDefaults.standard.bool(forKey: "GlanceBillingRealStatus") {
             let status = billing.status()
             call.resolve([
                 "active": status.active,
