@@ -174,6 +174,24 @@ function wideSeed(milestones, now) {
           ...horizonEntries(WIDE_HORIZON, now, 1)]
 }
 
+// Shot 3 drops the 2022-2024 run. Future view opens its window about two years
+// before today, and Timeline.jsx does not cull a card just outside the left
+// edge — it clamps the x back into frame and only drops the card once it is
+// more than a card-width out. So that cluster stacked up against the boundary
+// and the frame read "crowded present, empty future", the opposite of the
+// caption. Everything left is far enough back to be culled outright.
+//
+// Only past entries go, so the future counter the shot actually displays is
+// unchanged and matches the rest of the gallery.
+const FUTURE_DROP = [
+  /Promoted to senior analyst/i, /Backpacked Europe/i,
+  /Moved to Astoria/i, /Started at Figma/i,
+]
+
+function futureSeed(milestones, now) {
+  return wideSeed(milestones, now).filter(m => !FUTURE_DROP.some(re => re.test(m.title)))
+}
+
 function thinAndExtend(milestones, now) {
   const keep = milestones
     .filter(m => !EXCLUDE.some(re => re.test(m.title)))
@@ -219,7 +237,8 @@ function redate(demo, now = new Date()) {
   const birthday = new Date(birthdayMs + shift * DAY).toISOString().slice(0, 10)
   const shaped = thinAndExtend(milestones, now)
   const wide = wideSeed(milestones, now)
-  return { milestones: shaped, wide, chapters, birthday, shift, nudged,
+  const future = futureSeed(milestones, now)
+  return { milestones: shaped, wide, future, chapters, birthday, shift, nudged,
            counts: `${milestones.length} seeded -> ${shaped.length} standard, ${wide.length} wide` }
 }
 
@@ -294,9 +313,16 @@ const scenes = {
   futureView: async (page) => {
     await page.keyboard.press('f')
     await page.waitForTimeout(500)
-    // '30yr' rather than 'months': the spread seed's future entries are years
-    // apart, so a narrow window shows an empty axis and the counter alone.
-    await setZoom(page, '30yr')
+    // Future view anchors today at 12% from the left (VIEW_ANCHOR in
+    // src/utils/timeline.js), so the canvas goes to what is ahead and barely
+    // any past is in frame — which is the whole point of this shot.
+    //
+    // 'years' is the zoom that fits: '30yr' is a sixty-year window, so the
+    // near-term milestones bunch against the left edge and the right 60% is
+    // bare, which says the opposite of the caption. 'months' is too narrow the
+    // other way — the sparse seed's future entries are years apart, so a
+    // three-year window holds one of them.
+    await setZoom(page, 'years')
     await page.waitForTimeout(900)
   },
   futureCountdown: async (page) => {
@@ -372,8 +398,8 @@ const IPAD        = { width: 1529, height: 880, scale: 1.8 }  // → 2752 x 1584
 const PANE_SET = [
   // Apple iPhone — one landscape pane per shot.
   { id: 'iphone/01a', vp: PHONE_APPLE, scene: 'wholeLife',    seed: 'wide' },
-  { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chaptersWide', seed: 'wide' },
-  { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView',   seed: 'wide' },
+  { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chaptersWide', seed: 'wide', text: 'big' },
+  { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView',   seed: 'future' },
   { id: 'iphone/04a', vp: PHONE_MODAL, scene: 'onThisDay',    seed: 'wide' },
   { id: 'iphone/05a', vp: PHONE_SHEET, scene: 'addMilestone', seed: 'wide' },
   // Apple iPad — unchanged.
@@ -381,8 +407,8 @@ const PANE_SET = [
   { id: 'ipad/07a', vp: IPAD, scene: 'milestoneDetail' },
   // Google Play — written straight out, no composition.
   { id: 'play/phone/01-decades',       vp: PHONE_PLAY, scene: 'wholeLife',    seed: 'wide' },
-  { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chaptersWide', seed: 'wide' },
-  { id: 'play/phone/03-future',        vp: PHONE_PLAY, scene: 'futureView',   seed: 'wide' },
+  { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chaptersWide', seed: 'wide', text: 'big' },
+  { id: 'play/phone/03-future',        vp: PHONE_PLAY, scene: 'futureView',   seed: 'future' },
   { id: 'play/phone/04-on-this-day',   vp: PLAY_MODAL, scene: 'onThisDay',    seed: 'wide' },
   { id: 'play/phone/05-add-milestone', vp: PLAY_SHEET, scene: 'addMilestone', seed: 'wide' },
   { id: 'play/tablet7/01-timeline',    vp: TAB7,  scene: 'wideTimeline' },

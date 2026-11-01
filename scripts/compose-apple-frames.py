@@ -176,7 +176,11 @@ def k(v):
 SHOTS = [
     dict(kind="iphone", out="iphone-dynamic-island/01-decades.png", panes=["iphone/01a"],
          eyebrow="DECADES TO WEEKS", l1="See your whole life,", l2="at a glance."),
+    # Cropped to the ribbon band plus the cards either side of it. Uncropped,
+    # the ribbons are a thin line with a third of the pane empty beneath them
+    # and the cards dominating a frame whose caption is about chapters.
     dict(kind="iphone", out="iphone-dynamic-island/02-chapters.png", panes=["iphone/02a"],
+         band=(0.28, 0.76, 85),
          eyebrow="CHAPTERS", l1="The eras you lived,", l2="drawn to scale."),
     dict(kind="iphone", out="iphone-dynamic-island/03-future.png", panes=["iphone/03a"],
          eyebrow="THE FUTURE HALF", l1="Half your timeline", l2="hasn't happened yet."),
@@ -193,6 +197,27 @@ SHOTS = [
     dict(kind="ipad", out="ipad13/07-milestone.png", panes=["ipad/07a"],
          eyebrow="IN CONTEXT", l1="One moment,", l2="and everything around it."),
 ]
+
+
+def band_crop(pane, y0, y1, fade):
+    """Crop a pane to a horizontal band and feather the two cut edges.
+
+    Full width is kept deliberately: every other frame in the set is a
+    full-width pane, and fading the sides as well would make this one read as
+    a different treatment rather than the same app window cropped. Only the
+    top and bottom cuts are feathered, so the band dissolves into the
+    background instead of ending on a hard line.
+    """
+    h = pane.height
+    band = pane.crop((0, round(y0 * h), pane.width, round(y1 * h)))
+    mask = Image.new("L", band.size, 255)
+    px = mask.load()
+    for y in range(min(fade, band.height)):
+        v = round(255 * y / fade)
+        for x in range(band.width):
+            px[x, y] = v
+            px[x, band.height - 1 - y] = v
+    return band, mask
 
 
 def compose_iphone(shot, pane_dir, out_path):
@@ -227,7 +252,12 @@ def compose_iphone(shot, pane_dir, out_path):
         top = eb_y + cap_h + 110
         draw_bullets(canvas, bullets, top, top + bul_h,
                      size=bul_size, gap=bul_gap, cx=cx)
-    canvas.paste(pane, (CAPTION_COL, 0))
+    if shot.get("band"):
+        y0, y1, fade = shot["band"]
+        band, mask = band_crop(pane, y0, y1, fade)
+        canvas.paste(band, (CAPTION_COL, (IPHONE_H - band.height) // 2), mask)
+    else:
+        canvas.paste(pane, (CAPTION_COL, 0))
     canvas.save(out_path)
     return canvas.size
 
