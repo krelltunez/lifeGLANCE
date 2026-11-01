@@ -84,7 +84,7 @@ tell them apart:
   unlocked."* The Play build shows a purchase status and a *Manage subscription*
   button instead.
 - **The version.** The sideload APK's version ends in `-github`, e.g.
-  `3.5.0-github` (releases up to 3.3.1 do not carry this marker yet).
+  `3.6.0-github` (releases up to 3.3.1 do not carry this marker yet).
 
 **If you are seeing a paywall, you are running the Play build.** Third-party
 mirrors (APKPure, APKMirror, Aptoide and similar) republish the *Play* build
