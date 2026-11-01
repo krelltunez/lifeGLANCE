@@ -188,8 +188,41 @@ const FUTURE_DROP = [
   /Moved to Astoria/i, /Started at Figma/i,
 ]
 
+// ...and gains near-term ones. With only the shared horizon entries the frame
+// was three cards in twenty years of empty axis, which looks barren whatever
+// the caption says. These come from the same persona and fill 2026-2029, so
+// the eye has somewhere to travel between today and the far goals.
+//
+// The cost is that this shot's "future -> N milestones" counter reads higher
+// than the other frames'. A fuller frame is worth more than a counter nobody
+// cross-checks between screenshots.
+// Placed at explicit offsets rather than taken at their seed dates: the seed
+// bunches its future into 2027-2029, and a 'years' window needs roughly 1.9
+// years between cards before they stop colliding. Titles and categories are
+// the persona's; only the spacing is chosen.
+//
+// This stays a shot-3-only seed, and that is load-bearing rather than
+// incidental. Shot 1 is a SIXTY year window, where a card covers about 5.5
+// years of axis, so six to eight milestones inside 2027-2035 cannot be spread
+// far enough apart to avoid piling up there — the two shots want mutually
+// exclusive things from one seed. Keeping them separate is what protects shot
+// 1. The cost is that this frame's "future -> N" counter reads higher than the
+// others'.
+const FUTURE_HORIZON = [
+  { daysAhead: 150,  title: "Brother Tyler's wedding",            category: 'family', date_precision: 'day'   },
+  { daysAhead: 660,  title: "Dad's 60th birthday",                category: 'family', date_precision: 'day'   },
+  { daysAhead: 1080, title: 'Run the NYC Marathon',               category: 'health', date_precision: 'day'   },
+  { daysAhead: 1500, title: '30th birthday trip - Japan round 2', category: 'travel', date_precision: 'month' },
+  { daysAhead: 2900, title: "Annual guy's trip to Vegas",         category: 'travel', date_precision: 'month' },
+]
+// Thanksgiving comes from the seed proper, where its date is calendar-locked,
+// so it lands on the real date a few weeks out rather than a chosen offset.
+const FUTURE_ADD = [/Thanksgiving/i]
+
 function futureSeed(milestones, now) {
-  return wideSeed(milestones, now).filter(m => !FUTURE_DROP.some(re => re.test(m.title)))
+  const extra = milestones.filter(m => FUTURE_ADD.some(re => re.test(m.title)))
+  return [...wideSeed(milestones, now).filter(m => !FUTURE_DROP.some(re => re.test(m.title))),
+          ...extra, ...horizonEntries(FUTURE_HORIZON, now, 2)]
 }
 
 function thinAndExtend(milestones, now) {
@@ -288,20 +321,40 @@ const scenes = {
     await page.waitForTimeout(900)
   },
 
-  // Chapters as the subject rather than a strip under the cards: 'years' is the
-  // widest zoom at which the ribbons still carry their labels and durations.
-  // Several chapter ribbons at once, so the banding reads as structure.
-  // 'years', not 'months'. Zooming in makes a single ribbon span the pane but
-  // it is still a hairline and the rest of the frame empties out; at 'years'
-  // several eras are in shot at once with their names and durations, which is
-  // what "drawn to scale" actually means. A ribbon is a thin band by design —
-  // this is as much of the frame as it can honestly be.
-  chaptersWide: async (page) => {
+  // Drill into one chapter, which is the app's own answer to "show me this
+  // era": handleChapterClick zooms to the chapter's span and filters the
+  // timeline to its members. That makes the chapter the literal subject —
+  // its label, its duration, its own milestones — instead of a ribbon
+  // competing with everything else on the axis, and it demonstrates a real
+  // feature rather than a cropped screenshot.
+  //
+  // The ribbon is an unclassed <g> in the SVG, so it is reached through its
+  // label text; the click handler is on the group and the text sits inside
+  // it. Timeline.jsx debounces the click by 250ms to tell it from a
+  // double-click, and the drill then animates, hence the wait.
+  chapterDrill: async (page) => {
     await setZoom(page, 'years')
-    // Must be a title the pane's own seed actually contains — a scene that
-    // searches for a milestone thinned out of its seed dies on a 30s click
-    // timeout rather than anything legible.
-    await focusMilestone(page, 'Promoted to senior analyst')
+    await page.waitForTimeout(600)
+    const ribbon = page.locator('svg text', { hasText: 'The Brex years' }).first()
+    await ribbon.waitFor({ timeout: 8000 })
+    await ribbon.click({ force: true })
+    await page.waitForTimeout(1800)
+    // The drill fits the chapter with 15% padding a side, which at this card
+    // width is just under half a card — so a milestone at either end of the
+    // era has its card clipped by the frame edge. Widening the custom zoom
+    // gives the boundary cards room. The drill filters by membership, not by
+    // date, so a wider window still shows this chapter's milestones only.
+    const zoomInput = page.locator('.custom-zoom-input')
+    await zoomInput.waitFor({ timeout: 5000 })
+    await zoomInput.fill('3')
+    await page.waitForTimeout(1000)
+    // Park the cursor off the ribbon before the capture. Clicking it leaves
+    // the pointer sitting there, and the ribbon's onMouseEnter sets a hover
+    // tooltip that only onMouseLeave clears — fill() focuses the input without
+    // moving the mouse, so the tip stayed up and rendered as a stray box
+    // floating on the band. Moving the mouse fires the leave.
+    await page.mouse.move(4, 4)
+    await page.waitForTimeout(500)
   },
   // One labelled ribbon over the milestones it contains — the chapter idea
   // explaining itself rather than decorating the axis.
@@ -350,14 +403,14 @@ const scenes = {
     await page.waitForTimeout(350)
   },
   // Tablet scenes.
-  ipadTimeline: async (page) => {
+  // The wide timeline, shared by the iPad frame and both Play tablet
+  // frames. They used to differ: the Play tablets ran a months-zoom scene
+  // with arrow navigation, left over from the original Play-only set,
+  // while the iPad ran this one. There was no reason for the two to
+  // disagree, so they no longer do.
+  tabletTimeline: async (page) => {
     await setZoom(page, 'years')
     await page.waitForTimeout(800)
-  },
-  wideTimeline: async (page) => {
-    await setZoom(page, 'months')
-    for (let i = 0; i < 3; i++) { await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(320) }
-    await page.waitForTimeout(600)
   },
   milestoneDetail: async (page) => {
     await focusMilestone(page, 'College graduation', { keepDetail: true })
@@ -381,40 +434,45 @@ const scenes = {
 // want here: the axis centres and cards alternate above and below it, filling
 // a short wide pane instead of stacking against one edge.
 const PHONE_APPLE = { width: 1612, height: 1206, scale: 1 }  // → 1612 x 1206
-const PHONE_PLAY  = { width: 1320, height: 660,  scale: 2 }  // → 2640 x 1320, Play's 2:1 cap
+const PHONE_PLAY  = { width: 1620, height: 1320, scale: 1 }  // → 1620 x 1320, right of a 1020px caption column
 // Shots 4 and 5 are dialogs. A dialog is a fixed width in CSS px, so in a
 // 1612px-wide viewport it is a small box adrift in a dimmed pane; a narrower
 // viewport scaled up to the same output makes it the subject.
 const PHONE_MODAL = { width: 1100, height: 823, scale: 1612 / 1100 } // → 1612 x 1206
-const PLAY_MODAL  = { width: 900,  height: 450, scale: 2640 / 900 }  // → 2640 x 1320
+const PLAY_MODAL  = { width: 1100, height: 896, scale: 1620 / 1100 } // → 1620 x 1320
 // The add sheet is a much longer form than the on-this-day panel, so it needs
 // more CSS height to fit uncut — which means magnifying it slightly less.
 const PHONE_SHEET = { width: 1340, height: 1002, scale: 1612 / 1340 } // → 1612 x 1206
-const PLAY_SHEET  = { width: 1180, height: 590,  scale: 2640 / 1180 } // → 2640 x 1320
-const TAB7        = { width: 1422, height: 889, scale: 1.35 } // → 1920 x 1200
-const TAB10       = { width: 1422, height: 889, scale: 1.8 }  // → 2560 x 1600
+const PLAY_SHEET  = { width: 1340, height: 1092, scale: 1620 / 1340 } // → 1620 x 1320
+// Both tablet panes clear the 900px compactLayout threshold, so the axis
+// centres and cards alternate above and below it. They carry the same
+// 24-milestone seed as the iPad frame at two thirds its width, and in compact
+// layout — every card stacked above a low axis — that is not enough lanes and
+// they collide.
+const TAB7        = { width: 1920, height: 919,  scale: 1 }    // → 1920 x 919, under a 280px band
+const TAB10       = { width: 2048, height: 983,  scale: 1.25 } // → 2560 x 1229, under a 370px band
 const IPAD        = { width: 1529, height: 880, scale: 1.8 }  // → 2752 x 1584, under the 480px caption band
 
 const PANE_SET = [
   // Apple iPhone — one landscape pane per shot.
   { id: 'iphone/01a', vp: PHONE_APPLE, scene: 'wholeLife',    seed: 'wide' },
-  { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chaptersWide', seed: 'wide', text: 'big' },
+  { id: 'iphone/02a', vp: PHONE_APPLE, scene: 'chapterDrill', seed: 'wide', text: 'big' },
   { id: 'iphone/03a', vp: PHONE_APPLE, scene: 'futureView',   seed: 'future' },
   { id: 'iphone/04a', vp: PHONE_MODAL, scene: 'onThisDay',    seed: 'wide' },
   { id: 'iphone/05a', vp: PHONE_SHEET, scene: 'addMilestone', seed: 'wide' },
   // Apple iPad — unchanged.
-  { id: 'ipad/06a', vp: IPAD, scene: 'ipadTimeline' },
+  { id: 'ipad/06a', vp: IPAD, scene: 'tabletTimeline' },
   { id: 'ipad/07a', vp: IPAD, scene: 'milestoneDetail' },
   // Google Play — written straight out, no composition.
-  { id: 'play/phone/01-decades',       vp: PHONE_PLAY, scene: 'wholeLife',    seed: 'wide' },
-  { id: 'play/phone/02-chapters',      vp: PHONE_PLAY, scene: 'chaptersWide', seed: 'wide', text: 'big' },
-  { id: 'play/phone/03-future',        vp: PHONE_PLAY, scene: 'futureView',   seed: 'future' },
-  { id: 'play/phone/04-on-this-day',   vp: PLAY_MODAL, scene: 'onThisDay',    seed: 'wide' },
-  { id: 'play/phone/05-add-milestone', vp: PLAY_SHEET, scene: 'addMilestone', seed: 'wide' },
-  { id: 'play/tablet7/01-timeline',    vp: TAB7,  scene: 'wideTimeline' },
-  { id: 'play/tablet7/02-milestone-detail', vp: TAB7, scene: 'milestoneDetail' },
-  { id: 'play/tablet10/01-timeline',   vp: TAB10, scene: 'wideTimeline' },
-  { id: 'play/tablet10/02-milestone-detail', vp: TAB10, scene: 'milestoneDetail' },
+  { id: 'play/phone/01a', vp: PHONE_PLAY, scene: 'wholeLife',    seed: 'wide' },
+  { id: 'play/phone/02a', vp: PHONE_PLAY, scene: 'chapterDrill', seed: 'wide', text: 'big' },
+  { id: 'play/phone/03a', vp: PHONE_PLAY, scene: 'futureView',   seed: 'future' },
+  { id: 'play/phone/04a', vp: PLAY_MODAL, scene: 'onThisDay',    seed: 'wide' },
+  { id: 'play/phone/05a', vp: PLAY_SHEET, scene: 'addMilestone', seed: 'wide' },
+  { id: 'play/tablet7/01a', vp: TAB7,  scene: 'tabletTimeline' },
+  { id: 'play/tablet7/02a', vp: TAB7, scene: 'milestoneDetail' },
+  { id: 'play/tablet10/01a', vp: TAB10, scene: 'tabletTimeline' },
+  { id: 'play/tablet10/02a', vp: TAB10, scene: 'milestoneDetail' },
 ]
 
 // Seed the demo backup straight into IndexedDB (mirroring restoreMilestones in
@@ -423,6 +481,13 @@ const PANE_SET = [
 async function seed(page, data, textSize = 'small') {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(900) // let initDB() create the 'lifeglance' DB + stores
+  // A chapter's milestoneIds still list everything it had in the full seed, so
+  // after thinning the drill-in header claims "17 members" over five cards.
+  // Trim each chapter's membership to the milestones that actually exist.
+  const present = new Set(data.milestones.map(m => m.id))
+  const chapters = data.chapters.map(c => ({
+    ...c, milestoneIds: (c.milestoneIds ?? []).filter(id => present.has(id)),
+  }))
   await page.evaluate(async ({ milestones, chapters, birthday, textSize }) => {
     const clean = milestones.map(({ photo_uri: _drop, ...m }) => ({
       mainTimelineVisibility: 'inherit',
@@ -458,7 +523,7 @@ async function seed(page, data, textSize = 'small') {
     // the ones that remain. It is the cheapest lever on card pile-up.
     localStorage.setItem('lifeglance-clustering', 'false')
     localStorage.setItem('lifeglance-text-size', textSize)
-  }, { milestones: data.milestones, chapters: data.chapters, birthday: data.birthday, textSize })
+  }, { milestones: data.milestones, chapters, birthday: data.birthday, textSize })
 
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.locator('.add-milestone-btn').first().waitFor({ timeout: 15000 })
@@ -520,9 +585,9 @@ async function main() {
   const failed = []
   try {
     for (const pane of panes) {
-      // A play/* pane is a finished frame; everything else is raw material.
-      const isPlay = pane.id.startsWith('play/')
-      const file = path.join(isPlay ? OUT : PANES, `${pane.id}.png`)
+      // Every pane is raw material now: Play frames are composed with the
+      // same captions as their Apple counterparts rather than shipped bare.
+      const file = path.join(PANES, `${pane.id}.png`)
       await mkdir(path.dirname(file), { recursive: true })
       const ctx = await browser.newContext({
         viewport: { width: pane.vp.width, height: pane.vp.height },

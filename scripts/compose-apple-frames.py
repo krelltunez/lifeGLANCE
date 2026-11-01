@@ -158,176 +158,125 @@ def fit_width(path, width, crop=None):
 # here and removes the problem the portrait frames kept running into: the app
 # is landscape-locked, so one pane fills a landscape canvas the way shots 6 and
 # 7 already do — no stacking, no half-height panes, no collisions from either.
-IPHONE_W, IPHONE_H = 2622, 1206
-# 2622 x 1206 is very wide and short, so the caption sits in a column to the
-# LEFT of the pane rather than above it; stacked, both would be squeezed to
-# nothing. The pane bleeds to the top, right and bottom edges.
-CAPTION_COL = 1010
-PHONE_K = 1206 / 1320              # geometry below was tuned against the old canvas
-IPAD_W, IPAD_H = 2752, 2064
-IPAD_BAND = 480        # caption band; the pane fills the rest, bleeding to three edges
-PANE_GAP = round(36 * PHONE_K)
+# ---------------------------------------------------------------- layouts ---
+# Two layouts, picked by canvas shape rather than by store.
+#
+#   side — caption in a column to the LEFT of the pane. For the very wide,
+#          short phone canvases, where stacking caption over app would squeeze
+#          both to nothing.
+#   band — caption in a band ABOVE the pane. For the tablet canvases, which are
+#          tall enough to carry one.
+#
+# Both galleries use both. Play frames used to ship as bare app captures, which
+# left the two listings for one app looking like different products; they now
+# carry the same captions as their Apple counterparts.
+LAYOUTS = {
+    "iphone":  dict(mode="side", w=2622, h=1206, col=1010),
+    "pphone":  dict(mode="side", w=2640, h=1320, col=1020),
+    "ipad":    dict(mode="band", w=2752, h=2064, band=480),
+    "ptab7":   dict(mode="band", w=1920, h=1200, band=280),
+    "ptab10":  dict(mode="band", w=2560, h=1600, band=370),
+}
+
+# Caption copy lives here once; a Play frame reuses the caption of the Apple
+# frame showing the same thing, so the two listings say the same words.
+CAP = {
+    "decades":   ("DECADES TO WEEKS", "See your whole life,", "at a glance."),
+    "chapters":  ("CHAPTERS", "The eras you lived,", "drawn to scale."),
+    "future":    ("THE FUTURE HALF", "Half your timeline", "hasn't happened yet."),
+    "onthisday": ("ON THIS DAY", "What today meant", "in every other year."),
+    "add":       ("ADD A MILESTONE", "Some memories have a date.", "Others have a year."),
+    "longview":  ("THE LONG VIEW", "Years at a time,", "all in one window."),
+    "incontext": ("IN CONTEXT", "One moment,", "and everything around it."),
+}
+BULLETS = ["Works fully offline.", "No account, no analytics.",
+           "Your life stays on your device."]
 
 
-def k(v):
-    """Scale a length tuned against the 1320-wide canvas to the current one."""
-    return round(v * PHONE_K)
+def shot(layout, out, pane, cap, bullets=None):
+    eyebrow, l1, l2 = CAP[cap]
+    return dict(layout=layout, out=out, pane=pane, bullets=bullets,
+                eyebrow=eyebrow, l1=l1, l2=l2)
+
 
 SHOTS = [
-    dict(kind="iphone", out="iphone-dynamic-island/01-decades.png", panes=["iphone/01a"],
-         eyebrow="DECADES TO WEEKS", l1="See your whole life,", l2="at a glance."),
-    # Cropped to the ribbon band plus the cards either side of it. Uncropped,
-    # the ribbons are a thin line with a third of the pane empty beneath them
-    # and the cards dominating a frame whose caption is about chapters.
-    dict(kind="iphone", out="iphone-dynamic-island/02-chapters.png", panes=["iphone/02a"],
-         band=(0.28, 0.76, 85),
-         eyebrow="CHAPTERS", l1="The eras you lived,", l2="drawn to scale."),
-    dict(kind="iphone", out="iphone-dynamic-island/03-future.png", panes=["iphone/03a"],
-         eyebrow="THE FUTURE HALF", l1="Half your timeline", l2="hasn't happened yet."),
-    dict(kind="iphone", out="iphone-dynamic-island/04-on-this-day.png", panes=["iphone/04a"],
-         eyebrow="ON THIS DAY", l1="What today meant", l2="in every other year."),
+    # Apple iPhone. Shot 2 is drilled into one chapter, so the era IS the
+    # frame: its name, dates, member count and its own milestones, with
+    # nothing else on the axis competing.
+    shot("iphone", "apple/iphone-dynamic-island/01-decades.png",       "iphone/01a", "decades"),
+    shot("iphone", "apple/iphone-dynamic-island/02-chapters.png",      "iphone/02a", "chapters"),
+    shot("iphone", "apple/iphone-dynamic-island/03-future.png",        "iphone/03a", "future"),
+    shot("iphone", "apple/iphone-dynamic-island/04-on-this-day.png",   "iphone/04a", "onthisday"),
     # The privacy bullets sit under the caption in the left column, beside the
-    # dialog rather than below it — there is no room below on a 1206px canvas.
-    dict(kind="iphone", out="iphone-dynamic-island/05-add-milestone.png", panes=["iphone/05a"],
-         eyebrow="ADD A MILESTONE", l1="Some memories have a date.", l2="Others have a year.",
-         bullets=["Works fully offline.", "No account, no analytics.",
-                  "Your life stays on your device."]),
-    dict(kind="ipad", out="ipad13/06-timeline.png", panes=["ipad/06a"],
-         eyebrow="THE LONG VIEW", l1="Years at a time,", l2="all in one window."),
-    dict(kind="ipad", out="ipad13/07-milestone.png", panes=["ipad/07a"],
-         eyebrow="IN CONTEXT", l1="One moment,", l2="and everything around it."),
+    # dialog rather than below it — there is no below on a 1206px canvas.
+    shot("iphone", "apple/iphone-dynamic-island/05-add-milestone.png", "iphone/05a", "add", BULLETS),
+    # Apple iPad.
+    shot("ipad", "apple/ipad13/06-timeline.png",  "ipad/06a", "longview"),
+    shot("ipad", "apple/ipad13/07-milestone.png", "ipad/07a", "incontext"),
+    # Google Play, same captions as the Apple frame showing the same thing.
+    shot("pphone", "play/phone/01-decades.png",       "play/phone/01a", "decades"),
+    shot("pphone", "play/phone/02-chapters.png",      "play/phone/02a", "chapters"),
+    shot("pphone", "play/phone/03-future.png",        "play/phone/03a", "future"),
+    shot("pphone", "play/phone/04-on-this-day.png",   "play/phone/04a", "onthisday"),
+    shot("pphone", "play/phone/05-add-milestone.png", "play/phone/05a", "add", BULLETS),
+    shot("ptab7",  "play/tablet7/01-timeline.png",          "play/tablet7/01a", "longview"),
+    shot("ptab7",  "play/tablet7/02-milestone-detail.png",  "play/tablet7/02a", "incontext"),
+    shot("ptab10", "play/tablet10/01-timeline.png",         "play/tablet10/01a", "longview"),
+    shot("ptab10", "play/tablet10/02-milestone-detail.png", "play/tablet10/02a", "incontext"),
 ]
 
 
-def band_crop(pane, y0, y1, fade):
-    """Crop a pane to a horizontal band and feather the two cut edges.
+def compose_side(sh, lay, pane):
+    """Caption column left, one app pane filling everything right of it."""
+    W, H, col = lay["w"], lay["h"], lay["col"]
+    pane_w = W - col
+    if pane.size != (pane_w, H):
+        pane = pane.resize((pane_w, H), Image.LANCZOS)
 
-    Full width is kept deliberately: every other frame in the set is a
-    full-width pane, and fading the sides as well would make this one read as
-    a different treatment rather than the same app window cropped. Only the
-    top and bottom cuts are feathered, so the band dissolves into the
-    background instead of ending on a hard line.
-    """
-    h = pane.height
-    band = pane.crop((0, round(y0 * h), pane.width, round(y1 * h)))
-    mask = Image.new("L", band.size, 255)
-    px = mask.load()
-    for y in range(min(fade, band.height)):
-        v = round(255 * y / fade)
-        for x in range(band.width):
-            px[x, y] = v
-            px[x, band.height - 1 - y] = v
-    return band, mask
-
-
-def compose_iphone(shot, pane_dir, out_path):
-    """Landscape phone canvas: caption column left, one app pane right."""
-    pane_w = IPHONE_W - CAPTION_COL
-    pane = Image.open(pane_dir / f"{shot['panes'][0]}.png").convert("RGB")
-    if pane.size != (pane_w, IPHONE_H):
-        pane = pane.resize((pane_w, IPHONE_H), Image.LANCZOS)
-
-    cx = CAPTION_COL // 2
-    eb_size, head_size = 38, 104
+    # Type scales with the column so the two phone canvases match optically.
+    u = col / 1010
+    cx = col // 2
+    eb_size, head_size = round(38 * u), round(104 * u)
     lh = int(head_size * 1.14)
-    cap_h = eb_size + 60 + 2 * lh
+    cap_h = eb_size + round(60 * u) + 2 * lh
 
-    bullets = shot.get("bullets")
-    if bullets:
-        bul_gap, bul_size = 92, 46
-        bul_h = bul_gap * (len(bullets) - 1) + bul_size
-        total = cap_h + 110 + bul_h
-        eb_y = (IPHONE_H - total) // 2
+    if sh["bullets"]:
+        bul_gap, bul_size = round(92 * u), round(46 * u)
+        bul_h = bul_gap * (len(sh["bullets"]) - 1) + bul_size
+        eb_y = (H - (cap_h + round(110 * u) + bul_h)) // 2
     else:
-        eb_y = (IPHONE_H - cap_h) // 2
+        eb_y = (H - cap_h) // 2
 
-    canvas = build_bg(IPHONE_W, IPHONE_H,
-                      glow_y=(eb_y + cap_h * 0.5) / IPHONE_H,
-                      glow_x=cx / IPHONE_W)
-    draw_caption(canvas, shot["eyebrow"], shot["l1"], shot["l2"],
-                 eb_y=eb_y, eb_size=eb_size, eb_track=11,
-                 head_y=eb_y + 80, head_size=head_size, head_pad=130,
-                 cx=cx, column=CAPTION_COL)
-    if bullets:
-        top = eb_y + cap_h + 110
-        draw_bullets(canvas, bullets, top, top + bul_h,
+    canvas = build_bg(W, H, glow_y=(eb_y + cap_h * 0.5) / H, glow_x=cx / W)
+    draw_caption(canvas, sh["eyebrow"], sh["l1"], sh["l2"],
+                 eb_y=eb_y, eb_size=eb_size, eb_track=round(11 * u),
+                 head_y=eb_y + round(80 * u), head_size=head_size,
+                 head_pad=round(130 * u), cx=cx, column=col)
+    if sh["bullets"]:
+        top = eb_y + cap_h + round(110 * u)
+        draw_bullets(canvas, sh["bullets"], top, top + bul_h,
                      size=bul_size, gap=bul_gap, cx=cx)
-    if shot.get("band"):
-        y0, y1, fade = shot["band"]
-        band, mask = band_crop(pane, y0, y1, fade)
-        canvas.paste(band, (CAPTION_COL, (IPHONE_H - band.height) // 2), mask)
-    else:
-        canvas.paste(pane, (CAPTION_COL, 0))
-    canvas.save(out_path)
-    return canvas.size
+    canvas.paste(pane, (col, 0))
+    return canvas
 
 
-def _compose_iphone_portrait(shot, pane_dir, out_path):
-    crops = shot.get("crops") or [None] * len(shot["panes"])
-    panes = [fit_width(pane_dir / f"{p}.png", IPHONE_W, c)
-             for p, c in zip(shot["panes"], crops)]
-    block_h = sum(p.height for p in panes) + PANE_GAP * (len(panes) - 1)
+def compose_band(sh, lay, pane):
+    """Caption band above, pane bleeding to the other three edges."""
+    W, H, band = lay["w"], lay["h"], lay["band"]
+    want = H - band
+    if pane.width != W:
+        pane = pane.resize((W, round(pane.height * W / pane.width)), Image.LANCZOS)
+    if pane.height > want:          # crop rather than letterbox
+        pane = pane.crop((0, 0, W, want))
 
-    if shot.get("full"):
-        # One pane, bleeding to the bottom edge. A compact-layout pane tops out
-        # near 900px tall, so the caption centres in whatever is left above it
-        # rather than sitting pinned to the top — otherwise the frame is a
-        # caption and a screenshot with a thousand pixels of nothing between
-        # them. The glow follows the caption, so the light stays behind the type.
-        pane = panes[0]
-        pane_top = IPHONE_H - pane.height
-        cap_block = k(420)
-        eb_y = max(k(150), (pane_top - cap_block) // 2)
-        canvas = build_bg(IPHONE_W, IPHONE_H,
-                          glow_y=(eb_y + cap_block * 0.45) / IPHONE_H)
-        draw_caption(canvas, shot["eyebrow"], shot["l1"], shot["l2"],
-                     eb_y=eb_y, eb_size=k(34), eb_track=k(10),
-                     head_y=eb_y + k(86), head_size=k(132), head_pad=k(210))
-        canvas.paste(pane, (0, pane_top))
-        canvas.save(out_path)
-        return canvas.size
-
-    canvas = build_bg(IPHONE_W, IPHONE_H)
-    draw_caption(canvas, shot["eyebrow"], shot["l1"], shot["l2"],
-                 eb_y=k(150), eb_size=k(34), eb_track=k(10),
-                 head_y=k(236), head_size=k(132), head_pad=k(210))
-
-    if shot.get("bullets"):
-        # One pane plus the privacy block: seat the pane just under the caption
-        # and give the bullets the whole remaining column to centre in.
-        top = k(760)
-    else:
-        # Two panes: centre the stack in the space below the caption, so the
-        # bottom margin reads as deliberate rather than left over.
-        top = k(620) + (IPHONE_H - k(620) - block_h) // 2
-    y = top
-    for p in panes:
-        canvas.paste(p, (0, y))
-        y += p.height + PANE_GAP
-
-    if shot.get("bullets"):
-        draw_bullets(canvas, shot["bullets"], top + block_h, IPHONE_H - k(60),
-                     size=k(56), gap=k(130))
-
-    canvas.save(out_path)
-    return canvas.size
-
-
-def compose_ipad(shot, pane_dir, out_path):
-    canvas = build_bg(IPAD_W, IPAD_H, glow_y=0.10)
-    draw_caption(canvas, shot["eyebrow"], shot["l1"], shot["l2"],
-                 eb_y=70, eb_size=44, eb_track=15,
-                 head_y=132, head_size=150, head_pad=560, line_ratio=1.12)
-
-    pane = fit_width(pane_dir / f"{shot['panes'][0]}.png", IPAD_W)
-    # Bleed to the bottom edge; if the capture aspect drifts, crop rather than
-    # letterbox, so no band of background ever shows beside the app.
-    want = IPAD_H - IPAD_BAND
-    if pane.height > want:
-        pane = pane.crop((0, 0, IPAD_W, want))
-    canvas.paste(pane, (0, IPAD_H - pane.height))
-    canvas.save(out_path)
-    return canvas.size
+    u = band / 480                  # geometry was tuned on the iPad band
+    canvas = build_bg(W, H, glow_y=0.10)
+    draw_caption(canvas, sh["eyebrow"], sh["l1"], sh["l2"],
+                 eb_y=round(70 * u), eb_size=round(44 * u), eb_track=round(15 * u),
+                 head_y=round(132 * u), head_size=round(150 * u),
+                 head_pad=round(560 * u), line_ratio=1.12)
+    canvas.paste(pane, (0, H - pane.height))
+    return canvas
 
 
 def main():
@@ -336,15 +285,21 @@ def main():
     # other committed frame exactly as it is.
     only = [x.strip() for x in os.environ.get("ONLY", "").split(",") if x.strip()]
     made = []
-    for shot in SHOTS:
-        if only and not any(p.startswith(o) for o in only for p in shot["panes"]):
+    for sh in SHOTS:
+        if only and not any(sh["pane"].startswith(o) for o in only):
             continue
-        dest = out_dir / "apple" / shot["out"]
+        lay = LAYOUTS[sh["layout"]]
+        pane = Image.open(pane_dir / f"{sh['pane']}.png").convert("RGB")
+        canvas = (compose_side if lay["mode"] == "side" else compose_band)(sh, lay, pane)
+        dest = out_dir / sh["out"]
         dest.parent.mkdir(parents=True, exist_ok=True)
-        size = (compose_iphone if shot["kind"] == "iphone" else compose_ipad)(shot, pane_dir, dest)
-        made.append((dest.relative_to(out_dir), size))
-        print(f"  ✓ apple/{shot['out']}  {size[0]} x {size[1]}")
-    (out_dir / "apple" / "captions.json").write_text(json.dumps(
+        canvas.save(dest)
+        made.append((sh["out"], canvas.size))
+        print(f"  ✓ {sh['out']}  {canvas.size[0]} x {canvas.size[1]}")
+
+    # Captions live beside the frames so the listing copy and the images cannot
+    # drift apart. Written whole even on a partial run.
+    (out_dir / "captions.json").write_text(json.dumps(
         [{f: sh[f] for f in ("out", "eyebrow", "l1", "l2")} for sh in SHOTS], indent=2) + "\n")
     return made
 
