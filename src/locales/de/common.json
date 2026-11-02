@@ -46,7 +46,9 @@
   "durMo_other": "{{count}} Mon.",
   "durDay_one": "{{count}} Tag",
   "durDay_other": "{{count}} Tage",
-  "durYrMo_one": "{{count}} Jahr, {{months}} Mon.",
-  "durYrMo_other": "{{count}} Jahre, {{months}} Mon.",
+  "durYrMo_one": "{{count}} Jahr, {{months}} {{monthUnit}}",
+  "durYrMo_other": "{{count}} Jahre, {{months}} {{monthUnit}}",
+  "durMonthUnit_one": "Mon.",
+  "durMonthUnit_other": "Mon.",
   "durLessThanMonth": "< 1 Mon."
 }

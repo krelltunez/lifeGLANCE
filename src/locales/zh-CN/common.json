@@ -46,7 +46,9 @@
   "durMo_other": "{{count}}个月",
   "durDay_one": "{{count}}天",
   "durDay_other": "{{count}}天",
-  "durYrMo_one": "{{count}}年{{months}}个月",
-  "durYrMo_other": "{{count}}年{{months}}个月",
+  "durYrMo_one": "{{count}}年{{months}}{{monthUnit}}",
+  "durYrMo_other": "{{count}}年{{months}}{{monthUnit}}",
+  "durMonthUnit_one": "个月",
+  "durMonthUnit_other": "个月",
   "durLessThanMonth": "不足1个月"
 }

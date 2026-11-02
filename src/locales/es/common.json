@@ -46,7 +46,9 @@
   "durMo_other": "{{count}} meses",
   "durDay_one": "{{count}} día",
   "durDay_other": "{{count}} días",
-  "durYrMo_one": "{{count}} año, {{months}} meses",
-  "durYrMo_other": "{{count}} años, {{months}} meses",
+  "durYrMo_one": "{{count}} año, {{months}} {{monthUnit}}",
+  "durYrMo_other": "{{count}} años, {{months}} {{monthUnit}}",
+  "durMonthUnit_one": "mes",
+  "durMonthUnit_other": "meses",
   "durLessThanMonth": "< 1 mes"
 }

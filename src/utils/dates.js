@@ -90,6 +90,20 @@ export function relMonthUnit(months = 0) {
   return i18n.t('relMonthUnit', { ns: 'common', count: months })
 }
 
+/**
+ * The same split for the bare-duration frame (formatDuration's durYrMo).
+ *
+ * Deliberately its own key rather than a reuse of relMonthUnit: these frames
+ * govern grammatical case, and German already proves it in the YEARS noun —
+ * nominative "{{count}} Jahre" here against the dative "vor {{count}} Jahren"
+ * the relative frames use. The month forms coincide in every language shipped
+ * today, but sharing one key would silently break the duration phrase the first
+ * time a translator inflected the relative one.
+ */
+export function durMonthUnit(months = 0) {
+  return i18n.t('durMonthUnit', { ns: 'common', count: months })
+}
+
 export function relativeLabel(dateStr, _precision = 'day') {
   const { key, count = 0, months = 0 } = relativeParts(dateStr)
   // Strip the <0></0> / <1></1> component tags used by the animated variant.
@@ -103,7 +117,9 @@ export function relativeLabel(dateStr, _precision = 'day') {
 // namespace so chapter spans and summary stats read consistently in every
 // language. Pass whole years/months/days; the largest-unit pair wins.
 export function formatDuration({ years = 0, months = 0, days = 0 }) {
-  if (years > 0 && months > 0) return i18n.t('durYrMo', { ns: 'common', count: years, months })
+  if (years > 0 && months > 0) {
+    return i18n.t('durYrMo', { ns: 'common', count: years, months, monthUnit: durMonthUnit(months) })
+  }
   if (years > 0)               return i18n.t('durYr',   { ns: 'common', count: years })
   if (months > 0)              return i18n.t('durMo',   { ns: 'common', count: months })
   if (days > 0)                return i18n.t('durDay',  { ns: 'common', count: days })
