@@ -1,0 +1,4 @@
+// MARKETING_VERSION and CURRENT_PROJECT_VERSION, written by
+// scripts/sync-ios-version.mjs (run by `npm run build:ios`). Gitignored, so
+// version and build bumps never touch the committed project.
+#include "version.generated.xcconfig"

@@ -15,6 +15,7 @@ on:
       - 'ios/**'
       - 'src/**'
       - 'public/**'
+      - 'scripts/**'
       - 'package.json'
       - 'package-lock.json'
       - 'capacitor.config.js'
@@ -24,6 +25,7 @@ on:
       - 'ios/**'
       - 'src/**'
       - 'public/**'
+      - 'scripts/**'
       - 'package.json'
       - 'package-lock.json'
       - 'capacitor.config.js'
@@ -52,11 +54,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build web assets
-        run: npm run build
-
-      - name: Sync Capacitor iOS
-        run: npx cap sync ios
+      # The developer path: web build, cap sync, the SPM platform pin, and
+      # scripts/sync-ios-version.mjs, which writes ios/version.generated.xcconfig
+      # (both xcconfigs include it, so the build fails without it). IOS_BUILD
+      # only needs to be a valid build number here, since nothing is uploaded.
+      - name: Build web assets and sync Capacitor iOS
+        run: npm run build:ios
+        env:
+          IOS_BUILD: ${{ github.run_number }}
 
       - name: Build iOS app (no signing)
         run: |

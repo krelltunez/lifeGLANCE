@@ -60,8 +60,9 @@ with no new storage concepts.
 ### 1. New target: `LifeGlanceShare` (Share Extension)
 
 - Product name `LifeGlanceShare`, bundle identifier `com.lifeglance.share`,
-  `IPHONEOS_DEPLOYMENT_TARGET = 15.0` and `MARKETING_VERSION = 3.0.0` to match
-  the `App` and widgets targets.
+  `IPHONEOS_DEPLOYMENT_TARGET = 15.0` to match the `App` and widgets targets.
+  Its version and build number are inherited from the project-level xcconfigs
+  (`scripts/sync-ios-version.mjs`), like every other target.
 - No storyboard — this extension has **no UI** (it processes and dismisses
   immediately, matching Android's silent stash-and-open), so activation goes
   through `NSExtensionPrincipalClass`.
@@ -368,5 +369,3 @@ remainder sat until the app was backgrounded and foregrounded again.
   edit the milestone before saving.
 - Opening the host app from the extension, by any means, including a local
   notification the user taps (§3a).
-- Deriving the extension's `MARKETING_VERSION` from `package.json` (tracked
-  separately with the App target — see the version-drift note in the iOS cleanup).

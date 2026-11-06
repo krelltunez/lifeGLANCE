@@ -39,9 +39,13 @@ few things are worth knowing before editing it:
   resources. Add any future non-code file to that exception set too.
 - Signing is `Automatic` with `DEVELOPMENT_TEAM = CTZ7352A3G`, matching the App
   and widgets targets. There is no checked-in provisioning profile.
-- `MARKETING_VERSION` is pinned to `3.0.0` alongside the App and widgets
-  targets. It does **not** derive from `package.json` — see the version-drift
-  note in `docs/ios-share-extension-spec.md`.
+- The target sets neither `MARKETING_VERSION` nor `CURRENT_PROJECT_VERSION`. Both
+  come from the gitignored `ios/version.generated.xcconfig`, written by
+  `scripts/sync-ios-version.mjs` (the version from `package.json`, the build
+  number from `IOS_BUILD`) and included by the project-level `ios/debug.xcconfig`
+  and `ios/release.xcconfig`, so the App, widgets and share extension always
+  agree. Do not edit Version or Build in Xcode's General tab: that writes a
+  target-level override, which the script refuses.
 
 `NSExtensionPrincipalClass` is the bare string `ShareViewController`, not
 `$(PRODUCT_MODULE_NAME).ShareViewController`. `ShareViewController` is declared
