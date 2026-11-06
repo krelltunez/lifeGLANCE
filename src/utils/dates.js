@@ -40,6 +40,12 @@ function toLocalNoon(dateStr) {
 // each number in a positional component tag (<0>{{count}}</0>, <1>{{months}}</1>)
 // so the same key serves both the string form (tags stripped) and the <Trans>
 // form (tags mapped to animated components).
+//
+// The composite rel*YrMo keys carry TWO quantities. i18next selects a plural
+// form from `count` alone, so the months noun cannot be inflected by the key's
+// own plural: it is interpolated as {{monthUnit}} and resolved separately by
+// relMonthUnit() below, against `months`. Callers rendering a YrMo key must
+// pass it (see relMonthUnit's note on which languages this is load-bearing for).
 export function relativeParts(dateStr) {
   const date = toLocalNoon(dateStr)
   const now  = new Date()
@@ -64,10 +70,46 @@ export function relativeParts(dateStr) {
   return { key: `rel${tense}Day`, count: days }
 }
 
+/**
+ * The months unit noun for the composite rel*YrMo phrases, pluralized by the
+ * MONTH count rather than by the key's own `count` (which is years).
+ *
+ * Why this is not just part of the rel*YrMo string: one i18next key resolves one
+ * plural category, taken from `count`. With the years count driving selection,
+ * a months noun baked into the string is frozen at whatever form the translator
+ * wrote, so "1 yr, 1 months" is unavoidable. Spanish, Italian and Portuguese
+ * shipped exactly that (`año, {{months}} meses`, wrong whenever months === 1).
+ * Languages whose month noun is invariant in this frame (en "mo", fr "mois",
+ * de "Mon.", zh "个月") are unaffected either way and simply repeat the form.
+ *
+ * It also keeps the four-category Slavic languages expressible at all: Polish
+ * and Ukrainian inflect the month noun across one/few/many, which a years-keyed
+ * plural can never reach.
+ */
+export function relMonthUnit(months = 0) {
+  return i18n.t('relMonthUnit', { ns: 'common', count: months })
+}
+
+/**
+ * The same split for the bare-duration frame (formatDuration's durYrMo).
+ *
+ * Deliberately its own key rather than a reuse of relMonthUnit: these frames
+ * govern grammatical case, and German already proves it in the YEARS noun —
+ * nominative "{{count}} Jahre" here against the dative "vor {{count}} Jahren"
+ * the relative frames use. The month forms coincide in every language shipped
+ * today, but sharing one key would silently break the duration phrase the first
+ * time a translator inflected the relative one.
+ */
+export function durMonthUnit(months = 0) {
+  return i18n.t('durMonthUnit', { ns: 'common', count: months })
+}
+
 export function relativeLabel(dateStr, _precision = 'day') {
   const { key, count = 0, months = 0 } = relativeParts(dateStr)
   // Strip the <0></0> / <1></1> component tags used by the animated variant.
-  return i18n.t(key, { ns: 'common', count, months }).replace(/<\/?\d+>/g, '')
+  return i18n
+    .t(key, { ns: 'common', count, months, monthUnit: relMonthUnit(months) })
+    .replace(/<\/?\d+>/g, '')
 }
 
 // Localized bare-duration label (no "ago"/"in" framing) such as "3 yrs, 6 mo",
@@ -75,7 +117,9 @@ export function relativeLabel(dateStr, _precision = 'day') {
 // namespace so chapter spans and summary stats read consistently in every
 // language. Pass whole years/months/days; the largest-unit pair wins.
 export function formatDuration({ years = 0, months = 0, days = 0 }) {
-  if (years > 0 && months > 0) return i18n.t('durYrMo', { ns: 'common', count: years, months })
+  if (years > 0 && months > 0) {
+    return i18n.t('durYrMo', { ns: 'common', count: years, months, monthUnit: durMonthUnit(months) })
+  }
   if (years > 0)               return i18n.t('durYr',   { ns: 'common', count: years })
   if (months > 0)              return i18n.t('durMo',   { ns: 'common', count: months })
   if (days > 0)                return i18n.t('durDay',  { ns: 'common', count: days })

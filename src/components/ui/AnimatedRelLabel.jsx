@@ -1,7 +1,7 @@
 import React from 'react'
 import { Trans } from 'react-i18next'
 import { useCountUp } from '../../utils/typewriter'
-import { relativeParts } from '../../utils/dates'
+import { relativeParts, relMonthUnit } from '../../utils/dates'
 
 /**
  * Renders the relative-time label for a milestone with numbers that
@@ -24,7 +24,9 @@ export default function AnimatedRelLabel({ dateStr }) {
       i18nKey={key}
       ns="common"
       count={count}
-      values={{ count, months }}
+      // monthUnit: the months noun, pluralized by `months` rather than by the
+      // key's own `count` (years). See relMonthUnit in utils/dates.
+      values={{ count, months, monthUnit: relMonthUnit(months) }}
       components={[
         <AnimatedNumber key="count" value={count} />,
         <AnimatedNumber key="months" value={months} />,
