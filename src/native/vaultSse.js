@@ -1,9 +1,14 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
 
 // Native GLANCEvault SSE reader (the Android and iOS shells implement the same
-// plugin surface, ported from lastGLANCE's; neither lifeGLANCE shell carries it
-// yet — PR 2/3 of the SSE rollout). The WebView cannot stream /events (vault
-// HTTP rides the buffered CapacitorHttp path), so the SHELL owns the socket —
+// plugin surface, ported from lastGLANCE's). BOTH shells now register it:
+// Android in MainActivity.onCreate (registerPlugin(VaultSsePlugin.class)), iOS
+// in MainViewController.capacitorDidLoad (registerPluginInstance), so a current
+// build detects 'native-bridge' rather than 'native-unsupported'. The capability
+// probe below is still the only thing that decides at runtime — an older
+// installed APK/IPA predating the readers answers false and keeps polling.
+// The WebView cannot stream /events (vault HTTP rides the buffered
+// CapacitorHttp path), so the SHELL owns the socket —
 // connecting while foreground, dropping on background, reconnecting with
 // backoff — and pushes every reader message in as an `sseMessage` plugin event.
 // The renderer's bridge client (createBridgeSseClient in

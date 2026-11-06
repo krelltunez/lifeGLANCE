@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import TypewriterText from '../ui/TypewriterText'
 import { useCountUp } from '../../utils/typewriter'
-import { getYearsMonths } from '../../utils/dates'
+import { getYearsMonths, relMonthUnit } from '../../utils/dates'
 
 export default function Step4Reveal({ onComplete, pastMilestone, futureMilestone }) {
   const { t } = useTranslation('onboarding')
@@ -40,7 +40,7 @@ export default function Step4Reveal({ onComplete, pastMilestone, futureMilestone
       i18nKey={key}
       ns="common"
       count={finalCount}
-      values={{ count: finalCount, months }}
+      values={{ count: finalCount, months, monthUnit: relMonthUnit(months) }}
       components={comps}
     />
   )
