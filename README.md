@@ -1,10 +1,10 @@
 # lifeGLANCE
 
-**Your life, at a glance.** A zoomable personal timeline for milestones, past and future. Runs entirely in your browser, with no account, no server, and no sync. Your data never leaves your device.
+**Your life, at a glance.** A zoomable personal timeline for milestones, past and future. Runs in your browser, with no account and no server unless you bring your own.
 
 Part of the **GLANCE family**: focused, standalone apps connected through a shared intent protocol. See also [dayGLANCE](https://github.com/krelltunez/dayGLANCE) (today), [lastGLANCE](https://github.com/krelltunez/lastGLANCE) (recent upkeep), and lifeGLANCE (your whole timeline).
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="75">](https://play.google.com/store/apps/details?id=com.lifeglance.app)
+[<img src="docs/badges/google-play.png" alt="Get it on Google Play" height="60">](https://play.google.com/store/apps/details?id=com.lifeglance.app) [<img src="docs/badges/app-store.svg" alt="Download on the App Store" height="60">](https://apps.apple.com/us/app/lifeglance-life-timeline/id6781294590)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/github/package-json/v/krelltunez/lifeGLANCE?label=version&color=green)](../../releases)
@@ -65,7 +65,7 @@ The Docker image builds with Node 20 Alpine and serves the static output via ngi
 
 A native Android app is available on Google Play and as a direct APK download. The Google Play build is a commercial binary that supports continued development.
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="60">](https://play.google.com/store/apps/details?id=com.lifeglance.app)
+[<img src="docs/badges/google-play.png" alt="Get it on Google Play" height="60">](https://play.google.com/store/apps/details?id=com.lifeglance.app)
 
 [**Download APK from Releases →**](https://github.com/krelltunez/lifeGLANCE/releases)
 
@@ -84,7 +84,7 @@ tell them apart:
   unlocked."* The Play build shows a purchase status and a *Manage subscription*
   button instead.
 - **The version.** The sideload APK's version ends in `-github`, e.g.
-  `3.6.0-github` (releases up to 3.3.1 do not carry this marker yet).
+  `4.0.1-github` (releases up to 3.3.1 do not carry this marker yet).
 
 **If you are seeing a paywall, you are running the Play build.** Third-party
 mirrors (APKPure, APKMirror, Aptoide and similar) republish the *Play* build
@@ -133,6 +133,30 @@ The Android app ships the full web app in a WebView with native enhancements tha
 | Timeline | Milestone detail |
 |:-:|:-:|
 | ![lifeGLANCE timeline](store-assets/play/phone/01-decades.png) | ![Milestone detail](store-assets/play/tablet10/02-milestone-detail.png) |
+
+---
+
+## iPhone & iPad App
+
+lifeGLANCE is on the **App Store** for iPhone and iPad (iOS 16 or later) as *lifeGLANCE: Life Timeline*. Like the Play build, it is a commercial binary that supports continued development: an annual subscription that starts with a free trial, or a one-time lifetime unlock, and one purchase covers both your iPhone and your iPad.
+
+[<img src="docs/badges/app-store.svg" alt="Download on the App Store" height="60">](https://apps.apple.com/us/app/lifeglance-life-timeline/id6781294590)
+
+The iOS app ships the full web app with native integrations for iPhone and iPad:
+
+| Feature | Details |
+|---|---|
+| ☁️ **iCloud sync** | Every device on the same Apple ID stays in step with nothing to set up, protected by Apple's iCloud encryption. It can be switched off per device ([details](docs/icloud-sync.md)) |
+| 🏠 **Home Screen & Lock Screen widgets** | Next milestone countdown, Today (date + age), Current chapter, On this day, milestone stats, and colour-slot pinned countdowns |
+| 🗣️ **Siri & Shortcuts** | "Add a milestone in lifeGLANCE" opens the add-milestone sheet from anywhere |
+| 🔍 **Spotlight search** | Your milestones are indexed in Spotlight, so system search finds them |
+| 📤 **Share to add** | Share a link or text from any app and it is waiting as a milestone draft the next time you open lifeGLANCE |
+| 🔄 **Every sync option** | WebDAV, GLANCEvault and Direct Access work alongside iCloud, or instead of it |
+| 🔗 **GLANCE intents** | Links lifeGLANCE with the rest of the GLANCE family, with iCloud as an opt-in way to exchange intents with dayGLANCE and lastGLANCE |
+
+| iPhone | iPad |
+|:-:|:-:|
+| ![lifeGLANCE on iPhone](store-assets/apple/iphone-dynamic-island/01-decades.png) | ![lifeGLANCE on iPad](store-assets/apple/ipad13/06-timeline.png) |
 
 ---
 
