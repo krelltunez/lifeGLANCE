@@ -1,6 +1,6 @@
 # lifeGLANCE
 
-**Your life, at a glance.** A zoomable personal timeline for milestones, past and future. Runs entirely in your browser, with no account, no server, and no sync. Your data never leaves your device.
+**Your life, at a glance.** A zoomable personal timeline for milestones, past and future. Runs in your browser, with no account and no server unless you bring your own.
 
 Part of the **GLANCE family**: focused, standalone apps connected through a shared intent protocol. See also [dayGLANCE](https://github.com/krelltunez/dayGLANCE) (today), [lastGLANCE](https://github.com/krelltunez/lastGLANCE) (recent upkeep), and lifeGLANCE (your whole timeline).
 
