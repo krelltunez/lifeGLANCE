@@ -43,6 +43,12 @@ jobs:
           # AGP 8.13 / Gradle 9.3 build fine on 21; 17 is the floor.
           distribution: temurin
           java-version: 21
+          # Cache ~/.gradle/caches and ~/.gradle/wrapper (the Gradle
+          # distribution, the Kotlin compiler and every dependency), keyed on
+          # the Gradle files. Without it each run downloads all of that from
+          # services.gradle.org, Maven Central and GitHub releases, and an
+          # outage on any of them fails the build before any code compiles.
+          cache: gradle
 
       - name: Set up Node
         uses: actions/setup-node@v4
