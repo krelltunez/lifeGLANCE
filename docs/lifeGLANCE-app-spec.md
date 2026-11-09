@@ -1,15 +1,9 @@
 *Working document. Captures sequencing, architectural decisions, and open questions.*
 
-Status checked against the tree on **31 October 2026**.
+Status checked against the tree on **9 November 2026** (lifeGLANCE 4.0.1).
 
 ---
 ## Sequencing
-
-**v3.5 shipped as the iOS app. Lives did not ship with it and is not yet
-built.** The two were planned as one release; the iOS app was the half that was
-ready, and holding the platform launch for a feature of this size was not
-worth it. Everything in the Lives section below stands as the design — it is
-pending work, not a record of what exists.
 
 - **v3.5: iOS app** — *shipped*
   - Native iOS app: widgets (Home and Lock Screen), share extension, Siri and
@@ -17,140 +11,342 @@ pending work, not a record of what exists.
     billing. See `docs/lifeglance-native-roadmap.md` for the full surface.
   - Shipped alongside the existing web, Docker and Android builds.
 
-- **Lives** — *designed, not built, not yet scheduled*
-  - "Lives" is a new top-level entity; existing data migrates to default "Me" Life
-  - Sync layer expands from single-implicit-Life to multi-explicit-Life with no architectural change (envelope was already multi-Life capable)
-  - Compare/overlay view (date-aligned default)
-  - Export/import as the v1 contribution path
+- **Next 4.x release** — prerequisites for Lives
+  - **Undo/redo fix** (krelltunez/lifeGLANCE#370). Undo replayed a whole-timeline
+    snapshot through the backup-restore path, which wiped every photo and audio
+    clip on the device. With several Lives it would also have deleted every
+    other Life's milestones. It is now delta-based (`src/data/undoHistory.js`).
+  - **Forward-compatibility release** (Phase 1 below). Old clients must stop
+    damaging data written by Lives-aware clients *before* any client can write it.
+
+- **v5.0.0: Lives** — *designed, not built*
+  - "Lives" is a new top-level entity; existing data migrates to the "Me" Life
+  - One milestone can belong to several Lives (a wedding is on both spouses' timelines)
+  - Compare/overlay view (date-aligned, read-only)
+  - Export/import with merge as the v1 contribution path
+  - Relationships stored as directed edges, exposed only as a "relationship to Me" picker
   - Repositions product from self-tracking to biographical record-keeping
+
+- **v5.1** — age-aligned compare view (render change on the v5.0 axis abstraction)
 
 ### What exists of Lives today
 
-Only the sync envelope, which was built multi-Life-capable from the start and
-is the one part of this that is real:
+Only a slot in the sync wire format, and it is less ready than earlier drafts
+of this document claimed ("expands with no architectural change"):
 
-- `src/sync/entityIds.js` carries `life_id`, commented as "currently the single
-  'default' Life".
-- `src/sync/adapter.js` ships the whole `lives.default` bundle and merges it.
+- `src/sync/entityIds.js` hardcodes `LIFE_ID = 'default'`. Bundle row ids are
+  `life:default:<kind>` (categories, birthday, both tombstone maps).
+- **GLANCEvault:** `src/sync/dbAdapter.js` adds `life_id: 'default'` to every
+  pushed row and strips it on apply. No stored record carries a Life.
+- **File tier** (WebDAV, iCloud, Direct Access, auto-backup): `src/sync/adapter.js`
+  reads and writes only `lives.default`. `mergePayloads` returns
+  `{ lives: { default } }`, so any other key under `lives` is **dropped** from the
+  shared file on the next write.
+- **Manual JSON export** (`TimelineView.jsx`) is a separate flat format with no
+  `lives` key, and restore **replaces** everything. There is no merge-import.
+- Birthday is one global localStorage key read in ~15 places. Categories are
+  global in localStorage but sit inside the per-Life envelope on the wire.
+- There is no Life entity, no Life switcher, no compare view, no migration.
 
-There is **no** `life_id` on the milestone schema, no Life entity, no Life
-switcher, no compare view, and no migration. Nothing in the UI mentions Lives.
-So the claim above that the sync layer expands "with no architectural change"
-is still untested — it is a design expectation, not a demonstrated one.
+### What a 4.0.x client would do with Lives data today
 
-The practical consequence for whoever picks this up: the envelope work is done,
-and the entity, the Life-scoping of chapters and milestones, the switcher, the
-compare view and the migration are all still ahead.
+Traced through `dbAdapter.js` and `adapter.js`. This is why Phase 1 exists.
+
+| Data from a Lives-aware client | What a 4.0.x client does |
+|---|---|
+| Milestone row of another Life (vault) | Strips `life_id`, shows it as its own. Its next push of that row (any edit, or an HWM=0 seed) re-labels it `life_id:'default'`, reassigning it to Me on the server. |
+| Chapter row of another Life (vault) | Chapters are merge-on-apply; the old client's re-push check compares against `life_id:'default'`, never matches, and **immediately** re-pushes the chapter as Me's, with no user action. The two clients can overwrite each other in a loop. |
+| `life:<other>:birthday` / `:categories` (vault) | Routed by `_kind` alone (`dbAdapter.js:260`), so another Life's birthday and categories merge **into Me's** and are pushed back as `life:default:*`. |
+| New row kinds (`life`, `relationship`) (vault) | `applyRemoteEntity` throws; the engine quarantines the row and reports "skipped rows" every cycle. No loss, but a misleading signal. |
+| `lives.<other>` keys (file tier) | Dropped from the shared file on the next merge write. |
 
 ---
 
-## Lives (unscheduled — see Sequencing)
+## Lives (v5.0.0)
 
-> **On the version numbers below.** This section was drafted when Lives was
-> planned for v3.0, then re-tagged v3.5, and it still says v3.0 / v3.1 / v2.0 in
-> places. Lives shipped in neither. Read those as *"the release Lives lands in"*
-> and *"the one after"* rather than as real version numbers, and do not
-> renumber them on a guess — the sequencing is a decision, not a typo.
-
-Multiple complete timelines, each representing a different person (or pet, or other living or non-living subject). Examples: "Me", "Mom", "Dad". Switchable from a dropdown. Each Life owns its own Chapters and milestones.
+Multiple complete timelines, each representing a different person (or pet, or
+other living or non-living subject). Examples: "Me", "Mom", "Dad". Switchable
+from a dropdown. Each Life has its own Chapters and its own milestones, and a
+milestone may be shared between Lives.
 
 ### Naming: Lives, not Subjects
 
-The term is **Life** (singular) / **Lives** (plural). Lives is warmer than Subjects, matches lifeGLANCE's existing language ("Life › Chapter Name" breadcrumb already exists), and does emotional work. A memorial preserves a life, a resume shows the shape of a life so far, family history captures lives.
+The term is **Life** (singular) / **Lives** (plural). Lives is warmer than
+Subjects, matches lifeGLANCE's existing language, and does emotional work. A
+memorial preserves a life, a resume shows the shape of a life so far, family
+history captures lives.
+
 ### Decisions locked in
 
 **Data model**
 
-- Life is a new top-level container; Chapters and milestones become Life-scoped
-- Life fields: `id`, `name`, `birthDate`, `deathDate?`, `photo?`, `relationshipToUser?`, `color/theme?`, `notes?`
-- On migration: existing user data attaches to a single default Life ("Me")
+- Life is a new top-level entity, synced as its own row kind.
+- **Life fields:** `id`, `name`, `birthDate`, `deathDate?`, `photo?`, `color?`,
+  `notes?`, plus the Me marker and `nickname?` / `about?` (see "The Me Life").
+  `relationshipToUser` is **not** a field; relationships are edges (see below).
+  `birthDate` replaces the global birthday key.
+- **Milestones can belong to several Lives.** This is a key feature (a wedding,
+  a move, a birth). A milestone therefore carries a *set* of Lives, not a single
+  `life_id`. Two devices can each add or remove a Life from the same milestone,
+  so the set must merge without one side overwriting the other: model it like
+  Chapter membership (`milestoneIds` with `memberOps`, an LWW element set).
+- **Chapters belong to one Life** (proposed, see open question 6).
+- **Categories are global**, shared by every Life. On the wire they move out of
+  the per-Life envelope.
+- **Migration:** all existing milestones, chapters and the birthday attach to
+  the Me Life. IndexedDB v7; idempotent; safe to re-run after an interrupted
+  upgrade.
+
+**The Me Life**
+
+- Exactly one Life is Me. The marker is fixed: Me cannot be deleted, cannot stop
+  being Me, and its official label is always "Me".
+- Optional `nickname` / `about` fields let the user personalise how Me is shown
+  without changing the marker.
+- The marker is a field on the Life record, not a name match, so renaming or
+  translating "Me" can never lose it. *(Field name to settle in Phase 2.)*
+- Because Me is fixed, "self" is **not** an option in the relationship picker.
 
 **Compare / overlay view**
 
-- Multi-select Lives to display simultaneously
-- Default mode: date-aligned (absolute dates, e.g., "I was 7 when Mom started her PhD")
-- Each Life's milestones and Chapters render in their assigned color
-- Stacked rows, one per Life, sharing the time axis
-- Drilling into a Life's Chapter from compare view collapses to single-Life mode for that Chapter; breadcrumb returns to compare
-- **Compare view is read-only in v1.** This resolves open question #2. Read-only makes the "editing requires explicit Life selection" rule unnecessary rather than merely enforced, which removes the entire wrong-Life-edit bug class before it exists.
-- **Axis is a function of the Life, not hardcoded absolute dates.** Ship date-aligned only in v3.0, but do not hardcode the x-axis transform. Age-alignment (open question #1) is deferred as a feature, not as an abstraction, so v3.1 is a render change rather than a rewrite.
-- **`deathDate` terminates a Life's axis.** A Life with a `deathDate` should end its track there rather than extending to today. In compare view this means two Lives on a shared axis with different end points, plus a decision about how the "today" marker and calendar gridlines render across tracks that do not all reach the present. This touches the same axis abstraction as age-alignment, so decide both together before build.
+- Multi-select Lives to display simultaneously.
+- Date-aligned (absolute dates, e.g. "I was 7 when Mom started her PhD").
+- Stacked rows, one per Life, sharing the time axis; each Life's milestones and
+  Chapters render in its colour.
+- A shared milestone appears on every selected Life's row it belongs to.
+- Drilling into a Life's Chapter from compare view collapses to single-Life
+  mode for that Chapter; the breadcrumb returns to compare.
+- **Compare view is read-only in v5.0.** This removes the wrong-Life-edit bug
+  class before it exists.
+- **The axis is a function of the Life, not hardcoded absolute dates.** Ship
+  date-aligned only in v5.0, but keep the x-axis transform parameterized so
+  age-alignment in v5.1 is a render change, not a rewrite. In code today,
+  `dateToX` (`src/utils/timeline.js`) is already pure; the anchor on "today" lives
+  in `Timeline.jsx`, and ticks (`getTickMarks`) are calendar years, so
+  age-alignment will need an age-tick generator.
+- **`deathDate` ends a Life's row** rather than extending it to today. Ongoing
+  Chapters on that Life end at `deathDate`. The "today" marker and calendar
+  gridlines span the shared axis; rows that end earlier simply stop.
 
 **Current Life UX**
 
-- Persistent, prominent, visually distinctive indicator (accent color tints chrome, name in header, photo)
-- Transient visual cue when switching ("Now viewing: Mom")
-- Editing in compare/overlay view requires explicit Life selection (no defaulting)
-- Breadcrumb pattern updates from "Life › Chapter Name" (when only one Life existed implicitly) to Life-explicit: **"Mom › University"**. Resolves open question #4. The possessive form is redundant when the chrome is already tinted with her accent color and her name is in the header.
+- Persistent, prominent, visually distinctive indicator: accent colour tints
+  chrome, name in header, photo. The existing `--drill-color` CSS variable is the
+  tinting mechanism to reuse.
+- Transient visual cue when switching ("Now viewing: Mom").
+- Breadcrumb becomes Life-explicit: **"Mom › University"**. (Today the first crumb
+  is the lifeGLANCE logo markup, not a translated "Life" string, so this adds a
+  new string in every locale.)
 
-**Contribution / collaboration (v1 path)**
+**OS surfaces are Me-only in v5.0**
 
-- Export/import roundtrip is the v1 mechanism: one person exports their version of a Life, sends to a family member, family member merges into theirs
-- Real-time collaboration deferred until sync layer matures further
+Widgets, Spotlight, Siri / App Intents (AddMilestone), the share extension,
+deep links, and dayGLANCE / lastGLANCE inbound intents all read or write the Me
+Life only. Their native readers (`WidgetModel.swift`, `WidgetData.kt`,
+`SpotlightPlugin.swift`) are untouched in v5.0. Per-Life OS surfaces are out of
+scope.
+
+**Contribution / collaboration**
+
+- Export/import is the v1 mechanism: one person exports Lives, a family member
+  imports and **merges** them into theirs.
+- **Matching Lives on import:**
+  1. Same Life `id` (the export descends from the same data): match automatically.
+  2. Otherwise show a preview that *suggests* matches by name and birth date;
+     the user confirms or rejects each. **Never merge on name alone.**
+  3. Unmatched Lives import as new Lives.
+- After matching, Lives are deduplicated and the relationship edge sets are
+  unioned (edges need no re-anchoring; see below).
+- Real-time collaboration is deferred.
+
+### Relationships: stored as edges
+
+**Decision: relationships are stored as directed edges between Lives, and
+exposed in v5.0 only as a simple picker.**
+
+A separate relationships record holds `fromLifeId`, `toLifeId`, `type`, plus an
+optional freeform `relationshipNote`.
+
+**What ships in v5.0:** a "relationship to Me" dropdown on the Life editor
+(parent / child / spouse / sibling / other). Selecting one writes a single edge
+from the Me Life. No relationship editor screen, no tree view, no genealogy
+features, no additional user-facing surface of any kind.
+
+**What this buys later:** the general relationship editor and any family-tree
+rendering can be added without a data migration and without asking existing
+users to re-enter their family.
+
+**Relationship to lifeGLANCE Studio.** Genealogy and family-tree rendering may
+end up existing only in Studio (the commercial export-as-artifact product)
+rather than in lifeGLANCE itself. This strengthens the decision: Studio has no
+data of its own and reads what lifeGLANCE captured, so the free app's data shape
+is the input to the paid product. Attribute-style labels would leave Studio
+unable to render a tree without making users re-enter their entire family.
+
+**Boundary: capture is free, rendering is paid.** Relationship data is captured,
+stored, and exported by lifeGLANCE and must not be gated behind Studio. Studio's
+value is the artifact it produces, not custody of the underlying data. This
+follows the existing FOSS-first model and satisfies the legacy-planning use case,
+which requires a full data export in a format that survives the product.
+
+**Supporting rationale:**
+
+- **Import/merge correctness.** A sibling's export carries relationship values
+  anchored to *them*. On merge those values are wrong from the receiving user's
+  vantage point, and there is no mechanical rewrite rule. Edges need no
+  re-anchoring: dedupe Life nodes, union the edge set.
+- **Non-self relationships are unrepresentable as an attribute.** "Mom and Dad
+  are both parents of me" cannot express that Mom and Dad are married.
+  "Grandma is a grandparent" loses which side of the family.
+- **Direction is explicit.** An attribute value of "parent" is ambiguous about
+  who is whose.
+- **Cardinality.** Step-relations, half-siblings, adoption, and remarriage
+  produce several simultaneous relationships between the same pair.
+- **Consistency with the repositioning.** v5.0 makes Lives peers. A field named
+  `relationshipToUser` keeps the self-tracking assumption structurally embedded.
+- **Irreversibility.** This is one of the few v5.0 schema choices that is
+  expensive to change once users have data. Edges cannot be derived from
+  self-anchored labels without guessing.
+
+**Accepted costs:** slightly more storage work than a single field, and a
+standing scope-creep risk. Mitigation: edges are stored, but only the
+single-dropdown surface ships. Any relationship UI beyond that dropdown is out
+of scope for v5.0 and is named as such in the phase prompt.
+
+### Sync and version skew
+
+Requirements that follow from the table above:
+
+- **Per-Life data uses new row kinds**, never the existing `birthday` /
+  `categories` kinds under a new id, because 4.0.x routes those by kind into Me.
+  The Life record itself carries `birthDate`; the legacy `life:default:birthday`
+  bundle keeps being written from Me's `birthDate` while older clients exist.
+- **Forward-compatibility release first (Phase 1).** A 4.x release, shipped and
+  given time to spread before v5.0, that:
+  - keeps unknown `lives.*` keys and unknown top-level keys through the file-tier
+    merge instead of dropping them;
+  - stores and re-pushes unknown vault row kinds unchanged instead of throwing,
+    and does not report them as skipped;
+  - preserves a record's existing Life fields when it re-pushes, instead of
+    stamping `'default'`;
+  - writes a schema version the v5.0 client can read, so v5.0 can tell the user
+    which devices still need updating.
+- **v5.0 must hold back multi-Life writes while it can see a pre-Phase-1 client**
+  on the same sync target. *(Mechanism to design in Phase 1: the schema version
+  above is the signal.)*
 
 ### Open questions
 
-1. ~~**Age-aligned compare view in v1?**~~ **Resolved:** deferred as a feature, preserved as an abstraction. Date-aligned only in v3.0; axis transform stays parameterized.
-2. ~~**Editing in compare view: read-only or full-edit?**~~ **Resolved:** read-only in v1.
-3. **Relationship field: freeform, structured attribute, or edges?** Still open. See "Relationships: attribute vs. edges" below.
-4. ~~**Breadcrumb phrasing in multi-Life context.**~~ **Resolved:** "Mom › University".
-
-### Relationships: attribute vs. edges (open question #3, unresolved)
-
-The current schema proposes `relationshipToUser?` as a field on Life. The alternative is a separate relationships table holding directed edges between Lives: `fromLifeId`, `toLifeId`, `type`, plus an optional freeform `relationshipNote`.
-
-**Case for edges:**
-
-- **Import/merge correctness.** Export/import between family members is the locked-in v1 contribution path. A sibling's export carries relationship values anchored to *them*. On merge, those values are wrong from the receiving user's vantage point, and there is no mechanical rewrite rule, because the correct translation depends on who each label pointed at and the field does not record that. Edges need no re-anchoring: dedupe Life nodes, union the edge set.
-- **Non-self relationships are unrepresentable as an attribute.** "Mom and Dad are both parents of me" cannot express that Mom and Dad are married to each other. "Grandma is a grandparent" loses which side of the family and which parent she connects through. Family-tree exports need the graph.
-- **Direction is explicit.** An attribute value of "parent" is ambiguous about who is whose.
-- **Cardinality.** One field holds one value. Step-relations, half-siblings, adoption, and remarriage produce multiple simultaneous relationships between the same pair.
-- **Consistency with the repositioning.** v3.0 makes Lives peers. A field named `relationshipToUser` keeps the self-tracking assumption structurally embedded after the UI stops implying it.
-
-**Case against / cost:** a general relationship editor is additional UI surface, and there is real risk of over-building ancestry features into a timeline app.
-
-**Proposed resolution that captures both:** store as edges, expose in v3.0 only as the simple "relationship to Me" picker on the Life editor, which writes a single edge from the Me Life. No additional UI in v3.0. The general editor arrives with the family-tree export, at which point the underlying data is already the correct shape. Retrofitting a graph from per-record self-anchored labels is lossy and requires guessing.
-
-**Status: pending decision.**
+1. ~~Age-aligned compare view in v1?~~ **Resolved:** v5.1; axis transform stays parameterized.
+2. ~~Editing in compare view?~~ **Resolved:** read-only in v5.0.
+3. ~~Relationship field shape?~~ **Resolved:** edges, single picker in v5.0.
+4. ~~Breadcrumb phrasing?~~ **Resolved:** "Mom › University".
+5. ~~Categories global or per-Life?~~ **Resolved:** global.
+6. **Chapters across Lives.** Proposed: a Chapter belongs to exactly one Life,
+   and may contain any milestone that belongs to that Life (including a shared
+   one). Confirm before Phase 2.
+7. **Undo with Lives.** The new undo history records milestone deltas; with
+   shared milestones, a delta can touch Life membership. Phase 2 must decide
+   whether membership changes are undoable (proposed: yes, through the same
+   LWW set, never by rewriting the whole set).
+8. **Deleting a Life.** Proposed: a Life other than Me can be deleted; its
+   unshared milestones and its Chapters go with it (tombstoned); shared
+   milestones just lose that Life from their set. Needs a confirm step.
+9. **Life photo storage.** Proposed: the GLANCEvault blob path already used for
+   milestone media (`src/blobs/`), with a local copy like milestone photos.
 
 ## Decisions to be made (keeping in mind future export-as-artifact functionality)
 
-**Relationship field structure (open question #3).** Through the export lens, structured beats freeform: family-tree visualizations are among the highest-value artifact formats (memorial, family history, ancestry) and require typed relationships to render. Freeform "my mother" is fine for the breadcrumb and useless for a tree. But structured-as-attribute is not sufficient either, since a tree needs edges between arbitrary Lives rather than labels relative to one privileged node. See "Relationships: attribute vs. edges" above. Optional freeform `relationshipNote` is worth carrying regardless of which shape wins.
+**Life metadata richness.** The Life schema above is adequate for timelines but
+thin for biographical artifacts. Memorial exports want birthplace and places
+lived; resume exports want a professional summary and current location. Lean
+toward first-class optional fields for anything an export template would query,
+added when a template needs it. Alternatively, these can be part of the artifact
+creation process.
 
-**Life metadata richness.** The current Life schema (`name`, `birthDate`, `deathDate?`, `photo?`, `relationshipToUser?`, `color/theme?`, `notes?`) is adequate for self-tracking but thin for biographical artifacts. Memorial exports want birthplace, places lived, family relationships. Resume exports want professional summary, current location. Worth deciding in v2.0 whether to include these as first-class optional fields or as structured notes. Lean toward first-class optional fields for anything that an export template would want to query. Alternatively, these can be part of the artifact creation process.
+**Sync envelope and artifact-relevant data.** Artifact-relevant metadata
+(photos, attachments, rich-text descriptions, external links) must sync as well
+as the structured data does. If the export experience depends on a photo that
+didn't make it to the device generating the artifact, the experience fails.
 
-**Sync envelope and artifact-relevant data.** The sync layer is being designed Life-aware. It should also be designed export-aware: artifact-relevant metadata (photos, attachments, rich-text descriptions, external links) should sync as well as the structured data does, not as a second-class concern. If the export experience depends on a photo that didn't make it to the device generating the artifact, the experience fails.
+**Resolved by GLANCEvault, and built.** lifeGLANCE carries media through
+GLANCEvault blobs (`src/blobs/`: encrypted content-addressed upload and download,
+thumbnails, and a backfill for libraries that predate it). That gives Lives a
+real byte path and sets the tiering story: **WebDAV carries structured data;
+GLANCEvault carries everything.** It makes the Pro pitch concrete for the
+non-self-hosting family-history user, likely the least technical person in the
+audience and the one with the most photos.
 
-**Resolved by GLANCEvault — and now actually built.** As of Oct 2026 lifeGLANCE
-carries media through GLANCEvault blobs itself (`src/blobs/`: encrypted
-content-addressed upload and download, thumbnails, and a backfill for libraries
-that predate it), so the byte path is no longer a plan Lives would inherit — it
-exists and is in use. Media storage already exists in GLANCEvault and is therefore inherited by GLANCEvault Pro. That gives Lives a real byte path on day one and sets the sync tiering story: **WebDAV carries structured data; GLANCEvault carries everything.** This is a cleaner line than "best-effort" for the WebDAV demotion copy, and it makes the Pro pitch concrete for the non-self-hosting family-history user, who is likely the least technical person in the audience and the one with the most photos.
+Two follow-ons for GLANCEvault Pro rather than for lifeGLANCE:
 
-Two follow-ons this creates for GLANCEvault Pro rather than for lifeGLANCE:
+- **Quota must be sized against media, not row counts.** Memorial and family
+  history are exactly where someone uploads dozens of scanned photos.
+- **Quota enforcement must fail gracefully mid-upload**, not after the bytes
+  have been pushed.
 
-- **Quota must be sized against media, not row counts.** Memorial and family history are exactly the use cases where someone uploads dozens of scanned photos of a parent. Structured timeline data is negligible by comparison.
-- **Quota enforcement must fail gracefully mid-upload**, not after the bytes have been pushed.
+**Milestone fields that artifacts will want.** An "include in resume" boolean,
+a private / family-only / public visibility tier, a headline-vs-detail
+distinction. Do not add these speculatively, but keep the milestone model open
+to attribute extension. (Unknown fields already survive the file-tier merge,
+which keeps whole records.)
 
-**Milestone fields that artifacts will want.** The current milestone model is built around the timeline view. Artifacts may want more: an "include in resume" boolean, a "private/family-only/public" visibility tier, a "headline vs detail" distinction so condensed exports can show top-level milestones only. Worth not adding these speculatively, but worth designing the milestone schema so they can be added cleanly when the artifact templates need them. Specifically: keep the milestone model open to attribute extension rather than locking it down.
+**Chapter semantics in exports.** The Chapter visibility model
+(`defaultMemberVisibility` and the cascade in `src/utils/visibility.js`) was
+designed for the timeline view. Resume exports may suppress whole Chapters;
+memorial exports may feature some. Confirm the model extends to per-export
+overrides, or note what would need to change.
 
-**Chapter semantics in exports.** The Chapters v1.5 model (with `defaultMemberVisibility` and cascade rules) was designed for the timeline view. Resume exports may want to suppress entire Chapters (childhood, personal). Memorial exports may want to feature certain Chapters prominently. Worth confirming that the Chapter visibility model extends cleanly to per-export visibility overrides, or noting where it doesn't and what would need to change.
-
-**Two visibility axes, kept separate.** There are now two orthogonal concepts both called visibility: Chapter `defaultMemberVisibility` with its cascade rules (a timeline display concern) and the proposed private / family-only / public tier (an export audience concern). They look similar and they are not. If they share a field, the cascade will silently rewrite export audience, or an export preset will silently hide milestones from the timeline. Keep them as distinct fields with distinct names even where the values happen to overlap.
+**Two visibility axes, kept separate.** Chapter `defaultMemberVisibility` with
+its cascade (a timeline display concern) and the proposed private /
+family-only / public tier (an export audience concern) look similar and are
+not. If they share a field, the cascade will silently rewrite export audience,
+or an export preset will silently hide milestones from the timeline. Keep them
+as distinct fields with distinct names.
 
 ### Use cases as test cases
 
-A useful discipline before locking in Lives: run each of these artifact use cases against the proposed schema and ask "what's missing or hard?"
+Run each artifact use case against the schema and ask "what's missing or hard?"
 
-- **Memorial.** Needs photos, deathDate, family relationships, ability to feature certain Chapters, ability to suppress private milestones.
-- **Anniversary gift.** Needs subset export (the relationship Chapter), the partner Life's data, ideally compare view embedded.
-- **Family history.** Needs multiple Lives with structured relationships, photos and attachments per Life, ability to merge contributions from family members (Lives import/export from v2.0 covers this).
-- **College application appendix.** Needs subset export, professional/academic Chapter visibility, clean aesthetic preset.
-- **Interactive resume.** Needs visibility tiers on milestones (work/personal/private), professional summary field on Life, clean aesthetic preset, ability to host or embed.
-- **Memoir support.** Needs rich-text descriptions on milestones, ability to attach research notes per milestone, possibly a draft/outline export.
-- **Legacy planning.** Needs full data export in a format that survives the product, plus ideally a "playback" mode for descendants.
+- **Memorial.** Photos, deathDate, family relationships, featured Chapters,
+  suppressed private milestones.
+- **Anniversary gift.** Subset export (the relationship Chapter), the partner
+  Life's data, shared milestones, ideally compare view embedded.
+- **Family history.** Multiple Lives with structured relationships, photos and
+  attachments per Life, merged contributions from family members (export/import
+  with Life matching covers this).
+- **College application appendix.** Subset export, academic Chapter visibility,
+  clean aesthetic preset.
+- **Interactive resume.** Visibility tiers on milestones, professional summary
+  on Life, clean preset, ability to host or embed.
+- **Memoir support.** Rich-text descriptions, research notes per milestone,
+  possibly a draft/outline export.
+- **Legacy planning.** Full data export in a format that survives the product,
+  ideally a "playback" mode for descendants.
 
-The point isn't to build all of this in v3.0. The point is that v3.0's schema should not foreclose any of it.
+The point isn't to build all of this in v5.0. The point is that v5.0's schema
+should not foreclose any of it.
+
+---
+
+## Build phases
+
+Each phase is one PR, merged and verified before the next starts.
+
+| Phase | Ships in | Scope | Out of scope |
+|---|---|---|---|
+| 0 | docs | This document: reconcile, retag to v5.0.0, record decisions. | Any code. |
+| 1 | 4.x | Forward-compat sync: preserve unknown `lives.*` keys, unknown row kinds and existing Life fields; schema version marker. | Any Life entity, UI, or migration. |
+| 2 | 5.0 | Data layer: Life record and row kind, Me marker, milestone Life set (LWW), Chapter Life, IndexedDB v7 migration into Me, Life-aware sync, undo with membership. | UI beyond what is needed to keep the app working as single-Life. |
+| 3 | 5.0 | Life switcher, Life editor, per-Life `birthDate` / `deathDate`, chrome tint, breadcrumb, shared-milestone UI. | Compare view, relationships, import. |
+| 4 | 5.0 | Relationship edges and the "relationship to Me" picker. | Any other relationship UI. |
+| 5 | 5.0 | Export/import with merge and the Life matching flow. | Real-time collaboration. |
+| 6 | 5.0 | Read-only compare view, date-aligned, `deathDate` row ends. | Age-alignment (v5.1), editing in compare. |
+
+Cross-cutting costs every UI phase pays: 10 locales and 13 namespaces with
+parity tests (`src/locales.test.js` and friends), native string catalogs where
+native code changes, and CONTRIBUTING's rules (no em dashes in user-facing copy,
+docs updated in the same PR, timeline checked from week to decades zoom in both
+themes). CI runs lint and `npm test`.
 
 ---
 
