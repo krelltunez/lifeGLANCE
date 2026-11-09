@@ -140,6 +140,23 @@ export async function deleteMilestone(id) {
   markDirty(id)
 }
 
+// Put back a milestone that was deleted (undo of a delete, redo of an add),
+// keeping its id, created_at and media references. updated_at is bumped so the
+// re-created row is newer than its deletion tombstone and wins the merge on
+// every sync tier instead of being dropped as deleted. Media bytes are untouched:
+// a delete keeps the local blobs, so the attachment is still there to show.
+export async function reinstateMilestone(m) {
+  const { photo_uri: _discard, ...rest } = m
+  const r = {
+    ...rest,
+    direction:  new Date(rest.date) < new Date() ? 'past' : 'future',
+    updated_at: new Date().toISOString(),
+  }
+  await dbPut(r)
+  markDirty(r.id)
+  return r
+}
+
 // Clear all milestones and replace with the supplied array (preserves original IDs).
 // Also wipes all media blobs — they are never included in JSON backups, so any
 // media_type / has_photo flags on restored items are reset to stay consistent.

@@ -125,6 +125,25 @@ export async function releaseMilestoneMedia(milestone, deps = {}) {
   return unique
 }
 
+/**
+ * Re-take server references for a milestone's REAL-hash slots: the inverse of
+ * releaseMilestoneMedia, for a milestone that comes back after a delete (undo).
+ * Same best-effort contract; placeholders are ignored. Returns the hashes.
+ */
+export async function retainMilestoneMedia(milestone, deps = {}) {
+  const addBlobRef = deps.addBlobRef ?? _addBlobRef
+  const hashes = [milestone?.photo_id, milestone?.media_id, milestone?.thumbnail_id].filter(isRealBlobHash)
+  const unique = [...new Set(hashes)]
+  for (const h of unique) {
+    try {
+      await addBlobRef(h)
+    } catch (err) {
+      if (import.meta?.env?.DEV) console.warn('[media] addBlobRef failed (non-fatal):', err)
+    }
+  }
+  return unique
+}
+
 // ── Display: decrypted-thumbnail cache (timeline re-render) ──────────────────
 // Keyed by content hash. A content address is immutable, so a decrypted thumbnail
 // can be cached for the session and never re-fetched. Failures are NOT cached, so

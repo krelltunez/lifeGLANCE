@@ -22,12 +22,13 @@ import { expandAnnualDates } from '../../utils/recurrence'
 import { loadCategories, saveCategories } from '../../utils/colors'
 import { getMilestoneVisibility, precomputeEndpoints, filterChaptersByCategory } from '../../utils/visibility'
 import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones, uid } from '../../data/milestones'
+import * as undoHistory from '../../data/undoHistory'
 import { listChapters, restoreChapters, createChapter, updateChapter, deleteChapter } from '../../data/chapters'
 import { writeMilestoneTombstone } from '../../sync/tombstones'
 import { getSyncEngine } from '../../sync/engine'
 import { dirtyBirthday } from '../../sync/dirty'
 import { readVaultConfig } from '../../sync/dbSync'
-import { uploadMilestoneMedia, releaseMilestoneMedia, isRealBlobHash, fetchFullResBytes, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
+import { uploadMilestoneMedia, releaseMilestoneMedia, retainMilestoneMedia, isRealBlobHash, fetchFullResBytes, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
 import ChapterSheet from '../chapter/ChapterSheet'
 import CloudSyncModal from '../sync/CloudSyncModal'
 import SyncPassphraseModal from '../sync/SyncPassphraseModal'
@@ -195,7 +196,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   // tab/dropdown pick). Suppresses the custom-zoom input's autoFocus so a pinch
   // doesn't pop the mobile keyboard when it mounts that input.
   const pinchToCustomRef = useRef(false)
-  const historyRef     = useRef(null)   // { stack: Milestone[][], idx: number }
+  const historyRef     = useRef(undoHistory.createHistory())   // see data/undoHistory.js
+  const undoBusyRef    = useRef(false)  // one undo/redo step at a time
   const toastTimerRef  = useRef(null)
   const lastVaultSkipAtRef = useRef(null)
 
@@ -311,11 +313,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         // source_entity_id is the dayGLANCE task id for this goal
         dayglance_task_id: payload.source_entity_id ?? null,
       })
-      setMilestones(prev => {
-        const next = [...prev, m]
-        pushHistory(next)
-        return next
-      })
+      setMilestones(prev => [...prev, m])
+      recordHistory({ added: [m], removed: [], changed: [] })
       showToast(tdg('toastGoalAdded', { title: m.title }), 'success')
     } catch (err) {
       console.error('[intents] inbound create failed:', err)
@@ -339,11 +338,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         category:       'personal',
         note:           payload.notes ?? '',
       })
-      setMilestones(prev => {
-        const next = [...prev, m]
-        pushHistory(next)
-        return next
-      })
+      setMilestones(prev => [...prev, m])
+      recordHistory({ added: [m], removed: [], changed: [] })
     } catch (err) {
       console.error('[intents] inbound lastGLANCE milestone failed:', err)
     }
@@ -641,45 +637,52 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   }
 
   // ── Undo / redo ───────────────────────────────────────────────────────────────
-  // Snapshot-based: each mutation stores the full milestones array.
-  // historyRef.current = { stack: Milestone[][], idx: number }
-  // stack[idx] is the current state; stack[idx-1] is "one undo ago".
+  // Delta-based (data/undoHistory.js): each entry holds only what one action
+  // changed, and undo/redo replay that change through the normal data-layer
+  // writes. Attachments are outside the history and are never touched.
+  //
+  // Only refs and state setters are used here, so the copies captured by the
+  // useCallback([]) intent handlers stay correct.
 
-  function pushHistory(newMs) {
-    if (!historyRef.current) {
-      // lazy init: capture the pre-mutation state as the base entry
-      historyRef.current = { stack: [milestones], idx: 0 }
+  function recordHistory(entry) {
+    const h = historyRef.current
+    undoHistory.record(h, entry)
+    setCanUndo(undoHistory.canUndo(h))
+    setCanRedo(undoHistory.canRedo(h))
+  }
+
+  // prevMs is the timeline just before the action; it defaults to this render's
+  // milestones, which is what every non-callback caller builds newMs from.
+  function pushHistory(newMs, prevMs = milestones) {
+    recordHistory(undoHistory.diffMilestones(prevMs, newMs))
+  }
+
+  async function stepHistory(step) {
+    if (undoBusyRef.current) return
+    undoBusyRef.current = true
+    try {
+      const h = historyRef.current
+      const colorFor = (categoryId) => categories.find(c => c.id === categoryId)?.color
+      const result = await step(h, { colorFor })
+      if (!result) return
+      setMilestones(prev => undoHistory.applyResult(prev, result))
+      setCanUndo(undoHistory.canUndo(h))
+      setCanRedo(undoHistory.canRedo(h))
+      // Keep the vault's blob reference counts in step, as delete does.
+      if (readVaultConfig()) {
+        for (const m of result.removed) releaseMilestoneMedia(m).catch(() => {})
+        for (const m of result.reinstated) retainMilestoneMedia(m).catch(() => {})
+      }
+      getSyncEngine()?.upload()
+    } catch (err) {
+      console.error('Undo/redo failed:', err)
+    } finally {
+      undoBusyRef.current = false
     }
-    const h = historyRef.current
-    h.stack = h.stack.slice(0, h.idx + 1)   // discard any redo history
-    h.stack.push(newMs)
-    if (h.stack.length > 51) h.stack.shift() // cap memory at 50 undos
-    else h.idx++
-    setCanUndo(h.idx > 0)
-    setCanRedo(false)
   }
 
-  async function handleUndo() {
-    const h = historyRef.current
-    if (!h || h.idx === 0) return
-    h.idx--
-    const snapshot = h.stack[h.idx]
-    await restoreMilestones(snapshot)
-    setMilestones(snapshot)
-    setCanUndo(h.idx > 0)
-    setCanRedo(true)
-  }
-
-  async function handleRedo() {
-    const h = historyRef.current
-    if (!h || h.idx >= h.stack.length - 1) return
-    h.idx++
-    const snapshot = h.stack[h.idx]
-    await restoreMilestones(snapshot)
-    setMilestones(snapshot)
-    setCanUndo(true)
-    setCanRedo(h.idx < h.stack.length - 1)
-  }
+  const handleUndo = () => stepHistory(undoHistory.undo)
+  const handleRedo = () => stepHistory(undoHistory.redo)
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────────
   // Use a ref so the listener is registered once but always sees fresh state
@@ -1499,13 +1502,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     })
     if (changed.length === 0) return
     setMilestones(next)
-    // Keep undo-history snapshots colour-consistent so an undo can't resurrect
-    // the old colour.
-    const h = historyRef.current
-    h.stack = h.stack.map(snap => snap.map(m => {
-      const color = colorById[m.category]
-      return color && color !== m.color ? { ...m, color } : m
-    }))
+    // No undo-history fix-up needed: undo never writes a stored colour back, it
+    // derives the colour from the category at the time of the undo.
     for (const m of changed) await dbPut(m)
   }
 
@@ -1611,7 +1609,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       setMilestones([...restored])
       setChapters([...chapters])
       if (restoredCategories) setCategories(restoredCategories)
-      historyRef.current = { stack: [[...restored]], idx: 0 }
+      historyRef.current = undoHistory.createHistory()
       setCanUndo(false)
       setCanRedo(false)
     } catch (err) {
