@@ -60,7 +60,7 @@ WebView (source of truth, IndexedDB)
 
 It is infrastructure, not a feature. Nobody sees it. Every read-side native surface depends on it.
 
-**lifeGLANCE projects:** flat milestone list (date, title, Life/Chapter ref), the Chapter set, computed "current Chapter." Text and dates only for now (photos are byte plane).
+**lifeGLANCE projects:** flat milestone list (date, title), the Chapter set, computed "current Chapter." No Life field: native surfaces stay Me-only through Lives v5.0 (see `docs/lifeGLANCE-app-spec.md`). Text and dates only for now (photos are byte plane).
 
 **Two write-side disciplines, both from prior bugs:**
 
