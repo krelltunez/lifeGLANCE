@@ -43,6 +43,12 @@ jobs:
           # AGP 8.13 / Gradle 9.3 build fine on 21; 17 is the floor.
           distribution: temurin
           java-version: 21
+          # Cache ~/.gradle/caches and ~/.gradle/wrapper (the Gradle
+          # distribution, the Kotlin compiler and every dependency), keyed on
+          # the Gradle files. Without it each run downloads all of that from
+          # services.gradle.org, Maven Central and GitHub releases, and an
+          # outage on any of them fails the build before any code compiles.
+          cache: gradle
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -59,6 +65,25 @@ jobs:
 
       - name: Sync Capacitor Android
         run: npx cap sync android
+
+      # Fetch the Gradle distribution on its own, with retries, before the
+      # build. On a cold cache the wrapper downloads it from services.gradle.org,
+      # which redirects to GitHub release assets; those intermittently answer
+      # 504, and a single failure used to fail the whole job. Retrying only this
+      # step means a genuine build failure below is never run three times.
+      # `--version` downloads and unpacks the distribution and does nothing else.
+      - name: Fetch Gradle distribution (with retries)
+        working-directory: android
+        run: |
+          for attempt in 1 2 3; do
+            ./gradlew --version --no-daemon && exit 0
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Gradle download failed (attempt $attempt of 3), retrying in $((attempt * 20))s"
+              sleep $((attempt * 20))
+            fi
+          done
+          echo "::error::Gradle download failed 3 times"
+          exit 1
 
       - name: Build Android app (debug, no signing)
         run: cd android && ./gradlew assembleDebug --no-daemon

@@ -54,6 +54,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Cache Swift packages so a run doesn't re-download them. Without this
+      # every run fetches the package sources and the Capacitor / RevenueCat
+      # binary frameworks from GitHub releases, and an outage there fails the
+      # build at "Resolve Package Graph". The cloned sources live in a fixed
+      # directory (passed to xcodebuild below) so they can be cached; SwiftPM
+      # keeps downloaded binary artifacts in ~/Library/Caches/org.swift.swiftpm.
+      # Keyed before cap sync rewrites CapApp-SPM/Package.swift, on the
+      # committed manifests plus package-lock.json, which pins the Capacitor
+      # plugin versions those manifests resolve to. actions/cache only saves
+      # after a successful job, so a half-finished download is never cached.
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ${{ runner.temp }}/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved', 'ios/App/CapApp-SPM/Package.swift', 'ios/App/Packages/**/Package.swift', 'package-lock.json') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
       # The developer path: web build, cap sync, the SPM platform pin, and
       # scripts/sync-ios-version.mjs, which writes ios/version.generated.xcconfig
       # (both xcconfigs include it, so the build fails without it). IOS_BUILD
@@ -70,4 +90,5 @@ jobs:
             -scheme App \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/SourcePackages" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
