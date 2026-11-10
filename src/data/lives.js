@@ -8,14 +8,20 @@
 // So every record written before Lives already belongs to Me, and nothing had
 // to be rewritten to introduce them.
 //
-// Phase 2a is local only: Life records and their tombstones are not synced yet
-// (Phase 2b), so nothing here marks a Life row dirty. Membership and chapter
-// changes go through updateMilestone / updateChapter and sync like any edit.
+// Every write marks its row dirty for the GLANCEvault tier, like milestones and
+// chapters; the file tier picks Life records up from the store. Membership and
+// chapter changes go through updateMilestone / updateChapter.
+//
+// Adding a Life is gated (lifeGate.js): while a device on an older lifeGLANCE
+// has synced in the last 60 days, createLife refuses, so no multi-Life data is
+// written that such a device would show as its own.
 
 import { dbGetAllLives, dbGetLife, dbPutLife, dbDeleteLife, dbGetAll, dbGetAllChapters, ME_LIFE_ID, ME_LIFE_RECORD } from './db'
 import { uid, updateMilestone, deleteMilestone } from './milestones'
 import { deleteChapter, removeMilestoneFromChapter } from './chapters'
-import { dirtyBirthday } from '../sync/dirty'
+import { dirtyBirthday, markDirty } from '../sync/dirty'
+import { getLifeTombstones, writeLifeTombstone } from '../sync/tombstones'
+import { canUseMultipleLives, blockingWriters, MultipleLivesBlockedError } from '../sync/lifeGate'
 import { normalizeLifeOps, lifeIdsOf, isInLife, chapterLifeId, presentLives } from './lifeMembership'
 
 export { ME_LIFE_ID }
@@ -24,7 +30,6 @@ export const isMe = (lifeId) => lifeId === ME_LIFE_ID
 
 const BIRTHDAY_KEY    = 'lifeglance-birthday'
 const BIRTHDAY_TS_KEY = 'lifeglance-birthday-updated-at'
-const LIFE_TOMBSTONE_KEY = 'lifeglance-life-tombstones'
 
 // The pure membership helpers live in lifeMembership.js so chapters.js can use
 // them without an import cycle.
@@ -96,8 +101,10 @@ export function buildLife({ name, nickname = '', about = '', birthDate = null, d
 }
 
 export async function createLife(data) {
+  if (!canUseMultipleLives()) throw new MultipleLivesBlockedError(blockingWriters())
   const life = buildLife(data)
   await dbPutLife(life)
+  markDirty(life.id)
   return life
 }
 
@@ -115,12 +122,14 @@ export async function updateLife(id, updates, existing) {
     const life = { ...ME_LIFE_RECORD, ...existing, ...meUpdates, id, name: ME_LIFE_RECORD.name, updated_at: now }
     delete life.birthDate
     await dbPutLife(life)
+    markDirty(life.id)
     return life
   }
   if ('name' in rest && (!rest.name || !rest.name.trim())) throw new Error('A Life needs a name')
   const life = { ...existing, ...rest, id, updated_at: now }
   if (typeof life.name === 'string') life.name = life.name.trim()
   await dbPutLife(life)
+  markDirty(life.id)
   return life
 }
 
@@ -141,15 +150,7 @@ function setLifeBirthDate(lifeId, value, at) {
 
 // ── Deleting a Life ─────────────────────────────────────────────────────────
 
-export function getLifeTombstones() {
-  try { return JSON.parse(localStorage.getItem(LIFE_TOMBSTONE_KEY) || '{}') } catch { return {} }
-}
-
-function writeLifeTombstone(id, at) {
-  const t = getLifeTombstones()
-  t[id] = at
-  localStorage.setItem(LIFE_TOMBSTONE_KEY, JSON.stringify(t))
-}
+export { getLifeTombstones }
 
 /**
  * Delete a Life other than Me. Its milestones that belong to no other Life are
@@ -178,5 +179,8 @@ export async function deleteLife(id) {
   }
   writeLifeTombstone(id, at)
   await dbDeleteLife(id)
+  // After the row is gone: the vault engine sees no local entity and pushes a
+  // soft delete (the same order deleteMilestone uses).
+  markDirty(id)
   return { deletedMilestoneIds, updatedMilestones, deletedChapterIds }
 }

@@ -47,7 +47,8 @@ const buildEngine = ({ setSyncStatus, setSyncError, setSyncHalted, setLastSynced
     buildPayload: () => buildEnginePayload(),
     buildBackupPayload,
     applyPayload: applyEnginePayload,
-    mergePayloads,
+    // The WebDAV file, kept apart from the iCloud and Direct Access files.
+    mergePayloads: (local, remote) => mergePayloads(local, remote, { fileKey: 'webdav' }),
 
     proxyUrl: import.meta.env.VITE_WEBDAV_PROXY_URL ?? '',
 

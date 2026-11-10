@@ -11,6 +11,7 @@
 import {
   dbGet, dbPut, dbDelete, dbGetAll,
   dbGetChapter, dbPutChapter, dbDeleteChapter, dbGetAllChapters,
+  dbGetLife, dbPutLife, dbDeleteLife, dbGetAllLives,
 } from '../data/db.js'
 
 const CAT_KEY      = 'lifeglance-categories'
@@ -19,6 +20,7 @@ const BDAY_KEY     = 'lifeglance-birthday'
 const BDAY_TS_KEY  = 'lifeglance-birthday-updated-at'
 const MTOMB_KEY    = 'lifeglance-milestone-tombstones'
 const CTOMB_KEY    = 'lifeglance-chapter-tombstones'
+const LTOMB_KEY    = 'lifeglance-life-tombstones'
 
 const readJSON = (key, fallback) => {
   try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback }
@@ -39,12 +41,19 @@ export function makeRealStore() {
       delete: (id) => dbDeleteChapter(id),
       all: () => dbGetAllChapters(),
     },
+    lives: {
+      get: (id) => dbGetLife(id),
+      put: (l) => dbPutLife(l),
+      delete: (id) => dbDeleteLife(id),
+      all: () => dbGetAllLives(),
+    },
     getBundle: (kind) => {
       switch (kind) {
         case 'categories':          return { value: readJSON(CAT_KEY, []), updatedAt: localStorage.getItem(CAT_TS_KEY) || '' }
         case 'birthday':            return { value: localStorage.getItem(BDAY_KEY) || '', updatedAt: localStorage.getItem(BDAY_TS_KEY) || '' }
         case 'milestoneTombstones': return { value: readJSON(MTOMB_KEY, {}) }
         case 'chapterTombstones':   return { value: readJSON(CTOMB_KEY, {}) }
+        case 'lifeTombstones':      return { value: readJSON(LTOMB_KEY, {}) }
         default: throw new Error(`getBundle: unknown kind ${kind}`)
       }
     },
@@ -63,6 +72,9 @@ export function makeRealStore() {
           break
         case 'chapterTombstones':
           localStorage.setItem(CTOMB_KEY, JSON.stringify(repr.value))
+          break
+        case 'lifeTombstones':
+          localStorage.setItem(LTOMB_KEY, JSON.stringify(repr.value))
           break
         default: throw new Error(`putBundle: unknown kind ${kind}`)
       }
