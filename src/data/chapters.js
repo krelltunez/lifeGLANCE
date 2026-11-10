@@ -1,4 +1,5 @@
-import { dbGetAllChapters, dbGetChapter, dbAddChapter, dbPutChapter, dbDeleteChapter } from './db'
+import { dbGetAllChapters, dbGetChapter, dbAddChapter, dbPutChapter, dbDeleteChapter, dbGet } from './db'
+import { canJoinChapter } from './lifeMembership'
 import { uid } from './milestones'
 import { writeChapterTombstone } from '../sync/tombstones'
 import { markDirty } from '../sync/dirty'
@@ -113,6 +114,12 @@ export async function addMilestoneToChapter(chapterId, milestoneId) {
   const chapter = await dbGetChapter(chapterId)
   if (!chapter) throw new Error(`Chapter not found: ${chapterId}`)
   if (chapter.milestoneIds.includes(milestoneId)) return chapter
+  // A chapter belongs to one Life and holds only milestones of that Life
+  // (shared ones included). A milestone not in the store yet is let through.
+  const milestone = await dbGet(milestoneId)
+  if (milestone && !canJoinChapter(milestone, chapter)) {
+    throw new Error(`Milestone ${milestoneId} is not in this chapter's Life`)
+  }
   const now = new Date().toISOString()
   const updated = {
     ...chapter,

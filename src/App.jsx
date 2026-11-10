@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import Onboarding   from './components/onboarding/Onboarding'
 import TimelineView from './components/timeline/TimelineView'
@@ -6,6 +6,7 @@ import CloudSyncModal from './components/sync/CloudSyncModal'
 import SyncPassphraseModal from './components/sync/SyncPassphraseModal'
 import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
+import { ME_LIFE_ID, milestonesForLife, chaptersForLife, isInLife, chapterLifeId, applyScopedUpdate } from './data/lifeMembership'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
 import { useDirectAccessSync } from './hooks/useDirectAccessSync'
 import { useSnapshotFileSync } from './hooks/useSnapshotFileSync'
@@ -95,6 +96,22 @@ export default function App() {
     () => window.matchMedia('(orientation: portrait) and (max-width: 1024px)').matches
   )
 
+  // The Life on screen. Always Me until the Life switcher (Lives Phase 3). The
+  // app state keeps every Life's milestones and chapters, because sync has to
+  // see all of them; the timeline gets this Life's view, and its updates are
+  // folded back into the full lists.
+  const currentLifeId = ME_LIFE_ID
+  const lifeMilestones = useMemo(() => milestonesForLife(milestones, currentLifeId), [milestones, currentLifeId])
+  const lifeChapters   = useMemo(() => chaptersForLife(chapters, currentLifeId), [chapters, currentLifeId])
+  const setLifeMilestones = useCallback(
+    (update) => setMilestones(prev => applyScopedUpdate(prev, update, m => isInLife(m, currentLifeId))),
+    [currentLifeId],
+  )
+  const setLifeChapters = useCallback(
+    (update) => setChapters(prev => applyScopedUpdate(prev, update, c => chapterLifeId(c) === currentLifeId)),
+    [currentLifeId],
+  )
+
   const milestonesRef = useRef(milestones)
   const chaptersRef   = useRef(chapters)
 
@@ -112,7 +129,12 @@ export default function App() {
   // Reload milestones from the store on demand — e.g. after the media backfill
   // writes real-hash slots, so the newly vault-backed media appears immediately.
   useEffect(() => {
-    const reload = () => { dbGetAll().then(setMilestones).catch(() => {}) }
+    // Chapters too: a backup restore replaces both stores outright, and the
+    // timeline only holds its own Life's view of them.
+    const reload = () => {
+      dbGetAll().then(setMilestones).catch(() => {})
+      dbGetAllChapters().then(setChapters).catch(() => {})
+    }
     window.addEventListener('lifeglance:milestones-reload', reload)
     return () => window.removeEventListener('lifeglance:milestones-reload', reload)
   }, [])
@@ -302,14 +324,17 @@ export default function App() {
       const birthday = localStorage.getItem('lifeglance-birthday') || null
       let pins = {}
       try { pins = JSON.parse(localStorage.getItem('lifeglance-pins') || '{}') } catch { /* ignore malformed pins */ }
+      // Widgets and Spotlight are Me-only in v5.0, whichever Life is on screen.
+      const meMilestones = milestonesForLife(milestonesRef.current, ME_LIFE_ID)
+      const meChapters   = chaptersForLife(chaptersRef.current, ME_LIFE_ID)
       pushWidgetSnapshot(
-        buildWidgetSnapshot(milestonesRef.current, chaptersRef.current, birthday, new Date(), pins)
+        buildWidgetSnapshot(meMilestones, meChapters, birthday, new Date(), pins)
       )
       // Same trigger discipline feeds Core Spotlight on iOS (no-op elsewhere).
       // Factory form so the full index is only built where a plugin will take it;
       // the bridge also skips the push when the payload hasn't changed.
       maybePushSpotlightIndex(() =>
-        buildSpotlightIndex(milestonesRef.current, chaptersRef.current)
+        buildSpotlightIndex(meMilestones, meChapters)
       )
     }
 
@@ -345,10 +370,10 @@ export default function App() {
     <Onboarding onComplete={handleOnboardingComplete} />
   ) : (
     <TimelineView
-      milestones={milestones}
-      setMilestones={setMilestones}
-      chapters={chapters}
-      setChapters={setChapters}
+      milestones={lifeMilestones}
+      setMilestones={setLifeMilestones}
+      chapters={lifeChapters}
+      setChapters={setLifeChapters}
       syncStatus={syncStatus}
       syncError={displayError}
       syncHalted={displayHalted}
