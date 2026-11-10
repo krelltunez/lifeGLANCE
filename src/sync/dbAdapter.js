@@ -17,7 +17,9 @@
 //   birthday            → one bundle row            (LWW scalar)
 //
 // Discrimination (Stage 1, spec 5.2): every envelope carries an explicit `_kind`
-// (and an in-envelope `life_id`). entityIds for milestones/chapters are their
+// and a `life_id`. `life_id` never identified a Life: since Lives Phase 1 it
+// carries this device's writer stamp (writerStamp.js explains why it has to be
+// that field). entityIds for milestones/chapters are their
 // own bare UUIDs (no type leak in the row key); bundle rows use stable, NON
 // engine-reserved ids (`life:<lifeId>:<kind>` — the `__glance_` prefix is owned
 // by the engine). Milestone and chapter UUIDs never collide, so getLocalEntity
@@ -38,6 +40,7 @@
 import { normalizeMemberOps } from '../data/chapters.js'
 import { LIFE_ID, BUNDLE_KINDS, bundleEntityId } from './entityIds.js'
 import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js'
+import { rowStamp, readRowStamp, noteWriter } from './writerStamp.js'
 
 export { LIFE_ID, BUNDLE_KINDS, bundleEntityId }
 
@@ -183,8 +186,10 @@ function canonical(v) {
 }
 const sameContent = (x, y) => JSON.stringify(canonical(x)) === JSON.stringify(canonical(y))
 
-export function makeDbAdapter({ store, markDirty = () => {} }) {
+export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null }) {
   const deepEqual = sameContent
+  // Built per row so the stamp always reports this build; cheap.
+  const stamp = () => rowStamp(deviceId)
 
   // Store ops may be async (real db.js / localStorage) or sync (the in-memory
   // harness); awaiting works for both. Callbacks the engine awaits are async.
@@ -200,7 +205,7 @@ export function makeDbAdapter({ store, markDirty = () => {} }) {
     const value = (kind === 'milestoneTombstones' || kind === 'chapterTombstones')
       ? pruneTombstoneMap(repr.value, tombstoneCutoff())
       : repr.value
-    const env = { _kind: kind, life_id: LIFE_ID, value }
+    const env = { _kind: kind, life_id: stamp(), value }
     if ('updatedAt' in repr) env.updatedAt = repr.updatedAt
     return env
   }
@@ -232,15 +237,19 @@ export function makeDbAdapter({ store, markDirty = () => {} }) {
   // ── Engine callbacks ──
   const getLocalEntity = async (entityId) => {
     if (isBundleEntityId(entityId)) return bundleEnvelope(BUNDLE_ID_TO_KIND[entityId])
+    // The stored record goes first so a stale `_kind` / `life_id` that an older
+    // build may have stored can never override this device's own.
     const m = await store.milestones.get(entityId)
-    if (m) return { _kind: 'milestone', life_id: LIFE_ID, ...m }
+    if (m) return { ...m, _kind: 'milestone', life_id: stamp() }
     const c = await store.chapters.get(entityId)
-    if (c) return { _kind: 'chapter', life_id: LIFE_ID, ...c }
+    if (c) return { ...c, _kind: 'chapter', life_id: stamp() }
     return null
   }
 
   const applyRemoteEntity = async (entityId, env) => {
     const kind = env?._kind
+    // A row from a newer build tells the UI to suggest updating this device.
+    noteWriter(readRowStamp(env?.life_id))
     if (kind === 'milestone') {
       // Plain LWW already resolved by the engine — remote won (or local absent).
       await store.milestones.put(stripEnvelope(env))
@@ -252,13 +261,20 @@ export function makeDbAdapter({ store, markDirty = () => {} }) {
       if (!local) { await store.chapters.put({ ...remoteChapter, memberOps: normalizeMemberOps(remoteChapter) }); return }
       const merged = mergeChapters(local, remoteChapter)
       await store.chapters.put(merged)
-      // Richer-than-remote → re-push the merged superset.
-      if (!deepEqual({ ...merged, _kind: 'chapter', life_id: LIFE_ID }, env)) markDirty(entityId)
+      // Richer-than-remote → re-push the merged superset. Compared without the
+      // envelope: the peer's writer stamp is not chapter content, and counting
+      // it would re-push every chapter on every pull.
+      if (!deepEqual(merged, stripEnvelope(env))) markDirty(entityId)
       return
     }
     if (BUNDLE_ID_TO_KIND[entityId]) { await applyBundle(BUNDLE_ID_TO_KIND[entityId], env); return }
     if (BUNDLE_KINDS.includes(kind)) { await applyBundle(kind, env); return }
-    throw new Error(`applyRemoteEntity: unroutable row ${entityId} (_kind=${kind})`)
+    // A row kind this build does not know: written by a newer build (Lives
+    // records, relationship edges). Leave it alone. The vault keeps it for the
+    // devices that understand it, and this device never pushes it, so nothing
+    // is lost. Throwing would quarantine it and report "skipped rows" on every
+    // cycle, which is noise, not a problem the user can fix.
+    if (import.meta?.env?.DEV) console.info(`[dbsync] ignoring row of unknown kind ${kind} (${entityId})`)
   }
 
   const applyRemoteDelete = async (entityId) => {

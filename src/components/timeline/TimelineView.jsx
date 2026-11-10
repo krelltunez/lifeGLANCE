@@ -44,6 +44,7 @@ import { useIntentPoller, localDay, lastglanceMilestoneId, inboundAlreadyHandled
 import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
 import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
+import { readNewerWriter } from '../../sync/writerStamp.js'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
 import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
 import { EVENTS } from '@glance-apps/intents'
@@ -229,6 +230,22 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     window.addEventListener('lifeglance:sync-applied', onSyncApplied)
     return () => window.removeEventListener('lifeglance:sync-applied', onSyncApplied)
   }, [])
+
+  // Another device synced with a newer lifeGLANCE (writerStamp.js). Say so once
+  // per session: at startup if one was seen in the last 60 days, or as soon as
+  // a sync first sees one. Until this device updates, it cannot show what the
+  // newer version added (Lives), though it keeps that data intact.
+  const newerWriterToldRef = useRef(false)
+  useEffect(() => {
+    const tell = () => {
+      if (newerWriterToldRef.current) return
+      newerWriterToldRef.current = true
+      showToast(ts('newerVersionToast'), 'info')
+    }
+    if (readNewerWriter()) tell()
+    window.addEventListener('lifeglance:newer-writer', tell)
+    return () => window.removeEventListener('lifeglance:newer-writer', tell)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // First-restore confirmation: applyPayload fires 'lifeglance:restored' when a
   // previously-empty device receives milestones from the cloud. Surface a toast

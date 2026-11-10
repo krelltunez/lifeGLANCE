@@ -134,7 +134,7 @@ export const initDbSyncEngine = (opts = {}) => {
   // Late-bound markDirty: the adapter's re-push-superset path needs the engine's
   // markDirty, but the engine isn't built yet. Forward through a holder.
   const holder = { markDirty: () => {} }
-  const adapter = makeDbAdapter({ store, markDirty: (id) => holder.markDirty(id) })
+  const adapter = makeDbAdapter({ store, markDirty: (id) => holder.markDirty(id), deviceId: ensureDeviceId() })
 
   const engine = createDbSyncEngine({
     storageKeyPrefix: 'lifeglance',
