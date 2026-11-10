@@ -1,0 +1,182 @@
+// Lives (v5.0): Life records, which Lives a milestone belongs to, and which Life
+// a chapter belongs to. Source of truth: docs/lifeGLANCE-app-spec.md.
+//
+// Ownership lives inside the records:
+//   milestone.lifeOps  { [lifeId]: { op: 'add'|'remove', at } }  an LWW element
+//                      set, like chapter memberOps. No lifeOps means Me only.
+//   chapter.lifeId     the one Life a chapter belongs to. No lifeId means Me.
+// So every record written before Lives already belongs to Me, and nothing had
+// to be rewritten to introduce them.
+//
+// Phase 2a is local only: Life records and their tombstones are not synced yet
+// (Phase 2b), so nothing here marks a Life row dirty. Membership and chapter
+// changes go through updateMilestone / updateChapter and sync like any edit.
+
+import { dbGetAllLives, dbGetLife, dbPutLife, dbDeleteLife, dbGetAll, dbGetAllChapters, ME_LIFE_ID, ME_LIFE_RECORD } from './db'
+import { uid, updateMilestone, deleteMilestone } from './milestones'
+import { deleteChapter, removeMilestoneFromChapter } from './chapters'
+import { dirtyBirthday } from '../sync/dirty'
+import { normalizeLifeOps, lifeIdsOf, isInLife, chapterLifeId, presentLives } from './lifeMembership'
+
+export { ME_LIFE_ID }
+
+export const isMe = (lifeId) => lifeId === ME_LIFE_ID
+
+const BIRTHDAY_KEY    = 'lifeglance-birthday'
+const BIRTHDAY_TS_KEY = 'lifeglance-birthday-updated-at'
+const LIFE_TOMBSTONE_KEY = 'lifeglance-life-tombstones'
+
+// The pure membership helpers live in lifeMembership.js so chapters.js can use
+// them without an import cycle.
+export {
+  normalizeLifeOps, lifeIdsOf, isInLife, isShared, milestonesForLife,
+  chapterLifeId, chaptersForLife, canJoinChapter,
+} from './lifeMembership'
+
+// ── Changing a milestone's Lives ────────────────────────────────────────────
+
+/**
+ * Add a Life to a milestone, or remove one. Records a single op with its own
+ * timestamp, never a rewrite of the whole set, so a concurrent change to a
+ * different Life on another device survives the merge. Refuses to remove the
+ * last Life. Removing a Life also takes the milestone out of that Life's
+ * chapters, since a chapter only holds milestones of its own Life.
+ */
+export async function setMilestoneLife(milestone, lifeId, present, { at = new Date().toISOString() } = {}) {
+  const before = normalizeLifeOps(milestone)
+  if ((before[lifeId]?.op === 'add') === present && milestone.lifeOps) return milestone
+  const lifeOps = { ...before, [lifeId]: { op: present ? 'add' : 'remove', at } }
+  if (!presentLives(lifeOps).length) throw new Error('A milestone must belong to at least one Life')
+  // Pass the colour through: updateMilestone would otherwise reset it to the
+  // category's default colour.
+  const updated = await updateMilestone(milestone.id, { lifeOps, color: milestone.color }, milestone)
+  if (!present) {
+    for (const c of await dbGetAllChapters()) {
+      if (chapterLifeId(c) === lifeId && c.milestoneIds?.includes(milestone.id)) {
+        await removeMilestoneFromChapter(c.id, milestone.id)
+      }
+    }
+  }
+  return updated
+}
+
+export const addLifeToMilestone      = (m, lifeId, opts) => setMilestoneLife(m, lifeId, true, opts)
+export const removeLifeFromMilestone = (m, lifeId, opts) => setMilestoneLife(m, lifeId, false, opts)
+
+// ── Life records ────────────────────────────────────────────────────────────
+
+/** Every Life, Me first, then by name. Puts the Me record back if it is missing. */
+export async function loadLives() {
+  let lives = await dbGetAllLives()
+  if (!lives.some(l => isMe(l.id))) {
+    await dbPutLife({ ...ME_LIFE_RECORD })
+    lives = [{ ...ME_LIFE_RECORD }, ...lives]
+  }
+  return lives.sort((a, b) => (isMe(a.id) ? -1 : isMe(b.id) ? 1 : (a.name ?? '').localeCompare(b.name ?? '')))
+}
+
+export const getLife = (id) => dbGetLife(id)
+
+export function buildLife({ name, nickname = '', about = '', birthDate = null, deathDate = null, color = null, notes = '' }) {
+  if (!name || !name.trim()) throw new Error('A Life needs a name')
+  const now = new Date().toISOString()
+  return {
+    id: uid(),
+    name: name.trim(),
+    nickname,
+    about,
+    birthDate,
+    deathDate,
+    photo_id: null,   // reserved: Life photos use the GLANCEvault blob path (Phase 3)
+    color,
+    notes,
+    created_at: now,
+    updated_at: now,
+  }
+}
+
+export async function createLife(data) {
+  const life = buildLife(data)
+  await dbPutLife(life)
+  return life
+}
+
+/**
+ * Update a Life. Me keeps its id and its official name ("Me"); its nickname and
+ * about can change. Me's birth date lives in the existing birthday setting, not
+ * in the record, so older devices and the widgets keep reading the same value.
+ */
+export async function updateLife(id, updates, existing) {
+  const { id: _id, created_at: _c, ...rest } = updates
+  const now = new Date().toISOString()
+  if (isMe(id)) {
+    const { name: _name, birthDate, ...meUpdates } = rest
+    if (birthDate !== undefined) setLifeBirthDate(ME_LIFE_ID, birthDate, now)
+    const life = { ...ME_LIFE_RECORD, ...existing, ...meUpdates, id, name: ME_LIFE_RECORD.name, updated_at: now }
+    delete life.birthDate
+    await dbPutLife(life)
+    return life
+  }
+  if ('name' in rest && (!rest.name || !rest.name.trim())) throw new Error('A Life needs a name')
+  const life = { ...existing, ...rest, id, updated_at: now }
+  if (typeof life.name === 'string') life.name = life.name.trim()
+  await dbPutLife(life)
+  return life
+}
+
+/** A Life's birth date (YYYY-MM-DD or null). Me's comes from the birthday setting. */
+export function lifeBirthDate(life) {
+  if (isMe(life?.id)) {
+    try { return localStorage.getItem(BIRTHDAY_KEY) || null } catch { return null }
+  }
+  return life?.birthDate ?? null
+}
+
+function setLifeBirthDate(lifeId, value, at) {
+  if (!isMe(lifeId)) return
+  localStorage.setItem(BIRTHDAY_KEY, value || '')
+  localStorage.setItem(BIRTHDAY_TS_KEY, at)
+  dirtyBirthday()
+}
+
+// ── Deleting a Life ─────────────────────────────────────────────────────────
+
+export function getLifeTombstones() {
+  try { return JSON.parse(localStorage.getItem(LIFE_TOMBSTONE_KEY) || '{}') } catch { return {} }
+}
+
+function writeLifeTombstone(id, at) {
+  const t = getLifeTombstones()
+  t[id] = at
+  localStorage.setItem(LIFE_TOMBSTONE_KEY, JSON.stringify(t))
+}
+
+/**
+ * Delete a Life other than Me. Its milestones that belong to no other Life are
+ * deleted; shared milestones only lose this Life. Its chapters are deleted.
+ * Returns what changed so the caller can update its state.
+ */
+export async function deleteLife(id) {
+  if (isMe(id)) throw new Error('The Me Life cannot be deleted')
+  const at = new Date().toISOString()
+  const deletedMilestoneIds = []
+  const updatedMilestones = []
+  for (const m of await dbGetAll()) {
+    if (!isInLife(m, id)) continue
+    if (lifeIdsOf(m).length === 1) {
+      await deleteMilestone(m.id)
+      deletedMilestoneIds.push(m.id)
+    } else {
+      updatedMilestones.push(await setMilestoneLife(m, id, false, { at }))
+    }
+  }
+  const deletedChapterIds = []
+  for (const c of await dbGetAllChapters()) {
+    if (chapterLifeId(c) !== id) continue
+    await deleteChapter(c.id)
+    deletedChapterIds.push(c.id)
+  }
+  writeLifeTombstone(id, at)
+  await dbDeleteLife(id)
+  return { deletedMilestoneIds, updatedMilestones, deletedChapterIds }
+}

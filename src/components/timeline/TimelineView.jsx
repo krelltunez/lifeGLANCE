@@ -1625,6 +1625,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
       setMilestones([...restored])
       setChapters([...chapters])
+      // Restore replaced both stores outright; reload the app's full lists,
+      // which also hold Lives other than the one on screen.
+      window.dispatchEvent(new Event('lifeglance:milestones-reload'))
       if (restoredCategories) setCategories(restoredCategories)
       historyRef.current = undoHistory.createHistory()
       setCanUndo(false)

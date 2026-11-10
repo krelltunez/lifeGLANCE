@@ -112,7 +112,21 @@ history captures lives.
   - Why: shared milestones cannot live under per-Life slots (a wedding cannot sit
     under two keys), and keeping ownership in the record removes most of the
     damage a 4.0.x client would do (table above).
-  - Field names are settled in Phase 2.
+  - Field names (Phase 2a):
+    - Me is the Life with the fixed id `me`. Every device creates the identical
+      record (`{ id: 'me', name: 'Me' }`, epoch timestamps) in the IndexedDB v7
+      migration, so two devices can never produce two Mes. An imported `me`
+      from someone else's export is never matched by id (Phase 5).
+    - Life record: `{ id, name, nickname?, about?, birthDate?, deathDate?,
+      photo_id?, color?, notes?, created_at, updated_at }`. Me's birth date stays
+      in the existing birthday setting, so older devices and the widgets keep
+      reading the same value.
+    - Milestone: `lifeOps: { [lifeId]: { op: 'add'|'remove', at } }`. The set of
+      Lives is derived on read (`lifeIdsOf`), not stored as a second field.
+    - Chapter: `lifeId`.
+    - Vault: row kind `life`, bundle `life:default:lifeTombstones`. File:
+      `lives.default.lifeRecords`, `lives.default.lifeTombstones`. Sync schema 2.
+      (Phase 2b.)
 - **Migration:** all existing milestones, chapters and the birthday attach to
   the Me Life. IndexedDB v7; idempotent; safe to re-run after an interrupted
   upgrade.
@@ -380,13 +394,17 @@ should not foreclose any of it.
 
 ## Build phases
 
-Each phase is one PR, merged and verified before the next starts.
+Each phase is one PR, merged and verified before the next starts. From Phase
+2 on, phase PRs target the `lives-v5` branch, not `main`, so 4.x releases cut
+from `main` never carry half-built Lives code. `lives-v5` merges into `main`
+when v5.0 ships, and takes `main` in periodically so it does not drift.
 
 | Phase | Ships in | Scope | Out of scope |
 |---|---|---|---|
 | 0 | docs | This document: reconcile, retag to v5.0.0, record decisions. | Any code. |
 | 1 | 4.x | Forward-compat sync: writer stamps on both tiers, unknown file keys passed through, unknown vault row kinds ignored quietly, "newer version" notice. Records the in-record ownership model and the 60-day gate. | Any Life entity or field, filtering, migration; UI beyond the notice. |
-| 2 | 5.0 | Data layer: Life record and row kind, Me marker, milestone Life set (LWW), Chapter Life, IndexedDB v7 migration into Me, Life-aware sync, undo with membership. | UI beyond what is needed to keep the app working as single-Life. |
+| 2a | 5.0 | Local data model: Life records, Me, milestone `lifeOps`, chapter `lifeId`, IndexedDB v7, deleting a Life, undo of membership, the app showing Me's view. | Sync of Lives, any Lives UI. |
+| 2b | 5.0 | Sync: `life` rows and tombstones on both tiers, merge-on-apply for milestone `lifeOps`, schema 2, the 60-day gate. | Any Lives UI. |
 | 3 | 5.0 | Life switcher, Life editor, per-Life `birthDate` / `deathDate`, chrome tint, breadcrumb, shared-milestone UI. | Compare view, relationships, import. |
 | 4 | 5.0 | Relationship edges and the "relationship to Me" picker. | Any other relationship UI. |
 | 5 | 5.0 | Export/import with merge and the Life matching flow. | Real-time collaboration. |
