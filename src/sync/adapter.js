@@ -3,6 +3,24 @@ import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js';
 import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChapter } from '../data/db.js';
 import { getMilestoneTombstones, getChapterTombstones } from './tombstones.js';
 import { loadCategories, saveCategories } from '../utils/colors.js';
+import { ensureDeviceId } from './deviceId.js';
+import { ownWriterEntry, mergeWriters, noteWriter } from './writerStamp.js';
+
+// The keys of a payload, and of its `lives.default` object, that this build
+// reads and writes. Anything else in the file was written by a newer build
+// (Lives v5.0) and is passed through untouched by mergePayloads, never
+// dropped. See "Sync and version skew" in docs/lifeGLANCE-app-spec.md.
+const KNOWN_TOP_KEYS = new Set(['lives', 'writers']);
+const KNOWN_LIFE_KEYS = new Set([
+  'milestones', 'chapters', 'milestoneTombstones', 'chapterTombstones',
+  'birthday', 'birthdayUpdatedAt', 'categories', 'categoriesUpdatedAt',
+]);
+
+// The entries of `obj` whose keys are not in `known`.
+const unknownKeys = (obj, known) => {
+  if (!obj || typeof obj !== 'object') return {};
+  return Object.fromEntries(Object.entries(obj).filter(([k]) => !known.has(k)));
+};
 
 // How long a deletion tombstone is kept before mergePayloads prunes it. Beyond
 // this window a device that has been offline the whole time still holds the
@@ -22,6 +40,9 @@ export const buildPayload = async (milestonesRef, chaptersRef) => {
   const milestones = (milestonesRef?.current?.length > 0) ? milestonesRef.current : idbMilestones
   const chapters   = (chaptersRef?.current?.length   > 0) ? chaptersRef.current   : idbChapters
   const payload = {
+    // This device's writer entry (writerStamp.js). Only the sync payload
+    // carries it; the backup payload below is a local copy, not a write.
+    writers: { [ensureDeviceId()]: ownWriterEntry() },
     lives: {
       default: {
         milestones,
@@ -127,6 +148,11 @@ export const makeApplyPayload = (setMilestones, setChapters) =>
 
 // mergePayloads — synchronous CRDT merge
 export const mergePayloads = (local, remote) => {
+  // A newer build that wrote the file asks this device to update.
+  if (remote?.writers && typeof remote.writers === 'object') {
+    for (const entry of Object.values(remote.writers)) noteWriter(entry);
+  }
+
   const localLife = local?.lives?.default ?? {};
   const remoteLife = remote?.lives?.default ?? {};
 
@@ -178,7 +204,13 @@ export const mergePayloads = (local, remote) => {
   const mergedCategories          = remoteCatsWins ? (remoteLife.categories ?? localLife.categories ?? []) : (localLife.categories ?? [])
   const mergedCategoriesUpdatedAt = remoteCatsWins ? (remoteLife.categoriesUpdatedAt ?? localLife.categoriesUpdatedAt ?? '') : (localLife.categoriesUpdatedAt ?? '')
 
+  // Keys this build does not know are carried over as they are, remote over
+  // local (this build never stores them, so in practice they come only from the
+  // file). They are left out of localChanged and remoteChanged: there is
+  // nothing to apply locally, and they never differ from the file's own.
   const mergedLife = {
+    ...unknownKeys(localLife, KNOWN_LIFE_KEYS),
+    ...unknownKeys(remoteLife, KNOWN_LIFE_KEYS),
     milestones: mergedMilestones, chapters: mergedChapters, milestoneTombstones, chapterTombstones,
     birthday: mergedBirthday, birthdayUpdatedAt: mergedBirthdayUpdatedAt,
     categories: mergedCategories, categoriesUpdatedAt: mergedCategoriesUpdatedAt,
@@ -192,7 +224,10 @@ export const mergePayloads = (local, remote) => {
     mergedBirthday !== (localLife.birthday ?? '') ||
     JSON.stringify(mergedCategories) !== JSON.stringify(localLife.categories ?? []);
 
+  const writers = mergeWriters(local?.writers, remote?.writers);
+
   const remoteChanged =
+    JSON.stringify(writers) !== JSON.stringify(mergeWriters(remote?.writers, {})) ||
     JSON.stringify(mergedMilestones) !== JSON.stringify(rm) ||
     JSON.stringify(mergedChapters) !== JSON.stringify(rc) ||
     JSON.stringify(milestoneTombstones) !== JSON.stringify(rmt) ||
@@ -200,5 +235,16 @@ export const mergePayloads = (local, remote) => {
     mergedBirthday !== (remoteLife.birthday ?? '') ||
     JSON.stringify(mergedCategories) !== JSON.stringify(remoteLife.categories ?? []);
 
-  return { data: { lives: { default: mergedLife } }, localChanged, remoteChanged };
+  const data = {
+    ...unknownKeys(local, KNOWN_TOP_KEYS),
+    ...unknownKeys(remote, KNOWN_TOP_KEYS),
+    writers,
+    lives: {
+      ...unknownKeys(local?.lives, new Set(['default'])),
+      ...unknownKeys(remote?.lives, new Set(['default'])),
+      default: mergedLife,
+    },
+  };
+
+  return { data, localChanged, remoteChanged };
 };

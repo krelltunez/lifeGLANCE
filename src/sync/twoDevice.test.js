@@ -73,7 +73,9 @@ function makeMemVault() {
 // ── Device = store + adapter + dirty set + pull cursor ───────────────────────
 function makeDevice(vault) {
   const dev = { store: makeMemStore(), dirty: new Set(), hwm: 0 }
-  dev.adapter = makeDbAdapter({ store: dev.store, markDirty: (id) => dev.dirty.add(id) })
+  // Each device stamps its rows with its own id (writerStamp.js), so these
+  // convergence checks also prove a peer's stamp never counts as a change.
+  dev.adapter = makeDbAdapter({ store: dev.store, markDirty: (id) => dev.dirty.add(id), deviceId: `device-${Math.random().toString(36).slice(2)}` })
   dev.markDirty = (id) => dev.dirty.add(id)
   dev.push = async () => {
     const upserts = []

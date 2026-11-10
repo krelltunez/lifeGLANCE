@@ -54,6 +54,7 @@
   "wrongPassphrase": "Frase de sincronização incorreta — deve corresponder exatamente à usada nos seus outros dispositivos.",
   "vaultSkippedToast": "{{count}} item(ns) não puderam ser lidos — verifique as configurações de sincronização na nuvem.",
   "restoredToast": "{{count}} marco(s) restaurado(s) da nuvem.",
+  "newerVersionToast": "Outro dispositivo sincronizou com uma versão mais recente do lifeGLANCE. Atualize este dispositivo para ver tudo.",
   "vaultSkippedNote": "{{count}} item(ns) não puderam ser lidos neste dispositivo e foram ignorados. Serão repetidos automaticamente na próxima sincronização — normalmente indica uma frase de sincronização diferente.",
   "verifierUnsupported": "Seu servidor de sincronização precisa ser atualizado para suportar a verificação de chave.",
   "authFailed": "Falha na autenticação — verifique seu nome de usuário e senha nas configurações de sincronização.",

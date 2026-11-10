@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { readFileSync } from 'node:fs'
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
 
 // Local dev middleware that replicates api/webdav-proxy.js so VITE_WEBDAV_PROXY_URL
 // can point to /api/webdav-proxy without a running Vercel dev server.
@@ -43,6 +46,9 @@ export default defineConfig({
   // when this bundle was built rather than the current wall-clock time.
   define: {
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+    // The app version, for the writer stamp every sync write carries
+    // (src/sync/writerStamp.js).
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [
     webdavProxyPlugin(),
