@@ -15,6 +15,12 @@
 //   milestoneTombstones → one bundle row            (MERGE-on-apply)
 //   chapterTombstones   → one bundle row            (MERGE-on-apply)
 //   birthday            → one bundle row            (LWW scalar)
+//   life                → row, entityId = life.id      (per-item, plain LWW; Lives v5.0)
+//   lifeTombstones      → one bundle row            (MERGE-on-apply)
+//
+// Milestones are MERGE-on-apply too since Lives v5.0: their `lifeOps` is a
+// membership set (which Lives the milestone belongs to), merged per Life like
+// chapter memberOps, while every other field stays entity-grain LWW.
 //
 // Discrimination (Stage 1, spec 5.2): every envelope carries an explicit `_kind`
 // and a `life_id`. `life_id` never identified a Life: since Lives Phase 1 it
@@ -41,9 +47,13 @@ import { normalizeMemberOps } from '../data/chapters.js'
 import { LIFE_ID, BUNDLE_KINDS, bundleEntityId } from './entityIds.js'
 import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js'
 import { rowStamp, readRowStamp, noteWriter } from './writerStamp.js'
+import { recordWriter, LEGACY_VAULT } from './lifeGate.js'
+import { normalizeLifeOps } from '../data/lifeMembership.js'
+import { ME_LIFE_ID } from '../data/db.js'
 
 export { LIFE_ID, BUNDLE_KINDS, bundleEntityId }
 
+const TOMBSTONE_KINDS = new Set(['milestoneTombstones', 'chapterTombstones', 'lifeTombstones'])
 const BUNDLE_ID_TO_KIND = Object.fromEntries(BUNDLE_KINDS.map(k => [bundleEntityId(k), k]))
 export const isBundleEntityId = (entityId) => entityId in BUNDLE_ID_TO_KIND
 
@@ -159,6 +169,24 @@ export function mergeChapters(local, remote) {
   }
 }
 
+// Merge two milestone versions (Lives v5.0). Every field but lifeOps is
+// entity-grain LWW by updated_at: the newer side wins, and an exact tie goes to
+// the side with the smaller serialization, so both devices pick the same one.
+// lifeOps (which Lives the milestone belongs to) merges per Life by the same
+// rule as chapter membership, so adding Mom on one device and Dad on another
+// keeps both. A side with no lifeOps belongs to Me only (normalizeLifeOps); the
+// merged record carries lifeOps only if either side had it, so pre-Lives
+// records are left exactly as they were.
+export function mergeMilestones(local, remote) {
+  const lt = ts(local.updated_at), rt = ts(remote.updated_at)
+  const remoteWins = rt > lt || (rt === lt && JSON.stringify(canonical(remote)) < JSON.stringify(canonical(local)))
+  const merged = { ...(remoteWins ? remote : local) }
+  if (local.lifeOps || remote.lifeOps) {
+    merged.lifeOps = mergeMemberOps(normalizeLifeOps(local), normalizeLifeOps(remote))
+  }
+  return merged
+}
+
 // ── Adapter factory ─────────────────────────────────────────────────────────
 // `store` abstracts the per-device persistence so the same adapter runs over the
 // real db.js + localStorage (Part B) and over in-memory maps (the two-device
@@ -186,7 +214,13 @@ function canonical(v) {
 }
 const sameContent = (x, y) => JSON.stringify(canonical(x)) === JSON.stringify(canonical(y))
 
-export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null }) {
+// isLivePull() says whether rows pulled now are new writes (this device has
+// finished its first full pull), as opposed to the account's history arriving
+// on a new device. Only new writes count towards the Lives gate (lifeGate.js).
+const NO_LIVES = { get: () => null, put: () => {}, delete: () => {}, all: () => [] }
+
+export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null, isLivePull = () => false }) {
+  const lives = store.lives ?? NO_LIVES
   const deepEqual = sameContent
   // Built per row so the stamp always reports this build; cheap.
   const stamp = () => rowStamp(deviceId)
@@ -202,7 +236,7 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null }) 
     // holding a stale unpruned local copy would keep re-publishing aged-out
     // entries for its peers to re-merge. Same day-floored cutoff as the merge,
     // so produce and merge agree byte-for-byte within a day.
-    const value = (kind === 'milestoneTombstones' || kind === 'chapterTombstones')
+    const value = TOMBSTONE_KINDS.has(kind)
       ? pruneTombstoneMap(repr.value, tombstoneCutoff())
       : repr.value
     const env = { _kind: kind, life_id: stamp(), value }
@@ -215,7 +249,7 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null }) 
     if (kind === 'categories') {
       const m = mergeCategories(local.value, local.updatedAt, env.value, env.updatedAt)
       mergedRepr = { value: m.categories, updatedAt: m.categoriesUpdatedAt }
-    } else if (kind === 'milestoneTombstones' || kind === 'chapterTombstones') {
+    } else if (TOMBSTONE_KINDS.has(kind)) {
       mergedRepr = { value: mergeTombstoneMap(local.value, env.value) }
     } else if (kind === 'birthday') {
       const remoteWins = ts(env.updatedAt) >= ts(local.updatedAt)
@@ -243,16 +277,36 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null }) 
     if (m) return { ...m, _kind: 'milestone', life_id: stamp() }
     const c = await store.chapters.get(entityId)
     if (c) return { ...c, _kind: 'chapter', life_id: stamp() }
+    const l = await lives.get(entityId)
+    if (l) return { ...l, _kind: 'life', life_id: stamp() }
     return null
   }
 
   const applyRemoteEntity = async (entityId, env) => {
     const kind = env?._kind
     // A row from a newer build tells the UI to suggest updating this device.
-    noteWriter(readRowStamp(env?.life_id))
+    const rowWriter = readRowStamp(env?.life_id)
+    noteWriter(rowWriter)
+    // Who wrote it, for the Lives gate. Only new writes count: the account's
+    // history, pulled on a new device's first sync, says nothing about which
+    // devices are still active.
+    if (isLivePull()) {
+      if (rowWriter) recordWriter(rowWriter.device ?? 'unknown', rowWriter)
+      else recordWriter(LEGACY_VAULT, { schema: 0 })
+    }
     if (kind === 'milestone') {
-      // Plain LWW already resolved by the engine — remote won (or local absent).
-      await store.milestones.put(stripEnvelope(env))
+      const remote = stripEnvelope(env)
+      const local = await store.milestones.get(entityId)
+      if (!local) { await store.milestones.put(remote); return }
+      const merged = mergeMilestones(local, remote)
+      if (!deepEqual(merged, local)) await store.milestones.put(merged)
+      // Richer than what the peer pushed → re-push the merged record.
+      if (!deepEqual(merged, remote)) markDirty(entityId)
+      return
+    }
+    if (kind === 'life') {
+      // Plain LWW, already resolved by the engine: remote won (or local absent).
+      await lives.put(stripEnvelope(env))
       return
     }
     if (kind === 'chapter') {
@@ -283,11 +337,14 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null }) 
     if (isBundleEntityId(entityId)) return
     await store.milestones.delete(entityId)
     await store.chapters.delete(entityId)
+    // The Me Life is never deleted, whatever a peer pushes.
+    if (entityId !== ME_LIFE_ID) await lives.delete(entityId)
   }
 
-  // Chapters and bundles are merge-on-apply: report insert-only so the engine
-  // always routes them to applyRemoteEntity instead of doing its own LWW.
-  const isInsertOnly = (env) => env?._kind !== 'milestone'
+  // Milestones, chapters and bundles are merge-on-apply: report insert-only so
+  // the engine always routes them to applyRemoteEntity instead of doing its own
+  // LWW. Life records are flat, so they keep the engine's LWW.
+  const isInsertOnly = (env) => env?._kind !== 'life'
 
   const getEntityLastModified = (env) => env?.updated_at ?? env?.updatedAt ?? 0
 
@@ -296,6 +353,7 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null }) 
   const allEntityIds = async () => [
     ...(await store.milestones.all()).map(m => m.id),
     ...(await store.chapters.all()).map(c => c.id),
+    ...(await lives.all()).map(l => l.id),
     ...BUNDLE_KINDS.map(bundleEntityId),
   ]
 

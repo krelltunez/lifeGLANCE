@@ -34,6 +34,8 @@ const memStorage = () => {
 beforeEach(() => { globalThis.localStorage = memStorage() })
 
 const DAY = 24 * 60 * 60 * 1000
+// A build newer than this one, whatever this one is.
+const NEWER = SYNC_SCHEMA + 1
 const NOW = Date.parse('2026-11-10T12:00:00.000Z')
 
 // ── The stamp itself ────────────────────────────────────────────────────────
@@ -93,10 +95,10 @@ describe('newer-version record', () => {
     globalThis.window = { dispatchEvent: (e) => events.push(e.type) }
     globalThis.CustomEvent = class { constructor(type, init) { this.type = type; this.detail = init?.detail } }
     try {
-      noteWriter({ schema: 2 }, NOW)
-      noteWriter({ schema: 2 }, NOW + DAY)
+      noteWriter({ schema: NEWER }, NOW)
+      noteWriter({ schema: NEWER }, NOW + DAY)
       expect(events).toEqual(['lifeglance:newer-writer'])
-      noteWriter({ schema: 2 }, NOW + (WRITER_WINDOW_DAYS + 2) * DAY)
+      noteWriter({ schema: NEWER }, NOW + (WRITER_WINDOW_DAYS + 2) * DAY)
       expect(events).toHaveLength(2)
     } finally {
       delete globalThis.window
@@ -154,9 +156,11 @@ describe('vault rows', () => {
   it('ignores a row kind it does not know, without throwing or storing it', async () => {
     const store = memStore()
     const a = makeDbAdapter({ store, deviceId: 'dev-1' })
-    const lifeRow = { _kind: 'life', life_id: { set: 'default', schema: 2 }, id: 'L1', name: 'Mom' }
-    await expect(a.applyRemoteEntity('L1', lifeRow)).resolves.toBeUndefined()
+    // 'life' became a known kind in v5.0; these stand for whatever comes next.
+    const futureRow = { _kind: 'someFutureKind', life_id: { set: 'default', schema: NEWER }, id: 'L1', name: 'x' }
+    await expect(a.applyRemoteEntity('L1', futureRow)).resolves.toBeUndefined()
     await expect(a.applyRemoteEntity('R1', { _kind: 'relationship', life_id: 'default' })).resolves.toBeUndefined()
+    await expect(a.applyRemoteEntity('life:default:someFutureBundle', { _kind: 'someFutureBundle', value: {} })).resolves.toBeUndefined()
     expect(store.ms.size + store.cs.size).toBe(0)
     expect(await a.getLocalEntity('L1')).toBeNull()   // so it is never pushed back
   })
@@ -194,8 +198,8 @@ describe('vault rows', () => {
     await a.applyRemoteEntity('m1', { _kind: 'milestone', life_id: rowStamp('dev-2'), id: 'm1', title: 'a' })
     await a.applyRemoteEntity('m2', { _kind: 'milestone', life_id: 'default', id: 'm2', title: 'b' })
     expect(readNewerWriter()).toBeNull()
-    await a.applyRemoteEntity('m3', { _kind: 'milestone', life_id: { set: 'default', schema: 2, app: '5.0.0', platform: 'ios' }, id: 'm3', title: 'c' })
-    expect(readNewerWriter()).toMatchObject({ schema: 2, app: '5.0.0' })
+    await a.applyRemoteEntity('m3', { _kind: 'milestone', life_id: { set: 'default', schema: NEWER, app: '9.0.0', platform: 'ios' }, id: 'm3', title: 'c' })
+    expect(readNewerWriter()).toMatchObject({ schema: NEWER, app: '9.0.0' })
   })
 })
 
@@ -207,7 +211,7 @@ const ms = (id, title, updated_at, extra = {}) => ({ id, title, date: '2020-01-0
 
 // A file as v5.0 would write it.
 const v5File = () => ({
-  writers: { v5phone: { schema: 2, app: '5.0.0', platform: 'ios', day: '2026-11-09' } },
+  writers: { v5phone: { schema: NEWER, app: '9.0.0', platform: 'ios', day: '2026-11-09' } },
   futureTopLevel: { anything: true },
   lives: {
     someOtherSlot: { note: 'never written by v5.0 either, but must survive' },
@@ -233,8 +237,11 @@ describe('file-tier merge', () => {
 
   it("does not count unknown keys as a change on either side", () => {
     const remote = v5File()
+    // This build knows lifeRecords and lifeTombstones (v5.0), so only keys
+    // still unknown to it (relationships, futureTopLevel) are passed through.
+    const knownHere = [...KNOWN_LIFE, 'lifeRecords', 'lifeTombstones']
     const local = { writers: remote.writers, lives: { default: { ...remote.lives.default } } }
-    for (const k of Object.keys(local.lives.default)) if (!KNOWN_LIFE.includes(k)) delete local.lives.default[k]
+    for (const k of Object.keys(local.lives.default)) if (!knownHere.includes(k)) delete local.lives.default[k]
     const r = mergePayloads(local, remote)
     expect(r.localChanged).toBe(false)
     expect(r.remoteChanged).toBe(false)
@@ -251,7 +258,7 @@ describe('file-tier merge', () => {
 
   it('notes a newer build that wrote the file', () => {
     mergePayloads({ lives: { default: emptyLife() } }, v5File())
-    expect(readNewerWriter()).toMatchObject({ schema: 2, app: '5.0.0' })
+    expect(readNewerWriter()).toMatchObject({ schema: NEWER, app: '9.0.0' })
   })
 })
 
@@ -335,7 +342,7 @@ describe('a Phase 1 device sharing a folder with v5.0', () => {
     expect(data.lives.default.milestones.find(m => m.id === 'w').lifeOps).toBeTruthy()
     expect(data.futureTopLevel).toEqual({ anything: true })
     expect(Object.keys(data.writers).sort()).toEqual(['p1', 'v5phone'])
-    expect(readNewerWriter()).toMatchObject({ schema: 2 })
+    expect(readNewerWriter()).toMatchObject({ schema: NEWER })
     // and nothing of it lands in the Phase 1 device's own store
     expect(Object.keys(p1.store.lives.default).sort()).toEqual([...KNOWN_LIFE].sort())
   })

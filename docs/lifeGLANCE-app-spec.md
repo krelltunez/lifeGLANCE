@@ -126,7 +126,6 @@ history captures lives.
     - Chapter: `lifeId`.
     - Vault: row kind `life`, bundle `life:default:lifeTombstones`. File:
       `lives.default.lifeRecords`, `lives.default.lifeTombstones`. Sync schema 2.
-      (Phase 2b.)
 - **Migration:** all existing milestones, chapters and the birthday attach to
   the Me Life. IndexedDB v7; idempotent; safe to re-run after an interrupted
   upgrade.
@@ -268,14 +267,23 @@ abandoned device cannot block Lives forever. The window is
   platform, day }`, merged per device by latest UTC day and pruned at 60 days.
   `day` changes at most once a day, so an idle device does not rewrite the file.
 
-**How v5.0 detects a device older than Phase 1.**
+**How v5.0 sees which devices are active (built in Phase 2b, `src/sync/lifeGate.js`).**
 
-- **Vault:** a row pulled after this device's first full sync (cursor above 0)
-  whose `life_id` is the plain string `'default'` was written by a pre-Phase-1
-  client.
-- **File tier:** a 4.0.x write drops every top-level key it does not know, so a
-  file whose `writers` map no longer holds this device's own entry (which it
-  wrote last time) was rewritten by a pre-Phase-1 client.
+- **Vault:** every row pulled after this device has *caught up* records its
+  writer: the stamp's device and schema, or "a device older than Phase 1" for a
+  plain `'default'`. Caught up means the engine's first fully successful cycle
+  (its last-synced stamp changed); until then pulled rows are the account's
+  history, not new writes, and do not count. The flag is per-account stream
+  state, cleared with the cursor on a vault reset.
+- **File tier:** every other device's `writers` entry records that device,
+  dated by its `day`. A file that no longer holds this device's own entry,
+  which this device saw there within the last 59 days (so the 60-day prune
+  cannot explain it), was rewritten by a pre-Phase-1 client. This is tracked per
+  file (`webdav`, `icloud`, `direct-access`), since a device can sync several.
+- **The gate:** `canUseMultipleLives()` is false while any recorded writer other
+  than this device, seen in the last 60 days, has schema below 2. `createLife`
+  refuses then (`MultipleLivesBlockedError`, carrying the blocking writers for
+  the Phase 3 banner), so no other Life, and so no multi-Life data, can exist.
 
 **What Phase 1 clients do with v5.0 data.** They keep it intact and say so:
 
@@ -290,6 +298,13 @@ abandoned device cannot block Lives forever. The window is
 - They still *show* other Lives' milestones as their own, because they do not
   know the v5.0 fields. The gate is what keeps v5.0 from writing those while a
   Phase 1 device is active.
+
+**Milestones are merge-on-apply (Phase 2b).** On the vault, milestones join
+chapters and bundles as insert-only rows: every pulled version is merged with
+the local one. Every field but `lifeOps` stays entity-grain LWW (exact ties
+resolved the same way on both devices); `lifeOps` merges per Life. Records with
+no `lifeOps` on either side are left exactly as they were. The file tier applies
+the same merge to milestones both sides hold.
 
 **Known cost.** The first time a 4.0.x client pulls a stamped chapter row, its
 equality check (which compares `life_id` with `'default'`) fails and it re-pushes

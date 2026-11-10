@@ -28,6 +28,11 @@ import { createRosterEngine } from './rosterVault.js'
 
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
 const SEEDED_KEY     = 'lifeglance-db-sync-seeded'
+// Set once this device has finished its first full pull. Until then, pulled
+// rows are the account's history, not new writes, and must not count towards
+// the Lives gate (lifeGate.js).
+const CAUGHT_UP_KEY  = 'lifeglance-db-sync-caught-up'
+const LAST_SYNCED_KEY = 'lifeglance-db-sync-last-synced'   // engine-owned, read only
 const CREDENTIAL_HALT_KEY = 'lifeglance-db-sync-credential-halt'
 
 // Every piece of persisted vault-sync state that belongs to one account's data
@@ -37,6 +42,7 @@ const CREDENTIAL_HALT_KEY = 'lifeglance-db-sync-credential-halt'
 // identifies the device (not the stream) and survives re-links.
 const STREAM_STATE_KEYS = [
   SEEDED_KEY,
+  CAUGHT_UP_KEY,
   'lifeglance-db-sync-config',          // engine's saved identity record
   'lifeglance-db-sync-hwm',             // pull cursor
   'lifeglance-db-sync-push-ack',        // push idempotency marker
@@ -134,7 +140,12 @@ export const initDbSyncEngine = (opts = {}) => {
   // Late-bound markDirty: the adapter's re-push-superset path needs the engine's
   // markDirty, but the engine isn't built yet. Forward through a holder.
   const holder = { markDirty: () => {} }
-  const adapter = makeDbAdapter({ store, markDirty: (id) => holder.markDirty(id), deviceId: ensureDeviceId() })
+  const adapter = makeDbAdapter({
+    store,
+    markDirty: (id) => holder.markDirty(id),
+    deviceId: ensureDeviceId(),
+    isLivePull: () => localStorage.getItem(CAUGHT_UP_KEY) === '1',
+  })
 
   const engine = createDbSyncEngine({
     storageKeyPrefix: 'lifeglance',
@@ -280,7 +291,13 @@ export const initDbSyncEngine = (opts = {}) => {
 
   const sync = async () => {
     await seedSnapshot()
+    const syncedBefore = localStorage.getItem(LAST_SYNCED_KEY)
     const r = await engine.sync()
+    // The engine stamps last-synced only when the whole cycle succeeded, pull
+    // included (an error path can return the same shape as an empty pull, so
+    // the result alone cannot say). Once that has happened, this device has
+    // caught up with the account's history and pulled rows are new writes.
+    if (localStorage.getItem(LAST_SYNCED_KEY) !== syncedBefore) localStorage.setItem(CAUGHT_UP_KEY, '1')
     await bootstrapIntentsRootKey()   // salt is now established — give the blob/intents key its late bootstrap
     await roster.sync()
     await refresh()

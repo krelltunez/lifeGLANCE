@@ -1,7 +1,10 @@
 import { mergeArrayById } from '@glance-apps/sync';
 import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js';
-import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChapter } from '../data/db.js';
-import { getMilestoneTombstones, getChapterTombstones } from './tombstones.js';
+import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChapter, dbGetAllLives, dbPutLife, dbDeleteLife, ME_LIFE_ID } from '../data/db.js';
+import { getMilestoneTombstones, getChapterTombstones, getLifeTombstones } from './tombstones.js';
+import { mergeMilestones } from './dbAdapter.js';
+import { recordWriter, legacyFileKey } from './lifeGate.js';
+import { WRITER_WINDOW_DAYS } from './writerStamp.js';
 import { loadCategories, saveCategories } from '../utils/colors.js';
 import { ensureDeviceId } from './deviceId.js';
 import { ownWriterEntry, mergeWriters, noteWriter } from './writerStamp.js';
@@ -14,6 +17,7 @@ const KNOWN_TOP_KEYS = new Set(['lives', 'writers']);
 const KNOWN_LIFE_KEYS = new Set([
   'milestones', 'chapters', 'milestoneTombstones', 'chapterTombstones',
   'birthday', 'birthdayUpdatedAt', 'categories', 'categoriesUpdatedAt',
+  'lifeRecords', 'lifeTombstones',   // Lives v5.0
 ]);
 
 // The entries of `obj` whose keys are not in `known`.
@@ -36,7 +40,7 @@ const unknownKeys = (obj, known) => {
 export const buildPayload = async (milestonesRef, chaptersRef) => {
   // IDB is authoritative. Refs are used only when non-empty to avoid stale
   // empty state (e.g. before IDB loads into React) overwriting real data.
-  const [idbMilestones, idbChapters] = await Promise.all([dbGetAll(), dbGetAllChapters()])
+  const [idbMilestones, idbChapters, lifeRecords] = await Promise.all([dbGetAll(), dbGetAllChapters(), dbGetAllLives()])
   const milestones = (milestonesRef?.current?.length > 0) ? milestonesRef.current : idbMilestones
   const chapters   = (chaptersRef?.current?.length   > 0) ? chaptersRef.current   : idbChapters
   const payload = {
@@ -49,6 +53,8 @@ export const buildPayload = async (milestonesRef, chaptersRef) => {
         chapters,
         milestoneTombstones: getMilestoneTombstones(),
         chapterTombstones: getChapterTombstones(),
+        lifeRecords,
+        lifeTombstones: getLifeTombstones(),
         birthday: localStorage.getItem('lifeglance-birthday') || '',
         birthdayUpdatedAt: localStorage.getItem('lifeglance-birthday-updated-at') || '',
         categories: loadCategories(),
@@ -61,7 +67,7 @@ export const buildPayload = async (milestonesRef, chaptersRef) => {
 
 // buildBackupPayload — timer-safe. Must not read React state.
 export const buildBackupPayload = async () => {
-  const [milestones, chapters] = await Promise.all([dbGetAll(), dbGetAllChapters()]);
+  const [milestones, chapters, lifeRecords] = await Promise.all([dbGetAll(), dbGetAllChapters(), dbGetAllLives()]);
   return {
     lives: {
       default: {
@@ -69,6 +75,8 @@ export const buildBackupPayload = async () => {
         chapters,
         milestoneTombstones: getMilestoneTombstones(),
         chapterTombstones: getChapterTombstones(),
+        lifeRecords,
+        lifeTombstones: getLifeTombstones(),
         birthday: localStorage.getItem('lifeglance-birthday') || '',
         birthdayUpdatedAt: localStorage.getItem('lifeglance-birthday-updated-at') || '',
         categories: loadCategories(),
@@ -115,6 +123,21 @@ export const makeApplyPayload = (setMilestones, setChapters) =>
     for (const c of chapters) await dbPutChapter(c);
     for (const id of chapterIdsToDelete) await dbDeleteChapter(id);
 
+    // Lives (v5.0). Only when the payload carries them: a file written by an
+    // older build has no lifeRecords, and that must not delete this device's
+    // Lives. The Me Life is never deleted.
+    if (Array.isArray(life.lifeRecords)) {
+      const currentLives = await dbGetAllLives();
+      const mergedLifeIds = new Set(life.lifeRecords.map(l => l.id));
+      for (const l of life.lifeRecords) await dbPutLife(l);
+      for (const l of currentLives) {
+        if (!mergedLifeIds.has(l.id) && l.id !== ME_LIFE_ID) await dbDeleteLife(l.id);
+      }
+    }
+    if (life.lifeTombstones && typeof life.lifeTombstones === 'object') {
+      localStorage.setItem('lifeglance-life-tombstones', JSON.stringify(life.lifeTombstones));
+    }
+
     // Apply birthday (last-writer-wins — already resolved in mergePayloads)
     if (life.birthday) {
       localStorage.setItem('lifeglance-birthday', life.birthday)
@@ -147,11 +170,14 @@ export const makeApplyPayload = (setMilestones, setChapters) =>
   };
 
 // mergePayloads — synchronous CRDT merge
-export const mergePayloads = (local, remote) => {
+// `fileKey` names the file being merged ('webdav', 'icloud', 'direct-access'),
+// so what this device remembers about one file is never read against another.
+export const mergePayloads = (local, remote, { fileKey = 'file' } = {}) => {
   // A newer build that wrote the file asks this device to update.
   if (remote?.writers && typeof remote.writers === 'object') {
     for (const entry of Object.values(remote.writers)) noteWriter(entry);
   }
+  noteFileWriters(local, remote, fileKey);
 
   const localLife = local?.lives?.default ?? {};
   const remoteLife = remote?.lives?.default ?? {};
@@ -164,6 +190,10 @@ export const mergePayloads = (local, remote) => {
   const rmt = remoteLife.milestoneTombstones ?? {};
   const lct = localLife.chapterTombstones ?? {};
   const rct = remoteLife.chapterTombstones ?? {};
+  const ll  = Array.isArray(localLife.lifeRecords)  ? localLife.lifeRecords  : []
+  const rl  = Array.isArray(remoteLife.lifeRecords) ? remoteLife.lifeRecords : []
+  const llt = localLife.lifeTombstones ?? {};
+  const rlt = remoteLife.lifeTombstones ?? {};
 
   // Shared fixed 90-day window, day-floored, and the SAME prune function as
   // the vault tier (tombstoneRetention.js) so the two tiers agree on every
@@ -174,7 +204,22 @@ export const mergePayloads = (local, remote) => {
   const milestoneTombstones = pruneTombstoneMap({ ...lmt, ...rmt }, cutoff);
   const chapterTombstones = pruneTombstoneMap({ ...lct, ...rct }, cutoff);
 
-  const { merged: mergedMilestones } = mergeArrayById(lm, rm, milestoneTombstones, null,
+  const lifeTombstones = pruneTombstoneMap({ ...llt, ...rlt }, cutoff);
+
+  const { merged: wholeMilestones } = mergeArrayById(lm, rm, milestoneTombstones, null,
+    { idField: 'id', timestampField: 'updated_at' });
+  // A milestone both sides hold whose Lives changed: merge lifeOps per Life
+  // (mergeMilestones), so adding Mom here and Dad there keeps both. Records
+  // without lifeOps keep the whole-record merge above, unchanged.
+  const localById  = new Map(lm.map(m => [m.id, m]));
+  const remoteById = new Map(rm.map(m => [m.id, m]));
+  const mergedMilestones = wholeMilestones.map(m => {
+    const l = localById.get(m.id), r = remoteById.get(m.id);
+    return (l && r && (l.lifeOps || r.lifeOps)) ? mergeMilestones(l, r) : m;
+  });
+  // Life records: whole-record LWW, like chapters' scalars. The Me Life is
+  // never dropped, whatever a tombstone says.
+  const { merged: mergedLifeRecords } = mergeArrayById(ll, rl, withoutMe(lifeTombstones), null,
     { idField: 'id', timestampField: 'updated_at' });
   const { merged: mergedChapters } = mergeArrayById(lc, rc, chapterTombstones, null,
     { idField: 'id', timestampField: 'updated_at' });
@@ -212,6 +257,7 @@ export const mergePayloads = (local, remote) => {
     ...unknownKeys(localLife, KNOWN_LIFE_KEYS),
     ...unknownKeys(remoteLife, KNOWN_LIFE_KEYS),
     milestones: mergedMilestones, chapters: mergedChapters, milestoneTombstones, chapterTombstones,
+    lifeRecords: mergedLifeRecords, lifeTombstones,
     birthday: mergedBirthday, birthdayUpdatedAt: mergedBirthdayUpdatedAt,
     categories: mergedCategories, categoriesUpdatedAt: mergedCategoriesUpdatedAt,
   };
@@ -221,6 +267,8 @@ export const mergePayloads = (local, remote) => {
     JSON.stringify(mergedChapters) !== JSON.stringify(lc) ||
     JSON.stringify(milestoneTombstones) !== JSON.stringify(lmt) ||
     JSON.stringify(chapterTombstones) !== JSON.stringify(lct) ||
+    JSON.stringify(mergedLifeRecords) !== JSON.stringify(ll) ||
+    JSON.stringify(lifeTombstones) !== JSON.stringify(llt) ||
     mergedBirthday !== (localLife.birthday ?? '') ||
     JSON.stringify(mergedCategories) !== JSON.stringify(localLife.categories ?? []);
 
@@ -232,6 +280,8 @@ export const mergePayloads = (local, remote) => {
     JSON.stringify(mergedChapters) !== JSON.stringify(rc) ||
     JSON.stringify(milestoneTombstones) !== JSON.stringify(rmt) ||
     JSON.stringify(chapterTombstones) !== JSON.stringify(rct) ||
+    JSON.stringify(mergedLifeRecords) !== JSON.stringify(rl) ||
+    JSON.stringify(lifeTombstones) !== JSON.stringify(rlt) ||
     mergedBirthday !== (remoteLife.birthday ?? '') ||
     JSON.stringify(mergedCategories) !== JSON.stringify(remoteLife.categories ?? []);
 
@@ -248,3 +298,39 @@ export const mergePayloads = (local, remote) => {
 
   return { data, localChanged, remoteChanged };
 };
+
+const withoutMe = (tombstones) => {
+  const { [ME_LIFE_ID]: _me, ...rest } = tombstones;
+  return rest;
+};
+
+// ── The Lives gate, file side (lifeGate.js) ─────────────────────────────────
+// Every other device's `writers` entry is a sighting, dated by its day. A file
+// that no longer holds this device's own entry, when this device last saw it
+// there within the window (so the 60-day prune cannot explain it), was
+// rewritten by a client older than Phase 1, which drops every key it does not
+// know. That device cannot be named, only counted, per file.
+const OWN_ENTRY_SEEN_PREFIX = 'lifeglance-own-writer-seen:';
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function noteFileWriters(local, remote, fileKey) {
+  if (!remote || typeof remote !== 'object' || !remote.lives) return;   // no file yet
+  const ownId = Object.keys(local?.writers ?? {})[0];
+  const writers = remote.writers && typeof remote.writers === 'object' ? remote.writers : {};
+  for (const [device, entry] of Object.entries(writers)) {
+    if (device === ownId || typeof entry?.day !== 'string') continue;
+    recordWriter(device, entry, Date.parse(`${entry.day}T00:00:00.000Z`));
+  }
+  if (!ownId || typeof localStorage === 'undefined') return;
+  const key = OWN_ENTRY_SEEN_PREFIX + fileKey;
+  if (writers[ownId]) {
+    localStorage.setItem(key, writers[ownId].day);
+    return;
+  }
+  const lastSeenDay = localStorage.getItem(key);
+  const margin = (WRITER_WINDOW_DAYS - 1) * DAY_MS;
+  if (lastSeenDay && Date.now() - Date.parse(`${lastSeenDay}T00:00:00.000Z`) < margin) {
+    recordWriter(legacyFileKey(fileKey), { schema: 0 });
+    localStorage.removeItem(key);   // one sighting per strip
+  }
+}

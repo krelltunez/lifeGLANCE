@@ -28,8 +28,8 @@
 
 import { Capacitor } from '@capacitor/core'
 
-/** The sync schema this build writes. v5.0 (Lives) writes 2. */
-export const SYNC_SCHEMA = 1
+/** The sync schema this build writes: 1 from Phase 1 (4.x), 2 from Lives v5.0. */
+export const SYNC_SCHEMA = 2
 
 /** How long a device counts as "recently active" for the v5.0 gate. */
 export const WRITER_WINDOW_DAYS = 60
