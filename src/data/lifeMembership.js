@@ -63,3 +63,35 @@ export function applyScopedUpdate(prev, update, belongs) {
   const nextIds = new Set(next.map(x => x.id))
   return [...prev.filter(x => !belongs(x) && !nextIds.has(x.id)), ...next]
 }
+
+// ── New records in a Life ───────────────────────────────────────────────────
+
+/**
+ * The fields that put a new milestone in `lifeId`. Nothing for Me, so a
+ * milestone made in Me is identical to one made before Lives existed.
+ */
+export function newMilestoneLifeFields(lifeId, at = new Date().toISOString()) {
+  return !lifeId || lifeId === ME_LIFE_ID ? {} : { lifeOps: { [lifeId]: { op: 'add', at } } }
+}
+
+/** The fields that put a new chapter in `lifeId`. Nothing for Me. */
+export function newChapterLifeFields(lifeId) {
+  return !lifeId || lifeId === ME_LIFE_ID ? {} : { lifeId }
+}
+
+// ── What deleting a Life would do ───────────────────────────────────────────
+
+/**
+ * What deleteLife(lifeId) would delete and keep, for the confirmation:
+ * milestones only this Life has (deleted), milestones it shares (kept, without
+ * it), and its chapters (deleted).
+ */
+export function deleteLifeImpact(lifeId, milestones, chapters) {
+  let only = 0, shared = 0
+  for (const m of milestones) {
+    if (!isInLife(m, lifeId)) continue
+    if (lifeIdsOf(m).length === 1) only++
+    else shared++
+  }
+  return { only, shared, chapters: chaptersForLife(chapters, lifeId).length }
+}

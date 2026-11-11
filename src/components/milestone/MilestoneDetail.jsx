@@ -21,7 +21,7 @@ const readPins = () => {
   try { return JSON.parse(localStorage.getItem(PINS_KEY) || '{}') } catch { return {} }
 }
 
-export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, categories = [] }) {
+export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, deathDate = '', categories = [] }) {
   const { t, i18n } = useTranslation('milestone')
   const { t: tc } = useTranslation('common')
   const [audioUrl,  setAudioUrl]  = useState(null)
@@ -167,7 +167,8 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
             {relativeLabel(m.date, m.date_precision)}
           </div>
           {(() => {
-            const age = birthday ? ageAtDate(birthday, m.date) : null
+            // Ages stop at the Life's death date.
+            const age = birthday && !(deathDate && m.date.slice(0, 10) > deathDate) ? ageAtDate(birthday, m.date) : null
             return age !== null ? (
               <div className="detail-age">{t('ageYearsOld', { age })}</div>
             ) : null

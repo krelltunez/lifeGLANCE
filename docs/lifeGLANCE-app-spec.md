@@ -171,6 +171,23 @@ history captures lives.
   is the lifeGLANCE logo markup, not a translated "Life" string, so this adds a
   new string in every locale.)
 
+**Decided in Phase 3a**
+
+- **Someone who never adds a Life sees no change.** The switcher and the
+  Life-named breadcrumb appear only once a second Life exists; the way in is
+  Settings, Lives.
+- **Undo history is cleared when the Life on screen changes** (a switch, or the
+  current Life being deleted), so an undo never reaches into a Life that is
+  not on screen.
+- **The current Life is remembered per device** and falls back to Me when it
+  no longer exists.
+- **Me is shown as the translated "Me"** (with its nickname, if set); the stored
+  name stays `Me`.
+- **A death date on screen:** ages stop at it (milestone cards, the detail view,
+  watch mode), the today marker shows no age, and ongoing chapters end at it.
+  The chapter ending is display only: chapter clicks and edits act on the
+  stored chapter, which stays ongoing.
+
 **OS surfaces are Me-only in v5.0**
 
 Widgets, Spotlight, Siri / App Intents (AddMilestone), the share extension,
@@ -420,7 +437,8 @@ when v5.0 ships, and takes `main` in periodically so it does not drift.
 | 1 | 4.x | Forward-compat sync: writer stamps on both tiers, unknown file keys passed through, unknown vault row kinds ignored quietly, "newer version" notice. Records the in-record ownership model and the 60-day gate. | Any Life entity or field, filtering, migration; UI beyond the notice. |
 | 2a | 5.0 | Local data model: Life records, Me, milestone `lifeOps`, chapter `lifeId`, IndexedDB v7, deleting a Life, undo of membership, the app showing Me's view. | Sync of Lives, any Lives UI. |
 | 2b | 5.0 | Sync: `life` rows and tombstones on both tiers, merge-on-apply for milestone `lifeOps`, schema 2, the 60-day gate. | Any Lives UI. |
-| 3 | 5.0 | Life switcher, Life editor, per-Life `birthDate` / `deathDate`, chrome tint, breadcrumb, shared-milestone UI. | Compare view, relationships, import. |
+| 3a | 5.0 | Life switcher, Lives sheet (list, editor, delete with impact, gate message), Settings entry, chrome tint, Life-named breadcrumb, new records in the current Life, per-Life `birthDate` / `deathDate` on screen. | Shared-milestone UI, Life photos, compare view, relationships, import. |
+| 3b | 5.0 | Shared-milestone UI (Lives chips on the milestone sheet and detail) with its own undo entries; Life photos. | Compare view, relationships, import. |
 | 4 | 5.0 | Relationship edges and the "relationship to Me" picker. | Any other relationship UI. |
 | 5 | 5.0 | Export/import with merge and the Life matching flow. | Real-time collaboration. |
 | 6 | 5.0 | Read-only compare view, date-aligned, `deathDate` row ends. | Age-alignment (v5.1), editing in compare. |

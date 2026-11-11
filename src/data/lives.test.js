@@ -257,3 +257,40 @@ describe("folding one Life's view back into the full list", () => {
     expect(out.filter(x => x.id === 'b')).toEqual([{ id: 'b', life: 'me' }])
   })
 })
+
+// ── Phase 3a: new records in the current Life, and the delete confirmation ──
+
+describe('new records in a Life', () => {
+  it("a milestone or chapter made in Me looks exactly like one from before Lives", async () => {
+    const { ms, ch, lm } = await setup()
+    expect(lm.newMilestoneLifeFields('me')).toEqual({})
+    expect(lm.newChapterLifeFields('me')).toEqual({})
+    const m = await ms.addMilestone({ title: 'x', date: '2015-06-01', ...lm.newMilestoneLifeFields('me') })
+    const c = await ch.createChapter({ title: 'y', start: '2015-01-01', color: '#000', ...lm.newChapterLifeFields('me') })
+    expect(m).not.toHaveProperty('lifeOps')
+    expect(c).not.toHaveProperty('lifeId')
+  })
+
+  it('one made in another Life belongs to that Life only', async () => {
+    const { ms, ch, lm } = await setup()
+    const m = await ms.addMilestone({ title: 'x', date: '2015-06-01', ...lm.newMilestoneLifeFields('mom') })
+    const c = await ch.createChapter({ title: 'y', start: '2015-01-01', color: '#000', ...lm.newChapterLifeFields('mom') })
+    expect(lm.lifeIdsOf(m)).toEqual(['mom'])
+    expect(lm.chapterLifeId(c)).toBe('mom')
+  })
+})
+
+describe('what deleting a Life would do', () => {
+  it('counts milestones only it has, shared ones, and its chapters', async () => {
+    const { lm } = await setup()
+    const at = '2026-01-01T00:00:00.000Z'
+    const milestones = [
+      { id: 'a', lifeOps: { mom: { op: 'add', at } } },
+      { id: 'b', lifeOps: { mom: { op: 'add', at }, me: { op: 'add', at } } },
+      { id: 'c' },
+    ]
+    const chapters = [{ id: 'x', lifeId: 'mom' }, { id: 'y' }]
+    expect(lm.deleteLifeImpact('mom', milestones, chapters)).toEqual({ only: 1, shared: 1, chapters: 1 })
+    expect(lm.deleteLifeImpact('dad', milestones, chapters)).toEqual({ only: 0, shared: 0, chapters: 0 })
+  })
+})

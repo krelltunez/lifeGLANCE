@@ -17,6 +17,7 @@ export function buildChapter({
   description               = '',
   defaultMemberVisibility   = 'shown',
   parentChapterId           = null,
+  lifeId                    = undefined,   // Lives (v5.0); left off for Me
 }) {
   const now = new Date().toISOString()
   return {
@@ -41,6 +42,7 @@ export function buildChapter({
     memberOps:              {},
     created_at:             now,
     updated_at:             now,
+    ...(lifeId ? { lifeId } : {}),
   }
 }
 
