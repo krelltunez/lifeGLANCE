@@ -187,6 +187,13 @@ export function mergeMilestones(local, remote) {
   return merged
 }
 
+// The app's list of Lives lives in React state; tell it a sync changed one.
+const announceLivesChanged = () => {
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event('lifeglance:lives-changed'))
+  }
+}
+
 // ── Adapter factory ─────────────────────────────────────────────────────────
 // `store` abstracts the per-device persistence so the same adapter runs over the
 // real db.js + localStorage (Part B) and over in-memory maps (the two-device
@@ -307,6 +314,7 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null, is
     if (kind === 'life') {
       // Plain LWW, already resolved by the engine: remote won (or local absent).
       await lives.put(stripEnvelope(env))
+      announceLivesChanged()
       return
     }
     if (kind === 'chapter') {
@@ -338,7 +346,10 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null, is
     await store.milestones.delete(entityId)
     await store.chapters.delete(entityId)
     // The Me Life is never deleted, whatever a peer pushes.
-    if (entityId !== ME_LIFE_ID) await lives.delete(entityId)
+    if (entityId !== ME_LIFE_ID && await lives.get(entityId)) {
+      await lives.delete(entityId)
+      announceLivesChanged()
+    }
   }
 
   // Milestones, chapters and bundles are merge-on-apply: report insert-only so

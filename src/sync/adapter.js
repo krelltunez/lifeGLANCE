@@ -133,6 +133,7 @@ export const makeApplyPayload = (setMilestones, setChapters) =>
       for (const l of currentLives) {
         if (!mergedLifeIds.has(l.id) && l.id !== ME_LIFE_ID) await dbDeleteLife(l.id);
       }
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lifeglance:lives-changed'));
     }
     if (life.lifeTombstones && typeof life.lifeTombstones === 'object') {
       localStorage.setItem('lifeglance-life-tombstones', JSON.stringify(life.lifeTombstones));

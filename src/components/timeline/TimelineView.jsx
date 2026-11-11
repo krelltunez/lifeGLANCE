@@ -45,6 +45,10 @@ import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
 import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
 import { readNewerWriter } from '../../sync/writerStamp.js'
+import { ME_LIFE_ID, newMilestoneLifeFields, newChapterLifeFields } from '../../data/lifeMembership'
+import LifeSwitcher from '../lives/LifeSwitcher'
+import LivesSheet from '../lives/LivesSheet'
+import { lifeName, lifeColor } from '../lives/lifeLabels'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
 import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
 import { EVENTS } from '@glance-apps/intents'
@@ -85,11 +89,12 @@ const IDLE_TIMEOUT_OPTIONS = [
   { ms: 600000, label: '10m' },
 ]
 
-export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync, onOpenSubscription, licenseSource, demoLoaded, onClearDemo }) {
+export default function TimelineView({ milestones, setMilestones, chapters, setChapters, allMilestones = milestones, allChapters = chapters, lives = [], currentLifeId = ME_LIFE_ID, onSwitchLife = () => {}, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync, onOpenSubscription, licenseSource, demoLoaded, onClearDemo }) {
   const { t, i18n } = useTranslation('timeline')
   const { t: tdg } = useTranslation('dayglance')
   const { t: tc } = useTranslation('common')
   const { t: ts } = useTranslation('sync')
+  const { t: tl } = useTranslation('lives')
 
   // Computed display labels (stable within a render, i18next t is referentially stable)
   const ZOOM_LABELS = {
@@ -170,6 +175,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const [birthday,      setBirthday]      = useState(
     () => localStorage.getItem('lifeglance-birthday') || ''
   )
+
+  // ── The Life on screen ───────────────────────────────────────────────────
+  // `birthday` above is Me's (the Settings value). The timeline's ages use the
+  // current Life's birth date, and stop at its death date. The switcher and the
+  // Life-named breadcrumb appear only once there is a second Life, so someone
+  // who never adds one sees the app exactly as before.
+  const currentLife   = lives.find(l => l.id === currentLifeId) ?? { id: ME_LIFE_ID, name: 'Me' }
+  const multiLife     = lives.length > 1
+  const lifeBirthday  = currentLifeId === ME_LIFE_ID ? birthday : (currentLife.birthDate || '')
+  const lifeDeath     = currentLife.deathDate || ''
+  const [livesSheet, setLivesSheet] = useState(null)   // null | 'list' | 'add'
   const [canUndo,       setCanUndo]       = useState(false)
   const [canRedo,       setCanRedo]       = useState(false)
   const [chapterSheetOpen, setChapterSheetOpen] = useState(false)
@@ -701,6 +717,27 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const handleUndo = () => stepHistory(undoHistory.undo)
   const handleRedo = () => stepHistory(undoHistory.redo)
 
+  // ── Switching Lives ───────────────────────────────────────────────────────
+  // Undo history belongs to the Life it was made in, so it is cleared whenever
+  // the Life on screen changes (a switch, or the current Life being deleted),
+  // and a chapter drill-in from the previous Life is left.
+  const shownLifeRef = useRef(currentLifeId)
+  useEffect(() => {
+    if (shownLifeRef.current === currentLifeId) return
+    shownLifeRef.current = currentLifeId
+    historyRef.current = undoHistory.createHistory()
+    setCanUndo(false)
+    setCanRedo(false)
+    if (drilledChapter) exitDrillIn(true)
+  }, [currentLifeId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleSwitchLife(id) {
+    if (id === currentLifeId) return
+    onSwitchLife(id)
+    const life = lives.find(l => l.id === id)
+    if (life) showToast(tl('nowViewing', { name: lifeName(life, tl) }), 'info')
+  }
+
   // ── Keyboard shortcuts ────────────────────────────────────────────────────────
   // Use a ref so the listener is registered once but always sees fresh state
   const keyStateRef = useRef(null)
@@ -1057,6 +1094,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           const wantMedia = (isBase || rep.media) && !!newMediaType
           const m = await addMilestone({
             ...milestoneData,
+            ...newMilestoneLifeFields(currentLifeId),
             date:          d,
             recurrence_id: rid,
             // Base year always keeps the full record; siblings keep whichever
@@ -1085,6 +1123,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         const dgLinked = !!trackAsDayglanceGoal
         const m = await addMilestone({
           ...milestoneData,
+          ...newMilestoneLifeFields(currentLifeId),
           media_type:       newMediaType,
           has_photo:        !!photoFile,
           dayglance_linked: dgLinked,
@@ -1250,6 +1289,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       if (drilledChapter?.id === existing.id) setDrilledChapter(updated)
     } else {
       const chapter = await createChapter({
+        ...newChapterLifeFields(currentLifeId),
         title:                  data.title,
         start:                  data.start,
         end:                    data.end,   // null for ongoing
@@ -1540,6 +1580,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     for (const row of selected) {
       try {
         const m = await addMilestone({
+          ...newMilestoneLifeFields(currentLifeId),
           title:          row.title,
           date:           row.date,
           date_precision: 'day',
@@ -1650,7 +1691,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   // Chapter bands on the main timeline honor the category filter (a drilled-in
   // chapter is shown as-is). Milestone visibility still uses the FULL chapters
   // list above, so hiding a chapter band never changes milestone cascade.
-  const drillChapters   = drilledChapter ? [drilledChapter] : filterChaptersByCategory(chapters, filter)
+  // A Life with a death date: its ongoing chapters end there on screen. Display
+  // only; the stored chapters stay ongoing, so editing one never saves the date.
+  const endAtDeath = (cs) => (lifeDeath ? cs.map(c => (c.end ? c : { ...c, end: `${lifeDeath}T00:00:00.000Z` })) : cs)
+  const drillChapters   = endAtDeath(drilledChapter ? [drilledChapter] : filterChaptersByCategory(chapters, filter))
   const drillHighlighted = highlightedIds
 
   function fmtChapterDate(iso) {
@@ -1846,7 +1890,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     : 0
 
   return (
-    <div className={`timeline-view${idle.active ? ' idle-active' : ''}`}>
+    <div
+      className={`timeline-view${idle.active ? ' idle-active' : ''}${multiLife ? ' life-tinted' : ''}`}
+      style={multiLife ? { '--life-color': lifeColor(currentLife) } : undefined}
+    >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div
         className="timeline-header"
@@ -1857,7 +1904,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           <div className="drill-breadcrumb" style={{ '--drill-color': drilledChapter.color }}>
             <div className="drill-breadcrumb-nav">
               <button className="drill-breadcrumb-life" onClick={() => exitDrillIn()}>
-                <span className="logo-life">life</span><span className="logo-glance">GLANCE</span>
+                {multiLife
+                  ? <span className="drill-breadcrumb-lifename">{lifeName(currentLife, tl)}</span>
+                  : <><span className="logo-life">life</span><span className="logo-glance">GLANCE</span></>}
               </button>
               <span className="drill-breadcrumb-sep">›</span>
               <TypewriterText
@@ -1871,7 +1920,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               <button className="drill-breadcrumb-close" onClick={() => exitDrillIn()} title="exit chapter view">✕</button>
             </div>
             <div className="drill-breadcrumb-meta">
-              <span>{fmtChapterDate(drilledChapter.start)} – {drilledChapter.end ? fmtChapterDate(drilledChapter.end) : t('ongoing')}</span>
+              <span>{fmtChapterDate(drilledChapter.start)} – {drilledChapter.end ? fmtChapterDate(drilledChapter.end) : lifeDeath ? fmtChapterDate(`${lifeDeath}T00:00:00.000Z`) : t('ongoing')}</span>
               <span className="drill-breadcrumb-dot">·</span>
               <span>{t('memberCount', { count: drilledChapter.milestoneIds.length })}</span>
               {drilledChapter.description && <>
@@ -1881,9 +1930,20 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             </div>
           </div>
         ) : (
-          <div className="logo logo-sm">
-            <span className="logo-life">life</span>
-            <span className="logo-glance">GLANCE</span>
+          <div className="header-left">
+            <div className="logo logo-sm">
+              <span className="logo-life">life</span>
+              <span className="logo-glance">GLANCE</span>
+            </div>
+            {multiLife && (
+              <LifeSwitcher
+                lives={lives}
+                currentLifeId={currentLifeId}
+                onSwitch={handleSwitchLife}
+                onAddLife={() => setLivesSheet('add')}
+                onManage={() => setLivesSheet('list')}
+              />
+            )}
           </div>
         )}
 
@@ -2080,15 +2140,19 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             highlightedIds={timelineHighlighted}
             highlightScale={idle.active ? 1.22 : 1.06}
             onMilestoneClick={handleMilestoneClick}
-            onChapterClick={handleChapterClick}
-            onChapterDoubleClick={openChapterEdit}
+            // Timeline hands back the display copy (an ongoing chapter given the
+            // death date as its end); act on the stored chapter, so a drill-in
+            // or an edit never saves that date.
+            onChapterClick={c => handleChapterClick(chapters.find(x => x.id === c.id) ?? c)}
+            onChapterDoubleClick={c => openChapterEdit(chapters.find(x => x.id === c.id) ?? c)}
             panMs={panMs}
             onPanMs={setPanMs}
             onPinch={handlePinch}
             viewMode={viewMode}
             onClusterClick={handleClusterClick}
             clustering={clustering}
-            birthday={birthday}
+            birthday={lifeBirthday}
+            deathDate={lifeDeath}
             newlyAddedId={newlyAddedId}
             ultraCompact={ultraCompact}
           />
@@ -2114,7 +2178,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       {!isEmpty && (
         <MinimapBar
           milestones={filteredMilestones}
-          chapters={chapters}
+          chapters={endAtDeath(chapters)}
           panMs={panMs}
           onPanDirect={setPanMs}
           panToMs={(ms) => timelineRef.current?.panToMs(ms)}
@@ -2257,7 +2321,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           {idle.currentEvent && (() => {
             const ev      = idle.currentEvent
             const chapter = chapters.find(c => c.milestoneIds?.includes(ev.id))
-            const age     = birthday ? ageAtDate(birthday, ev.date) : null
+            const age     = lifeBirthday && !(lifeDeath && ev.date.slice(0, 10) > lifeDeath) ? ageAtDate(lifeBirthday, ev.date) : null
             const isPastEv = new Date(ev.date) < new Date()
             return (
               <div className="idle-caption" key={ev.id}>
@@ -2308,6 +2372,23 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           categories={categories}
         />
       )}
+      {livesSheet && (
+        <LivesSheet
+          lives={lives}
+          milestones={allMilestones}
+          chapters={allChapters}
+          start={livesSheet}
+          onClose={() => setLivesSheet(null)}
+          onChanged={() => window.dispatchEvent(new Event('lifeglance:lives-changed'))}
+          onDeleted={() => {
+            // deleteLife changed milestones and chapters too: reload the full
+            // lists (and the Lives). The app falls back to Me if this was the
+            // Life on screen.
+            window.dispatchEvent(new Event('lifeglance:milestones-reload'))
+            getSyncEngine()?.upload()
+          }}
+        />
+      )}
       {detail && (
         <MilestoneDetail
           milestone={detail}
@@ -2315,7 +2396,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onEdit={openEdit}
           onDelete={handleDelete}
           onDeleteSeries={handleDeleteSeries}
-          birthday={birthday}
+          birthday={lifeBirthday}
+          deathDate={lifeDeath}
           categories={categories}
         />
       )}
@@ -2394,6 +2476,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onOpenAutoBackup={() => { setSettingsOpen(false); setAutoBackupOpen(true) }}
           onOpenActivityLog={isIntegrationEnabled() ? () => { setSettingsOpen(false); setActivityLogOpen(true) } : undefined}
           onClose={() => setSettingsOpen(false)}
+          onOpenLives={() => { setSettingsOpen(false); setLivesSheet('list') }}
         />
       )}
       {activityLogOpen && (

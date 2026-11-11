@@ -2906,3 +2906,105 @@ select.settings-select {
   gap: 0.5rem;
 }
 .paywall-reviewer-row .input { flex: 1; min-width: 0; }
+
+/* ── Lives (v5.0) ─────────────────────────────────────────────────────────── */
+/* The header's left cell: logo, then the Life switcher once there are two Lives. */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+.life-dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--life-color, var(--amber));
+  flex-shrink: 0;
+}
+.life-switcher { position: relative; min-width: 0; }
+.life-switcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 12rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--life-color, var(--amber)) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--life-color, var(--amber)) 10%, transparent);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.life-switcher-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.life-switcher-menu {
+  /* Fixed in a portal (LifeSwitcher.jsx): above the timeline and the demo
+     pill (850), below toasts (10000). top/left come from the button. */
+  position: fixed;
+  min-width: 11rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  z-index: 900;
+  padding: 0.25rem 0;
+}
+.life-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.4rem 0.75rem;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--font);
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+.life-switcher-item:hover, .life-switcher-item.active { color: var(--text); background: rgba(var(--amber-rgb), 0.08); }
+.life-switcher-sep { height: 1px; margin: 0.25rem 0; background: var(--border); }
+
+/* The Life on screen tints the header's rule (only with more than one Life). */
+.timeline-view.life-tinted .timeline-header {
+  border-bottom-color: color-mix(in srgb, var(--life-color) 45%, transparent);
+}
+.drill-breadcrumb-lifename {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--life-color, var(--text));
+}
+
+/* The Lives sheet */
+.lives-intro { font-size: 0.75rem; color: var(--text-dim); line-height: 1.5; margin: 0 0 0.9rem; }
+.lives-list { list-style: none; margin: 0 0 0.9rem; padding: 0; }
+.lives-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.2rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+.lives-list-name { flex: 1; }
+.lives-list-edit { font-size: 0.7rem; color: var(--text-muted); }
+.lives-colors { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.lives-color {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+.lives-color.active { border-color: var(--text); }
+.lives-impact { font-size: 0.8rem; color: var(--text); line-height: 1.6; margin: 0 0 1rem; padding-left: 1.1rem; }
+.lives-error { font-size: 0.75rem; color: var(--rose); margin: 0.3rem 0 0.6rem; }
+.lives-delete { color: var(--rose); }
