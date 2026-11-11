@@ -204,6 +204,36 @@ history captures lives.
   replaced, removed, or the Life is deleted. Without the vault they stay on the
   device, like milestone photos. They are not in the JSON backup yet (Phase 5).
 
+**Decided in Phase 4**
+
+- **Edge record:** `{ id, fromLifeId, toLifeId, type, relationshipNote?,
+  created_at, updated_at }`, read "`toLifeId` is `fromLifeId`'s `type`". The
+  picker on Mom's Life writes `from: 'me', to: <Mom>, type: 'parent'`: "Mom is
+  Me's parent". Stored in the IndexedDB v8 `relationships` store
+  (`src/data/relationships.js`).
+- **Picker types:** none, parent, child, partner (shown as "Partner or spouse"),
+  sibling, other. "None" deletes the edge, with a tombstone. Any number of edges
+  between the same two Lives, in either direction, is representable; the picker
+  shows and changes only the most recently changed edge from Me to that Life and
+  leaves any others alone. A type this build does not offer (from a newer build)
+  is shown as stored and kept unless the user picks another.
+- **Me's own editor has no picker**, and the Lives list shows each Life's
+  relationship to Me under its name.
+- **Deleting a Life deletes every edge that touches it**, from or to, each with
+  a tombstone.
+- **`relationshipNote`** is stored and synced; no UI in v5.0.
+- **On the wire:** vault row kind `relationship` and bundle
+  `life:default:relationshipTombstones`; file arrays `lives.default.relationships`
+  and `lives.default.relationshipTombstones`, applied only when the file carries
+  them (same rule as `lifeRecords`).
+- **Life records and edges are LWW-on-apply on the vault.** The engine pushes
+  before it pulls, so with its own LWW an older concurrent edit could overwrite
+  a newer row in the vault, and the device with the newer one would keep it
+  without pushing it again: the devices would disagree. Both kinds are now
+  insert-only rows resolved in the adapter (newer `updated_at` wins; a tie goes
+  to the larger canonical form), and a local copy that wins is re-pushed. This
+  also fixes Life records as shipped in Phase 2b.
+
 **OS surfaces are Me-only in v5.0**
 
 Widgets, Spotlight, Siri / App Intents (AddMilestone), the share extension,
@@ -234,7 +264,7 @@ A separate relationships record holds `fromLifeId`, `toLifeId`, `type`, plus an
 optional freeform `relationshipNote`.
 
 **What ships in v5.0:** a "relationship to Me" dropdown on the Life editor
-(parent / child / spouse / sibling / other). Selecting one writes a single edge
+(parent / child / partner or spouse / sibling / other; see "Decided in Phase 4"). Selecting one writes a single edge
 from the Me Life. No relationship editor screen, no tree view, no genealogy
 features, no additional user-facing surface of any kind.
 

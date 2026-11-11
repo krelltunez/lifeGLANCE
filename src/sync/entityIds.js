@@ -10,6 +10,6 @@
 
 export const LIFE_ID = 'default'
 
-export const BUNDLE_KINDS = ['categories', 'milestoneTombstones', 'chapterTombstones', 'birthday', 'lifeTombstones']
+export const BUNDLE_KINDS = ['categories', 'milestoneTombstones', 'chapterTombstones', 'birthday', 'lifeTombstones', 'relationshipTombstones']
 
 export const bundleEntityId = (kind) => `life:${LIFE_ID}:${kind}`

@@ -40,5 +40,12 @@
   "milestoneLivesLabel": "人生",
   "atLeastOneLife": "里程碑至少要属于一个人生。",
   "photoLabel": "照片",
-  "addPhoto": "添加照片"
+  "addPhoto": "添加照片",
+  "relationshipLabel": "与我的关系",
+  "relationshipNone": "无",
+  "relationshipParent": "父母",
+  "relationshipChild": "子女",
+  "relationshipPartner": "伴侣或配偶",
+  "relationshipSibling": "兄弟姐妹",
+  "relationshipOther": "其他"
 }
