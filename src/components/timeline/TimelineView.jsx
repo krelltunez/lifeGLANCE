@@ -45,7 +45,8 @@ import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
 import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
 import { readNewerWriter } from '../../sync/writerStamp.js'
-import { ME_LIFE_ID, newMilestoneLifeFields, newChapterLifeFields } from '../../data/lifeMembership'
+import { ME_LIFE_ID, newMilestoneLifeFields, newChapterLifeFields, lifeIdsOf } from '../../data/lifeMembership'
+import { setMilestoneLife } from '../../data/lives'
 import LifeSwitcher from '../lives/LifeSwitcher'
 import LivesSheet from '../lives/LivesSheet'
 import { lifeName, lifeColor } from '../lives/lifeLabels'
@@ -1003,8 +1004,13 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     // photoFile / photoRemoved / mediaFile / mediaRemoved are transfer-only fields
     // from the form — strip them before passing to the data layer and handle blob
     // persistence here.
-    const { mediaFile, mediaRemoved, photoFile, photoRemoved, chapterIds, closeChapterIds,
-            trackAsDayglanceGoal, applyToSeries, ...milestoneData } = data
+    const { mediaFile, mediaRemoved, photoFile, photoRemoved, chapterIds: chapterIdsIn, closeChapterIds,
+            trackAsDayglanceGoal, applyToSeries, lifeIds, ...milestoneData } = data
+    // Lives the milestone belongs to: the sheet's choice when it offers one,
+    // else the Life on screen. Chapter suggestions are this Life's chapters, so
+    // they only apply if the milestone stays in it.
+    const newLives = lifeIds ?? [currentLifeId]
+    const chapterIds = newLives.includes(currentLifeId) ? chapterIdsIn : []
     const newMediaType = mediaFile
       ? (mediaFile.type.startsWith('video/') ? 'video' : 'audio')
       : null
@@ -1023,7 +1029,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         const photoId   = photoFile    ? `${existing.id}-photo`
                         : photoRemoved ? null
                         : (existing.photo_id ?? (existing.has_photo ? `${existing.id}-photo` : null))
-        const updated = await updateMilestone(existing.id, { ...milestoneData, media_type: mediaType, has_photo: hasPhoto, media_id: mediaId, photo_id: photoId }, existing)
+        let updated = await updateMilestone(existing.id, { ...milestoneData, media_type: mediaType, has_photo: hasPhoto, media_id: mediaId, photo_id: photoId }, existing)
+        // Lives changed in the sheet: one op per Life, adds before removes so
+        // the milestone never passes through having none. Removing a Life also
+        // takes it out of that Life's chapters, so reload the full lists then.
+        if (lifeIds) {
+          const before = lifeIdsOf(existing)
+          for (const id of lifeIds) if (!before.includes(id)) updated = await setMilestoneLife(updated, id, true)
+          const removing = before.filter(id => !lifeIds.includes(id))
+          for (const id of removing) updated = await setMilestoneLife(updated, id, false)
+          if (removing.length) window.dispatchEvent(new Event('lifeglance:milestones-reload'))
+        }
         if (mediaFile)    await dbPutMedia(updated.id, mediaFile, mediaFile.type)
         if (photoFile)    await dbPutPhoto(updated.id, photoFile, photoFile.type)
         if (photoRemoved) await dbDeletePhoto(updated.id)
@@ -1094,7 +1110,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           const wantMedia = (isBase || rep.media) && !!newMediaType
           const m = await addMilestone({
             ...milestoneData,
-            ...newMilestoneLifeFields(currentLifeId),
+            ...newMilestoneLifeFields(newLives),
             date:          d,
             recurrence_id: rid,
             // Base year always keeps the full record; siblings keep whichever
@@ -1123,7 +1139,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         const dgLinked = !!trackAsDayglanceGoal
         const m = await addMilestone({
           ...milestoneData,
-          ...newMilestoneLifeFields(currentLifeId),
+          ...newMilestoneLifeFields(newLives),
           media_type:       newMediaType,
           has_photo:        !!photoFile,
           dayglance_linked: dgLinked,
@@ -2360,6 +2376,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           chapters={chapters}
           visibilityPrecomputed={visibilityPrecomputed}
           drilledChapter={drilledChapter}
+          lives={lives}
+          currentLifeId={currentLifeId}
         />
       )}
       {chapterSheetOpen && (
@@ -2398,6 +2416,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onDeleteSeries={handleDeleteSeries}
           birthday={lifeBirthday}
           deathDate={lifeDeath}
+          lives={lives}
           categories={categories}
         />
       )}

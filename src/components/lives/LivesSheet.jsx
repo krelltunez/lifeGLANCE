@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import BirthdayPicker from '../settings/BirthdayPicker'
 import { COLOR_PALETTE } from '../../utils/colors'
@@ -6,6 +6,9 @@ import { createLife, updateLife, deleteLife, lifeBirthDate, ME_LIFE_ID } from '.
 import { deleteLifeImpact } from '../../data/lifeMembership'
 import { canUseMultipleLives, blockingWriters, MultipleLivesBlockedError } from '../../sync/lifeGate'
 import { lifeName, lifeColor, blockingDeviceLabel } from './lifeLabels'
+import { pickPhotoNative } from '../../native/mediaPicker'
+import { saveLifePhoto, removeLifePhoto, forgetLifePhoto, useLifePhotoUrl } from './lifePhoto'
+import LifeAvatar from './LifeAvatar'
 
 // Lives: the list, the editor, and the delete confirmation, in one sheet.
 // `start` is 'list', 'add', or a Life id to edit. Adding a Life is refused
@@ -39,7 +42,7 @@ export default function LivesSheet({ lives, milestones, chapters, start = 'list'
             <li key={l.id}>
               <button type="button" className="lives-list-item" style={{ '--life-color': lifeColor(l) }}
                 onClick={() => setView({ edit: l.id })}>
-                <span className="life-dot" aria-hidden="true" />
+                <LifeAvatar life={l} size="1.6rem" />
                 <span className="lives-list-name">{lifeName(l, t)}</span>
                 <span className="lives-list-edit">{tc('edit')}</span>
               </button>
@@ -78,6 +81,7 @@ export default function LivesSheet({ lives, milestones, chapters, start = 'list'
         impact={deleteLifeImpact(life.id, milestones, chapters)}
         onCancel={() => setView({ edit: life.id })}
         onConfirm={async () => {
+          await forgetLifePhoto(life)
           await deleteLife(life.id)
           onDeleted(life.id)
           setView('list')
@@ -103,6 +107,31 @@ function LifeForm({ life, t, tc, language, onCancel, onClose, onSaved, onBlocked
   const [color, setColor]       = useState(life?.color ?? null)
   const [notes, setNotes]       = useState(life?.notes ?? '')
   const [error, setError]       = useState(null)
+  // Photo: a newly picked file (saved after the Life), or a removal.
+  const [photoFile, setPhotoFile]       = useState(null)
+  const [photoRemoved, setPhotoRemoved] = useState(false)
+  const [pickedUrl, setPickedUrl]       = useState(null)
+  const storedUrl = useLifePhotoUrl(photoRemoved ? null : life)
+  const photoUrl = pickedUrl ?? storedUrl
+  const photoRef = useRef(null)
+  useEffect(() => () => { if (pickedUrl) URL.revokeObjectURL(pickedUrl) }, [pickedUrl])
+  function choosePhoto(file) {
+    if (!file) return
+    setPhotoFile(file)
+    setPhotoRemoved(false)
+    setPickedUrl(URL.createObjectURL(file))
+  }
+  async function openPhotoPicker() {
+    const picked = await pickPhotoNative()
+    if (picked === null) { photoRef.current?.click(); return }
+    if (picked.file) choosePhoto(picked.file)
+  }
+  function dropPhoto() {
+    setPhotoFile(null)
+    setPickedUrl(null)
+    setPhotoRemoved(true)
+    if (photoRef.current) photoRef.current.value = ''
+  }
 
   async function save(e) {
     e.preventDefault()
@@ -110,17 +139,20 @@ function LifeForm({ life, t, tc, language, onCancel, onClose, onSaved, onBlocked
     if (birthDate && deathDate && deathDate < birthDate) { setError(t('deathBeforeBirth')); return }
     const fields = { birthDate: birthDate || null, deathDate: deathDate || null, color, notes }
     try {
+      let saved
       if (isMe) {
-        await updateLife(ME_LIFE_ID, { ...fields, nickname, about }, life)
+        saved = await updateLife(ME_LIFE_ID, { ...fields, nickname, about }, life)
         // Me's birth date is the birthday setting: let the timeline and the
         // widgets pick it up.
         window.dispatchEvent(new Event('lifeglance:sync-applied'))
         window.dispatchEvent(new Event('lifeglance:widget-refresh'))
       } else if (life) {
-        await updateLife(life.id, { ...fields, name }, life)
+        saved = await updateLife(life.id, { ...fields, name }, life)
       } else {
-        await createLife({ ...fields, name })
+        saved = await createLife({ ...fields, name })
       }
+      if (photoFile) await saveLifePhoto(saved, photoFile)
+      else if (photoRemoved && life?.photo_id) await removeLifePhoto(saved)
       onSaved()
     } catch (err) {
       if (err instanceof MultipleLivesBlockedError) onBlocked()
@@ -154,6 +186,21 @@ function LifeForm({ life, t, tc, language, onCancel, onClose, onSaved, onBlocked
             placeholder={t('namePlaceholder')} onChange={e => { setName(e.target.value); setError(null) }} />
         </div>
       )}
+
+      <div className="sheet-field">
+        <span className="field-label">{t('photoLabel')}</span>
+        <div className="lives-photo-row">
+          {photoUrl
+            ? <img src={photoUrl} alt="" className="life-avatar" style={{ '--life-color': color || 'var(--amber)', width: '3.2rem', height: '3.2rem' }} />
+            : null}
+          <button type="button" className="btn" style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }} onClick={openPhotoPicker}>
+            {photoUrl ? tc('replace') : t('addPhoto')}
+          </button>
+          {photoUrl && <button type="button" className="btn-ghost" style={{ fontSize: '0.72rem' }} onClick={dropPhoto}>{tc('remove')}</button>}
+          <input ref={photoRef} type="file" accept="image/*" style={{ display: 'none' }}
+            onChange={e => choosePhoto(e.target.files[0])} />
+        </div>
+      </div>
 
       <div className="sheet-field">
         <span className="field-label">{t('birthDateLabel')}</span>

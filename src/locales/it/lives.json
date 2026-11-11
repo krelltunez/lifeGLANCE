@@ -36,5 +36,9 @@
   "gateFooter": "Quando saranno aggiornati e avranno sincronizzato, potrai aggiungere vite qui.",
   "back": "Indietro",
   "settingsLabel": "Vite",
-  "settingsNote": "Linee del tempo per le persone della tua vita, accanto alla tua."
+  "settingsNote": "Linee del tempo per le persone della tua vita, accanto alla tua.",
+  "milestoneLivesLabel": "Vite",
+  "atLeastOneLife": "Un traguardo deve appartenere ad almeno una vita.",
+  "photoLabel": "Foto",
+  "addPhoto": "Aggiungi foto"
 }

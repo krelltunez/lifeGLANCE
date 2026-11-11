@@ -67,11 +67,14 @@ export function applyScopedUpdate(prev, update, belongs) {
 // ── New records in a Life ───────────────────────────────────────────────────
 
 /**
- * The fields that put a new milestone in `lifeId`. Nothing for Me, so a
- * milestone made in Me is identical to one made before Lives existed.
+ * The fields that put a new milestone in one Life or several (`lifeIds` is an
+ * id or a list). Nothing for Me alone, so a milestone made only in Me is
+ * identical to one made before Lives existed.
  */
-export function newMilestoneLifeFields(lifeId, at = new Date().toISOString()) {
-  return !lifeId || lifeId === ME_LIFE_ID ? {} : { lifeOps: { [lifeId]: { op: 'add', at } } }
+export function newMilestoneLifeFields(lifeIds, at = new Date().toISOString()) {
+  const ids = [...new Set((Array.isArray(lifeIds) ? lifeIds : [lifeIds]).filter(Boolean))]
+  if (!ids.length || (ids.length === 1 && ids[0] === ME_LIFE_ID)) return {}
+  return { lifeOps: Object.fromEntries(ids.map(id => [id, { op: 'add', at }])) }
 }
 
 /** The fields that put a new chapter in `lifeId`. Nothing for Me. */

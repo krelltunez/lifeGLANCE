@@ -188,6 +188,22 @@ history captures lives.
   The chapter ending is display only: chapter clicks and edits act on the
   stored chapter, which stays ongoing.
 
+**Decided in Phase 3b**
+
+- **Which Lives a milestone belongs to** is a checklist on the milestone sheet
+  (and shown on the detail view), only once there is more than one Life. A new
+  milestone starts in the Life on screen; at least one stays checked. An edit
+  writes one op per Life changed, adds before removes. Chapter suggestions on a
+  new milestone apply only if it stays in the Life on screen.
+- **Undo of such an edit** is a Life change, not a delete: the edit replaces
+  the record in the timeline's list rather than dropping it, so the history
+  diff records `lives: { add, remove }` and undo replays it per Life.
+- **Life photos** take the milestone-photo path: kept locally under
+  `<lifeId>-photo`; with GLANCEvault on, uploaded and referenced by real hash
+  (`photo_id`, `thumbnail_id`) only after the upload succeeds, and released when
+  replaced, removed, or the Life is deleted. Without the vault they stay on the
+  device, like milestone photos. They are not in the JSON backup yet (Phase 5).
+
 **OS surfaces are Me-only in v5.0**
 
 Widgets, Spotlight, Siri / App Intents (AddMilestone), the share extension,

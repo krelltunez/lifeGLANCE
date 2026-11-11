@@ -294,3 +294,34 @@ describe('what deleting a Life would do', () => {
     expect(lm.deleteLifeImpact('dad', milestones, chapters)).toEqual({ only: 0, shared: 0, chapters: 0 })
   })
 })
+
+// ── Phase 3b: a new milestone in several Lives, and undo of a sheet edit ────
+
+describe('a new milestone in several Lives', () => {
+  it('records each chosen Life, and stays plain for Me alone', async () => {
+    const { lm } = await setup()
+    expect(lm.newMilestoneLifeFields(['me'])).toEqual({})
+    const f = lm.newMilestoneLifeFields(['me', 'mom', 'mom'], 'T')
+    expect(f).toEqual({ lifeOps: { me: { op: 'add', at: 'T' }, mom: { op: 'add', at: 'T' } } })
+  })
+})
+
+describe('undo of an edit that moves a milestone off the Life on screen', () => {
+  it('is recorded as a Life change (not a delete) and undoes as one', async () => {
+    const { ms, lives, lm, h, db } = await setup()
+    const mom = await lives.createLife({ name: 'Mom' })
+    const m = await ms.addMilestone({ title: 'Trip', date: '2015-06-01' })
+    // What executeSave does for "Lives: Mom" on a milestone shown in Me: add
+    // Mom, then remove Me; the new list is the old one with the record replaced.
+    let updated = await lives.setMilestoneLife(m, mom.id, true)
+    updated = await lives.setMilestoneLife(updated, 'me', false)
+    const entry = h.diffMilestones([m], [updated])
+    expect(entry.removed).toEqual([])
+    expect(entry.changed[0].lives).toEqual({ add: [mom.id], remove: ['me'] })
+    const hist = h.createHistory()
+    h.record(hist, entry)
+    await later()
+    await h.undo(hist)
+    expect(lm.lifeIdsOf(await db.dbGet(m.id))).toEqual(['me'])
+  })
+})

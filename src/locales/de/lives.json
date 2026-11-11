@@ -36,5 +36,9 @@
   "gateFooter": "Sobald sie aktualisiert sind und synchronisiert haben, kannst du hier Leben hinzufügen.",
   "back": "Zurück",
   "settingsLabel": "Leben",
-  "settingsNote": "Zeitleisten für die Menschen in deinem Leben, neben deiner eigenen."
+  "settingsNote": "Zeitleisten für die Menschen in deinem Leben, neben deiner eigenen.",
+  "milestoneLivesLabel": "Leben",
+  "atLeastOneLife": "Ein Meilenstein braucht mindestens ein Leben.",
+  "photoLabel": "Foto",
+  "addPhoto": "Foto hinzufügen"
 }

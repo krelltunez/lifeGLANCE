@@ -36,5 +36,9 @@
   "gateFooter": "Once they are updated and have synced, you can add Lives here.",
   "back": "Back",
   "settingsLabel": "Lives",
-  "settingsNote": "Timelines for the people in your life, alongside your own."
+  "settingsNote": "Timelines for the people in your life, alongside your own.",
+  "milestoneLivesLabel": "Lives",
+  "atLeastOneLife": "A milestone needs at least one Life.",
+  "photoLabel": "Photo",
+  "addPhoto": "Add photo"
 }

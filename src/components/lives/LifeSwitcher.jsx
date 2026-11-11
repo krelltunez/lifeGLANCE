@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { lifeName, lifeColor } from './lifeLabels'
+import LifeAvatar from './LifeAvatar'
 
 // The pill next to the logo: which Life is on screen, and a menu to switch,
 // add one, or manage them. Shown only once there is more than one Life.
@@ -51,7 +52,7 @@ export default function LifeSwitcher({ lives, currentLifeId, onSwitch, onAddLife
           setOpen(o => !o)
         }}
       >
-        <span className="life-dot" aria-hidden="true" />
+        <LifeAvatar life={current} size="1.1rem" />
         <span className="life-switcher-name">{lifeName(current, t)}</span>
         <span aria-hidden="true">▾</span>
       </button>
@@ -67,7 +68,7 @@ export default function LifeSwitcher({ lives, currentLifeId, onSwitch, onAddLife
               style={{ '--life-color': lifeColor(l) }}
               onClick={pick(() => onSwitch(l.id))}
             >
-              <span className="life-dot" aria-hidden="true" />
+              <LifeAvatar life={l} size="1rem" />
               {lifeName(l, t)}
             </button>
           ))}

@@ -36,5 +36,9 @@
   "gateFooter": "Une fois qu'ils seront à jour et auront synchronisé, vous pourrez ajouter des vies ici.",
   "back": "Retour",
   "settingsLabel": "Vies",
-  "settingsNote": "Des frises pour les personnes de votre vie, à côté de la vôtre."
+  "settingsNote": "Des frises pour les personnes de votre vie, à côté de la vôtre.",
+  "milestoneLivesLabel": "Vies",
+  "atLeastOneLife": "Un jalon doit appartenir à au moins une vie.",
+  "photoLabel": "Photo",
+  "addPhoto": "Ajouter une photo"
 }
