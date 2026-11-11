@@ -1,7 +1,8 @@
 import { mergeArrayById } from '@glance-apps/sync';
 import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js';
-import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChapter, dbGetAllLives, dbPutLife, dbDeleteLife, ME_LIFE_ID } from '../data/db.js';
-import { getMilestoneTombstones, getChapterTombstones, getLifeTombstones } from './tombstones.js';
+import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChapter, dbGetAllLives, dbPutLife, dbDeleteLife, ME_LIFE_ID,
+  dbGetAllRelationships, dbPutRelationship, dbDeleteRelationship } from '../data/db.js';
+import { getMilestoneTombstones, getChapterTombstones, getLifeTombstones, getRelationshipTombstones } from './tombstones.js';
 import { mergeMilestones } from './dbAdapter.js';
 import { recordWriter, legacyFileKey } from './lifeGate.js';
 import { WRITER_WINDOW_DAYS } from './writerStamp.js';
@@ -17,7 +18,7 @@ const KNOWN_TOP_KEYS = new Set(['lives', 'writers']);
 const KNOWN_LIFE_KEYS = new Set([
   'milestones', 'chapters', 'milestoneTombstones', 'chapterTombstones',
   'birthday', 'birthdayUpdatedAt', 'categories', 'categoriesUpdatedAt',
-  'lifeRecords', 'lifeTombstones',   // Lives v5.0
+  'lifeRecords', 'lifeTombstones', 'relationships', 'relationshipTombstones',   // Lives v5.0
 ]);
 
 // The entries of `obj` whose keys are not in `known`.
@@ -40,7 +41,7 @@ const unknownKeys = (obj, known) => {
 export const buildPayload = async (milestonesRef, chaptersRef) => {
   // IDB is authoritative. Refs are used only when non-empty to avoid stale
   // empty state (e.g. before IDB loads into React) overwriting real data.
-  const [idbMilestones, idbChapters, lifeRecords] = await Promise.all([dbGetAll(), dbGetAllChapters(), dbGetAllLives()])
+  const [idbMilestones, idbChapters, lifeRecords, relationships] = await Promise.all([dbGetAll(), dbGetAllChapters(), dbGetAllLives(), dbGetAllRelationships()])
   const milestones = (milestonesRef?.current?.length > 0) ? milestonesRef.current : idbMilestones
   const chapters   = (chaptersRef?.current?.length   > 0) ? chaptersRef.current   : idbChapters
   const payload = {
@@ -55,6 +56,8 @@ export const buildPayload = async (milestonesRef, chaptersRef) => {
         chapterTombstones: getChapterTombstones(),
         lifeRecords,
         lifeTombstones: getLifeTombstones(),
+        relationships,
+        relationshipTombstones: getRelationshipTombstones(),
         birthday: localStorage.getItem('lifeglance-birthday') || '',
         birthdayUpdatedAt: localStorage.getItem('lifeglance-birthday-updated-at') || '',
         categories: loadCategories(),
@@ -67,7 +70,7 @@ export const buildPayload = async (milestonesRef, chaptersRef) => {
 
 // buildBackupPayload — timer-safe. Must not read React state.
 export const buildBackupPayload = async () => {
-  const [milestones, chapters, lifeRecords] = await Promise.all([dbGetAll(), dbGetAllChapters(), dbGetAllLives()]);
+  const [milestones, chapters, lifeRecords, relationships] = await Promise.all([dbGetAll(), dbGetAllChapters(), dbGetAllLives(), dbGetAllRelationships()]);
   return {
     lives: {
       default: {
@@ -77,6 +80,8 @@ export const buildBackupPayload = async () => {
         chapterTombstones: getChapterTombstones(),
         lifeRecords,
         lifeTombstones: getLifeTombstones(),
+        relationships,
+        relationshipTombstones: getRelationshipTombstones(),
         birthday: localStorage.getItem('lifeglance-birthday') || '',
         birthdayUpdatedAt: localStorage.getItem('lifeglance-birthday-updated-at') || '',
         categories: loadCategories(),
@@ -138,6 +143,17 @@ export const makeApplyPayload = (setMilestones, setChapters) =>
     if (life.lifeTombstones && typeof life.lifeTombstones === 'object') {
       localStorage.setItem('lifeglance-life-tombstones', JSON.stringify(life.lifeTombstones));
     }
+    // Relationship edges: the same rule as Life records.
+    if (Array.isArray(life.relationships)) {
+      const current = await dbGetAllRelationships();
+      const mergedIds = new Set(life.relationships.map(e => e.id));
+      for (const e of life.relationships) await dbPutRelationship(e);
+      for (const e of current) if (!mergedIds.has(e.id)) await dbDeleteRelationship(e.id);
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('lifeglance:lives-changed'));
+    }
+    if (life.relationshipTombstones && typeof life.relationshipTombstones === 'object') {
+      localStorage.setItem('lifeglance-relationship-tombstones', JSON.stringify(life.relationshipTombstones));
+    }
 
     // Apply birthday (last-writer-wins — already resolved in mergePayloads)
     if (life.birthday) {
@@ -195,6 +211,10 @@ export const mergePayloads = (local, remote, { fileKey = 'file' } = {}) => {
   const rl  = Array.isArray(remoteLife.lifeRecords) ? remoteLife.lifeRecords : []
   const llt = localLife.lifeTombstones ?? {};
   const rlt = remoteLife.lifeTombstones ?? {};
+  const lr  = Array.isArray(localLife.relationships)  ? localLife.relationships  : []
+  const rr  = Array.isArray(remoteLife.relationships) ? remoteLife.relationships : []
+  const lrt = localLife.relationshipTombstones ?? {};
+  const rrt = remoteLife.relationshipTombstones ?? {};
 
   // Shared fixed 90-day window, day-floored, and the SAME prune function as
   // the vault tier (tombstoneRetention.js) so the two tiers agree on every
@@ -206,6 +226,7 @@ export const mergePayloads = (local, remote, { fileKey = 'file' } = {}) => {
   const chapterTombstones = pruneTombstoneMap({ ...lct, ...rct }, cutoff);
 
   const lifeTombstones = pruneTombstoneMap({ ...llt, ...rlt }, cutoff);
+  const relationshipTombstones = pruneTombstoneMap({ ...lrt, ...rrt }, cutoff);
 
   const { merged: wholeMilestones } = mergeArrayById(lm, rm, milestoneTombstones, null,
     { idField: 'id', timestampField: 'updated_at' });
@@ -221,6 +242,9 @@ export const mergePayloads = (local, remote, { fileKey = 'file' } = {}) => {
   // Life records: whole-record LWW, like chapters' scalars. The Me Life is
   // never dropped, whatever a tombstone says.
   const { merged: mergedLifeRecords } = mergeArrayById(ll, rl, withoutMe(lifeTombstones), null,
+    { idField: 'id', timestampField: 'updated_at' });
+  // Relationship edges: whole-record LWW too.
+  const { merged: mergedRelationships } = mergeArrayById(lr, rr, relationshipTombstones, null,
     { idField: 'id', timestampField: 'updated_at' });
   const { merged: mergedChapters } = mergeArrayById(lc, rc, chapterTombstones, null,
     { idField: 'id', timestampField: 'updated_at' });
@@ -259,6 +283,7 @@ export const mergePayloads = (local, remote, { fileKey = 'file' } = {}) => {
     ...unknownKeys(remoteLife, KNOWN_LIFE_KEYS),
     milestones: mergedMilestones, chapters: mergedChapters, milestoneTombstones, chapterTombstones,
     lifeRecords: mergedLifeRecords, lifeTombstones,
+    relationships: mergedRelationships, relationshipTombstones,
     birthday: mergedBirthday, birthdayUpdatedAt: mergedBirthdayUpdatedAt,
     categories: mergedCategories, categoriesUpdatedAt: mergedCategoriesUpdatedAt,
   };
@@ -270,6 +295,8 @@ export const mergePayloads = (local, remote, { fileKey = 'file' } = {}) => {
     JSON.stringify(chapterTombstones) !== JSON.stringify(lct) ||
     JSON.stringify(mergedLifeRecords) !== JSON.stringify(ll) ||
     JSON.stringify(lifeTombstones) !== JSON.stringify(llt) ||
+    JSON.stringify(mergedRelationships) !== JSON.stringify(lr) ||
+    JSON.stringify(relationshipTombstones) !== JSON.stringify(lrt) ||
     mergedBirthday !== (localLife.birthday ?? '') ||
     JSON.stringify(mergedCategories) !== JSON.stringify(localLife.categories ?? []);
 
@@ -283,6 +310,8 @@ export const mergePayloads = (local, remote, { fileKey = 'file' } = {}) => {
     JSON.stringify(chapterTombstones) !== JSON.stringify(rct) ||
     JSON.stringify(mergedLifeRecords) !== JSON.stringify(rl) ||
     JSON.stringify(lifeTombstones) !== JSON.stringify(rlt) ||
+    JSON.stringify(mergedRelationships) !== JSON.stringify(rr) ||
+    JSON.stringify(relationshipTombstones) !== JSON.stringify(rrt) ||
     mergedBirthday !== (remoteLife.birthday ?? '') ||
     JSON.stringify(mergedCategories) !== JSON.stringify(remoteLife.categories ?? []);
 

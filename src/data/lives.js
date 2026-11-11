@@ -21,6 +21,7 @@ import { uid, updateMilestone, deleteMilestone } from './milestones'
 import { deleteChapter, removeMilestoneFromChapter } from './chapters'
 import { dirtyBirthday, markDirty } from '../sync/dirty'
 import { getLifeTombstones, writeLifeTombstone } from '../sync/tombstones'
+import { deleteRelationshipsOf } from './relationships'
 import { canUseMultipleLives, blockingWriters, MultipleLivesBlockedError } from '../sync/lifeGate'
 import { normalizeLifeOps, lifeIdsOf, isInLife, chapterLifeId, presentLives } from './lifeMembership'
 
@@ -154,8 +155,8 @@ export { getLifeTombstones }
 
 /**
  * Delete a Life other than Me. Its milestones that belong to no other Life are
- * deleted; shared milestones only lose this Life. Its chapters are deleted.
- * Returns what changed so the caller can update its state.
+ * deleted; shared milestones only lose this Life. Its chapters are deleted,
+ * and so is every relationship edge that touches it. Returns what changed so the caller can update its state.
  */
 export async function deleteLife(id) {
   if (isMe(id)) throw new Error('The Me Life cannot be deleted')
@@ -177,10 +178,11 @@ export async function deleteLife(id) {
     await deleteChapter(c.id)
     deletedChapterIds.push(c.id)
   }
+  const deletedRelationshipIds = await deleteRelationshipsOf(id, at)
   writeLifeTombstone(id, at)
   await dbDeleteLife(id)
   // After the row is gone: the vault engine sees no local entity and pushes a
   // soft delete (the same order deleteMilestone uses).
   markDirty(id)
-  return { deletedMilestoneIds, updatedMilestones, deletedChapterIds }
+  return { deletedMilestoneIds, updatedMilestones, deletedChapterIds, deletedRelationshipIds }
 }

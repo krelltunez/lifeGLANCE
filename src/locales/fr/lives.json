@@ -40,5 +40,12 @@
   "milestoneLivesLabel": "Vies",
   "atLeastOneLife": "Un jalon doit appartenir à au moins une vie.",
   "photoLabel": "Photo",
-  "addPhoto": "Ajouter une photo"
+  "addPhoto": "Ajouter une photo",
+  "relationshipLabel": "Lien avec moi",
+  "relationshipNone": "Aucun",
+  "relationshipParent": "Parent",
+  "relationshipChild": "Enfant",
+  "relationshipPartner": "Partenaire ou conjoint",
+  "relationshipSibling": "Frère ou sœur",
+  "relationshipOther": "Autre"
 }

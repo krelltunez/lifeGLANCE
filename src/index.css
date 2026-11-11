@@ -2995,6 +2995,7 @@ select.settings-select {
   cursor: pointer;
 }
 .lives-list-name { flex: 1; }
+.lives-list-rel { display: block; font-size: 0.68rem; color: var(--text-muted); }
 .lives-list-edit { font-size: 0.7rem; color: var(--text-muted); }
 .lives-colors { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .lives-color {

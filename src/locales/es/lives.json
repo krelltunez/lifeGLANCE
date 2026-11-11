@@ -40,5 +40,12 @@
   "milestoneLivesLabel": "Vidas",
   "atLeastOneLife": "Un hito necesita al menos una vida.",
   "photoLabel": "Foto",
-  "addPhoto": "Añadir foto"
+  "addPhoto": "Añadir foto",
+  "relationshipLabel": "Relación conmigo",
+  "relationshipNone": "Ninguna",
+  "relationshipParent": "Padre o madre",
+  "relationshipChild": "Hijo o hija",
+  "relationshipPartner": "Pareja o cónyuge",
+  "relationshipSibling": "Hermano o hermana",
+  "relationshipOther": "Otra"
 }

@@ -221,6 +221,8 @@ const v5File = () => ({
       lifeRecords: [{ id: 'L1', name: 'Mom', birthDate: '1960-03-04', updated_at: '2026-11-01T00:00:00.000Z' }],
       lifeTombstones: {},
       relationships: [{ id: 'E1', fromLifeId: 'me', toLifeId: 'L1', type: 'parent' }],
+      relationshipTombstones: {},
+      futureLifeKey: [{ id: 'x', note: 'written by a build newer than this one' }],
     },
   },
 })
@@ -231,15 +233,15 @@ describe('file-tier merge', () => {
     const { data } = mergePayloads(local, v5File())
     expect(data.futureTopLevel).toEqual({ anything: true })
     expect(data.lives.someOtherSlot).toEqual(v5File().lives.someOtherSlot)
-    for (const k of ['lifeRecords', 'lifeTombstones', 'relationships']) expect(data.lives.default[k]).toEqual(v5File().lives.default[k])
+    for (const k of ['lifeRecords', 'lifeTombstones', 'relationships', 'futureLifeKey']) expect(data.lives.default[k]).toEqual(v5File().lives.default[k])
     expect(data.lives.default.milestones[0].lifeOps).toEqual(v5File().lives.default.milestones[0].lifeOps)
   })
 
   it("does not count unknown keys as a change on either side", () => {
     const remote = v5File()
-    // This build knows lifeRecords and lifeTombstones (v5.0), so only keys
-    // still unknown to it (relationships, futureTopLevel) are passed through.
-    const knownHere = [...KNOWN_LIFE, 'lifeRecords', 'lifeTombstones']
+    // This build knows the Lives keys (v5.0), so only keys still unknown to it
+    // (futureLifeKey, futureTopLevel) are passed through.
+    const knownHere = [...KNOWN_LIFE, 'lifeRecords', 'lifeTombstones', 'relationships', 'relationshipTombstones']
     const local = { writers: remote.writers, lives: { default: { ...remote.lives.default } } }
     for (const k of Object.keys(local.lives.default)) if (!knownHere.includes(k)) delete local.lives.default[k]
     const r = mergePayloads(local, remote)
@@ -338,7 +340,7 @@ describe('a Phase 1 device sharing a folder with v5.0', () => {
 
     const data = fileData(f)
     expect(data.lives.default.milestones.map(m => m.title).sort()).toEqual(['Edit 0', 'Edit 1', 'Edit 2', 'Wedding'])
-    for (const k of ['lifeRecords', 'lifeTombstones', 'relationships']) expect(data.lives.default[k]).toEqual(v5File().lives.default[k])
+    for (const k of ['lifeRecords', 'lifeTombstones', 'relationships', 'futureLifeKey']) expect(data.lives.default[k]).toEqual(v5File().lives.default[k])
     expect(data.lives.default.milestones.find(m => m.id === 'w').lifeOps).toBeTruthy()
     expect(data.futureTopLevel).toEqual({ anything: true })
     expect(Object.keys(data.writers).sort()).toEqual(['p1', 'v5phone'])

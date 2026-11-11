@@ -4,6 +4,7 @@ import BirthdayPicker from '../settings/BirthdayPicker'
 import { COLOR_PALETTE } from '../../utils/colors'
 import { createLife, updateLife, deleteLife, lifeBirthDate, ME_LIFE_ID } from '../../data/lives'
 import { deleteLifeImpact } from '../../data/lifeMembership'
+import { listRelationships, relationshipToMe, setRelationshipToMe, RELATIONSHIP_TYPES } from '../../data/relationships'
 import { canUseMultipleLives, blockingWriters, MultipleLivesBlockedError } from '../../sync/lifeGate'
 import { lifeName, lifeColor, blockingDeviceLabel } from './lifeLabels'
 import { pickPhotoNative } from '../../native/mediaPicker'
@@ -17,10 +18,23 @@ import LifeAvatar from './LifeAvatar'
 //
 // milestones / chapters are the app's FULL lists (every Life), so the delete
 // confirmation counts what the Life really has, not what is on screen.
+//
+// Relationship edges are read here, not kept in App state: only this sheet
+// shows them in v5.0. A sync that changes one announces lifeglance:lives-changed.
 export default function LivesSheet({ lives, milestones, chapters, start = 'list', onClose, onChanged, onDeleted }) {
   const { t, i18n } = useTranslation('lives')
   const { t: tc } = useTranslation('common')
   const [view, setView] = useState(() => (start === 'list' || start === 'add' ? start : { edit: start }))
+  const [edges, setEdges] = useState(null)   // null until loaded
+
+  useEffect(() => {
+    let live = true
+    const load = () => listRelationships().then(all => { if (live) setEdges(all) }).catch(() => { if (live) setEdges([]) })
+    load()
+    window.addEventListener('lifeglance:lives-changed', load)
+    return () => { live = false; window.removeEventListener('lifeglance:lives-changed', load) }
+  }, [])
+  const reloadEdges = () => listRelationships().then(setEdges).catch(() => {})
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose() }
@@ -38,16 +52,22 @@ export default function LivesSheet({ lives, milestones, chapters, start = 'list'
         </div>
         <p className="lives-intro">{t('intro')}</p>
         <ul className="lives-list">
-          {lives.map(l => (
+          {lives.map(l => {
+            const rel = edges && l.id !== ME_LIFE_ID ? relationshipToMe(l.id, edges) : null
+            return (
             <li key={l.id}>
               <button type="button" className="lives-list-item" style={{ '--life-color': lifeColor(l) }}
                 onClick={() => setView({ edit: l.id })}>
                 <LifeAvatar life={l} size="1.6rem" />
-                <span className="lives-list-name">{lifeName(l, t)}</span>
+                <span className="lives-list-name">
+                  {lifeName(l, t)}
+                  {rel && <span className="lives-list-rel">{relationshipText(rel.type, t)}</span>}
+                </span>
                 <span className="lives-list-edit">{tc('edit')}</span>
               </button>
             </li>
-          ))}
+            )
+          })}
         </ul>
         <div className="sheet-actions">
           <span />
@@ -59,16 +79,17 @@ export default function LivesSheet({ lives, milestones, chapters, start = 'list'
     )
   } else if (view === 'add' && !canUseMultipleLives()) {
     body = <GatePanel t={t} onBack={() => setView('list')} onClose={onClose} />
-  } else if (view === 'add' || view.edit) {
+  } else if ((view === 'add' || view.edit) && edges) {
     const life = view === 'add' ? null : lives.find(l => l.id === view.edit)
     body = (
       <LifeForm
         key={life?.id ?? 'new'}
         life={life}
+        edges={edges}
         t={t} tc={tc} language={i18n.language}
         onCancel={() => setView('list')}
         onClose={onClose}
-        onSaved={() => { onChanged(); setView('list') }}
+        onSaved={() => { onChanged(); reloadEdges(); setView('list') }}
         onBlocked={() => setView('add')}
         onDelete={life && life.id !== ME_LIFE_ID ? () => setView({ confirmDelete: life.id }) : null}
       />
@@ -83,6 +104,7 @@ export default function LivesSheet({ lives, milestones, chapters, start = 'list'
         onConfirm={async () => {
           await forgetLifePhoto(life)
           await deleteLife(life.id)
+          reloadEdges()
           onDeleted(life.id)
           setView('list')
         }}
@@ -97,8 +119,17 @@ export default function LivesSheet({ lives, milestones, chapters, start = 'list'
   )
 }
 
-function LifeForm({ life, t, tc, language, onCancel, onClose, onSaved, onBlocked, onDelete }) {
+// The picker's option for each type: relationshipParent and so on. (Not
+// relationship_<type>: i18next reads a trailing _other as a plural form.)
+const relationshipKey = (type) => `relationship${type[0].toUpperCase()}${type.slice(1)}`
+// A type this build does not offer (written by a newer one) shows as stored.
+const relationshipText = (type, t) => (RELATIONSHIP_TYPES.includes(type) ? t(relationshipKey(type)) : type)
+
+function LifeForm({ life, edges, t, tc, language, onCancel, onClose, onSaved, onBlocked, onDelete }) {
   const isMe = life?.id === ME_LIFE_ID
+  // "Relationship to Me": the newest edge from Me to this Life (relationships.js).
+  const initialRelationship = life && !isMe ? relationshipToMe(life.id, edges)?.type ?? '' : ''
+  const [relationship, setRelationship] = useState(initialRelationship)
   const [name, setName]         = useState(life?.name ?? '')
   const [nickname, setNickname] = useState(life?.nickname ?? '')
   const [about, setAbout]       = useState(life?.about ?? '')
@@ -151,6 +182,9 @@ function LifeForm({ life, t, tc, language, onCancel, onClose, onSaved, onBlocked
       } else {
         saved = await createLife({ ...fields, name })
       }
+      if (!isMe && relationship !== initialRelationship) {
+        await setRelationshipToMe(saved.id, relationship || null, edges)
+      }
       if (photoFile) await saveLifePhoto(saved, photoFile)
       else if (photoRemoved && life?.photo_id) await removeLifePhoto(saved)
       onSaved()
@@ -184,6 +218,19 @@ function LifeForm({ life, t, tc, language, onCancel, onClose, onSaved, onBlocked
           <label className="field-label" htmlFor="life-name">{t('nameLabel')}</label>
           <input id="life-name" className="input" value={name} autoFocus={!life}
             placeholder={t('namePlaceholder')} onChange={e => { setName(e.target.value); setError(null) }} />
+        </div>
+      )}
+
+      {!isMe && (
+        <div className="sheet-field">
+          <label className="field-label" htmlFor="life-relationship">{t('relationshipLabel')}</label>
+          <select id="life-relationship" className="input" style={{ cursor: 'pointer' }}
+            value={relationship} onChange={e => setRelationship(e.target.value)}>
+            <option value="">{t('relationshipNone')}</option>
+            {RELATIONSHIP_TYPES.map(type => <option key={type} value={type}>{t(relationshipKey(type))}</option>)}
+            {initialRelationship && !RELATIONSHIP_TYPES.includes(initialRelationship) &&
+              <option value={initialRelationship}>{initialRelationship}</option>}
+          </select>
         </div>
       )}
 

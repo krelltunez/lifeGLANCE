@@ -1,9 +1,10 @@
 const DB_NAME    = 'lifeglance'
-const DB_VERSION = 7          // v7: 'lives' store (Lives v5.0)
+const DB_VERSION = 8          // v8: 'relationships' store (Lives v5.0)
 const STORE      = 'milestones'
 const CHAPTERS   = 'chapters'
 const MEDIA      = 'media'
 const LIVES      = 'lives'
+const RELATIONSHIPS = 'relationships'
 
 // The Me Life. Every device creates this exact record, so two devices that
 // migrate independently agree on it byte for byte and sync no difference.
@@ -152,6 +153,12 @@ export function initDB() {
       if (e.oldVersion < 7) {
         if (!db.objectStoreNames.contains(LIVES)) db.createObjectStore(LIVES, { keyPath: 'id' })
         e.target.transaction.objectStore(LIVES).put({ ...ME_LIFE_RECORD })
+      }
+
+      // v8 — 'relationships' store: directed edges between Lives (Lives v5.0,
+      // Phase 4). New and empty; nothing else changes, so safe to repeat.
+      if (e.oldVersion < 8) {
+        if (!db.objectStoreNames.contains(RELATIONSHIPS)) db.createObjectStore(RELATIONSHIPS, { keyPath: 'id' })
       }
     }
 
@@ -351,6 +358,44 @@ export function dbPutLife(item) {
 export function dbDeleteLife(id) {
   return new Promise((resolve, reject) => {
     const req = livesTx('readwrite').delete(id)
+    req.onsuccess = () => resolve()
+    req.onerror   = () => reject(req.error)
+  })
+}
+
+// ── Relationships ────────────────────────────────────────────────────────────
+
+function relationshipsTx(mode = 'readonly') {
+  return _db.transaction(RELATIONSHIPS, mode).objectStore(RELATIONSHIPS)
+}
+
+export function dbGetAllRelationships() {
+  return new Promise((resolve, reject) => {
+    const req = relationshipsTx().getAll()
+    req.onsuccess = () => resolve(req.result)
+    req.onerror   = () => reject(req.error)
+  })
+}
+
+export function dbGetRelationship(id) {
+  return new Promise((resolve, reject) => {
+    const req = relationshipsTx().get(id)
+    req.onsuccess = () => resolve(req.result ?? null)
+    req.onerror   = () => reject(req.error)
+  })
+}
+
+export function dbPutRelationship(item) {
+  return new Promise((resolve, reject) => {
+    const req = relationshipsTx('readwrite').put(item)
+    req.onsuccess = () => resolve(item)
+    req.onerror   = () => reject(req.error)
+  })
+}
+
+export function dbDeleteRelationship(id) {
+  return new Promise((resolve, reject) => {
+    const req = relationshipsTx('readwrite').delete(id)
     req.onsuccess = () => resolve()
     req.onerror   = () => reject(req.error)
   })

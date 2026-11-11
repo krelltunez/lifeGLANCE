@@ -15,8 +15,10 @@
 //   milestoneTombstones → one bundle row            (MERGE-on-apply)
 //   chapterTombstones   → one bundle row            (MERGE-on-apply)
 //   birthday            → one bundle row            (LWW scalar)
-//   life                → row, entityId = life.id      (per-item, plain LWW; Lives v5.0)
+//   life                → row, entityId = life.id      (per-item, LWW-on-apply; Lives v5.0)
 //   lifeTombstones      → one bundle row            (MERGE-on-apply)
+//   relationship        → row, entityId = edge.id      (per-item, LWW-on-apply; Lives v5.0)
+//   relationshipTombstones → one bundle row         (MERGE-on-apply)
 //
 // Milestones are MERGE-on-apply too since Lives v5.0: their `lifeOps` is a
 // membership set (which Lives the milestone belongs to), merged per Life like
@@ -53,7 +55,7 @@ import { ME_LIFE_ID } from '../data/db.js'
 
 export { LIFE_ID, BUNDLE_KINDS, bundleEntityId }
 
-const TOMBSTONE_KINDS = new Set(['milestoneTombstones', 'chapterTombstones', 'lifeTombstones'])
+const TOMBSTONE_KINDS = new Set(['milestoneTombstones', 'chapterTombstones', 'lifeTombstones', 'relationshipTombstones'])
 const BUNDLE_ID_TO_KIND = Object.fromEntries(BUNDLE_KINDS.map(k => [bundleEntityId(k), k]))
 export const isBundleEntityId = (entityId) => entityId in BUNDLE_ID_TO_KIND
 
@@ -187,7 +189,8 @@ export function mergeMilestones(local, remote) {
   return merged
 }
 
-// The app's list of Lives lives in React state; tell it a sync changed one.
+// The app's list of Lives lives in React state; tell it a sync changed one
+// (or a relationship edge, which the Lives sheet shows).
 const announceLivesChanged = () => {
   if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
     window.dispatchEvent(new Event('lifeglance:lives-changed'))
@@ -202,6 +205,7 @@ const announceLivesChanged = () => {
 // store interface:
 //   milestones: { get(id)→m|null, put(m), delete(id), all()→[m] }
 //   chapters:   { get(id)→c|null, put(c), delete(id), all()→[c] }
+//   lives, relationships (optional, Lives v5.0): the same shape
 //   getBundle(kind)→repr | putBundle(kind, repr)
 //     categories          repr: { value:[...], updatedAt }
 //     birthday            repr: { value:'', updatedAt }
@@ -224,10 +228,11 @@ const sameContent = (x, y) => JSON.stringify(canonical(x)) === JSON.stringify(ca
 // isLivePull() says whether rows pulled now are new writes (this device has
 // finished its first full pull), as opposed to the account's history arriving
 // on a new device. Only new writes count towards the Lives gate (lifeGate.js).
-const NO_LIVES = { get: () => null, put: () => {}, delete: () => {}, all: () => [] }
+const NO_STORE = { get: () => null, put: () => {}, delete: () => {}, all: () => [] }
 
 export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null, isLivePull = () => false }) {
-  const lives = store.lives ?? NO_LIVES
+  const lives = store.lives ?? NO_STORE
+  const relationships = store.relationships ?? NO_STORE
   const deepEqual = sameContent
   // Built per row so the stamp always reports this build; cheap.
   const stamp = () => rowStamp(deviceId)
@@ -286,6 +291,8 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null, is
     if (c) return { ...c, _kind: 'chapter', life_id: stamp() }
     const l = await lives.get(entityId)
     if (l) return { ...l, _kind: 'life', life_id: stamp() }
+    const r = await relationships.get(entityId)
+    if (r) return { ...r, _kind: 'relationship', life_id: stamp() }
     return null
   }
 
@@ -311,10 +318,8 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null, is
       if (!deepEqual(merged, remote)) markDirty(entityId)
       return
     }
-    if (kind === 'life') {
-      // Plain LWW, already resolved by the engine: remote won (or local absent).
-      await lives.put(stripEnvelope(env))
-      announceLivesChanged()
+    if (kind === 'life' || kind === 'relationship') {
+      await applyFlatRecord(kind === 'life' ? lives : relationships, entityId, stripEnvelope(env))
       return
     }
     if (kind === 'chapter') {
@@ -331,12 +336,31 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null, is
     }
     if (BUNDLE_ID_TO_KIND[entityId]) { await applyBundle(BUNDLE_ID_TO_KIND[entityId], env); return }
     if (BUNDLE_KINDS.includes(kind)) { await applyBundle(kind, env); return }
-    // A row kind this build does not know: written by a newer build (Lives
-    // records, relationship edges). Leave it alone. The vault keeps it for the
+    // A row kind this build does not know: written by a newer build. Leave it
+    // alone. The vault keeps it for the
     // devices that understand it, and this device never pushes it, so nothing
     // is lost. Throwing would quarantine it and report "skipped rows" on every
     // cycle, which is noise, not a problem the user can fix.
     if (import.meta?.env?.DEV) console.info(`[dbsync] ignoring row of unknown kind ${kind} (${entityId})`)
+  }
+
+  // Life records and relationship edges are flat records: the newer
+  // updated_at wins whole. The engine's own LWW is not enough for them: it
+  // pushes before it pulls, so an older concurrent edit can overwrite a newer
+  // row in the vault, and the device holding the newer one, seeing an older
+  // row, would keep it without ever pushing it again. So they are resolved
+  // here, and a local copy that wins is re-pushed (the milestone mechanism).
+  // A tie on updated_at with different content goes to the larger canonical
+  // form, the same on every device.
+  const applyFlatRecord = async (coll, entityId, remote) => {
+    const local = await coll.get(entityId)
+    if (local && deepEqual(local, remote)) return
+    const localWins = local && (ts(local.updated_at) > ts(remote.updated_at) ||
+      (ts(local.updated_at) === ts(remote.updated_at) &&
+        JSON.stringify(canonical(local)) > JSON.stringify(canonical(remote))))
+    if (localWins) { markDirty(entityId); return }
+    await coll.put(remote)
+    announceLivesChanged()
   }
 
   const applyRemoteDelete = async (entityId) => {
@@ -350,12 +374,16 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null, is
       await lives.delete(entityId)
       announceLivesChanged()
     }
+    if (await relationships.get(entityId)) {
+      await relationships.delete(entityId)
+      announceLivesChanged()
+    }
   }
 
-  // Milestones, chapters and bundles are merge-on-apply: report insert-only so
-  // the engine always routes them to applyRemoteEntity instead of doing its own
-  // LWW. Life records are flat, so they keep the engine's LWW.
-  const isInsertOnly = (env) => env?._kind !== 'life'
+  // Every kind is resolved here (merge-on-apply, or LWW-on-apply for the flat
+  // Life and relationship records): report insert-only so the engine always
+  // routes rows to applyRemoteEntity instead of doing its own LWW.
+  const isInsertOnly = () => true
 
   const getEntityLastModified = (env) => env?.updated_at ?? env?.updatedAt ?? 0
 
@@ -365,6 +393,7 @@ export function makeDbAdapter({ store, markDirty = () => {}, deviceId = null, is
     ...(await store.milestones.all()).map(m => m.id),
     ...(await store.chapters.all()).map(c => c.id),
     ...(await lives.all()).map(l => l.id),
+    ...(await relationships.all()).map(r => r.id),
     ...BUNDLE_KINDS.map(bundleEntityId),
   ]
 

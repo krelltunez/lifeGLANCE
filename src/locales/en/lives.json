@@ -40,5 +40,12 @@
   "milestoneLivesLabel": "Lives",
   "atLeastOneLife": "A milestone needs at least one Life.",
   "photoLabel": "Photo",
-  "addPhoto": "Add photo"
+  "addPhoto": "Add photo",
+  "relationshipLabel": "Relationship to Me",
+  "relationshipNone": "None",
+  "relationshipParent": "Parent",
+  "relationshipChild": "Child",
+  "relationshipPartner": "Partner or spouse",
+  "relationshipSibling": "Sibling",
+  "relationshipOther": "Other"
 }

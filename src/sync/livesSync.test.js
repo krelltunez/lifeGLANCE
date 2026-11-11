@@ -45,8 +45,12 @@ function memStore() {
   const bundles = {
     categories: { value: [], updatedAt: '' }, birthday: { value: '', updatedAt: '' },
     milestoneTombstones: { value: {} }, chapterTombstones: { value: {} }, lifeTombstones: { value: {} },
+    relationshipTombstones: { value: {} },
   }
-  return { milestones: coll(), chapters: coll(), lives: coll(), getBundle: (k) => bundles[k], putBundle: (k, r) => { bundles[k] = r } }
+  return {
+    milestones: coll(), chapters: coll(), lives: coll(), relationships: coll(),
+    getBundle: (k) => bundles[k], putBundle: (k, r) => { bundles[k] = r },
+  }
 }
 
 function vault() {
@@ -114,6 +118,29 @@ describe('Life records on the vault', () => {
     b.store.lives.put({ id: 'L1', name: 'Mother', updated_at: T2 }); b.dirty.add('L1')
     await converge([a, b])
     expect(a.store.lives.get('L1').name).toBe('Mother')
+  })
+
+  it('concurrent edits settle on the newer one, even when the older is pushed last', async () => {
+    // The engine pushes before it pulls: B's older edit lands on top of A's
+    // newer row. A must see that and push its own again.
+    const v = vault()
+    const a = await device(v, 'A'), b = await device(v, 'B')
+    a.store.lives.put({ id: 'L1', name: 'Mom', updated_at: T1 }); a.dirty.add('L1')
+    await converge([a, b])
+    a.store.lives.put({ id: 'L1', name: 'Mother', updated_at: T3 }); a.dirty.add('L1')
+    b.store.lives.put({ id: 'L1', name: 'Mum', updated_at: T2 }); b.dirty.add('L1')
+    await converge([a, b])
+    for (const d of [a, b]) expect(d.store.lives.get('L1').name).toBe('Mother')
+    expect(v.rows.get('L1').env.name).toBe('Mother')
+  })
+
+  it('a tie on updated_at settles on the same record everywhere', async () => {
+    const v = vault()
+    const a = await device(v, 'A'), b = await device(v, 'B')
+    a.store.lives.put({ id: 'L1', name: 'Mom', updated_at: T2 }); a.dirty.add('L1')
+    b.store.lives.put({ id: 'L1', name: 'Mum', updated_at: T2 }); b.dirty.add('L1')
+    await converge([a, b])
+    expect(a.store.lives.get('L1')).toEqual(b.store.lives.get('L1'))
   })
 
   it('a deleted Life is deleted on the other device, but a delete of Me is never applied', async () => {
@@ -348,5 +375,92 @@ describe('adding a Life', () => {
     await lives.deleteLife(mom.id)
     expect(marked.filter(id => id === mom.id)).toHaveLength(3)
     expect(marked).toContain('life:default:lifeTombstones')
+  })
+})
+
+// ── Relationships (Phase 4) ─────────────────────────────────────────────────
+
+const edge = (id, extra = {}) => ({ id, fromLifeId: 'me', toLifeId: 'L1', type: 'parent', relationshipNote: '', created_at: T1, updated_at: T1, ...extra })
+
+describe('relationship edges on the vault', () => {
+  it('an edge added on one device reaches the other, and a later edit wins', async () => {
+    const v = vault()
+    const a = await device(v, 'A'), b = await device(v, 'B')
+    a.store.relationships.put(edge('E1')); a.dirty.add('E1')
+    await converge([a, b])
+    expect(b.store.relationships.get('E1')).toEqual(edge('E1'))
+    expect(v.rows.get('E1').env._kind).toBe('relationship')
+    b.store.relationships.put(edge('E1', { type: 'sibling', updated_at: T2 })); b.dirty.add('E1')
+    a.store.relationships.put(edge('E1', { type: 'other', updated_at: T3 })); a.dirty.add('E1')
+    await converge([a, b])
+    expect(a.store.relationships.get('E1').type).toBe('other')
+    expect(b.store.relationships.get('E1').type).toBe('other')
+  })
+
+  it('a deleted edge is deleted on the other device, and the tombstones merge as a bundle', async () => {
+    const v = vault()
+    const a = await device(v, 'A'), b = await device(v, 'B')
+    a.store.relationships.put(edge('E1')); a.dirty.add('E1')
+    await converge([a, b])
+    a.store.relationships.delete('E1'); a.dirty.add('E1')
+    a.store.putBundle('relationshipTombstones', { value: { E1: T2 } }); a.dirty.add('life:default:relationshipTombstones')
+    b.store.putBundle('relationshipTombstones', { value: { E9: T2 } }); b.dirty.add('life:default:relationshipTombstones')
+    await converge([a, b])
+    expect(b.store.relationships.get('E1')).toBeNull()
+    for (const d of [a, b]) expect(d.store.getBundle('relationshipTombstones').value).toEqual({ E1: T2, E9: T2 })
+  })
+
+  it('a fresh device uploads its edges with everything else', async () => {
+    const { makeDbAdapter } = await import('./dbAdapter.js')
+    const store = memStore()
+    store.relationships.put(edge('E1'))
+    const ids = await makeDbAdapter({ store }).allEntityIds()
+    expect(ids).toContain('E1')
+    expect(ids).toContain('life:default:relationshipTombstones')
+  })
+})
+
+describe('relationship edges in the file tier', () => {
+  it('merges edges by id, newest wins, and honours tombstones from either side', async () => {
+    const { mergePayloads } = await import('./adapter.js')
+    const local  = payload({ relationships: [edge('E1'), edge('E2', { toLifeId: 'L2' })], relationshipTombstones: {} })
+    const remote = payload({ relationships: [edge('E1', { type: 'child', updated_at: T2 })], relationshipTombstones: { E2: T3 } })
+    const a = mergePayloads(local, remote)
+    const b = mergePayloads(remote, local)
+    expect(a.data.lives.default.relationships).toEqual([edge('E1', { type: 'child', updated_at: T2 })])
+    expect(a.data.lives.default.relationshipTombstones).toEqual({ E2: T3 })
+    expect(b.data.lives.default.relationships).toEqual(a.data.lives.default.relationships)
+    expect(a.localChanged).toBe(true)
+  })
+
+  it('a file from an older build (no edges) keeps this device\'s edges and gets them written', async () => {
+    const { mergePayloads } = await import('./adapter.js')
+    const r = mergePayloads(payload({ relationships: [edge('E1')], relationshipTombstones: {} }), payload({}))
+    expect(r.data.lives.default.relationships).toEqual([edge('E1')])
+    expect(r.remoteChanged).toBe(true)
+  })
+
+  it('applies edges to the store, and leaves them alone for a file without any', async () => {
+    const db = await import('../data/db.js')
+    await db.initDB()
+    await db.dbPutRelationship(edge('OLD'))
+    const { makeApplyPayload } = await import('./adapter.js')
+    const apply = makeApplyPayload(() => {}, () => {})
+    await apply(payload({ relationships: [edge('E1')], relationshipTombstones: { OLD: T2 } }))
+    expect((await db.dbGetAllRelationships()).map(e => e.id)).toEqual(['E1'])
+    expect(JSON.parse(localStorage.getItem('lifeglance-relationship-tombstones'))).toEqual({ OLD: T2 })
+    await apply(payload({}))
+    expect((await db.dbGetAllRelationships()).map(e => e.id)).toEqual(['E1'])
+  })
+
+  it('the sync and backup payloads carry the edges', async () => {
+    const db = await import('../data/db.js')
+    await db.initDB()
+    await db.dbPutRelationship(edge('E1'))
+    const { buildBackupPayload, buildPayload } = await import('./adapter.js')
+    for (const p of [await buildBackupPayload(), await buildPayload()]) {
+      expect(p.lives.default.relationships).toEqual([edge('E1')])
+      expect(p.lives.default.relationshipTombstones).toEqual({})
+    }
   })
 })

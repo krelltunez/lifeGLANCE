@@ -40,5 +40,12 @@
   "milestoneLivesLabel": "Vite",
   "atLeastOneLife": "Un traguardo deve appartenere ad almeno una vita.",
   "photoLabel": "Foto",
-  "addPhoto": "Aggiungi foto"
+  "addPhoto": "Aggiungi foto",
+  "relationshipLabel": "Relazione con me",
+  "relationshipNone": "Nessuna",
+  "relationshipParent": "Genitore",
+  "relationshipChild": "Figlio o figlia",
+  "relationshipPartner": "Partner o coniuge",
+  "relationshipSibling": "Fratello o sorella",
+  "relationshipOther": "Altro"
 }

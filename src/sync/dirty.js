@@ -34,3 +34,4 @@ export const dirtyBirthday            = () => markDirty(bundleEntityId('birthday
 export const dirtyMilestoneTombstones = () => markDirty(bundleEntityId('milestoneTombstones'))
 export const dirtyChapterTombstones   = () => markDirty(bundleEntityId('chapterTombstones'))
 export const dirtyLifeTombstones      = () => markDirty(bundleEntityId('lifeTombstones'))
+export const dirtyRelationshipTombstones = () => markDirty(bundleEntityId('relationshipTombstones'))

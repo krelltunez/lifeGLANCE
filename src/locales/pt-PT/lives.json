@@ -40,5 +40,12 @@
   "milestoneLivesLabel": "Vidas",
   "atLeastOneLife": "Um marco deve pertencer a pelo menos uma vida.",
   "photoLabel": "Foto",
-  "addPhoto": "Adicionar foto"
+  "addPhoto": "Adicionar foto",
+  "relationshipLabel": "Relação comigo",
+  "relationshipNone": "Nenhuma",
+  "relationshipParent": "Pai ou mãe",
+  "relationshipChild": "Filho ou filha",
+  "relationshipPartner": "Parceiro ou cônjuge",
+  "relationshipSibling": "Irmão ou irmã",
+  "relationshipOther": "Outra"
 }

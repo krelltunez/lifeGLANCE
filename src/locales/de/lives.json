@@ -40,5 +40,12 @@
   "milestoneLivesLabel": "Leben",
   "atLeastOneLife": "Ein Meilenstein braucht mindestens ein Leben.",
   "photoLabel": "Foto",
-  "addPhoto": "Foto hinzufügen"
+  "addPhoto": "Foto hinzufügen",
+  "relationshipLabel": "Beziehung zu mir",
+  "relationshipNone": "Keine",
+  "relationshipParent": "Elternteil",
+  "relationshipChild": "Kind",
+  "relationshipPartner": "Partner oder Ehepartner",
+  "relationshipSibling": "Geschwister",
+  "relationshipOther": "Andere"
 }
