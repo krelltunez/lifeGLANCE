@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
 import { formatDateDisplay, relativeLabel, ageAtDate } from '../../utils/dates'
+import { lifeIdsOf } from '../../data/lifeMembership'
+import { lifeName, lifeColor } from '../lives/lifeLabels'
 import { dbGetMedia, dbGetPhoto, dbPutMedia } from '../../data/db'
 import { isRealBlobHash, fetchFullResBytes, fetchFullResBytesChunked, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
 
@@ -21,9 +23,10 @@ const readPins = () => {
   try { return JSON.parse(localStorage.getItem(PINS_KEY) || '{}') } catch { return {} }
 }
 
-export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, deathDate = '', categories = [] }) {
+export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, deathDate = '', lives = [], categories = [] }) {
   const { t, i18n } = useTranslation('milestone')
   const { t: tc } = useTranslation('common')
+  const { t: tl } = useTranslation('lives')
   const [audioUrl,  setAudioUrl]  = useState(null)
   const [photoUrl,  setPhotoUrl]  = useState(null)
   const [mediaLoading, setMediaLoading] = useState(null) // { received, total } while downloading a remote clip
@@ -174,6 +177,17 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
             ) : null
           })()}
         </div>
+
+        {/* Lives it belongs to (only once there is more than one Life) */}
+        {lives.length > 1 && (
+          <div className="detail-lives">
+            {lives.filter(l => lifeIdsOf(m).includes(l.id)).map(l => (
+              <span key={l.id} className="detail-life" style={{ '--life-color': lifeColor(l) }}>
+                <span className="life-dot" aria-hidden="true" />{lifeName(l, tl)}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Category */}
         <div className="detail-category">

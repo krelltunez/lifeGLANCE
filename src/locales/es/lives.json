@@ -36,5 +36,9 @@
   "gateFooter": "Cuando estén actualizados y hayan sincronizado, podrás añadir vidas aquí.",
   "back": "Atrás",
   "settingsLabel": "Vidas",
-  "settingsNote": "Líneas de tiempo para las personas de tu vida, junto a la tuya."
+  "settingsNote": "Líneas de tiempo para las personas de tu vida, junto a la tuya.",
+  "milestoneLivesLabel": "Vidas",
+  "atLeastOneLife": "Un hito necesita al menos una vida.",
+  "photoLabel": "Foto",
+  "addPhoto": "Añadir foto"
 }

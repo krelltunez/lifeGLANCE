@@ -6,10 +6,13 @@ import { dbGetPhoto } from '../../data/db'
 import { getMilestoneVisibility } from '../../utils/visibility'
 import { isIntegrationEnabled } from '../../lib/intentsTransport.js'
 import { pickPhotoNative, pickMediaNative } from '../../native/mediaPicker'
+import { ME_LIFE_ID, lifeIdsOf } from '../../data/lifeMembership'
+import { lifeName, lifeColor } from '../lives/lifeLabels'
 
-export default function AddMilestoneSheet({ onSave, onClose, existing, draft = null, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() }, drilledChapter = null }) {
+export default function AddMilestoneSheet({ onSave, onClose, existing, draft = null, categories = DEFAULT_CATEGORIES, chapters = [], visibilityPrecomputed = { endpointChapterNames: new Map() }, drilledChapter = null, lives = [], currentLifeId = ME_LIFE_ID }) {
   const { t } = useTranslation('milestone')
   const { t: tc } = useTranslation('common')
+  const { t: tl } = useTranslation('lives')
   const { i18n } = useTranslation()
   const months = monthNames(i18n.language, 'short')
   const isEdit = !!existing
@@ -56,6 +59,20 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
   }, [isEdit, month, day, year, precision, chapters])
 
   const [selectedChapterIds, setSelectedChapterIds] = React.useState(() => new Set())
+  // Lives (v5.0): which Lives the milestone belongs to. Offered only once there
+  // is more than one Life; a new milestone starts in the Life on screen. At
+  // least one stays selected.
+  const multiLife = lives.length > 1
+  const [selectedLifeIds, setSelectedLifeIds] = React.useState(
+    () => new Set(existing ? lifeIdsOf(existing) : [currentLifeId])
+  )
+  function toggleLife(id) {
+    setSelectedLifeIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) { if (next.size > 1) next.delete(id) } else next.add(id)
+      return next
+    })
+  }
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -224,6 +241,7 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
         url: url.trim(),
         mainTimelineVisibility: visibility,
         chapterIds: isEdit ? undefined : [...selectedChapterIds],
+        lifeIds: multiLife ? [...selectedLifeIds] : undefined,
         closeChapterIds: isEdit ? undefined : [...closeChapterIds],
         recurrence: (!isEdit && recurrence) ? 'annual' : (existing?.recurrence ?? null),
         recurrence_id: existing?.recurrence_id ?? null,
@@ -611,6 +629,29 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
             </div>
           )
         })()}
+
+        {/* Lives this milestone belongs to */}
+        {multiLife && (
+          <div className="sheet-field">
+            <label className="field-label">{tl('milestoneLivesLabel')}</label>
+            <div className="chapter-members-list">
+              {lives.map(l => (
+                <label key={l.id} className="chapter-member-row">
+                  <input
+                    type="checkbox"
+                    className="chapter-member-check"
+                    checked={selectedLifeIds.has(l.id)}
+                    disabled={selectedLifeIds.has(l.id) && selectedLifeIds.size === 1}
+                    title={selectedLifeIds.has(l.id) && selectedLifeIds.size === 1 ? tl('atLeastOneLife') : undefined}
+                    onChange={() => toggleLife(l.id)}
+                  />
+                  <span className="chapter-member-dot" style={{ background: lifeColor(l) }} />
+                  <span className="chapter-member-title">{lifeName(l, tl)}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Chapter membership suggestion */}
         {!isEdit && overlappingChapters.length > 0 && (

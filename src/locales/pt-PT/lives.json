@@ -36,5 +36,9 @@
   "gateFooter": "Depois que eles forem atualizados e sincronizarem, você poderá adicionar vidas aqui.",
   "back": "Voltar",
   "settingsLabel": "Vidas",
-  "settingsNote": "Linhas do tempo para as pessoas da sua vida, ao lado da sua."
+  "settingsNote": "Linhas do tempo para as pessoas da sua vida, ao lado da sua.",
+  "milestoneLivesLabel": "Vidas",
+  "atLeastOneLife": "Um marco deve pertencer a pelo menos uma vida.",
+  "photoLabel": "Foto",
+  "addPhoto": "Adicionar foto"
 }

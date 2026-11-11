@@ -3008,3 +3008,24 @@ select.settings-select {
 .lives-impact { font-size: 0.8rem; color: var(--text); line-height: 1.6; margin: 0 0 1rem; padding-left: 1.1rem; }
 .lives-error { font-size: 0.75rem; color: var(--rose); margin: 0.3rem 0 0.6rem; }
 .lives-delete { color: var(--rose); }
+
+/* Lives, Phase 3b: photos and the Lives a milestone belongs to. */
+.life-avatar {
+  display: inline-block;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1.5px var(--life-color, var(--amber));
+  flex-shrink: 0;
+}
+.lives-photo-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.detail-lives { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.4rem 0 0.6rem; }
+.detail-life {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--life-color) 50%, transparent);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  color: var(--text);
+}

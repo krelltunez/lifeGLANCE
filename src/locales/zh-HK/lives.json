@@ -36,5 +36,9 @@
   "gateFooter": "這些裝置更新並完成同步後，你就可以在此新增人生了。",
   "back": "返回",
   "settingsLabel": "人生",
-  "settingsNote": "為你生命中的人建立時間軸，與你自己的並列。"
+  "settingsNote": "為你生命中的人建立時間軸，與你自己的並列。",
+  "milestoneLivesLabel": "人生",
+  "atLeastOneLife": "里程碑至少要屬於一個人生。",
+  "photoLabel": "相片",
+  "addPhoto": "新增相片"
 }
