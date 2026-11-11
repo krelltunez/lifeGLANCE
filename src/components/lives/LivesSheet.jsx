@@ -195,7 +195,7 @@ function LifeForm({ life, edges, t, tc, language, onCancel, onClose, onSaved, on
   }
 
   return (
-    <form onSubmit={save}>
+    <form className="lives-form" onSubmit={save}>
       <div className="sheet-header">
         <span className="sheet-title">{life ? t('editTitle', { name: lifeName(life, t) }) : t('addTitle')}</span>
         <button type="button" className="sheet-close" onClick={onClose}>✕</button>
