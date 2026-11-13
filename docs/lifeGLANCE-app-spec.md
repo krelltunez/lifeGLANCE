@@ -202,7 +202,7 @@ history captures lives.
   `<lifeId>-photo`; with GLANCEvault on, uploaded and referenced by real hash
   (`photo_id`, `thumbnail_id`) only after the upload succeeds, and released when
   replaced, removed, or the Life is deleted. Without the vault they stay on the
-  device, like milestone photos. They are not in the JSON backup yet (Phase 5).
+  device, like milestone photos. The JSON backup carries them from Phase 5a.
 
 **Decided in Phase 4**
 
@@ -233,6 +233,50 @@ history captures lives.
   insert-only rows resolved in the adapter (newer `updated_at` wins; a tie goes
   to the larger canonical form), and a local copy that wins is re-pushed. This
   also fixes Life records as shipped in Phase 2b.
+
+**Decided in Phase 5a: the JSON backup**
+
+- **"Save backup" holds every Life**, read from the stores
+  (`src/data/backup.js`), never from what is on screen. (Before 5a it saved only
+  the milestones of the Life on screen, and Restore then deleted every other
+  Life's milestones.)
+- **Format 2** is the 4.x flat file plus `format: 2`, `exportedAt`,
+  `lifeRecords` (every Life; Me's carries its `birthDate` from the birthday
+  setting, for matching on import), `relationships`, and `lifePhotos` (Life id
+  to data URI, like `photos` for milestones).
+- **Restore replaces**, Lives and relationships included. Me is never deleted and
+  stays named Me; its birth date goes back to the birthday setting. A file with
+  no `lifeRecords` (4.x, or the oldest bare-array format) replaces milestones and
+  chapters and leaves Lives, their photos and relationships as they are.
+- **The gate:** while an older device has synced in the last 60 days, a file
+  that holds any Life but Me (in Life records, milestone memberships, chapters,
+  or relationships) is refused before anything changes, with the gate message.
+- **Unchanged from 4.x:** restore writes no tombstones and marks nothing but the
+  birthday for sync, so with sync on, a peer's copy can bring back what the
+  restore removed.
+
+**Decided before Phase 5b: import and merge, and sharing**
+
+- **Import and merge** sits next to Restore and reads the same file. A preview
+  lists each Life in the file: match it to one of yours, add it as new, or skip
+  it. Same Life id is matched automatically; otherwise a match is suggested only
+  when name and birth date both agree; any Life can be matched by hand.
+- **The exporter's Me** is never matched by id. It starts as Skip; adding it asks
+  for a name (their nickname, if set, filled in); it can be matched to your own
+  Me (your own export from another install).
+- **Merging:** a milestone you both have (same id) merges as sync merges it;
+  others are added; one that belongs only to skipped Lives is left out.
+  Chapters follow their Life. Relationships are unioned with Life ids remapped
+  to the matched Lives; exact duplicates (same from, to and type) are dropped.
+  Tombstones in the file are ignored: an import only adds.
+- **A matched Life:** your own fields win; the file fills only empty ones.
+- **Undo:** an import is not undoable and clears the undo history, as Restore
+  does. The preview, with its counts, is the safeguard.
+- **Share Lives…:** an export of chosen Lives only: their milestones (memberships
+  trimmed to the chosen Lives), chapters, photos, and the relationships between
+  them.
+- **Out of scope:** detecting duplicate milestones entered separately (different
+  ids) by both people.
 
 **OS surfaces are Me-only in v5.0**
 
@@ -486,7 +530,8 @@ when v5.0 ships, and takes `main` in periodically so it does not drift.
 | 3a | 5.0 | Life switcher, Lives sheet (list, editor, delete with impact, gate message), Settings entry, chrome tint, Life-named breadcrumb, new records in the current Life, per-Life `birthDate` / `deathDate` on screen. | Shared-milestone UI, Life photos, compare view, relationships, import. |
 | 3b | 5.0 | Shared-milestone UI (Lives chips on the milestone sheet and detail) with its own undo entries; Life photos. | Compare view, relationships, import. |
 | 4 | 5.0 | Relationship edges and the "relationship to Me" picker. | Any other relationship UI. |
-| 5 | 5.0 | Export/import with merge and the Life matching flow. | Real-time collaboration. |
+| 5a | 5.0 | JSON backup of every Life (Life records, relationships, Life photos); restore replaces them, behind the gate. | Import and merge, Share Lives. |
+| 5b | 5.0 | Import and merge with the Life matching preview; Share Lives (export of chosen Lives). | Real-time collaboration, duplicate-milestone detection. |
 | 6 | 5.0 | Read-only compare view, date-aligned, `deathDate` row ends. | Age-alignment (v5.1), editing in compare. |
 
 Cross-cutting costs every UI phase pays: 10 locales and 13 namespaces with

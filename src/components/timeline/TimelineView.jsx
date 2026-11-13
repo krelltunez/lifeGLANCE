@@ -19,16 +19,18 @@ import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS, applyRecurFilter } from '../../utils/timeline'
 import { expandAnnualDates } from '../../utils/recurrence'
-import { loadCategories, saveCategories } from '../../utils/colors'
+import { loadCategories } from '../../utils/colors'
 import { getMilestoneVisibility, precomputeEndpoints, filterChaptersByCategory } from '../../utils/visibility'
-import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones, uid } from '../../data/milestones'
+import { addMilestone, updateMilestone, deleteMilestone, uid } from '../../data/milestones'
+import { buildBackup, readBackup, restoreBackup } from '../../data/backup'
+import { MultipleLivesBlockedError } from '../../sync/lifeGate'
 import * as undoHistory from '../../data/undoHistory'
-import { listChapters, restoreChapters, createChapter, updateChapter, deleteChapter } from '../../data/chapters'
+import { createChapter, updateChapter, deleteChapter } from '../../data/chapters'
 import { writeMilestoneTombstone } from '../../sync/tombstones'
 import { getSyncEngine } from '../../sync/engine'
 import { dirtyBirthday } from '../../sync/dirty'
 import { readVaultConfig } from '../../sync/dbSync'
-import { uploadMilestoneMedia, releaseMilestoneMedia, retainMilestoneMedia, isRealBlobHash, fetchFullResBytes, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
+import { uploadMilestoneMedia, releaseMilestoneMedia, retainMilestoneMedia, isRealBlobHash, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
 import ChapterSheet from '../chapter/ChapterSheet'
 import CloudSyncModal from '../sync/CloudSyncModal'
 import SyncPassphraseModal from '../sync/SyncPassphraseModal'
@@ -53,22 +55,6 @@ import { lifeName, lifeColor } from '../lives/lifeLabels'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
 import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
 import { EVENTS } from '@glance-apps/intents'
-
-// A blob-backed photo slot carries no stored mime type (the encrypted bytes are
-// opaque). For a backup data-URI the declared mime matters — restore reads it
-// back from the header — so sniff the image type from the magic bytes rather than
-// mislabel it. Falls back to JPEG (the capture default) for anything unrecognized.
-function sniffImageMime(bytes) {
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg'
-  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png'
-  if (bytes.length >= 6 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return 'image/gif'
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
-  ) return 'image/webp'
-  return 'image/jpeg'
-}
 
 const ZOOM_RANK = { decades: 5, '30yr': 4, years: 3, months: 2, weeks: 1, custom: 3.5 }
 
@@ -186,7 +172,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const multiLife     = lives.length > 1
   const lifeBirthday  = currentLifeId === ME_LIFE_ID ? birthday : (currentLife.birthDate || '')
   const lifeDeath     = currentLife.deathDate || ''
-  const [livesSheet, setLivesSheet] = useState(null)   // null | 'list' | 'add'
+  const [livesSheet, setLivesSheet] = useState(null)   // null | 'list' | 'add' | 'restoreBlocked'
   const [canUndo,       setCanUndo]       = useState(false)
   const [canRedo,       setCanRedo]       = useState(false)
   const [chapterSheetOpen, setChapterSheetOpen] = useState(false)
@@ -1507,42 +1493,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   }
 
   // ── Backup ───────────────────────────────────────────────────────────────────
+  // Every Life's data, read from the stores (src/data/backup.js), so a backup
+  // made while another Life is on screen still holds everything.
   async function handleSaveBackup() {
-    // Collect photos as base64 data-URIs keyed by milestone id. A photo synced
-    // from another device lives only as a vault blob (photo_id is a real blob
-    // hash, no local copy), so fetch+decrypt those too — otherwise a backup made
-    // on the receiving device would silently omit every synced-in photo.
-    const photos = {}
-    for (const m of milestones) {
-      if (!m.has_photo) continue
-      try {
-        let bytes, mimeType
-        if (isRealBlobHash(m.photo_id)) {
-          const b = await fetchFullResBytes(m.photo_id)
-          if (b) { bytes = b; mimeType = sniffImageMime(b) }
-        } else {
-          const result = await dbGetPhoto(m.id)
-          if (result) { bytes = new Uint8Array(await result.blob.arrayBuffer()); mimeType = result.mimeType }
-        }
-        if (!bytes) continue
-        const b64 = btoa([...bytes].map(b => String.fromCharCode(b)).join(''))
-        photos[m.id] = `data:${mimeType};base64,${b64}`
-      } catch { /* skip unreadable photo */ }
-    }
-
-    const chapters = await listChapters()
-    const payload = {
-      milestones,
-      photos,
-      chapters,
-      categories: loadCategories(),
-      categoriesUpdatedAt: localStorage.getItem('lifeglance-categories-updated-at') || '',
-      // Settings worth preserving across a restore (mirrors the cloud-sync payload
-      // in sync/adapter.js, which already carried these).
-      birthday: localStorage.getItem('lifeglance-birthday') || '',
-      birthdayUpdatedAt: localStorage.getItem('lifeglance-birthday-updated-at') || '',
-    }
-    const json = JSON.stringify(payload, null, 2)
+    const json = JSON.stringify(await buildBackup(), null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const d    = new Date()
     const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
@@ -1623,75 +1577,26 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     const file = e.target.files[0]
     if (!file) return
     try {
-      const text   = await file.text()
-      const parsed = JSON.parse(text)
-
-      // Support legacy milestone-only format (plain array) and current format
-      // ({ milestones, photos, chapters }).  Backups with an 'eras' key instead of
-      // 'chapters' are from a pre-rename dev build and are not supported.
-      if (!Array.isArray(parsed) && Array.isArray(parsed.eras) && !Array.isArray(parsed.chapters)) {
-        throw new Error('This backup was created before the Chapters rename and cannot be imported. Please regenerate the backup from the app.')
-      }
-
-      const items    = Array.isArray(parsed) ? parsed : (parsed.milestones ?? parsed)
-      const photos   = (!Array.isArray(parsed) && parsed.photos) ? parsed.photos : {}
-      const chapters = (!Array.isArray(parsed) && Array.isArray(parsed.chapters)) ? parsed.chapters : []
-      const restoredCategories = (!Array.isArray(parsed) && Array.isArray(parsed.categories) && parsed.categories.length > 0)
-        ? parsed.categories : null
-      const restoredBirthday = (!Array.isArray(parsed) && typeof parsed.birthday === 'string' && parsed.birthday)
-        ? parsed.birthday : null
-
-      const restored = await restoreMilestones(items)
-      await restoreChapters(chapters)
-      if (restoredCategories) {
-        saveCategories(restoredCategories)
-        if (!Array.isArray(parsed) && parsed.categoriesUpdatedAt) {
-          localStorage.setItem('lifeglance-categories-updated-at', parsed.categoriesUpdatedAt)
-        }
-      }
-      if (restoredBirthday) {
-        localStorage.setItem('lifeglance-birthday', restoredBirthday)
-        localStorage.setItem('lifeglance-birthday-updated-at',
-          parsed.birthdayUpdatedAt || new Date().toISOString())
-        dirtyBirthday()
-        setBirthday(restoredBirthday)
+      const backup = readBackup(JSON.parse(await file.text()))
+      const restored = await restoreBackup(backup)
+      if (backup.categories) setCategories(backup.categories)
+      if (restored.birthday) {
+        setBirthday(restored.birthday)
         window.dispatchEvent(new Event('lifeglance:widget-refresh'))
       }
-
-      // Re-import photo blobs into the media store
-      for (const m of restored) {
-        const dataUri = photos[m.id]
-        if (!dataUri) continue
-        try {
-          const [header, b64] = dataUri.split(',')
-          const mimeType = header.match(/:(.*?);/)[1]
-          const raw      = atob(b64)
-          const arr      = new Uint8Array(raw.length)
-          for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
-          const blob = new Blob([arr], { type: mimeType })
-          await dbPutPhoto(m.id, blob, mimeType)
-          // Mark the milestone as having a photo now that the blob is stored
-          m.has_photo = true
-        } catch { /* malformed data-URI — skip */ }
-      }
-
-      // Persist any has_photo=true updates
-      for (const m of restored) {
-        if (m.has_photo) await dbPut(m)
-      }
-
-      setMilestones([...restored])
-      setChapters([...chapters])
-      // Restore replaced both stores outright; reload the app's full lists,
-      // which also hold Lives other than the one on screen.
+      // Restore replaced the stores outright: reload the app's full lists,
+      // Lives included.
       window.dispatchEvent(new Event('lifeglance:milestones-reload'))
-      if (restoredCategories) setCategories(restoredCategories)
+      window.dispatchEvent(new Event('lifeglance:lives-changed'))
       historyRef.current = undoHistory.createHistory()
       setCanUndo(false)
       setCanRedo(false)
     } catch (err) {
-      console.error('Restore failed:', err)
-      showToast(err.message || 'Restore failed. The backup file may be invalid.')
+      if (err instanceof MultipleLivesBlockedError) setLivesSheet('restoreBlocked')
+      else {
+        console.error('Restore failed:', err)
+        showToast(err.message || 'Restore failed. The backup file may be invalid.')
+      }
     }
     e.target.value = ''
   }

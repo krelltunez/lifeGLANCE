@@ -47,5 +47,6 @@
   "relationshipChild": "Enfant",
   "relationshipPartner": "Partenaire ou conjoint",
   "relationshipSibling": "Frère ou sœur",
-  "relationshipOther": "Autre"
+  "relationshipOther": "Autre",
+  "gateRestoreFooter": "Une fois qu'ils seront à jour et auront synchronisé, vous pourrez restaurer cette sauvegarde."
 }

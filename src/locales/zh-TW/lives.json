@@ -47,5 +47,6 @@
   "relationshipChild": "子女",
   "relationshipPartner": "伴侶或配偶",
   "relationshipSibling": "兄弟姊妹",
-  "relationshipOther": "其他"
+  "relationshipOther": "其他",
+  "gateRestoreFooter": "這些裝置更新並完成同步後，你就可以還原此備份了。"
 }

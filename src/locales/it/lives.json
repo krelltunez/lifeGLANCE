@@ -47,5 +47,6 @@
   "relationshipChild": "Figlio o figlia",
   "relationshipPartner": "Partner o coniuge",
   "relationshipSibling": "Fratello o sorella",
-  "relationshipOther": "Altro"
+  "relationshipOther": "Altro",
+  "gateRestoreFooter": "Quando saranno aggiornati e avranno sincronizzato, potrai ripristinare questo backup."
 }

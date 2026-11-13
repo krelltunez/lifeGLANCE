@@ -47,5 +47,6 @@
   "relationshipChild": "Hijo o hija",
   "relationshipPartner": "Pareja o cónyuge",
   "relationshipSibling": "Hermano o hermana",
-  "relationshipOther": "Otra"
+  "relationshipOther": "Otra",
+  "gateRestoreFooter": "Cuando estén actualizados y hayan sincronizado, podrás restaurar esta copia de seguridad."
 }
