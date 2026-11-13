@@ -316,7 +316,7 @@ function DeleteConfirm({ life, t, tc, impact, onCancel, onConfirm }) {
   )
 }
 
-function GatePanel({ t, footer, onBack, onClose }) {
+export function GatePanel({ t, footer, onBack, onClose }) {
   const writers = blockingWriters()
   return (
     <>

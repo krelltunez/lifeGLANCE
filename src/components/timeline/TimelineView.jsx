@@ -22,7 +22,7 @@ import { expandAnnualDates } from '../../utils/recurrence'
 import { loadCategories } from '../../utils/colors'
 import { getMilestoneVisibility, precomputeEndpoints, filterChaptersByCategory } from '../../utils/visibility'
 import { addMilestone, updateMilestone, deleteMilestone, uid } from '../../data/milestones'
-import { buildBackup, readBackup, restoreBackup } from '../../data/backup'
+import { buildBackup, readBackup, restoreBackup, SharedFileRestoreError } from '../../data/backup'
 import { MultipleLivesBlockedError } from '../../sync/lifeGate'
 import * as undoHistory from '../../data/undoHistory'
 import { createChapter, updateChapter, deleteChapter } from '../../data/chapters'
@@ -51,6 +51,8 @@ import { ME_LIFE_ID, newMilestoneLifeFields, newChapterLifeFields, lifeIdsOf } f
 import { setMilestoneLife } from '../../data/lives'
 import LifeSwitcher from '../lives/LifeSwitcher'
 import LivesSheet from '../lives/LivesSheet'
+import ImportSheet from '../lives/ImportSheet'
+import ShareSheet from '../lives/ShareSheet'
 import { lifeName, lifeColor } from '../lives/lifeLabels'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
 import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
@@ -173,6 +175,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const lifeBirthday  = currentLifeId === ME_LIFE_ID ? birthday : (currentLife.birthDate || '')
   const lifeDeath     = currentLife.deathDate || ''
   const [livesSheet, setLivesSheet] = useState(null)   // null | 'list' | 'add' | 'restoreBlocked'
+  const [importing, setImporting] = useState(null)     // a backup read for Import and merge
+  const [shareOpen, setShareOpen] = useState(false)
   const [canUndo,       setCanUndo]       = useState(false)
   const [canRedo,       setCanRedo]       = useState(false)
   const [chapterSheetOpen, setChapterSheetOpen] = useState(false)
@@ -1508,6 +1512,44 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     }
   }
 
+  // ── Lives: share and import (Phase 5b) ───────────────────────────────────────
+  async function handleShareLives(lifeIds) {
+    const json = JSON.stringify(await buildBackup({ lifeIds }), null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const d    = new Date()
+    const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    try {
+      await saveOrShareFile({ filename: `lifeglance-lives-${stamp}.json`, blob })
+      setShareOpen(false)
+    } catch (err) {
+      console.error('Share Lives failed:', err)
+      showToast(t('exportFailed'), 'error')
+    }
+  }
+
+  async function handleImportLivesFile(file) {
+    try {
+      setImporting(readBackup(JSON.parse(await file.text())))
+    } catch (err) {
+      console.error('Import failed:', err)
+      showToast(err.message || 'Import failed. The file may be invalid.')
+    }
+  }
+
+  // Import and merge wrote to the stores: reload the full lists and the Lives,
+  // and start the undo history over (an import cannot be undone).
+  function handleImportDone(counts) {
+    setImporting(null)
+    window.dispatchEvent(new Event('lifeglance:milestones-reload'))
+    window.dispatchEvent(new Event('lifeglance:lives-changed'))
+    setCategories(loadCategories())
+    historyRef.current = undoHistory.createHistory()
+    setCanUndo(false)
+    setCanRedo(false)
+    showToast(tl('importDone', { count: counts.milestonesAdded + counts.milestonesMerged }), 'success')
+    getSyncEngine()?.upload()
+  }
+
   // Categories changed in Settings (add / rename / recolor / delete). The list
   // itself is already persisted by Settings; here we re-sync the colour cached on
   // each milestone so an in-place recolour shows on the timeline immediately and
@@ -1593,6 +1635,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       setCanRedo(false)
     } catch (err) {
       if (err instanceof MultipleLivesBlockedError) setLivesSheet('restoreBlocked')
+      else if (err instanceof SharedFileRestoreError) showToast(tl('restoreSharedFile'))
       else {
         console.error('Restore failed:', err)
         showToast(err.message || 'Restore failed. The backup file may be invalid.')
@@ -2295,6 +2338,22 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           categories={categories}
         />
       )}
+      {importing && (
+        <ImportSheet
+          backup={importing}
+          lives={lives}
+          onClose={() => setImporting(null)}
+          onDone={handleImportDone}
+        />
+      )}
+      {shareOpen && (
+        <ShareSheet
+          lives={lives}
+          currentLifeId={currentLifeId}
+          onClose={() => setShareOpen(false)}
+          onShare={handleShareLives}
+        />
+      )}
       {livesSheet && (
         <LivesSheet
           lives={lives}
@@ -2401,6 +2460,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onOpenActivityLog={isIntegrationEnabled() ? () => { setSettingsOpen(false); setActivityLogOpen(true) } : undefined}
           onClose={() => setSettingsOpen(false)}
           onOpenLives={() => { setSettingsOpen(false); setLivesSheet('list') }}
+          onShareLives={lives.length > 1 ? () => { setSettingsOpen(false); setShareOpen(true) } : undefined}
+          onImportLivesFile={handleImportLivesFile}
         />
       )}
       {activityLogOpen && (
