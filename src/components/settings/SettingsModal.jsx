@@ -24,7 +24,7 @@ export default function SettingsModal({
   idleAutoStart, onIdleAutoStartChange,
   idleTimeoutMs, onIdleTimeoutChange, idleTimeoutOptions = [],
   birthday, onBirthdayChange,
-  onOpenLives,
+  onOpenLives, onImportLivesFile, onShareLives,
   milestones,
   onExportImage, onSaveBackup, onRestoreFile, onImportIcsFile,
   onOpenCloudSync,
@@ -49,6 +49,7 @@ export default function SettingsModal({
   const [persisted,  setPersisted]  = useState(null)
   const fileRef    = useRef(null)
   const icsFileRef = useRef(null)
+  const importLivesRef = useRef(null)
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -103,6 +104,14 @@ export default function SettingsModal({
     saveCategories(updated)
     onCategoriesChange(updated)
     setEditingId(null)
+  }
+
+  async function handleImportLivesChange(e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    onClose()
+    await onImportLivesFile(file)
   }
 
   async function handleFileChange(e) {
@@ -318,6 +327,18 @@ export default function SettingsModal({
               <button className="btn"
                 style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
                 onClick={onOpenLives}>{tl('manageLives')}</button>
+              {onShareLives && (
+                <button className="btn"
+                  style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                  onClick={onShareLives}>{tl('shareLives')}</button>
+              )}
+              {onImportLivesFile && (
+                <button className="btn"
+                  style={{ fontSize: '0.75rem', padding: '0.4rem 0.85rem' }}
+                  onClick={() => importLivesRef.current?.click()}>{tl('importMerge')}</button>
+              )}
+              <input ref={importLivesRef} type="file" accept=".json"
+                style={{ display: 'none' }} onChange={handleImportLivesChange} />
             </div>
           </div>
         )}

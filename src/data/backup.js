@@ -13,12 +13,16 @@
 //
 // Restore replaces. It is refused while an older device has synced in the last
 // 60 days if the file holds any Life but Me (the Lives gate, lifeGate.js).
+//
+// Share Lives (Phase 5b) writes the same format with `scope: 'shared'` and only
+// the chosen Lives. Such a file is for Import and merge; Restore refuses it, as
+// it would replace everything with a part.
 
 import { dbGetAll, dbPut, dbGetAllChapters, dbGetAllLives, dbPutLife, dbDeleteLife, dbGetPhoto, dbPutPhoto,
   dbGetAllRelationships, dbPutRelationship, dbDeleteRelationship, ME_LIFE_ID, ME_LIFE_RECORD } from './db'
 import { restoreMilestones } from './milestones'
 import { restoreChapters } from './chapters'
-import { lifeIdsOf, chapterLifeId } from './lifeMembership'
+import { lifeIdsOf, chapterLifeId, normalizeLifeOps } from './lifeMembership'
 import { loadCategories, saveCategories } from '../utils/colors'
 import { dirtyBirthday } from '../sync/dirty'
 import { canUseMultipleLives, blockingWriters, MultipleLivesBlockedError } from '../sync/lifeGate'
@@ -49,7 +53,7 @@ export function sniffImageMime(bytes) {
 const toDataUri = (bytes, mimeType) =>
   `data:${mimeType};base64,${btoa([...bytes].map(b => String.fromCharCode(b)).join(''))}`
 
-function fromDataUri(dataUri) {
+export function fromDataUri(dataUri) {
   const [header, b64] = dataUri.split(',')
   const mimeType = header.match(/:(.*?);/)[1]
   const raw = atob(b64)
@@ -74,12 +78,37 @@ async function photoDataUri(id, photoId) {
   return null
 }
 
-/** Everything a backup holds, read from the stores (never from React state). */
-export async function buildBackup() {
-  const [milestones, chapters, lives, relationships] = await Promise.all([
+export class SharedFileRestoreError extends Error {
+  constructor() { super('This file holds only some Lives. Use Import and merge to add them.') }
+}
+
+// For Share Lives: a milestone's memberships trimmed to the chosen Lives, or
+// null if it belongs to none of them.
+function trimToLives(m, keep) {
+  if (!lifeIdsOf(m).some(id => keep.has(id))) return null
+  if (!m.lifeOps) return m
+  const ops = Object.fromEntries(Object.entries(normalizeLifeOps(m)).filter(([id]) => keep.has(id)))
+  return { ...m, lifeOps: ops }
+}
+
+/**
+ * Everything a backup holds, read from the stores (never from React state).
+ * With `lifeIds` (Share Lives), only those Lives: their milestones (memberships
+ * trimmed to them), chapters, photos, and the relationships between them.
+ */
+export async function buildBackup({ lifeIds = null } = {}) {
+  const keep = lifeIds ? new Set(lifeIds) : null
+  let [milestones, chapters, lives, relationships] = await Promise.all([
     dbGetAll(), dbGetAllChapters(), dbGetAllLives(), dbGetAllRelationships(),
   ])
-  const birthday = localStorage.getItem(BIRTHDAY_KEY) || ''
+  if (keep) {
+    milestones = milestones.map(m => trimToLives(m, keep)).filter(Boolean)
+    chapters = chapters.filter(c => keep.has(chapterLifeId(c)))
+    lives = lives.filter(l => keep.has(l.id))
+    relationships = relationships.filter(e => keep.has(e.fromLifeId) && keep.has(e.toLifeId))
+  }
+  // Me's birthday travels only with Me.
+  const birthday = !keep || keep.has(ME_LIFE_ID) ? localStorage.getItem(BIRTHDAY_KEY) || '' : ''
 
   const photos = {}
   for (const m of milestones) {
@@ -99,6 +128,7 @@ export async function buildBackup() {
 
   return {
     format: BACKUP_FORMAT,
+    ...(keep ? { scope: 'shared' } : {}),
     exportedAt: new Date().toISOString(),
     milestones,
     photos,
@@ -108,7 +138,7 @@ export async function buildBackup() {
     // Settings worth preserving across a restore (mirrors the cloud-sync payload
     // in sync/adapter.js, which already carried these).
     birthday,
-    birthdayUpdatedAt: localStorage.getItem(BIRTHDAY_TS_KEY) || '',
+    birthdayUpdatedAt: birthday ? localStorage.getItem(BIRTHDAY_TS_KEY) || '' : '',
     lifeRecords,
     relationships,
     lifePhotos,
@@ -130,6 +160,7 @@ export function readBackup(parsed) {
   if (!Array.isArray(parsed.milestones)) throw new Error('This file is not a lifeGLANCE backup.')
   const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {})
   return {
+    shared: parsed.scope === 'shared',
     milestones: parsed.milestones,
     photos: obj(parsed.photos),
     chapters: Array.isArray(parsed.chapters) ? parsed.chapters : [],
@@ -157,6 +188,7 @@ export function backupHasOtherLives(backup) {
  * restored milestones and chapters, and the birthday if the file set one.
  */
 export async function restoreBackup(backup) {
+  if (backup.shared) throw new SharedFileRestoreError()
   if (backupHasOtherLives(backup) && !canUseMultipleLives()) {
     throw new MultipleLivesBlockedError(blockingWriters())
   }

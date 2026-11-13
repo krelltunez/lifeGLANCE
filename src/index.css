@@ -2982,6 +2982,8 @@ select.settings-select {
    layout: .sheet's gap only spaces its direct children. */
 .lives-form { display: flex; flex-direction: column; gap: 1.2rem; }
 .lives-form .lives-intro, .lives-form .lives-error { margin: 0; }
+.lives-import-who { font-size: 0.85rem; color: var(--text); display: flex; gap: 0.6rem; align-items: baseline; flex-wrap: wrap; }
+.lives-import-born { font-size: 0.7rem; color: var(--text-muted); }
 .lives-list { list-style: none; margin: 0 0 0.9rem; padding: 0; }
 .lives-list-item {
   display: flex;

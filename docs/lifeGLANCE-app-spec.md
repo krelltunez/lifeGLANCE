@@ -278,6 +278,30 @@ history captures lives.
 - **Out of scope:** detecting duplicate milestones entered separately (different
   ids) by both people.
 
+**Decided in Phase 5b** (`src/data/importMerge.js`, `ImportSheet.jsx`, `ShareSheet.jsx`)
+
+- **Where:** Settings, under Lives: "Share Lives" (shown once there is more than
+  one Life) and "Import and merge". Share starts with the Life on screen checked.
+- **A shared file** is format 2 with `scope: 'shared'`. Restore refuses it (it
+  would replace everything with a part) and points to Import and merge. Me's
+  birthday travels only when Me is shared. A shared file without Me shows no Me
+  row in the preview.
+- **Ids:** a Life added as new keeps the file's id, unless it is the exporter's
+  Me or the id is taken here; then it gets a new one.
+- **Milestones added** bring no one else's dayGLANCE links, media or vault
+  references; the photo comes along as a local copy. **Milestones merged** keep
+  this device's photo, media and links. Categories the added milestones use and
+  this device lacks are added; no others.
+- **Chapters** drop members this device does not end up with.
+- **Relationships:** an edge whose two ends map to the same Life is dropped.
+- **Matched to my own Me:** a birth date in the file fills the birthday setting
+  only if it is empty.
+- **Deleted here before:** a record this device has a tombstone for is written
+  dated now, so sync keeps it (a tombstone only beats an older record).
+- **Every write is marked for sync**, and the sync engine is asked to upload.
+- **The gate** refuses an import that adds to or matches any Life but Me while an
+  older device is active; importing into Me alone is allowed.
+
 **OS surfaces are Me-only in v5.0**
 
 Widgets, Spotlight, Siri / App Intents (AddMilestone), the share extension,
