@@ -12,7 +12,8 @@ import { saveLifePhoto, removeLifePhoto, forgetLifePhoto, useLifePhotoUrl } from
 import LifeAvatar from './LifeAvatar'
 
 // Lives: the list, the editor, and the delete confirmation, in one sheet.
-// `start` is 'list', 'add', or a Life id to edit. Adding a Life is refused
+// `start` is 'list', 'add', 'restoreBlocked' (a restore refused by the gate),
+// or a Life id to edit. Adding a Life is refused
 // while an older device has synced recently (lifeGate.js); the sheet then says
 // which devices to update instead of showing the form.
 //
@@ -24,7 +25,7 @@ import LifeAvatar from './LifeAvatar'
 export default function LivesSheet({ lives, milestones, chapters, start = 'list', onClose, onChanged, onDeleted }) {
   const { t, i18n } = useTranslation('lives')
   const { t: tc } = useTranslation('common')
-  const [view, setView] = useState(() => (start === 'list' || start === 'add' ? start : { edit: start }))
+  const [view, setView] = useState(() => (['list', 'add', 'restoreBlocked'].includes(start) ? start : { edit: start }))
   const [edges, setEdges] = useState(null)   // null until loaded
 
   useEffect(() => {
@@ -77,6 +78,8 @@ export default function LivesSheet({ lives, milestones, chapters, start = 'list'
         </div>
       </>
     )
+  } else if (view === 'restoreBlocked') {
+    body = <GatePanel t={t} footer={t('gateRestoreFooter')} onBack={onClose} onClose={onClose} />
   } else if (view === 'add' && !canUseMultipleLives()) {
     body = <GatePanel t={t} onBack={() => setView('list')} onClose={onClose} />
   } else if ((view === 'add' || view.edit) && edges) {
@@ -313,7 +316,7 @@ function DeleteConfirm({ life, t, tc, impact, onCancel, onConfirm }) {
   )
 }
 
-function GatePanel({ t, onBack, onClose }) {
+function GatePanel({ t, footer, onBack, onClose }) {
   const writers = blockingWriters()
   return (
     <>
@@ -325,7 +328,7 @@ function GatePanel({ t, onBack, onClose }) {
       <ul className="lives-impact">
         {writers.map(w => <li key={w.key}>{blockingDeviceLabel(w, t)}</li>)}
       </ul>
-      <p className="lives-intro">{t('gateFooter')}</p>
+      <p className="lives-intro">{footer ?? t('gateFooter')}</p>
       <div className="sheet-actions">
         <span />
         <div className="sheet-actions-right">

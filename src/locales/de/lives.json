@@ -47,5 +47,6 @@
   "relationshipChild": "Kind",
   "relationshipPartner": "Partner oder Ehepartner",
   "relationshipSibling": "Geschwister",
-  "relationshipOther": "Andere"
+  "relationshipOther": "Andere",
+  "gateRestoreFooter": "Sobald sie aktualisiert sind und synchronisiert haben, kannst du diese Sicherung wiederherstellen."
 }

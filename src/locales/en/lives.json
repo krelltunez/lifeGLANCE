@@ -47,5 +47,6 @@
   "relationshipChild": "Child",
   "relationshipPartner": "Partner or spouse",
   "relationshipSibling": "Sibling",
-  "relationshipOther": "Other"
+  "relationshipOther": "Other",
+  "gateRestoreFooter": "Once they are updated and have synced, you can restore this backup."
 }
