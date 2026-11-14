@@ -74,5 +74,18 @@
   "restoreSharedFile": "Ce fichier ne contient que certaines vies. Pour les ajouter, utilisez Importer et fusionner dans les Réglages, sous Vies.",
   "deleteSharedChapters": "{{count}} chapitre(s) partagé(s) resteront, sans {{name}}.",
   "chapterAtLeastOneLife": "Un chapitre doit appartenir à au moins une vie.",
-  "chapterMembersLeave": "{{count}} jalon(s) qui n'appartiennent à aucune de ces vies quitteront ce chapitre."
+  "chapterMembersLeave": "{{count}} jalon(s) qui n'appartiennent à aucune de ces vies quitteront ce chapitre.",
+  "compareLives": "Comparer des vies",
+  "compareTitle": "comparer des vies",
+  "compareChooseLives": "Vies à comparer",
+  "compareAtLeastTwo": "Il faut au moins deux vies pour comparer.",
+  "compareReadOnly": "Lecture seule. Échap pour revenir.",
+  "compareClose": "Retour à la frise",
+  "compareEmptyRow": "Rien à afficher pour l'instant",
+  "compareAge": "{{name}} : {{age}}",
+  "compareUnborn": "{{name}} : pas encore né(e)",
+  "compareAfterDeath": "{{name}} : après son décès",
+  "compareNoBirthDate": "{{name}} : pas de date de naissance",
+  "compareOpenDetail": "Détails",
+  "openInLife": "Ouvrir dans la frise de {{name}}"
 }

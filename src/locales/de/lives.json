@@ -74,5 +74,18 @@
   "restoreSharedFile": "Diese Datei enthält nur einige Leben. Um sie hinzuzufügen, nutze „Importieren und zusammenführen“ in den Einstellungen unter Leben.",
   "deleteSharedChapters": "{{count}} geteilte(s) Kapitel bleiben, ohne {{name}}.",
   "chapterAtLeastOneLife": "Ein Kapitel braucht mindestens ein Leben.",
-  "chapterMembersLeave": "{{count}} Meilenstein(e), die zu keinem dieser Leben gehören, verlassen dieses Kapitel."
+  "chapterMembersLeave": "{{count}} Meilenstein(e), die zu keinem dieser Leben gehören, verlassen dieses Kapitel.",
+  "compareLives": "Leben vergleichen",
+  "compareTitle": "Leben vergleichen",
+  "compareChooseLives": "Zu vergleichende Leben",
+  "compareAtLeastTwo": "Zum Vergleichen braucht es mindestens zwei Leben.",
+  "compareReadOnly": "Nur ansehen. Esc geht zurück.",
+  "compareClose": "Zurück zur Zeitleiste",
+  "compareEmptyRow": "Noch nichts zu zeigen",
+  "compareAge": "{{name}}: {{age}}",
+  "compareUnborn": "{{name}}: noch nicht geboren",
+  "compareAfterDeath": "{{name}}: nach dem Tod",
+  "compareNoBirthDate": "{{name}}: kein Geburtsdatum",
+  "compareOpenDetail": "Details",
+  "openInLife": "In der Zeitleiste von {{name}} öffnen"
 }

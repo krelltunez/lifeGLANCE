@@ -74,5 +74,18 @@
   "restoreSharedFile": "此檔案只包含部分人生。要新增它們，請使用設定中「人生」下的「匯入並合併」。",
   "deleteSharedChapters": "{{count}}個共享章節將保留，但不再屬於{{name}}。",
   "chapterAtLeastOneLife": "章節至少要屬於一個人生。",
-  "chapterMembersLeave": "不屬於這些人生的{{count}}個里程碑將離開此章節。"
+  "chapterMembersLeave": "不屬於這些人生的{{count}}個里程碑將離開此章節。",
+  "compareLives": "比較人生",
+  "compareTitle": "比較人生",
+  "compareChooseLives": "要比較的人生",
+  "compareAtLeastTwo": "至少需要兩個人生才能比較。",
+  "compareReadOnly": "唯讀。按 Esc 返回。",
+  "compareClose": "返回時間軸",
+  "compareEmptyRow": "暫無內容",
+  "compareAge": "{{name}}：{{age}}歲",
+  "compareUnborn": "{{name}}：尚未出生",
+  "compareAfterDeath": "{{name}}：已離世",
+  "compareNoBirthDate": "{{name}}：沒有出生日期",
+  "compareOpenDetail": "詳情",
+  "openInLife": "在{{name}}的時間軸中開啟"
 }

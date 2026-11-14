@@ -55,6 +55,7 @@ import LifeSwitcher from '../lives/LifeSwitcher'
 import LivesSheet from '../lives/LivesSheet'
 import ImportSheet from '../lives/ImportSheet'
 import ShareSheet from '../lives/ShareSheet'
+import CompareView from '../compare/CompareView'
 import { lifeName, lifeColor } from '../lives/lifeLabels'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
 import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
@@ -179,6 +180,28 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const [livesSheet, setLivesSheet] = useState(null)   // null | 'list' | 'add' | 'restoreBlocked'
   const [importing, setImporting] = useState(null)     // a backup read for Import and merge
   const [shareOpen, setShareOpen] = useState(false)
+  // Compare Lives (Phase 6a): read-only rows of several Lives. The chosen Lives
+  // start as every Life; ids no longer present are dropped.
+  const [comparing, setComparing]   = useState(false)
+  const [compareIds, setCompareIds] = useState(null)
+  const [compareDetail, setCompareDetail] = useState(null)   // { m, life }
+  const compareLiveIds = (compareIds ?? lives.map(l => l.id)).filter(id => lives.some(l => l.id === id))
+  const compareSelected = compareLiveIds.length >= 2 ? compareLiveIds : lives.map(l => l.id)
+  const birthDateOf = useCallback((l) => (l.id === ME_LIFE_ID ? birthday : l.birthDate), [birthday])
+  // The main timeline's category and recurrence filters, over every Life.
+  const compareMilestones = React.useMemo(
+    () => applyRecurFilter(filter.size === 0 ? allMilestones : allMilestones.filter(m => filter.has(m.category)), recurFilter),
+    [allMilestones, filter, recurFilter],
+  )
+  function toggleCompareLife(id) {
+    setCompareIds(() => {
+      const cur = compareSelected
+      if (cur.includes(id)) return cur.length > 2 ? cur.filter(x => x !== id) : cur
+      return lives.map(l => l.id).filter(x => x === id || cur.includes(x))
+    })
+  }
+  // Compare needs a second Life: it is off whenever there is only one.
+  const showCompare = comparing && lives.length > 1
   const [canUndo,       setCanUndo]       = useState(false)
   const [canRedo,       setCanRedo]       = useState(false)
   const [chapterSheetOpen, setChapterSheetOpen] = useState(false)
@@ -741,6 +764,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     handleUndo, handleRedo, canUndo, canRedo,
     clustering, setClustering,
     exitDrillIn, openChapterCreate,
+    comparing: showCompare, setComparing, multiLife, compareDetail, setCompareDetail,
   }
 
   useEffect(() => {
@@ -754,7 +778,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       }
       audio.init()   // unlock AudioContext on first keystroke (idempotent)
       const s = keyStateRef.current
-      const anyModal = s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen || s.kbdOpen || s.searchOpen || s.chapterSheetOpen
+      const anyModal = s.addOpen || !!s.detail || !!s.compareDetail || s.settingsOpen || s.helpOpen || s.kbdOpen || s.searchOpen || s.chapterSheetOpen
       const anyDrillIn = !!s.drilledChapter
 
       switch (e.key) {
@@ -800,13 +824,20 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           handleExportImage()
           break
         }
+        case 'v': case 'V': {
+          // Compare Lives, and back (Phase 6a).
+          if (anyModal || anyDrillIn || !s.multiLife) break
+          e.preventDefault()
+          s.setComparing(c => !c)
+          break
+        }
         case 'n': {
-          if (s.settingsOpen || !!s.detail) break
+          if (s.settingsOpen || !!s.detail || s.comparing) break   // compare is read-only
           if (!s.addOpen) { e.preventDefault(); setAddOpen(true) }
           break
         }
         case 'N': {
-          if (anyModal) break
+          if (anyModal || s.comparing) break
           e.preventDefault()
           s.openChapterCreate()
           break
@@ -914,6 +945,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             // If drilled in, fall through and exit drill-in after blurring the input.
           }
           if (s.detail)                { setDetail(null); break }
+          if (s.compareDetail)         { s.setCompareDetail(null); break }
           if (s.addOpen)               { s.closeSheet(); break }
           if (s.chapterSheetOpen)      { setChapterSheetOpen(false); setEditChapter(null); break }
           if (s.settingsOpen)          { setSettingsOpen(false); break }
@@ -922,6 +954,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           if (s.searchOpen)            { setSearchOpen(false); break }
           if (s.activityLogOpen)        { setActivityLogOpen(false); break }
           if (anyDrillIn)              { s.exitDrillIn(); break }
+          if (s.comparing)             { s.setComparing(false); break }
           break
         }
         default: break
@@ -1917,6 +1950,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                 onSwitch={handleSwitchLife}
                 onAddLife={() => setLivesSheet('add')}
                 onManage={() => setLivesSheet('list')}
+                onCompare={() => setComparing(true)}
               />
             )}
           </div>
@@ -2082,6 +2116,24 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
       {/* ── Body ───────────────────────────────────────────────────────────── */}
       <div className="timeline-body" ref={bodyRef}>
+        {showCompare && (
+          <CompareView
+            lives={lives}
+            selectedIds={compareSelected}
+            onToggleLife={toggleCompareLife}
+            milestones={compareMilestones}
+            chapters={allChapters}
+            categoryFilter={filter}
+            birthDateOf={birthDateOf}
+            zoom={zoom}
+            customHalfMs={customHalfMs}
+            viewMode={viewMode}
+            panMs={panMs}
+            onPanMs={setPanMs}
+            onMilestoneClick={(m, life) => setCompareDetail({ m, life })}
+            onClose={() => setComparing(false)}
+          />
+        )}
         {/* Watch-mode photo backdrop — sits behind the timeline (dimmed + Ken Burns) */}
         {idle.active && idlePhotoUrl && (
           <div className="idle-photo-layer" aria-hidden="true">
@@ -2089,7 +2141,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             <div className="idle-photo-scrim" />
           </div>
         )}
-        {!isEmpty && (
+        {!isEmpty && !showCompare && (
           <StatsPanel
             past={past} future={future}
             pastIdx={pastIdx} futureIdx={futureIdx}
@@ -2165,12 +2217,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
       {/* ── Bottom bar ─────────────────────────────────────────────────────── */}
       <div className="timeline-bottom">
-        <button className="add-milestone-btn" onClick={() => setAddOpen(true)}>
-          {ultraCompact ? t('addMilestoneShort') : t('addMilestone')}
-        </button>
-        <button className="add-chapter-btn" onClick={openChapterCreate}>
-          {ultraCompact ? t('addChapterShort') : t('addChapter')}
-        </button>
+        {/* Compare is read-only: no adding while it is on screen. */}
+        {!showCompare && (
+          <>
+            <button className="add-milestone-btn" onClick={() => setAddOpen(true)}>
+              {ultraCompact ? t('addMilestoneShort') : t('addMilestone')}
+            </button>
+            <button className="add-chapter-btn" onClick={openChapterCreate}>
+              {ultraCompact ? t('addChapterShort') : t('addChapter')}
+            </button>
+          </>
+        )}
 
         {presentCategories.length > 0 && (
           compactFilter ? (
@@ -2225,7 +2282,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             {t('onThisDay')}
           </button>
         )}
-        {hiddenMilestones.length > 0 && (
+        {hiddenMilestones.length > 0 && !showCompare && (
           <button className="today-btn" onClick={() => setHiddenListOpen(true)}>
             {t('hiddenCount', { count: hiddenMilestones.length })}
           </button>
@@ -2240,7 +2297,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           the bottom toolbar. Hidden while the idle/watch overlay is active. The
           styles ride along in a gated <style> so the WHOLE block — markup and CSS
           — is stripped from every non-Vercel build by the VITE_DEMO literal. */}
-      {import.meta.env.VITE_DEMO && demoLoaded && !idle.active && (
+      {import.meta.env.VITE_DEMO && demoLoaded && !idle.active && !showCompare && (
         <>
           <style>{`
             .demo-pill {
@@ -2382,6 +2439,19 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             window.dispatchEvent(new Event('lifeglance:milestones-reload'))
             getSyncEngine()?.upload()
           }}
+        />
+      )}
+      {compareDetail && (
+        <MilestoneDetail
+          milestone={compareDetail.m}
+          readOnly
+          onClose={() => setCompareDetail(null)}
+          onOpenInLife={() => { const id = compareDetail.life.id; setCompareDetail(null); setComparing(false); handleSwitchLife(id) }}
+          openInLifeLabel={tl('openInLife', { name: lifeName(compareDetail.life, tl) })}
+          birthday={birthDateOf(compareDetail.life) || ''}
+          deathDate={compareDetail.life.deathDate || ''}
+          lives={lives}
+          categories={categories}
         />
       )}
       {detail && (
