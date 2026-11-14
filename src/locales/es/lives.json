@@ -71,5 +71,8 @@
   "shareTitle": "Compartir vidas",
   "shareIntro": "Elige qué vidas van en el archivo. Solo se incluyen sus hitos, capítulos y fotos, y las relaciones entre ellas.",
   "shareButton": "Guardar archivo",
-  "restoreSharedFile": "Este archivo solo contiene algunas vidas. Para añadirlas, usa Importar y combinar en Ajustes, en Vidas."
+  "restoreSharedFile": "Este archivo solo contiene algunas vidas. Para añadirlas, usa Importar y combinar en Ajustes, en Vidas.",
+  "deleteSharedChapters": "{{count}} capítulo(s) compartido(s) se conservarán, sin {{name}}.",
+  "chapterAtLeastOneLife": "Un capítulo necesita al menos una vida.",
+  "chapterMembersLeave": "{{count}} hito(s) que no están en ninguna de estas vidas saldrán de este capítulo."
 }

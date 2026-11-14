@@ -50,7 +50,7 @@ import { LIFE_ID, BUNDLE_KINDS, bundleEntityId } from './entityIds.js'
 import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js'
 import { rowStamp, readRowStamp, noteWriter } from './writerStamp.js'
 import { recordWriter, LEGACY_VAULT } from './lifeGate.js'
-import { normalizeLifeOps } from '../data/lifeMembership.js'
+import { normalizeLifeOps, normalizeChapterLifeOps } from '../data/lifeMembership.js'
 import { ME_LIFE_ID } from '../data/db.js'
 
 export { LIFE_ID, BUNDLE_KINDS, bundleEntityId }
@@ -160,15 +160,26 @@ const presentMembers = (memberOps) =>
 // (concurrent edits to a chapter's scalar fields remain LWW — same accepted
 // caveat as milestones, out of Stage-2 scope); membership uses the LWW-element-
 // set above. updated_at becomes the max of the two.
+//
+// Which Lives the chapter belongs to (lifeOps, Lives v5.0) merges per Life by
+// the same rule, so sharing a chapter with Mom here and Dad there keeps both.
+// A side with neither lifeOps nor a pre-release `lifeId` belongs to Me only;
+// the merged record carries lifeOps only if either side had Lives, so
+// pre-Lives chapters are left as they were.
 export function mergeChapters(local, remote) {
   const newerScalars = ts(remote.updated_at) >= ts(local.updated_at) ? remote : local
   const memberOps = mergeMemberOps(normalizeMemberOps(local), normalizeMemberOps(remote))
-  return {
+  const merged = {
     ...newerScalars,
     memberOps,
     milestoneIds: presentMembers(memberOps),
     updated_at: ts(remote.updated_at) >= ts(local.updated_at) ? remote.updated_at : local.updated_at,
   }
+  if (local.lifeOps || remote.lifeOps || local.lifeId || remote.lifeId) {
+    merged.lifeOps = mergeMemberOps(normalizeChapterLifeOps(local), normalizeChapterLifeOps(remote))
+    delete merged.lifeId
+  }
+  return merged
 }
 
 // Merge two milestone versions (Lives v5.0). Every field but lifeOps is

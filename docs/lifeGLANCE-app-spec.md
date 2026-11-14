@@ -97,13 +97,16 @@ history captures lives.
   `life_id`. Two devices can each add or remove a Life from the same milestone,
   so the set must merge without one side overwriting the other: model it like
   Chapter membership (`milestoneIds` with `memberOps`, an LWW element set).
-- **Chapters belong to one Life** (proposed, see open question 6).
+- **Chapters can be shared by several Lives**, like milestones (decided before
+  Phase 6, replacing the one-Life rule of open question 6; see "Shared chapters").
 - **Categories are global**, shared by every Life. They stay where they are on
   the wire (`lives.default.categories`, `life:default:categories`).
 - **Where ownership lives on the wire: inside the records** (decided in Phase 1).
   - A milestone's Life set is a field of the milestone record (an LWW element
     set, like Chapter `memberOps`). No field means Me.
-  - A Chapter's Life is a `lifeId` field of the chapter record. No field means Me.
+  - A Chapter's Lives are a `lifeOps` field of the chapter record, the same LWW
+    element set as a milestone's. No field means Me. (A pre-release build used a
+    single `lifeId`; it is still read as that one Life.)
   - Life records and relationship edges are new vault row kinds, and new arrays
     (with their own tombstone maps) under `lives.default` in the file.
   - All file data stays under `lives.default`; there are no `lives.<lifeId>`
@@ -123,7 +126,8 @@ history captures lives.
       reading the same value.
     - Milestone: `lifeOps: { [lifeId]: { op: 'add'|'remove', at } }`. The set of
       Lives is derived on read (`lifeIdsOf`), not stored as a second field.
-    - Chapter: `lifeId`.
+    - Chapter: `lifeId` in Phase 2a; `lifeOps`, like a milestone, since shared
+      chapters (before Phase 6).
     - Vault: row kind `life`, bundle `life:default:lifeTombstones`. File:
       `lives.default.lifeRecords`, `lives.default.lifeTombstones`. Sync schema 2.
 - **Migration:** all existing milestones, chapters and the birthday attach to
@@ -194,7 +198,8 @@ history captures lives.
   (and shown on the detail view), only once there is more than one Life. A new
   milestone starts in the Life on screen; at least one stays checked. An edit
   writes one op per Life changed, adds before removes. Chapter suggestions on a
-  new milestone apply only if it stays in the Life on screen.
+  new milestone apply only if it stays in the Life on screen. (Since shared
+  chapters: to each chapter it shares a Life with.)
 - **Undo of such an edit** is a Life change, not a delete: the edit replaces
   the record in the timeline's list rather than dropping it, so the history
   diff records `lives: { add, remove }` and undo replays it per Life.
@@ -234,6 +239,28 @@ history captures lives.
   to the larger canonical form), and a local copy that wins is re-pushed. This
   also fixes Life records as shipped in Phase 2b.
 
+**Shared chapters (decided before Phase 6)**
+
+- **A chapter belongs to one or more Lives**: `lifeOps` on the chapter record,
+  merged per Life on both sync tiers (`mergeChapters`), as a milestone's are.
+  A chapter with no `lifeOps` belongs to Me and is left exactly as it was.
+- **Members:** a chapter holds any milestone that shares at least one Life with
+  it. A Me + Mom chapter may hold a milestone that is only Me's; each Life's
+  view shows only its own milestones. When a milestone leaves a Life, it leaves
+  the chapters it no longer shares a Life with. When a chapter leaves a Life,
+  the members that no longer fit leave it (the sheet says how many first).
+- **The chapter sheet** has the same Lives checklist as the milestone sheet once
+  there is a second Life; a new chapter starts in the Life on screen; at least
+  one stays checked. The members offered are those of the checked Lives. A
+  chapter's Lives are written only when they change.
+- **Chapter suggestions on a new milestone** apply to each chapter it shares a
+  Life with.
+- **Deleting a Life:** chapters only it has are deleted; shared ones lose it,
+  along with the milestones the deletion removed. The confirmation counts both.
+- **Backup, Share Lives and import** treat a chapter's Lives as a milestone's:
+  trimmed to the chosen Lives when sharing, mapped to the matched Lives on
+  import, and left out when none is chosen.
+
 **Decided in Phase 5a: the JSON backup**
 
 - **"Save backup" holds every Life**, read from the stores
@@ -266,7 +293,7 @@ history captures lives.
   Me (your own export from another install).
 - **Merging:** a milestone you both have (same id) merges as sync merges it;
   others are added; one that belongs only to skipped Lives is left out.
-  Chapters follow their Life. Relationships are unioned with Life ids remapped
+  Chapters follow their Lives. Relationships are unioned with Life ids remapped
   to the matched Lives; exact duplicates (same from, to and type) are dropped.
   Tombstones in the file are ignored: an import only adds.
 - **A matched Life:** your own fields win; the file fills only empty ones.
@@ -452,9 +479,8 @@ key and bundle while any older client is active, so their age labels stay right.
 3. ~~Relationship field shape?~~ **Resolved:** edges, single picker in v5.0.
 4. ~~Breadcrumb phrasing?~~ **Resolved:** "Mom › University".
 5. ~~Categories global or per-Life?~~ **Resolved:** global.
-6. **Chapters across Lives.** Proposed: a Chapter belongs to exactly one Life,
-   and may contain any milestone that belongs to that Life (including a shared
-   one). Confirm before Phase 2.
+6. ~~Chapters across Lives?~~ **Resolved:** first one Life per chapter (Phase 2a);
+   then shareable, like milestones, before Phase 6 ("Shared chapters").
 7. **Undo with Lives.** The new undo history records milestone deltas; with
    shared milestones, a delta can touch Life membership. Phase 2 must decide
    whether membership changes are undoable (proposed: yes, through the same
@@ -556,6 +582,7 @@ when v5.0 ships, and takes `main` in periodically so it does not drift.
 | 4 | 5.0 | Relationship edges and the "relationship to Me" picker. | Any other relationship UI. |
 | 5a | 5.0 | JSON backup of every Life (Life records, relationships, Life photos); restore replaces them, behind the gate. | Import and merge, Share Lives. |
 | 5b | 5.0 | Import and merge with the Life matching preview; Share Lives (export of chosen Lives). | Real-time collaboration, duplicate-milestone detection. |
+| 5c | 5.0 | Shared chapters: a chapter in several Lives, merged per Life on both tiers. | Compare view. |
 | 6 | 5.0 | Read-only compare view, date-aligned, `deathDate` row ends. | Age-alignment (v5.1), editing in compare. |
 
 Cross-cutting costs every UI phase pays: 10 locales and 13 namespaces with

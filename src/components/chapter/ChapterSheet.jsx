@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
 import { buildDateFromParts, dateFieldOrder, monthNames } from '../../utils/dates'
 import { DEFAULT_CATEGORIES } from '../../utils/colors'
+import { ME_LIFE_ID, chapterLifeIds, lifeIdsOf } from '../../data/lifeMembership'
+import { lifeName, lifeColor } from '../lives/lifeLabels'
 
 const CHAPTER_COLORS = [
   { hex: 'var(--amber)', label: 'amber'   },
@@ -38,8 +40,12 @@ function parseIso(iso) {
   }
 }
 
-export default function ChapterSheet({ onSave, onClose, onDelete, existing, milestones = [], categories = DEFAULT_CATEGORIES }) {
+// `milestones` is the full list (every Life's): a chapter may hold any
+// milestone that shares a Life with it, so the members offered follow the Lives
+// checked here (Lives v5.0). The checklist appears once there is a second Life.
+export default function ChapterSheet({ onSave, onClose, onDelete, existing, milestones: allMilestones = [], categories = DEFAULT_CATEGORIES, lives = [], currentLifeId = ME_LIFE_ID }) {
   const { t } = useTranslation('chapter')
+  const { t: tl } = useTranslation('lives')
   const { t: tc } = useTranslation('common')
   const { i18n } = useTranslation()
   const months = monthNames(i18n.language, 'short')
@@ -116,6 +122,25 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
   const [desc,           setDesc]           = useState(existing?.description ?? '')
   const [defVis,         setDefVis]         = useState(existing?.defaultMemberVisibility ?? 'shown')
   const [checkedIds,     setCheckedIds]     = useState(() => new Set(existing?.milestoneIds ?? []))
+  const [lifeIds,        setLifeIds]        = useState(() => new Set(existing ? chapterLifeIds(existing) : [currentLifeId]))
+  // The milestones that may join: those in at least one of the checked Lives.
+  const milestones = useMemo(
+    () => allMilestones.filter(m => lifeIdsOf(m).some(id => lifeIds.has(id))),
+    [allMilestones, lifeIds],
+  )
+  // Members that would leave because no checked Life holds them any more.
+  const leaving = useMemo(() => {
+    const byId = new Map(allMilestones.map(m => [m.id, m]))
+    return [...checkedIds].filter(id => byId.has(id) && !lifeIdsOf(byId.get(id)).some(l => lifeIds.has(l)))
+  }, [allMilestones, checkedIds, lifeIds])
+  function toggleLife(id) {
+    setLifeIds(prev => {
+      if (prev.has(id) && prev.size === 1) return prev
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
   const [confirmDelete,  setConfirmDelete]  = useState(false)
   const [dateError,      setDateError]      = useState(null)
   const [busy,           setBusy]           = useState(false)
@@ -213,7 +238,8 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
           category,
           description:            desc.trim(),
           defaultMemberVisibility: defVis,
-          milestoneIds:           [...checkedIds],
+          milestoneIds:           [...checkedIds].filter(id => !leaving.includes(id)),
+          lifeIds:                [...lifeIds],
         },
         existing,
       )
@@ -257,6 +283,30 @@ export default function ChapterSheet({ onSave, onClose, onDelete, existing, mile
             maxLength={80}
           />
         </div>
+
+        {/* Lives (v5.0): which Lives the chapter belongs to */}
+        {lives.length > 1 && (
+          <div className="sheet-field">
+            <label className="field-label">{tl('milestoneLivesLabel')}</label>
+            <div className="chapter-members-list">
+              {lives.map(l => (
+                <label key={l.id} className="chapter-member-row">
+                  <input
+                    type="checkbox"
+                    className="chapter-member-check"
+                    checked={lifeIds.has(l.id)}
+                    disabled={lifeIds.has(l.id) && lifeIds.size === 1}
+                    title={lifeIds.has(l.id) && lifeIds.size === 1 ? tl('chapterAtLeastOneLife') : undefined}
+                    onChange={() => toggleLife(l.id)}
+                  />
+                  <span className="chapter-member-dot" style={{ background: lifeColor(l) }} />
+                  <span className="chapter-member-title">{lifeName(l, tl)}</span>
+                </label>
+              ))}
+            </div>
+            {leaving.length > 0 && <div className="lives-intro">{tl('chapterMembersLeave', { count: leaving.length })}</div>}
+          </div>
+        )}
 
         {/* Date range */}
         <div className="sheet-field">

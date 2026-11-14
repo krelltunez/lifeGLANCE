@@ -47,8 +47,10 @@ import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
 import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
 import { readNewerWriter } from '../../sync/writerStamp.js'
-import { ME_LIFE_ID, newMilestoneLifeFields, newChapterLifeFields, lifeIdsOf } from '../../data/lifeMembership'
-import { setMilestoneLife } from '../../data/lives'
+import { ME_LIFE_ID, newMilestoneLifeFields, newChapterLifeFields, lifeIdsOf, chapterLifeIds } from '../../data/lifeMembership'
+
+const sameLives = (a, b) => [...a].sort().join() === [...(b ?? a)].sort().join()
+import { setMilestoneLife, chapterLivesUpdate } from '../../data/lives'
 import LifeSwitcher from '../lives/LifeSwitcher'
 import LivesSheet from '../lives/LivesSheet'
 import ImportSheet from '../lives/ImportSheet'
@@ -998,9 +1000,13 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             trackAsDayglanceGoal, applyToSeries, lifeIds, ...milestoneData } = data
     // Lives the milestone belongs to: the sheet's choice when it offers one,
     // else the Life on screen. Chapter suggestions are this Life's chapters, so
-    // they only apply if the milestone stays in it.
+    // each applies only if the milestone shares a Life with that chapter (a
+    // shared chapter may still take it after the Life on screen is unchecked).
     const newLives = lifeIds ?? [currentLifeId]
-    const chapterIds = newLives.includes(currentLifeId) ? chapterIdsIn : []
+    const chapterIds = (chapterIdsIn ?? []).filter(id => {
+      const ch = chapters.find(c => c.id === id)
+      return ch && chapterLifeIds(ch).some(l => newLives.includes(l))
+    })
     const newMediaType = mediaFile
       ? (mediaFile.type.startsWith('video/') ? 'video' : 'audio')
       : null
@@ -1287,6 +1293,11 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           description:            data.description,
           defaultMemberVisibility: data.defaultMemberVisibility,
           milestoneIds:           data.milestoneIds,
+          // Which Lives it belongs to: written only when that changed, so a
+          // chapter edited in Me alone keeps its pre-Lives shape.
+          ...(sameLives(chapterLifeIds(existing), data.lifeIds)
+            ? {}
+            : { lifeOps: chapterLivesUpdate(existing, data.lifeIds, allMilestones).lifeOps }),
         },
         existing,
       )
@@ -1295,7 +1306,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       if (drilledChapter?.id === existing.id) setDrilledChapter(updated)
     } else {
       const chapter = await createChapter({
-        ...newChapterLifeFields(currentLifeId),
+        ...newChapterLifeFields(data.lifeIds ?? [currentLifeId]),
         title:                  data.title,
         start:                  data.start,
         end:                    data.end,   // null for ongoing
@@ -2334,8 +2345,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onClose={closeChapterSheet}
           onDelete={handleChapterDelete}
           existing={editChapter}
-          milestones={milestones}
+          milestones={allMilestones}
           categories={categories}
+          lives={lives}
+          currentLifeId={currentLifeId}
         />
       )}
       {importing && (

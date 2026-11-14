@@ -71,5 +71,8 @@
   "shareTitle": "Partager des vies",
   "shareIntro": "Choisissez les vies à mettre dans le fichier. Seuls leurs jalons, chapitres et photos, et les relations entre elles, sont inclus.",
   "shareButton": "Enregistrer le fichier",
-  "restoreSharedFile": "Ce fichier ne contient que certaines vies. Pour les ajouter, utilisez Importer et fusionner dans les Réglages, sous Vies."
+  "restoreSharedFile": "Ce fichier ne contient que certaines vies. Pour les ajouter, utilisez Importer et fusionner dans les Réglages, sous Vies.",
+  "deleteSharedChapters": "{{count}} chapitre(s) partagé(s) resteront, sans {{name}}.",
+  "chapterAtLeastOneLife": "Un chapitre doit appartenir à au moins une vie.",
+  "chapterMembersLeave": "{{count}} jalon(s) qui n'appartiennent à aucune de ces vies quitteront ce chapitre."
 }

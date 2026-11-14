@@ -17,7 +17,7 @@ export function buildChapter({
   description               = '',
   defaultMemberVisibility   = 'shown',
   parentChapterId           = null,
-  lifeId                    = undefined,   // Lives (v5.0); left off for Me
+  lifeOps                   = undefined,   // Lives (v5.0); left off for Me alone
 }) {
   const now = new Date().toISOString()
   return {
@@ -42,7 +42,7 @@ export function buildChapter({
     memberOps:              {},
     created_at:             now,
     updated_at:             now,
-    ...(lifeId ? { lifeId } : {}),
+    ...(lifeOps ? { lifeOps } : {}),
   }
 }
 
@@ -93,6 +93,9 @@ export async function updateChapter(id, updates, existing) {
     id,
     updated_at: now,
   }
+  // A chapter written with lifeOps drops the single `lifeId` of a pre-release
+  // build (lifeMembership.js).
+  if ('lifeOps' in updates) delete chapter.lifeId
   // When the membership list is part of this edit, diff it against the prior
   // list so each added/removed member is stamped in memberOps for the merge.
   if ('milestoneIds' in updates) {
@@ -116,11 +119,11 @@ export async function addMilestoneToChapter(chapterId, milestoneId) {
   const chapter = await dbGetChapter(chapterId)
   if (!chapter) throw new Error(`Chapter not found: ${chapterId}`)
   if (chapter.milestoneIds.includes(milestoneId)) return chapter
-  // A chapter belongs to one Life and holds only milestones of that Life
-  // (shared ones included). A milestone not in the store yet is let through.
+  // A chapter holds only milestones that share a Life with it. A milestone not
+  // in the store yet is let through.
   const milestone = await dbGet(milestoneId)
   if (milestone && !canJoinChapter(milestone, chapter)) {
-    throw new Error(`Milestone ${milestoneId} is not in this chapter's Life`)
+    throw new Error(`Milestone ${milestoneId} is in none of this chapter's Lives`)
   }
   const now = new Date().toISOString()
   const updated = {

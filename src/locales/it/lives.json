@@ -71,5 +71,8 @@
   "shareTitle": "Condividi vite",
   "shareIntro": "Scegli quali vite mettere nel file. Sono inclusi solo i loro traguardi, capitoli e foto, e le relazioni tra loro.",
   "shareButton": "Salva file",
-  "restoreSharedFile": "Questo file contiene solo alcune vite. Per aggiungerle, usa Importa e unisci nelle Impostazioni, sotto Vite."
+  "restoreSharedFile": "Questo file contiene solo alcune vite. Per aggiungerle, usa Importa e unisci nelle Impostazioni, sotto Vite.",
+  "deleteSharedChapters": "{{count}} capitolo/i condiviso/i resteranno, senza {{name}}.",
+  "chapterAtLeastOneLife": "Un capitolo deve appartenere ad almeno una vita.",
+  "chapterMembersLeave": "{{count}} traguardo/i che non sono in nessuna di queste vite usciranno da questo capitolo."
 }

@@ -119,22 +119,69 @@ describe('which Lives a milestone belongs to', () => {
   })
 })
 
-describe('chapters belong to one Life', () => {
-  it("accepts a milestone of the chapter's Life, shared ones included, and refuses others", async () => {
-    const { ms, ch, lives, db } = await setup()
+describe('which Lives a chapter belongs to', () => {
+  it("accepts a milestone that shares a Life with the chapter, and refuses others", async () => {
+    const { ms, ch, lives, lm } = await setup()
     const mom = await lives.createLife({ name: 'Mom' })
-    const chapter = await ch.createChapter({ title: 'University', start: '2010-01-01', color: '#000' })
-    const momChapter = await ch.updateChapter(chapter.id, { lifeId: mom.id }, await db.dbGetChapter(chapter.id))
+    const momChapter = await ch.createChapter({ title: 'University', start: '2010-01-01', color: '#000', ...lm.newChapterLifeFields(mom.id) })
     const mine = await ms.addMilestone({ title: 'Mine', date: '2011-01-01' })
     const shared = await lives.addLifeToMilestone(await ms.addMilestone({ title: 'Shared', date: '2012-01-01' }), mom.id)
-    await expect(ch.addMilestoneToChapter(momChapter.id, mine.id)).rejects.toThrow(/not in this chapter's Life/)
+    await expect(ch.addMilestoneToChapter(momChapter.id, mine.id)).rejects.toThrow(/none of this chapter's Lives/)
     expect((await ch.addMilestoneToChapter(momChapter.id, shared.id)).milestoneIds).toEqual([shared.id])
   })
 
-  it('a chapter with no lifeId belongs to Me', async () => {
+  it('a chapter shared by Me and Mom holds a milestone of either, and shows in both', async () => {
+    const { ms, ch, lives, lm } = await setup()
+    const mom = await lives.createLife({ name: 'Mom' })
+    const c = await ch.createChapter({ title: 'Our house', start: '2010-01-01', color: '#000', ...lm.newChapterLifeFields(['me', mom.id]) })
+    const mine = await ms.addMilestone({ title: 'Mine', date: '2011-01-01' })
+    const hers = await ms.addMilestone({ title: 'Hers', date: '2011-01-01', ...lm.newMilestoneLifeFields(mom.id) })
+    await ch.addMilestoneToChapter(c.id, mine.id)
+    expect((await ch.addMilestoneToChapter(c.id, hers.id)).milestoneIds.sort()).toEqual([mine.id, hers.id].sort())
+    expect(lm.chapterLifeIds(c)).toEqual(['me', mom.id].sort())
+    for (const id of ['me', mom.id]) expect(lm.chaptersForLife([c], id)).toHaveLength(1)
+  })
+
+  it('a chapter with no Lives belongs to Me; a pre-release single lifeId is still read', async () => {
     const { lm } = await setup()
-    expect(lm.chapterLifeId({ id: 'c' })).toBe('me')
+    expect(lm.chapterLifeIds({ id: 'c' })).toEqual(['me'])
+    expect(lm.chapterLifeIds({ id: 'c', lifeId: 'mom' })).toEqual(['mom'])
     expect(lm.chaptersForLife([{ id: 'a' }, { id: 'b', lifeId: 'mom' }], 'me').map(c => c.id)).toEqual(['a'])
+  })
+
+  it('changing its Lives writes one op per Life, drops the old lifeId, and lets go of members that no longer fit', async () => {
+    const { ms, ch, lives, lm, db, dirtied } = await setup()
+    const mom = await lives.createLife({ name: 'Mom' })
+    const c = await ch.createChapter({ title: 'Our house', start: '2010-01-01', color: '#000', ...lm.newChapterLifeFields(['me', mom.id], '2026-01-01T00:00:00.000Z') })
+    const mine = await ms.addMilestone({ title: 'Mine', date: '2011-01-01' })
+    const hers = await ms.addMilestone({ title: 'Hers', date: '2011-01-01', ...lm.newMilestoneLifeFields(mom.id) })
+    await ch.addMilestoneToChapter(c.id, mine.id)
+    await ch.addMilestoneToChapter(c.id, hers.id)
+    await later()
+    const u = await lives.setChapterLife(await db.dbGetChapter(c.id), 'me', false)
+    expect(lm.chapterLifeIds(u)).toEqual([mom.id])
+    expect(u.lifeOps.me.op).toBe('remove')
+    expect(u.lifeOps[mom.id].at).toBe('2026-01-01T00:00:00.000Z')   // untouched
+    expect(u.milestoneIds).toEqual([hers.id])
+    expect(u.memberOps[mine.id].op).toBe('remove')
+    expect(dirtied).toContain(c.id)
+    await expect(lives.setChapterLife(u, mom.id, false)).rejects.toThrow(/at least one Life/)
+    const legacy = await ch.updateChapter(c.id, lives.chapterLivesUpdate({ ...u, lifeOps: undefined, lifeId: mom.id }, [mom.id, 'me'], []), { ...u, lifeId: mom.id })
+    expect(legacy).not.toHaveProperty('lifeId')
+    expect(lm.chapterLifeIds(legacy)).toEqual(['me', mom.id].sort())
+  })
+
+  it("a milestone that leaves a Life leaves only the chapters it no longer shares a Life with", async () => {
+    const { ms, ch, lives, lm, db } = await setup()
+    const mom = await lives.createLife({ name: 'Mom' })
+    const both = await ch.createChapter({ title: 'Both', start: '2010-01-01', color: '#000', ...lm.newChapterLifeFields(['me', mom.id]) })
+    const momOnly = await ch.createChapter({ title: 'Hers', start: '2010-01-01', color: '#000', ...lm.newChapterLifeFields(mom.id) })
+    const m = await lives.addLifeToMilestone(await ms.addMilestone({ title: 'Shared', date: '2011-01-01' }), mom.id)
+    await ch.addMilestoneToChapter(both.id, m.id)
+    await ch.addMilestoneToChapter(momOnly.id, m.id)
+    await lives.removeLifeFromMilestone(m, mom.id)
+    expect((await db.dbGetChapter(both.id)).milestoneIds).toEqual([m.id])
+    expect((await db.dbGetChapter(momOnly.id)).milestoneIds).toEqual([])
   })
 })
 
@@ -269,6 +316,7 @@ describe('new records in a Life', () => {
     const c = await ch.createChapter({ title: 'y', start: '2015-01-01', color: '#000', ...lm.newChapterLifeFields('me') })
     expect(m).not.toHaveProperty('lifeOps')
     expect(c).not.toHaveProperty('lifeId')
+    expect(c).not.toHaveProperty('lifeOps')
   })
 
   it('one made in another Life belongs to that Life only', async () => {
@@ -276,12 +324,12 @@ describe('new records in a Life', () => {
     const m = await ms.addMilestone({ title: 'x', date: '2015-06-01', ...lm.newMilestoneLifeFields('mom') })
     const c = await ch.createChapter({ title: 'y', start: '2015-01-01', color: '#000', ...lm.newChapterLifeFields('mom') })
     expect(lm.lifeIdsOf(m)).toEqual(['mom'])
-    expect(lm.chapterLifeId(c)).toBe('mom')
+    expect(lm.chapterLifeIds(c)).toEqual(['mom'])
   })
 })
 
 describe('what deleting a Life would do', () => {
-  it('counts milestones only it has, shared ones, and its chapters', async () => {
+  it('counts milestones and chapters only it has, and shared ones', async () => {
     const { lm } = await setup()
     const at = '2026-01-01T00:00:00.000Z'
     const milestones = [
@@ -289,9 +337,9 @@ describe('what deleting a Life would do', () => {
       { id: 'b', lifeOps: { mom: { op: 'add', at }, me: { op: 'add', at } } },
       { id: 'c' },
     ]
-    const chapters = [{ id: 'x', lifeId: 'mom' }, { id: 'y' }]
-    expect(lm.deleteLifeImpact('mom', milestones, chapters)).toEqual({ only: 1, shared: 1, chapters: 1 })
-    expect(lm.deleteLifeImpact('dad', milestones, chapters)).toEqual({ only: 0, shared: 0, chapters: 0 })
+    const chapters = [{ id: 'x', lifeId: 'mom' }, { id: 'y' }, { id: 'z', lifeOps: { mom: { op: 'add', at }, me: { op: 'add', at } } }]
+    expect(lm.deleteLifeImpact('mom', milestones, chapters)).toEqual({ only: 1, shared: 1, chapters: 1, chaptersShared: 1 })
+    expect(lm.deleteLifeImpact('dad', milestones, chapters)).toEqual({ only: 0, shared: 0, chapters: 0, chaptersShared: 0 })
   })
 })
 
@@ -323,5 +371,25 @@ describe('undo of an edit that moves a milestone off the Life on screen', () => 
     await later()
     await h.undo(hist)
     expect(lm.lifeIdsOf(await db.dbGet(m.id))).toEqual(['me'])
+  })
+})
+
+describe('deleting a Life with shared chapters', () => {
+  it('deletes the chapters only it has; shared ones stay, without it and without members that no longer fit', async () => {
+    const { ms, ch, lives, lm, db } = await setup()
+    const mom = await lives.createLife({ name: 'Mom' })
+    const hers = await ch.createChapter({ title: 'Hers', start: '2010-01-01', color: '#000', ...lm.newChapterLifeFields(mom.id) })
+    const ours = await ch.createChapter({ title: 'Ours', start: '2010-01-01', color: '#000', ...lm.newChapterLifeFields(['me', mom.id]) })
+    const mine = await ms.addMilestone({ title: 'Mine', date: '2011-01-01' })
+    const herM = await ms.addMilestone({ title: 'Her move', date: '2011-01-01', ...lm.newMilestoneLifeFields(mom.id) })
+    await ch.addMilestoneToChapter(ours.id, mine.id)
+    await ch.addMilestoneToChapter(ours.id, herM.id)
+    expect(lm.deleteLifeImpact(mom.id, await db.dbGetAll(), await db.dbGetAllChapters())).toMatchObject({ chapters: 1, chaptersShared: 1 })
+    const r = await lives.deleteLife(mom.id)
+    expect(r.deletedChapterIds).toEqual([hers.id])
+    expect(r.updatedChapters.map(c => c.id)).toEqual([ours.id])
+    const kept = await db.dbGetChapter(ours.id)
+    expect(lm.chapterLifeIds(kept)).toEqual(['me'])
+    expect(kept.milestoneIds).toEqual([mine.id])
   })
 })

@@ -6,7 +6,7 @@ import CloudSyncModal from './components/sync/CloudSyncModal'
 import SyncPassphraseModal from './components/sync/SyncPassphraseModal'
 import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
-import { ME_LIFE_ID, milestonesForLife, chaptersForLife, isInLife, chapterLifeId, applyScopedUpdate } from './data/lifeMembership'
+import { ME_LIFE_ID, milestonesForLife, chaptersForLife, isInLife, isChapterInLife, applyScopedUpdate } from './data/lifeMembership'
 import { loadLives } from './data/lives'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
 import { useDirectAccessSync } from './hooks/useDirectAccessSync'
@@ -122,7 +122,7 @@ export default function App() {
     [currentLifeId],
   )
   const setLifeChapters = useCallback(
-    (update) => setChapters(prev => applyScopedUpdate(prev, update, c => chapterLifeId(c) === currentLifeId)),
+    (update) => setChapters(prev => applyScopedUpdate(prev, update, c => isChapterInLife(c, currentLifeId))),
     [currentLifeId],
   )
 

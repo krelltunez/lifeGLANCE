@@ -22,7 +22,7 @@ import { dbGetAll, dbPut, dbGetAllChapters, dbGetAllLives, dbPutLife, dbDeleteLi
   dbGetAllRelationships, dbPutRelationship, dbDeleteRelationship, ME_LIFE_ID, ME_LIFE_RECORD } from './db'
 import { restoreMilestones } from './milestones'
 import { restoreChapters } from './chapters'
-import { lifeIdsOf, chapterLifeId, normalizeLifeOps } from './lifeMembership'
+import { lifeIdsOf, chapterLifeIds, normalizeLifeOps, normalizeChapterLifeOps } from './lifeMembership'
 import { loadCategories, saveCategories } from '../utils/colors'
 import { dirtyBirthday } from '../sync/dirty'
 import { canUseMultipleLives, blockingWriters, MultipleLivesBlockedError } from '../sync/lifeGate'
@@ -91,6 +91,15 @@ function trimToLives(m, keep) {
   return { ...m, lifeOps: ops }
 }
 
+// The same for a chapter.
+function trimChapterToLives(c, keep) {
+  if (!chapterLifeIds(c).some(id => keep.has(id))) return null
+  if (!c.lifeOps && !c.lifeId) return c
+  const { lifeId: _l, ...rest } = c
+  const ops = Object.fromEntries(Object.entries(normalizeChapterLifeOps(c)).filter(([id]) => keep.has(id)))
+  return { ...rest, lifeOps: ops }
+}
+
 /**
  * Everything a backup holds, read from the stores (never from React state).
  * With `lifeIds` (Share Lives), only those Lives: their milestones (memberships
@@ -103,7 +112,7 @@ export async function buildBackup({ lifeIds = null } = {}) {
   ])
   if (keep) {
     milestones = milestones.map(m => trimToLives(m, keep)).filter(Boolean)
-    chapters = chapters.filter(c => keep.has(chapterLifeId(c)))
+    chapters = chapters.map(c => trimChapterToLives(c, keep)).filter(Boolean)
     lives = lives.filter(l => keep.has(l.id))
     relationships = relationships.filter(e => keep.has(e.fromLifeId) && keep.has(e.toLifeId))
   }
@@ -180,7 +189,7 @@ export function backupHasOtherLives(backup) {
   if (backup.lifeRecords?.some(l => l?.id !== ME_LIFE_ID)) return true
   if (backup.relationships?.length) return true
   if (backup.milestones.some(m => lifeIdsOf(m).some(id => id !== ME_LIFE_ID))) return true
-  return backup.chapters.some(c => chapterLifeId(c) !== ME_LIFE_ID)
+  return backup.chapters.some(c => chapterLifeIds(c).some(id => id !== ME_LIFE_ID))
 }
 
 /**

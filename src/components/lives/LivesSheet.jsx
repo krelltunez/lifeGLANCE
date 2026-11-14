@@ -296,6 +296,7 @@ function DeleteConfirm({ life, t, tc, impact, onCancel, onConfirm }) {
     impact.only > 0 && t('deleteOnly', { count: impact.only, name }),
     impact.shared > 0 && t('deleteShared', { count: impact.shared, name }),
     impact.chapters > 0 && t('deleteChapters', { count: impact.chapters }),
+    impact.chaptersShared > 0 && t('deleteSharedChapters', { count: impact.chaptersShared, name }),
   ].filter(Boolean)
   return (
     <>
