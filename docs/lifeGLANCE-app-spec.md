@@ -261,6 +261,34 @@ history captures lives.
   trimmed to the chosen Lives when sharing, mapped to the matched Lives on
   import, and left out when none is chosen.
 
+**Decided in Phase 6a: the compare view** (`src/utils/compare.js`, `src/components/compare/CompareView.jsx`)
+
+- **Getting there:** "Compare Lives" in the Life switcher menu (only with a
+  second Life) and the `v` key; Esc or ✕ goes back. It takes the timeline's
+  place under the same header, so zoom, position and the category and
+  recurrence filters are shared with the main timeline.
+- **Choosing Lives:** a chip per Life above the rows; every Life starts on, and
+  the last two cannot be turned off.
+- **A row** per chosen Life, in the Lives' order: a line in the Life's colour
+  from its birth date (or its earliest milestone or chapter without one) to its
+  death date (with an end cap) or to today. Milestones are dots on the line with
+  their titles above and below where there is room; chapters are bars under it,
+  in up to three lanes. A shared milestone or chapter appears on every row it
+  belongs to. The visibility cascade is worked out per Life, with that Life's
+  chapters. A milestone after the death date is drawn, fainter, past the line.
+- **Ages:** hovering or focusing a milestone shows its date and every row's age
+  then ("not born yet", "after their death", "no birth date"). On touch the first
+  tap shows this, with a Details button.
+- **The detail is read-only:** no edit, delete or widget pins; "Open in
+  <Life>'s timeline" leaves compare and switches to that Life.
+- **Read-only throughout:** the add buttons, the `n` / `N` keys, the past/future
+  panels and the hidden-milestones list are off while comparing.
+- **The axis** is `x(time, row)` through `lifeOffsetMs(row, alignment)`, 0 for
+  every Life when date-aligned; age alignment (v5.1) adds an offset and an age
+  tick generator.
+- **Left for 6b:** opening a chapter from compare (with the breadcrumb back),
+  remembering the chosen Lives, and further phone layout work.
+
 **Decided in Phase 5a: the JSON backup**
 
 - **"Save backup" holds every Life**, read from the stores
@@ -583,7 +611,8 @@ when v5.0 ships, and takes `main` in periodically so it does not drift.
 | 5a | 5.0 | JSON backup of every Life (Life records, relationships, Life photos); restore replaces them, behind the gate. | Import and merge, Share Lives. |
 | 5b | 5.0 | Import and merge with the Life matching preview; Share Lives (export of chosen Lives). | Real-time collaboration, duplicate-milestone detection. |
 | 5c | 5.0 | Shared chapters: a chapter in several Lives, merged per Life on both tiers. | Compare view. |
-| 6 | 5.0 | Read-only compare view, date-aligned, `deathDate` row ends. | Age-alignment (v5.1), editing in compare. |
+| 6a | 5.0 | Compare view: rows per Life on a shared date axis, Life chips, ages on hover, read-only detail, shared zoom and filters. | Chapter drill-in from compare, remembered selection (6b); age alignment (v5.1); editing. |
+| 6b | 5.0 | Chapter drill-in from compare with the breadcrumb back; remembered selection; phone layout. | Age alignment (v5.1), editing in compare. |
 
 Cross-cutting costs every UI phase pays: 10 locales and 13 namespaces with
 parity tests (`src/locales.test.js` and friends), native string catalogs where

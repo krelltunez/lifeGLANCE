@@ -10,7 +10,7 @@ import LifeAvatar from './LifeAvatar'
 // The menu renders in a portal, fixed under the button: the header is its own
 // stacking context (z-index 10), so a menu inside it would sit under anything
 // layered above the header, such as the hosted demo's floating pill.
-export default function LifeSwitcher({ lives, currentLifeId, onSwitch, onAddLife, onManage }) {
+export default function LifeSwitcher({ lives, currentLifeId, onSwitch, onAddLife, onManage, onCompare }) {
   const { t } = useTranslation('lives')
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState(null)
@@ -73,6 +73,9 @@ export default function LifeSwitcher({ lives, currentLifeId, onSwitch, onAddLife
             </button>
           ))}
           <div className="life-switcher-sep" role="separator" />
+          {onCompare && lives.length > 1 && (
+            <button type="button" role="menuitem" className="life-switcher-item" onClick={pick(onCompare)}>{t('compareLives')}</button>
+          )}
           <button type="button" role="menuitem" className="life-switcher-item" onClick={pick(onAddLife)}>{t('addLife')}</button>
           <button type="button" role="menuitem" className="life-switcher-item" onClick={pick(onManage)}>{t('manageLives')}</button>
         </div>,

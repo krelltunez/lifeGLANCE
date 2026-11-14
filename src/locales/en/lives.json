@@ -74,5 +74,18 @@
   "restoreSharedFile": "This file holds only some Lives. To add them, use Import and merge in Settings, under Lives.",
   "deleteSharedChapters": "{{count}} shared chapter(s) will stay, without {{name}}.",
   "chapterAtLeastOneLife": "A chapter needs at least one Life.",
-  "chapterMembersLeave": "{{count}} milestone(s) in none of these Lives will leave this chapter."
+  "chapterMembersLeave": "{{count}} milestone(s) in none of these Lives will leave this chapter.",
+  "compareLives": "Compare Lives",
+  "compareTitle": "compare Lives",
+  "compareChooseLives": "Lives to compare",
+  "compareAtLeastTwo": "Compare needs at least two Lives.",
+  "compareReadOnly": "Read-only. Esc goes back.",
+  "compareClose": "Back to the timeline",
+  "compareEmptyRow": "Nothing to show yet",
+  "compareAge": "{{name}}: {{age}}",
+  "compareUnborn": "{{name}}: not born yet",
+  "compareAfterDeath": "{{name}}: after their death",
+  "compareNoBirthDate": "{{name}}: no birth date",
+  "compareOpenDetail": "Details",
+  "openInLife": "Open in {{name}}'s timeline"
 }

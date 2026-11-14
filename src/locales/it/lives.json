@@ -74,5 +74,18 @@
   "restoreSharedFile": "Questo file contiene solo alcune vite. Per aggiungerle, usa Importa e unisci nelle Impostazioni, sotto Vite.",
   "deleteSharedChapters": "{{count}} capitolo/i condiviso/i resteranno, senza {{name}}.",
   "chapterAtLeastOneLife": "Un capitolo deve appartenere ad almeno una vita.",
-  "chapterMembersLeave": "{{count}} traguardo/i che non sono in nessuna di queste vite usciranno da questo capitolo."
+  "chapterMembersLeave": "{{count}} traguardo/i che non sono in nessuna di queste vite usciranno da questo capitolo.",
+  "compareLives": "Confronta vite",
+  "compareTitle": "confronta vite",
+  "compareChooseLives": "Vite da confrontare",
+  "compareAtLeastTwo": "Per confrontare servono almeno due vite.",
+  "compareReadOnly": "Sola lettura. Esc per tornare.",
+  "compareClose": "Torna alla linea del tempo",
+  "compareEmptyRow": "Ancora niente da mostrare",
+  "compareAge": "{{name}}: {{age}}",
+  "compareUnborn": "{{name}}: non ancora nato/a",
+  "compareAfterDeath": "{{name}}: dopo la morte",
+  "compareNoBirthDate": "{{name}}: nessuna data di nascita",
+  "compareOpenDetail": "Dettagli",
+  "openInLife": "Apri nella linea del tempo di {{name}}"
 }

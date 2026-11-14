@@ -74,5 +74,18 @@
   "restoreSharedFile": "此文件只包含部分人生。要添加它们，请使用设置中“人生”下的“导入并合并”。",
   "deleteSharedChapters": "{{count}}个共享章节将保留，但不再属于{{name}}。",
   "chapterAtLeastOneLife": "章节至少要属于一个人生。",
-  "chapterMembersLeave": "不属于这些人生的{{count}}个里程碑将离开此章节。"
+  "chapterMembersLeave": "不属于这些人生的{{count}}个里程碑将离开此章节。",
+  "compareLives": "比较人生",
+  "compareTitle": "比较人生",
+  "compareChooseLives": "要比较的人生",
+  "compareAtLeastTwo": "至少需要两个人生才能比较。",
+  "compareReadOnly": "只读。按 Esc 返回。",
+  "compareClose": "返回时间线",
+  "compareEmptyRow": "暂无内容",
+  "compareAge": "{{name}}：{{age}}岁",
+  "compareUnborn": "{{name}}：尚未出生",
+  "compareAfterDeath": "{{name}}：已离世",
+  "compareNoBirthDate": "{{name}}：没有出生日期",
+  "compareOpenDetail": "详情",
+  "openInLife": "在{{name}}的时间线中打开"
 }

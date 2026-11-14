@@ -23,7 +23,9 @@ const readPins = () => {
   try { return JSON.parse(localStorage.getItem(PINS_KEY) || '{}') } catch { return {} }
 }
 
-export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, deathDate = '', lives = [], categories = [] }) {
+// `readOnly` (the compare view, Lives v5.0): no delete, edit or widget pins;
+// `onOpenInLife` offers the Life's own timeline instead.
+export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, deathDate = '', lives = [], categories = [], readOnly = false, onOpenInLife, openInLifeLabel }) {
   const { t, i18n } = useTranslation('milestone')
   const { t: tc } = useTranslation('common')
   const { t: tl } = useTranslation('lives')
@@ -280,6 +282,18 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
           </div>
         ) : (
           <>
+            {readOnly ? (
+              <div className="sheet-actions">
+                <span />
+                <div className="sheet-actions-right">
+                  {onOpenInLife && (
+                    <button className="btn" onClick={onOpenInLife} style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
+                      {openInLifeLabel}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (<>
             {canPin && showPinHelp && (
               <div className="detail-pin-help"
                 style={{ fontSize: '0.72rem', opacity: 0.72, lineHeight: 1.45, padding: '0 0 0.55rem' }}>
@@ -340,6 +354,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
               </button>
             </div>
           </div>
+          </>)}
           </>
         )}
       </div>

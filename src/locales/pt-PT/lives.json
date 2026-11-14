@@ -74,5 +74,18 @@
   "restoreSharedFile": "Este ficheiro tem só algumas vidas. Use Importar e mesclar em Ajustes, em Vidas, para as adicionar.",
   "deleteSharedChapters": "{{count}} capítulo(s) partilhado(s) continuarão, sem {{name}}.",
   "chapterAtLeastOneLife": "Um capítulo deve pertencer a pelo menos uma vida.",
-  "chapterMembersLeave": "{{count}} marco(s) que não estão em nenhuma dessas vidas sairão deste capítulo."
+  "chapterMembersLeave": "{{count}} marco(s) que não estão em nenhuma dessas vidas sairão deste capítulo.",
+  "compareLives": "Comparar vidas",
+  "compareTitle": "comparar vidas",
+  "compareChooseLives": "Vidas para comparar",
+  "compareAtLeastTwo": "Para comparar, são necessárias pelo menos duas vidas.",
+  "compareReadOnly": "Somente leitura. Esc para voltar.",
+  "compareClose": "Voltar à linha do tempo",
+  "compareEmptyRow": "Ainda não há nada para mostrar",
+  "compareAge": "{{name}}: {{age}}",
+  "compareUnborn": "{{name}}: ainda não tinha nascido",
+  "compareAfterDeath": "{{name}}: depois da morte",
+  "compareNoBirthDate": "{{name}}: sem data de nascimento",
+  "compareOpenDetail": "Detalhes",
+  "openInLife": "Abrir na linha do tempo de {{name}}"
 }
