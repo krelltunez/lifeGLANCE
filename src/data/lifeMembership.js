@@ -38,13 +38,35 @@ export const isShared = (milestone) => lifeIdsOf(milestone).length > 1
 
 export const milestonesForLife = (milestones, lifeId) => milestones.filter(m => isInLife(m, lifeId))
 
-// ── Which Life a chapter belongs to ─────────────────────────────────────────
+// ── Which Lives a chapter belongs to ────────────────────────────────────────
+// The same LWW element set as a milestone's (`lifeOps`). A chapter with no
+// lifeOps belongs to Me. Before chapters could be shared (a lives-v5 build that
+// never shipped), a chapter had a single `lifeId`; it is still read here, as
+// that one Life, and replaced by lifeOps on the chapter's next write.
 
-export const chapterLifeId = (chapter) => chapter?.lifeId ?? ME_LIFE_ID
-export const chaptersForLife = (chapters, lifeId) => chapters.filter(c => chapterLifeId(c) === lifeId)
+/** The chapter's lifeOps, with the implicit membership made explicit. */
+export function normalizeChapterLifeOps(chapter) {
+  if (chapter?.lifeOps && typeof chapter.lifeOps === 'object') return { ...chapter.lifeOps }
+  const at = chapter?.created_at ?? chapter?.updated_at ?? new Date(0).toISOString()
+  return { [chapter?.lifeId ?? ME_LIFE_ID]: { op: 'add', at } }
+}
 
-/** A chapter may hold any milestone of its own Life, shared ones included. */
-export const canJoinChapter = (milestone, chapter) => isInLife(milestone, chapterLifeId(chapter))
+/** The Lives a chapter belongs to, sorted; Me if none is present. */
+export function chapterLifeIds(chapter) {
+  if (!chapter?.lifeOps) return [chapter?.lifeId ?? ME_LIFE_ID]
+  const ids = presentLives(chapter.lifeOps)
+  return ids.length ? ids : [ME_LIFE_ID]
+}
+
+export const isChapterInLife = (chapter, lifeId) => chapterLifeIds(chapter).includes(lifeId)
+export const chaptersForLife = (chapters, lifeId) => chapters.filter(c => isChapterInLife(c, lifeId))
+
+/**
+ * A chapter may hold a milestone that shares at least one Life with it. (A
+ * Me + Mom chapter may hold a milestone that is only Me's; each Life's view
+ * shows only its own milestones.)
+ */
+export const canJoinChapter = (milestone, chapter) => chapterLifeIds(chapter).some(id => isInLife(milestone, id))
 
 
 // ── One Life's view of the full lists ───────────────────────────────────────
@@ -77,24 +99,42 @@ export function newMilestoneLifeFields(lifeIds, at = new Date().toISOString()) {
   return { lifeOps: Object.fromEntries(ids.map(id => [id, { op: 'add', at }])) }
 }
 
-/** The fields that put a new chapter in `lifeId`. Nothing for Me. */
-export function newChapterLifeFields(lifeId) {
-  return !lifeId || lifeId === ME_LIFE_ID ? {} : { lifeId }
+/**
+ * A record's lifeOps after setting its Lives to `lifeIds`: one op per Life
+ * that changes (dated `at`), every other op kept as it was. `ops` is the
+ * normalized current set (normalizeLifeOps / normalizeChapterLifeOps).
+ */
+export function setLivesOps(ops, lifeIds, at = new Date().toISOString()) {
+  const want = new Set(lifeIds)
+  const out = { ...ops }
+  for (const id of want) if (out[id]?.op !== 'add') out[id] = { op: 'add', at }
+  for (const id of presentLives(ops)) if (!want.has(id)) out[id] = { op: 'remove', at }
+  return out
+}
+
+/** The fields that put a new chapter in one Life or several. Nothing for Me alone. */
+export function newChapterLifeFields(lifeIds, at = new Date().toISOString()) {
+  return newMilestoneLifeFields(lifeIds, at)
 }
 
 // ── What deleting a Life would do ───────────────────────────────────────────
 
 /**
  * What deleteLife(lifeId) would delete and keep, for the confirmation:
- * milestones only this Life has (deleted), milestones it shares (kept, without
- * it), and its chapters (deleted).
+ * milestones and chapters only this Life has (deleted), and those it shares
+ * (kept, without it).
  */
 export function deleteLifeImpact(lifeId, milestones, chapters) {
-  let only = 0, shared = 0
+  let only = 0, shared = 0, chaptersOnly = 0, chaptersShared = 0
   for (const m of milestones) {
     if (!isInLife(m, lifeId)) continue
     if (lifeIdsOf(m).length === 1) only++
     else shared++
   }
-  return { only, shared, chapters: chaptersForLife(chapters, lifeId).length }
+  for (const c of chapters) {
+    if (!isChapterInLife(c, lifeId)) continue
+    if (chapterLifeIds(c).length === 1) chaptersOnly++
+    else chaptersShared++
+  }
+  return { only, shared, chapters: chaptersOnly, chaptersShared }
 }

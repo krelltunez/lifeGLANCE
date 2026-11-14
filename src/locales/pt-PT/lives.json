@@ -71,5 +71,8 @@
   "shareTitle": "Partilhar vidas",
   "shareIntro": "Escolha quais vidas vão no ficheiro. Só entram os marcos, capítulos e fotos delas, e as relações entre elas.",
   "shareButton": "Guardar ficheiro",
-  "restoreSharedFile": "Este ficheiro tem só algumas vidas. Use Importar e mesclar em Ajustes, em Vidas, para as adicionar."
+  "restoreSharedFile": "Este ficheiro tem só algumas vidas. Use Importar e mesclar em Ajustes, em Vidas, para as adicionar.",
+  "deleteSharedChapters": "{{count}} capítulo(s) partilhado(s) continuarão, sem {{name}}.",
+  "chapterAtLeastOneLife": "Um capítulo deve pertencer a pelo menos uma vida.",
+  "chapterMembersLeave": "{{count}} marco(s) que não estão em nenhuma dessas vidas sairão deste capítulo."
 }

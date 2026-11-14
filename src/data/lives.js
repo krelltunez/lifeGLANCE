@@ -4,7 +4,8 @@
 // Ownership lives inside the records:
 //   milestone.lifeOps  { [lifeId]: { op: 'add'|'remove', at } }  an LWW element
 //                      set, like chapter memberOps. No lifeOps means Me only.
-//   chapter.lifeId     the one Life a chapter belongs to. No lifeId means Me.
+//   chapter.lifeOps    the same set for a chapter. No lifeOps means Me only. A
+//                      chapter holds milestones that share a Life with it.
 // So every record written before Lives already belongs to Me, and nothing had
 // to be rewritten to introduce them.
 //
@@ -16,14 +17,14 @@
 // has synced in the last 60 days, createLife refuses, so no multi-Life data is
 // written that such a device would show as its own.
 
-import { dbGetAllLives, dbGetLife, dbPutLife, dbDeleteLife, dbGetAll, dbGetAllChapters, ME_LIFE_ID, ME_LIFE_RECORD } from './db'
+import { dbGetAllLives, dbGetLife, dbPutLife, dbDeleteLife, dbGetAll, dbGetChapter, dbGetAllChapters, ME_LIFE_ID, ME_LIFE_RECORD } from './db'
 import { uid, updateMilestone, deleteMilestone } from './milestones'
-import { deleteChapter, removeMilestoneFromChapter } from './chapters'
+import { deleteChapter, removeMilestoneFromChapter, updateChapter } from './chapters'
 import { dirtyBirthday, markDirty } from '../sync/dirty'
 import { getLifeTombstones, writeLifeTombstone } from '../sync/tombstones'
 import { deleteRelationshipsOf } from './relationships'
 import { canUseMultipleLives, blockingWriters, MultipleLivesBlockedError } from '../sync/lifeGate'
-import { normalizeLifeOps, lifeIdsOf, isInLife, chapterLifeId, presentLives } from './lifeMembership'
+import { normalizeLifeOps, lifeIdsOf, isInLife, presentLives, normalizeChapterLifeOps, chapterLifeIds, isChapterInLife, canJoinChapter, setLivesOps } from './lifeMembership'
 
 export { ME_LIFE_ID }
 
@@ -36,7 +37,7 @@ const BIRTHDAY_TS_KEY = 'lifeglance-birthday-updated-at'
 // them without an import cycle.
 export {
   normalizeLifeOps, lifeIdsOf, isInLife, isShared, milestonesForLife,
-  chapterLifeId, chaptersForLife, canJoinChapter,
+  normalizeChapterLifeOps, chapterLifeIds, isChapterInLife, chaptersForLife, canJoinChapter,
 } from './lifeMembership'
 
 // ── Changing a milestone's Lives ────────────────────────────────────────────
@@ -45,8 +46,8 @@ export {
  * Add a Life to a milestone, or remove one. Records a single op with its own
  * timestamp, never a rewrite of the whole set, so a concurrent change to a
  * different Life on another device survives the merge. Refuses to remove the
- * last Life. Removing a Life also takes the milestone out of that Life's
- * chapters, since a chapter only holds milestones of its own Life.
+ * last Life. Removing a Life also takes the milestone out of every chapter it
+ * no longer shares a Life with.
  */
 export async function setMilestoneLife(milestone, lifeId, present, { at = new Date().toISOString() } = {}) {
   const before = normalizeLifeOps(milestone)
@@ -58,12 +59,39 @@ export async function setMilestoneLife(milestone, lifeId, present, { at = new Da
   const updated = await updateMilestone(milestone.id, { lifeOps, color: milestone.color }, milestone)
   if (!present) {
     for (const c of await dbGetAllChapters()) {
-      if (chapterLifeId(c) === lifeId && c.milestoneIds?.includes(milestone.id)) {
+      if (c.milestoneIds?.includes(milestone.id) && !canJoinChapter(updated, c)) {
         await removeMilestoneFromChapter(c.id, milestone.id)
       }
     }
   }
   return updated
+}
+
+// ── Changing a chapter's Lives ──────────────────────────────────────────────
+
+/**
+ * The fields that set a chapter's Lives to `lifeIds`, for updateChapter: one
+ * op per Life changed, and the members that still share a Life with it (the
+ * others leave). `milestones` is the full list (every Life's).
+ */
+export function chapterLivesUpdate(chapter, lifeIds, milestones, at = new Date().toISOString()) {
+  if (!lifeIds.length) throw new Error('A chapter must belong to at least one Life')
+  const lifeOps = setLivesOps(normalizeChapterLifeOps(chapter), lifeIds, at)
+  const next = { ...chapter, lifeOps }
+  const byId = new Map(milestones.map(m => [m.id, m]))
+  const milestoneIds = (chapter.milestoneIds ?? []).filter(id => {
+    const m = byId.get(id)
+    return !m || canJoinChapter(m, next)   // an unknown member is left alone
+  })
+  return { lifeOps, milestoneIds }
+}
+
+/** Add a Life to a chapter, or remove one (refusing the last). */
+export async function setChapterLife(chapter, lifeId, present, { at = new Date().toISOString() } = {}) {
+  const current = chapterLifeIds(chapter)
+  const lifeIds = present ? [...new Set([...current, lifeId])] : current.filter(id => id !== lifeId)
+  const fields = chapterLivesUpdate(chapter, lifeIds, await dbGetAll(), at)
+  return updateChapter(chapter.id, fields, chapter)
 }
 
 export const addLifeToMilestone      = (m, lifeId, opts) => setMilestoneLife(m, lifeId, true, opts)
@@ -155,8 +183,10 @@ export { getLifeTombstones }
 
 /**
  * Delete a Life other than Me. Its milestones that belong to no other Life are
- * deleted; shared milestones only lose this Life. Its chapters are deleted,
- * and so is every relationship edge that touches it. Returns what changed so the caller can update its state.
+ * deleted; shared milestones only lose this Life. The same for chapters:
+ * those only this Life has are deleted, shared ones lose this Life. Every
+ * relationship edge that touches it is deleted. Returns what changed so the
+ * caller can update its state.
  */
 export async function deleteLife(id) {
   if (isMe(id)) throw new Error('The Me Life cannot be deleted')
@@ -173,10 +203,21 @@ export async function deleteLife(id) {
     }
   }
   const deletedChapterIds = []
+  const updatedChapters = []
   for (const c of await dbGetAllChapters()) {
-    if (chapterLifeId(c) !== id) continue
-    await deleteChapter(c.id)
-    deletedChapterIds.push(c.id)
+    if (!isChapterInLife(c, id)) continue
+    if (chapterLifeIds(c).length === 1) {
+      await deleteChapter(c.id)
+      deletedChapterIds.push(c.id)
+    } else {
+      // Shared: it stays, without this Life, and without the milestones just
+      // deleted. Re-read it: removing this Life from the milestones above may
+      // have changed its members.
+      const current = await dbGetChapter(c.id) ?? c
+      const fields = chapterLivesUpdate(current, chapterLifeIds(current).filter(x => x !== id), await dbGetAll(), at)
+      fields.milestoneIds = fields.milestoneIds.filter(mid => !deletedMilestoneIds.includes(mid))
+      updatedChapters.push(await updateChapter(c.id, fields, current))
+    }
   }
   const deletedRelationshipIds = await deleteRelationshipsOf(id, at)
   writeLifeTombstone(id, at)
@@ -184,5 +225,5 @@ export async function deleteLife(id) {
   // After the row is gone: the vault engine sees no local entity and pushes a
   // soft delete (the same order deleteMilestone uses).
   markDirty(id)
-  return { deletedMilestoneIds, updatedMilestones, deletedChapterIds, deletedRelationshipIds }
+  return { deletedMilestoneIds, updatedMilestones, deletedChapterIds, updatedChapters, deletedRelationshipIds }
 }

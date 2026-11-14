@@ -106,7 +106,9 @@ describe('importing', () => {
     expect(all.map(m => m.id).sort()).toEqual(['mom-only', 'shared'])
     for (const m of all) expect(s.lm.lifeIdsOf(m)).toEqual([momHere.id])
     const [chapter] = await s.db.dbGetAllChapters()
-    expect(chapter).toMatchObject({ lifeId: momHere.id, milestoneIds: ['mom-only'] })   // a member left out is dropped
+    expect(chapter).toMatchObject({ milestoneIds: ['mom-only'] })   // a member left out is dropped
+    expect(chapter).not.toHaveProperty('lifeId')                     // the file's pre-release lifeId, as lifeOps
+    expect(s.lm.chapterLifeIds(chapter)).toEqual([momHere.id])
   })
 
   it('adds the exporter\'s Me as a new Life with the name given, and remaps the relationships to it', async () => {
@@ -212,6 +214,31 @@ describe('importing', () => {
       .rejects.toBeInstanceOf(s.gate.MultipleLivesBlockedError)
     expect(await s.db.dbGetAll()).toEqual([])
     await expect(s.im.applyImport(file, { me: { action: 'match', targetId: 'me' }, momX: { action: 'skip' } })).resolves.toBeTruthy()
+  })
+})
+
+describe('shared chapters in a file', () => {
+  it('import maps a shared chapter to every chosen Life, and drops members that no longer fit', async () => {
+    const s = await setup()
+    const momHere = await s.lives.createLife({ name: 'Mom', birthDate: '1960-03-04' })
+    const file = sisterFile()
+    file.chapters = [{ id: 'ours', title: 'Our house', start: T1, end: null, color: '#fff', updated_at: T1,
+      lifeOps: ops({ me: T1, momX: T1 }), milestoneIds: ['ann-only', 'mom-only'] }]
+    await s.im.applyImport(s.backup.readBackup(file), { me: { action: 'skip' }, momX: { action: 'match', targetId: momHere.id } })
+    const [c] = await s.db.dbGetAllChapters()
+    expect(s.lm.chapterLifeIds(c)).toEqual([momHere.id])
+    expect(c.milestoneIds).toEqual(['mom-only'])
+  })
+
+  it('Share Lives trims a shared chapter to the chosen Lives, and leaves out a chapter of none of them', async () => {
+    const s = await setup()
+    const ch = await import('./chapters')
+    const mom = await s.lives.createLife({ name: 'Mom' })
+    await ch.createChapter({ title: 'Ours', start: '2010-01-01', color: '#000', ...s.lm.newChapterLifeFields(['me', mom.id]) })
+    await ch.createChapter({ title: 'Mine', start: '2010-01-01', color: '#000' })
+    const file = await s.backup.buildBackup({ lifeIds: [mom.id] })
+    expect(file.chapters.map(c => c.title)).toEqual(['Ours'])
+    expect(Object.keys(file.chapters[0].lifeOps)).toEqual([mom.id])
   })
 })
 

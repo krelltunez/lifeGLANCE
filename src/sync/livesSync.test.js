@@ -464,3 +464,48 @@ describe('relationship edges in the file tier', () => {
     }
   })
 })
+
+// ── Shared chapters ─────────────────────────────────────────────────────────
+
+describe("a chapter's Lives on both tiers", () => {
+  const chapter = (id, extra = {}) => ({ id, title: id, start: T1, end: null, color: '#fff', milestoneIds: [], memberOps: {}, created_at: T1, updated_at: T1, ...extra })
+  const lifeOps = (o) => Object.fromEntries(Object.entries(o).map(([id, [op, at]]) => [id, { op, at }]))
+
+  it('vault: Mom shared on one device and Dad on the other, both kept, and it settles', async () => {
+    const v = vault()
+    const a = await device(v, 'A'), b = await device(v, 'B')
+    a.store.chapters.put(chapter('c')); a.dirty.add('c')
+    await converge([a, b])
+    a.store.chapters.put(chapter('c', { updated_at: T2, lifeOps: lifeOps({ me: ['add', T1], mom: ['add', T2] }) })); a.dirty.add('c')
+    b.store.chapters.put(chapter('c', { updated_at: T3, lifeOps: lifeOps({ me: ['add', T1], dad: ['add', T3] }) })); b.dirty.add('c')
+    const rounds = await converge([a, b])
+    const { chapterLifeIds } = await import('../data/lifeMembership.js')
+    expect(chapterLifeIds(a.store.chapters.get('c'))).toEqual(['dad', 'me', 'mom'])
+    expect(a.store.chapters.get('c')).toEqual(b.store.chapters.get('c'))
+    expect(rounds).toBeLessThan(4)
+  })
+
+  it('vault: a pre-release single lifeId merges as that one Life, and is replaced by lifeOps', async () => {
+    const { mergeChapters } = await import('./dbAdapter.js')
+    const merged = mergeChapters(chapter('c', { lifeId: 'mom' }), chapter('c', { updated_at: T2, lifeOps: lifeOps({ mom: ['add', T1], me: ['add', T2] }) }))
+    expect(merged).not.toHaveProperty('lifeId')
+    expect(Object.keys(merged.lifeOps).sort()).toEqual(['me', 'mom'])
+  })
+
+  it('vault: a chapter with no Lives on either side stays exactly as it was', async () => {
+    const { mergeChapters } = await import('./dbAdapter.js')
+    expect(mergeChapters(chapter('c'), chapter('c'))).not.toHaveProperty('lifeOps')
+  })
+
+  it("file tier: merges a chapter's Lives per Life when both sides changed them", async () => {
+    const { mergePayloads } = await import('./adapter.js')
+    const { chapterLifeIds } = await import('../data/lifeMembership.js')
+    const l = chapter('c', { updated_at: T2, lifeOps: lifeOps({ me: ['add', T1], mom: ['add', T2] }) })
+    const r = chapter('c', { updated_at: T3, lifeOps: lifeOps({ me: ['add', T1], dad: ['add', T3] }) })
+    const a = mergePayloads(payload({ chapters: [l] }), payload({ chapters: [r] })).data
+    expect(chapterLifeIds(a.lives.default.chapters[0])).toEqual(['dad', 'me', 'mom'])
+    // Chapters without Lives keep the whole-record merge.
+    const plain = mergePayloads(payload({ chapters: [chapter('p', { title: 'old' })] }), payload({ chapters: [chapter('p', { title: 'new', updated_at: T2 })] })).data
+    expect(plain.lives.default.chapters[0]).toEqual(chapter('p', { title: 'new', updated_at: T2 }))
+  })
+})

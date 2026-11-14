@@ -24,7 +24,7 @@ import { dbGetAll, dbPut, dbGetAllChapters, dbPutChapter, dbGetAllLives, dbGetLi
   dbGetAllRelationships, dbPutRelationship, ME_LIFE_ID } from './db'
 import { uid } from './milestones'
 import { normalizeMemberOps } from './chapters'
-import { normalizeLifeOps, presentLives, chapterLifeId } from './lifeMembership'
+import { normalizeLifeOps, normalizeChapterLifeOps, presentLives, canJoinChapter } from './lifeMembership'
 import { mergeMilestones, mergeChapters, mergeMemberOps } from '../sync/dbAdapter'
 import { markDirty, dirtyBirthday } from '../sync/dirty'
 import { getMilestoneTombstones, getChapterTombstones, getRelationshipTombstones } from '../sync/tombstones'
@@ -78,10 +78,11 @@ function idMapOf(backup, decisions, localIds) {
   return map
 }
 
-// The file milestone's Lives, mapped. null when it belongs only to skipped Lives.
-function mapLifeOps(m, map) {
+// A file record's Lives (normalized lifeOps), mapped. null when it belongs only
+// to skipped Lives.
+function mapLifeOps(fileOps, map) {
   const out = {}
-  for (const [id, op] of Object.entries(normalizeLifeOps(m))) {
+  for (const [id, op] of Object.entries(fileOps)) {
     const to = map[id]
     if (!to) continue
     out[to] = out[to] ? mergeMemberOps({ [to]: out[to] }, { [to]: op })[to] : op
@@ -154,13 +155,12 @@ async function runImport(backup, decisions, { dryRun }) {
   // ── Milestones ──
   const localMs = new Map((await dbGetAll()).map(m => [m.id, m]))
   const mTomb = getMilestoneTombstones()
-  const imported = new Set()
+  const finalMs = new Map(localMs)   // every milestone as it ends up, for chapter members
   const usedCats = new Set()
   for (const fm of backup.milestones) {
     if (!fm?.id) continue
-    const ops = mapLifeOps(fm, map)
+    const ops = mapLifeOps(normalizeLifeOps(fm), map)
     if (!ops) { counts.milestonesLeftOut++; continue }
-    imported.add(fm.id)
     usedCats.add(fm.category)
     // Belonging only to Me, as a record with no lifeOps does: leave it that way.
     const onlyMe = !fm.lifeOps && Object.keys(ops).length === 1 && ops[ME_LIFE_ID]
@@ -175,6 +175,7 @@ async function runImport(backup, decisions, { dryRun }) {
         thumbnail_id: local.thumbnail_id, media_type: local.media_type, media_id: local.media_id })
       await dbPut(merged)
       markDirty(merged.id)
+      finalMs.set(merged.id, merged)
     } else {
       counts.milestonesAdded++
       if (dryRun) continue
@@ -191,6 +192,7 @@ async function runImport(backup, decisions, { dryRun }) {
       }
       await dbPut(m)
       markDirty(m.id)
+      finalMs.set(m.id, m)
     }
   }
   if (!dryRun) {
@@ -198,22 +200,26 @@ async function runImport(backup, decisions, { dryRun }) {
     if (add.length) saveCategories([...cats, ...add])
   }
 
-  // ── Chapters: follow their Life ──
+  // ── Chapters: follow their Lives ──
   const localCs = new Map((await dbGetAllChapters()).map(c => [c.id, c]))
   const cTomb = getChapterTombstones()
-  const present = new Set([...localMs.keys(), ...imported])
   for (const fc of backup.chapters ?? []) {
     if (!fc?.id) continue
-    const to = map[chapterLifeId(fc)]
-    if (!to) continue
+    const lifeOps = mapLifeOps(normalizeChapterLifeOps(fc), map)
+    if (!lifeOps) continue
     const local = localCs.get(fc.id)
     local ? counts.chaptersMerged++ : counts.chaptersAdded++
     if (dryRun) continue
-    // Members this device does not have (left out) are dropped.
-    const ops = Object.fromEntries(Object.entries(normalizeMemberOps(fc)).filter(([id]) => present.has(id)))
-    const { lifeId: _l, ...rest } = fc
-    const remapped = { ...rest, ...(to === ME_LIFE_ID ? {} : { lifeId: to }), memberOps: ops,
-      milestoneIds: Object.keys(ops).filter(id => ops[id].op === 'add') }
+    const onlyMe = !fc.lifeOps && !fc.lifeId && Object.keys(lifeOps).length === 1 && lifeOps[ME_LIFE_ID]
+    const { lifeId: _l, lifeOps: _o, ...rest } = fc
+    const target = onlyMe ? rest : { ...rest, lifeOps }
+    // Members this device does not end up with, or that share no Life with
+    // the chapter here, are dropped.
+    const memberOps = Object.fromEntries(Object.entries(normalizeMemberOps(fc)).filter(([id]) => {
+      const m = finalMs.get(id)
+      return m && canJoinChapter(m, target)
+    }))
+    const remapped = { ...target, memberOps, milestoneIds: Object.keys(memberOps).filter(id => memberOps[id].op === 'add') }
     const next = local ? mergeChapters(local, remapped) : freshIfTombstoned(remapped, cTomb, now)
     await dbPutChapter(next)
     markDirty(next.id)

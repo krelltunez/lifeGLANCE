@@ -71,5 +71,8 @@
   "shareTitle": "Share Lives",
   "shareIntro": "Choose which Lives go in the file. Only their milestones, chapters and photos, and the relationships between them, are included.",
   "shareButton": "Save file",
-  "restoreSharedFile": "This file holds only some Lives. To add them, use Import and merge in Settings, under Lives."
+  "restoreSharedFile": "This file holds only some Lives. To add them, use Import and merge in Settings, under Lives.",
+  "deleteSharedChapters": "{{count}} shared chapter(s) will stay, without {{name}}.",
+  "chapterAtLeastOneLife": "A chapter needs at least one Life.",
+  "chapterMembersLeave": "{{count}} milestone(s) in none of these Lives will leave this chapter."
 }

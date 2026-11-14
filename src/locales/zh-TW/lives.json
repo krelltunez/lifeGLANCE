@@ -71,5 +71,8 @@
   "shareTitle": "分享人生",
   "shareIntro": "選擇要放入檔案的人生。只包含它們的里程碑、章節、相片，以及它們之間的關係。",
   "shareButton": "儲存檔案",
-  "restoreSharedFile": "此檔案只包含部分人生。要新增它們，請使用設定中「人生」下的「匯入並合併」。"
+  "restoreSharedFile": "此檔案只包含部分人生。要新增它們，請使用設定中「人生」下的「匯入並合併」。",
+  "deleteSharedChapters": "{{count}}個共享章節將保留，但不再屬於{{name}}。",
+  "chapterAtLeastOneLife": "章節至少要屬於一個人生。",
+  "chapterMembersLeave": "不屬於這些人生的{{count}}個里程碑將離開此章節。"
 }

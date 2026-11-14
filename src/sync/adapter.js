@@ -3,7 +3,7 @@ import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js';
 import { dbGetAll, dbGetAllChapters, dbPut, dbDelete, dbPutChapter, dbDeleteChapter, dbGetAllLives, dbPutLife, dbDeleteLife, ME_LIFE_ID,
   dbGetAllRelationships, dbPutRelationship, dbDeleteRelationship } from '../data/db.js';
 import { getMilestoneTombstones, getChapterTombstones, getLifeTombstones, getRelationshipTombstones } from './tombstones.js';
-import { mergeMilestones } from './dbAdapter.js';
+import { mergeMilestones, mergeChapters } from './dbAdapter.js';
 import { recordWriter, legacyFileKey } from './lifeGate.js';
 import { WRITER_WINDOW_DAYS } from './writerStamp.js';
 import { loadCategories, saveCategories } from '../utils/colors.js';
@@ -246,8 +246,18 @@ export const mergePayloads = (local, remote, { fileKey = 'file' } = {}) => {
   // Relationship edges: whole-record LWW too.
   const { merged: mergedRelationships } = mergeArrayById(lr, rr, relationshipTombstones, null,
     { idField: 'id', timestampField: 'updated_at' });
-  const { merged: mergedChapters } = mergeArrayById(lc, rc, chapterTombstones, null,
+  const { merged: wholeChapters } = mergeArrayById(lc, rc, chapterTombstones, null,
     { idField: 'id', timestampField: 'updated_at' });
+  // A chapter both sides hold whose Lives changed: merge its Lives (and its
+  // members) per item, as the vault does (mergeChapters). Chapters without
+  // Lives keep the whole-record merge above, unchanged.
+  const localChById  = new Map(lc.map(c => [c.id, c]));
+  const remoteChById = new Map(rc.map(c => [c.id, c]));
+  const hasLives = (c) => c.lifeOps || c.lifeId;
+  const mergedChapters = wholeChapters.map(c => {
+    const l = localChById.get(c.id), r = remoteChById.get(c.id);
+    return (l && r && (hasLives(l) || hasLives(r))) ? mergeChapters(l, r) : c;
+  });
 
   // Last-writer-wins for birthday and categories using paired updatedAt timestamps
   const localBirthdayTs  = localLife.birthdayUpdatedAt  ? new Date(localLife.birthdayUpdatedAt).getTime()  : 0

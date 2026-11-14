@@ -71,5 +71,8 @@
   "shareTitle": "Leben teilen",
   "shareIntro": "Wähle, welche Leben in die Datei kommen. Nur ihre Meilensteine, Kapitel und Fotos sowie die Beziehungen zwischen ihnen werden aufgenommen.",
   "shareButton": "Datei speichern",
-  "restoreSharedFile": "Diese Datei enthält nur einige Leben. Um sie hinzuzufügen, nutze „Importieren und zusammenführen“ in den Einstellungen unter Leben."
+  "restoreSharedFile": "Diese Datei enthält nur einige Leben. Um sie hinzuzufügen, nutze „Importieren und zusammenführen“ in den Einstellungen unter Leben.",
+  "deleteSharedChapters": "{{count}} geteilte(s) Kapitel bleiben, ohne {{name}}.",
+  "chapterAtLeastOneLife": "Ein Kapitel braucht mindestens ein Leben.",
+  "chapterMembersLeave": "{{count}} Meilenstein(e), die zu keinem dieser Leben gehören, verlassen dieses Kapitel."
 }
