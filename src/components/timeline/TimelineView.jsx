@@ -49,6 +49,9 @@ import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
 import { readNewerWriter } from '../../sync/writerStamp.js'
 import { ME_LIFE_ID, newMilestoneLifeFields, newChapterLifeFields, lifeIdsOf, chapterLifeIds } from '../../data/lifeMembership'
 
+// Compare Lives: the Lives this device has switched off there (Phase 6b).
+const COMPARE_OFF_KEY = 'lifeglance-compare-off'
+
 const sameLives = (a, b) => [...a].sort().join() === [...(b ?? a)].sort().join()
 import { setMilestoneLife, chapterLivesUpdate } from '../../data/lives'
 import LifeSwitcher from '../lives/LifeSwitcher'
@@ -180,13 +183,16 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const [livesSheet, setLivesSheet] = useState(null)   // null | 'list' | 'add' | 'restoreBlocked'
   const [importing, setImporting] = useState(null)     // a backup read for Import and merge
   const [shareOpen, setShareOpen] = useState(false)
-  // Compare Lives (Phase 6a): read-only rows of several Lives. The chosen Lives
-  // start as every Life; ids no longer present are dropped.
+  // Compare Lives (Phase 6a): read-only rows of several Lives. This device
+  // remembers which Lives were switched off (Phase 6b), so a Life added later
+  // starts on; with fewer than two left on, every Life is shown.
   const [comparing, setComparing]   = useState(false)
-  const [compareIds, setCompareIds] = useState(null)
+  const [compareOff, setCompareOff] = useState(() => {
+    try { const v = JSON.parse(localStorage.getItem(COMPARE_OFF_KEY) || '[]'); return Array.isArray(v) ? v : [] } catch { return [] }
+  })
   const [compareDetail, setCompareDetail] = useState(null)   // { m, life }
-  const compareLiveIds = (compareIds ?? lives.map(l => l.id)).filter(id => lives.some(l => l.id === id))
-  const compareSelected = compareLiveIds.length >= 2 ? compareLiveIds : lives.map(l => l.id)
+  const compareOn = lives.map(l => l.id).filter(id => !compareOff.includes(id))
+  const compareSelected = compareOn.length >= 2 ? compareOn : lives.map(l => l.id)
   const birthDateOf = useCallback((l) => (l.id === ME_LIFE_ID ? birthday : l.birthDate), [birthday])
   // The main timeline's category and recurrence filters, over every Life.
   const compareMilestones = React.useMemo(
@@ -194,11 +200,32 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     [allMilestones, filter, recurFilter],
   )
   function toggleCompareLife(id) {
-    setCompareIds(() => {
-      const cur = compareSelected
-      if (cur.includes(id)) return cur.length > 2 ? cur.filter(x => x !== id) : cur
-      return lives.map(l => l.id).filter(x => x === id || cur.includes(x))
-    })
+    const on = compareSelected.includes(id)
+    if (on && compareSelected.length <= 2) return   // at least two stay on
+    const off = on ? [...compareOff.filter(x => x !== id), id] : compareOff.filter(x => x !== id)
+    setCompareOff(off)
+    try { localStorage.setItem(COMPARE_OFF_KEY, JSON.stringify(off)) } catch { /* not remembered */ }
+  }
+  // Opening a chapter from compare (Phase 6b): it opens in that Life's own
+  // timeline, drilled in; leaving the chapter returns to compare, with the Life
+  // that was on screen before.
+  const [drillFromCompare, setDrillFromCompare] = useState(null)   // { lifeId } | null
+  const drillFromCompareRef = useRef(null)
+  const compareSwitchRef = useRef(null)   // the Life a chapter from compare switched to
+  function handleCompareChapter(chapter, life) {
+    // CompareView hands back the display copy (an ongoing chapter given the
+    // death date as its end): drill into the stored chapter.
+    const stored = allChapters.find(c => c.id === chapter.id) ?? chapter
+    const back = { lifeId: currentLifeId }
+    drillFromCompareRef.current = back
+    setDrillFromCompare(back)
+    setComparing(false)
+    if (life.id !== currentLifeId) {
+      // This switch must not end the drill-in it is part of (see below).
+      compareSwitchRef.current = life.id
+      onSwitchLife(life.id)
+    }
+    handleChapterClick(stored)
   }
   // Compare needs a second Life: it is off whenever there is only one.
   const showCompare = comparing && lives.length > 1
@@ -744,7 +771,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     historyRef.current = undoHistory.createHistory()
     setCanUndo(false)
     setCanRedo(false)
-    if (drilledChapter) exitDrillIn(true)
+    // Opening a chapter from compare switches to its Life and drills in at once.
+    const fromCompare = compareSwitchRef.current === currentLifeId
+    compareSwitchRef.current = null
+    if (drilledChapter && !fromCompare) exitDrillIn(true)
   }, [currentLifeId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSwitchLife(id) {
@@ -1413,6 +1443,14 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       }
       setDrilledChapter(null)
       setZoomAnim('')
+      // Opened from compare: go back there, with the Life on screen before.
+      const back = drillFromCompareRef.current
+      if (back) {
+        drillFromCompareRef.current = null
+        setDrillFromCompare(null)
+        onSwitchLife(back.lifeId)
+        setComparing(true)
+      }
     }
     if (immediate) { restore(); return }
     audio.playDrillOut()
@@ -1911,11 +1949,22 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         {drilledChapter ? (
           <div className="drill-breadcrumb" style={{ '--drill-color': drilledChapter.color }}>
             <div className="drill-breadcrumb-nav">
-              <button className="drill-breadcrumb-life" onClick={() => exitDrillIn()}>
-                {multiLife
-                  ? <span className="drill-breadcrumb-lifename">{lifeName(currentLife, tl)}</span>
-                  : <><span className="logo-life">life</span><span className="logo-glance">GLANCE</span></>}
-              </button>
+              {drillFromCompare ? (
+                // Opened from compare: "Compare › Mom › Lisbon", back to compare.
+                <>
+                  <button className="drill-breadcrumb-life" onClick={() => exitDrillIn()}>
+                    <span className="drill-breadcrumb-lifename">{tl('compareCrumb')}</span>
+                  </button>
+                  <span className="drill-breadcrumb-sep">›</span>
+                  <span className="drill-breadcrumb-lifename">{lifeName(currentLife, tl)}</span>
+                </>
+              ) : (
+                <button className="drill-breadcrumb-life" onClick={() => exitDrillIn()}>
+                  {multiLife
+                    ? <span className="drill-breadcrumb-lifename">{lifeName(currentLife, tl)}</span>
+                    : <><span className="logo-life">life</span><span className="logo-glance">GLANCE</span></>}
+                </button>
+              )}
               <span className="drill-breadcrumb-sep">›</span>
               <TypewriterText
                 key={drilledChapter.id}
@@ -2131,6 +2180,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             panMs={panMs}
             onPanMs={setPanMs}
             onMilestoneClick={(m, life) => setCompareDetail({ m, life })}
+            onChapterClick={handleCompareChapter}
             onClose={() => setComparing(false)}
           />
         )}

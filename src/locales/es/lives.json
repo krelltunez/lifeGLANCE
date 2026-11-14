@@ -87,5 +87,6 @@
   "compareAfterDeath": "{{name}}: después de su muerte",
   "compareNoBirthDate": "{{name}}: sin fecha de nacimiento",
   "compareOpenDetail": "Detalles",
-  "openInLife": "Abrir en la línea de tiempo de {{name}}"
+  "openInLife": "Abrir en la línea de tiempo de {{name}}",
+  "compareCrumb": "Comparar"
 }

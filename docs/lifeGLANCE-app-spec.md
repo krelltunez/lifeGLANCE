@@ -286,8 +286,20 @@ history captures lives.
 - **The axis** is `x(time, row)` through `lifeOffsetMs(row, alignment)`, 0 for
   every Life when date-aligned; age alignment (v5.1) adds an offset and an age
   tick generator.
-- **Left for 6b:** opening a chapter from compare (with the breadcrumb back),
-  remembering the chosen Lives, and further phone layout work.
+- **Left for 6b:** opening a chapter from compare (with the breadcrumb back) and
+  remembering the chosen Lives. Phone layout work moved to a layout check once
+  every phase is done.
+
+**Decided in Phase 6b**
+
+- **A chapter in compare** opens in that Life's own timeline, drilled in. The
+  breadcrumb reads "Compare › Mom › Our house"; the Compare crumb, ✕, Esc or the
+  chapter band leave the chapter and return to compare, at the same zoom and
+  position, with the Life that was on screen before. (A Life switch normally
+  ends a drill-in; the switch made by this step does not.)
+- **The chosen Lives are remembered** on this device (`lifeglance-compare-off`,
+  the Lives switched off, so a Life added later starts on). Not synced. With
+  fewer than two left on, every Life is shown.
 
 **Decided in Phase 5a: the JSON backup**
 
@@ -612,7 +624,8 @@ when v5.0 ships, and takes `main` in periodically so it does not drift.
 | 5b | 5.0 | Import and merge with the Life matching preview; Share Lives (export of chosen Lives). | Real-time collaboration, duplicate-milestone detection. |
 | 5c | 5.0 | Shared chapters: a chapter in several Lives, merged per Life on both tiers. | Compare view. |
 | 6a | 5.0 | Compare view: rows per Life on a shared date axis, Life chips, ages on hover, read-only detail, shared zoom and filters. | Chapter drill-in from compare, remembered selection (6b); age alignment (v5.1); editing. |
-| 6b | 5.0 | Chapter drill-in from compare with the breadcrumb back; remembered selection; phone layout. | Age alignment (v5.1), editing in compare. |
+| 6b | 5.0 | Chapter drill-in from compare with the breadcrumb back; remembered selection. | Age alignment (v5.1), editing in compare; layout (the final check). |
+| Layout | 5.0 | One layout check across phases 3a-6b: phone portrait and landscape, header crowding (the Life switcher and the zoom control), long names and titles. | New features. |
 
 Cross-cutting costs every UI phase pays: 10 locales and 13 namespaces with
 parity tests (`src/locales.test.js` and friends), native string catalogs where

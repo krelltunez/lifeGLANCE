@@ -3056,6 +3056,8 @@ select.settings-select {
 .compare-name { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 28px; }
 .compare-name span { overflow: hidden; text-overflow: ellipsis; }
 .compare-dot { cursor: pointer; outline: none; }
+.compare-chapter { cursor: pointer; outline: none; }
+.compare-chapter:hover rect:nth-child(2), .compare-chapter:focus-visible rect:nth-child(2) { fill-opacity: 0.55; }
 .compare-dot:focus-visible circle:nth-child(2) { stroke: var(--amber); stroke-width: 2.5; }
 .compare-tip {
   position: absolute; width: 220px; padding: 0.55rem 0.7rem; z-index: 6; pointer-events: none;

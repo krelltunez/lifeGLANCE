@@ -87,5 +87,6 @@
   "compareAfterDeath": "{{name}}: after their death",
   "compareNoBirthDate": "{{name}}: no birth date",
   "compareOpenDetail": "Details",
-  "openInLife": "Open in {{name}}'s timeline"
+  "openInLife": "Open in {{name}}'s timeline",
+  "compareCrumb": "Compare"
 }

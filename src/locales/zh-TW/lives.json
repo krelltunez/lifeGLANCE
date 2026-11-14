@@ -87,5 +87,6 @@
   "compareAfterDeath": "{{name}}：已離世",
   "compareNoBirthDate": "{{name}}：沒有出生日期",
   "compareOpenDetail": "詳情",
-  "openInLife": "在{{name}}的時間軸中開啟"
+  "openInLife": "在{{name}}的時間軸中開啟",
+  "compareCrumb": "比較"
 }

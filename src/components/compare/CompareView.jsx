@@ -23,7 +23,7 @@ const truncate = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
 
 export default function CompareView({
   lives, selectedIds, onToggleLife, milestones, chapters, categoryFilter, birthDateOf,
-  zoom, customHalfMs = 0, viewMode = 'all', panMs, onPanMs, onMilestoneClick, onClose,
+  zoom, customHalfMs = 0, viewMode = 'all', panMs, onPanMs, onMilestoneClick, onChapterClick, onClose,
 }) {
   const { t, i18n } = useTranslation('lives')
   const { t: tt } = useTranslation('timeline')
@@ -188,7 +188,12 @@ export default function CompareView({
                       const cy = lineY + 28 + lane * (LANE_H + LANE_GAP)
                       const bx = Math.max(0, cx0), bw = Math.max(2, Math.min(plotW, cx1) - bx)
                       return (
-                        <g key={chapter.id}>
+                        // A chapter opens in its Life's own timeline, with the
+                        // breadcrumb back to compare (Phase 6b).
+                        <g key={chapter.id} className="compare-chapter" tabIndex={0} role="button" aria-label={chapter.title}
+                          onClick={() => { if (!wasDrag()) onChapterClick(chapter, row.life) }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChapterClick(chapter, row.life) } }}>
+                          <rect x={bx} y={cy - 3} width={bw} height={LANE_H + 6} fill="transparent" />
                           <rect x={bx} y={cy} width={bw} height={LANE_H} rx={2} fill={color} fillOpacity={0.3}>
                             <title>{chapter.title}</title>
                           </rect>
