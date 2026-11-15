@@ -2659,6 +2659,7 @@ select.settings-select {
   /* Stays inside its header column, as the Life switcher does (layout check). */
   min-width: 0;
   max-width: 100%;
+  padding-right: 0.6rem;
 }
 .drill-breadcrumb-nav {
   display: flex;
@@ -2733,7 +2734,10 @@ select.settings-select {
 @media (min-width: 1081px) {
   .drill-breadcrumb-nav { flex-wrap: wrap; row-gap: 0.15rem; }
   .drill-breadcrumb-nav > .drill-breadcrumb-chapter {
-    flex: 1 1 12rem;
+    /* Shares a line with the ✕; drops below the crumbs when they leave it
+       less than 9rem. */
+    flex: 1 1 0;
+    min-width: 9rem;
     max-width: 100%;
     white-space: normal;
     display: -webkit-box;
