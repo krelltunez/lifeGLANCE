@@ -262,6 +262,21 @@ export default function App() {
     onKeyNeeded: () => setShowPassphraseModal(true),
   })
 
+  // "Restore from iCloud" is answered on a fresh install, so over the
+  // onboarding screen. Once the timeline has arrived, show it: the answer was
+  // to bring a life back, not to enter one again.
+  const restoringFromICloudRef = useRef(false)
+  const acceptICloudFirstRun = icloud.acceptFirstRun
+  const restoreFromICloud = useCallback(() => {
+    restoringFromICloudRef.current = true
+    acceptICloudFirstRun()
+  }, [acceptICloudFirstRun])
+  useEffect(() => {
+    if (!restoringFromICloudRef.current || screen !== 'onboarding' || milestones.length === 0) return
+    restoringFromICloudRef.current = false
+    setScreen('timeline')
+  }, [milestones, screen])
+
   // The Direct Access intents poller cannot reach the passphrase modal; it
   // asks through this event (useIntentPoller.js) when the event set holds a
   // sealed envelope this device has no key for.
@@ -451,7 +466,7 @@ export default function App() {
       )}
       <ICloudFirstRunModal
         info={icloud.firstRun}
-        onRestore={icloud.acceptFirstRun}
+        onRestore={restoreFromICloud}
         onStartFresh={icloud.declineFirstRun}
       />
       {showPassphraseModal && (

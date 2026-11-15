@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Step1Welcome   from './Step1Welcome'
 import Step2Past      from './Step2Past'
@@ -40,6 +40,10 @@ export default function Onboarding({ onComplete }) {
   const [step, setStep]               = useState(1)
   const [pastMilestone, setPast]      = useState(null)
   const [futureMilestone, setFuture]  = useState(null)
+
+  // Onboarding can end without finish(): a timeline restored from iCloud
+  // replaces it (App.jsx). The drone it started must not outlive it.
+  useEffect(() => stopAmbient, [])
 
   function handleBegin() {
     audioInit()       // unlock AudioContext on this user gesture
