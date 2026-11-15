@@ -89,6 +89,14 @@ const Timeline = forwardRef(function Timeline(
   )
   const [photoTip,    setPhotoTip]    = useState(null) // { uri, x, y }
   const [chapterTip,  setChapterTip]  = useState(null) // { chapter, x, y } | null
+  // The chapter label is centred on the pointer; near an edge of the window,
+  // keep it whole (it was cut off at the left edge).
+  const keepChapterTipOnScreen = (el) => {
+    if (!el) return
+    const half = el.offsetWidth / 2
+    const x = parseFloat(el.style.left)
+    el.style.left = `${Math.min(Math.max(x, half + 8), window.innerWidth - half - 8)}px`
+  }
   const [playingId,   setPlayingId]   = useState(null)
   const audioElRef = useRef(null)
   // Hover-preview of a card's photo. The image is loaded on demand: a synced-in
@@ -517,9 +525,11 @@ const Timeline = forwardRef(function Timeline(
               return (
                 <g key={chapter.id}
                   style={{ cursor: 'pointer' }}
-                  onMouseEnter={e => setChapterTip({ chapter, x: e.clientX, y: e.clientY })}
-                  onMouseLeave={() => setChapterTip(null)}
-                  onMouseMove={e => setChapterTip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                  // A hover label, for a mouse only: a tap on a touch screen
+                  // would otherwise leave it on screen (layout check).
+                  onPointerEnter={e => { if (e.pointerType === 'mouse') setChapterTip({ chapter, x: e.clientX, y: e.clientY }) }}
+                  onPointerLeave={() => setChapterTip(null)}
+                  onPointerMove={e => { if (e.pointerType === 'mouse') setChapterTip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null) }}
                   onClick={() => {
                     // Clear any previous timer before setting a new one — a double-click
                     // fires onClick twice, and without this the first timer survives even
@@ -973,7 +983,7 @@ const Timeline = forwardRef(function Timeline(
       )}
 
       {chapterTip && (
-        <div style={{
+        <div ref={keepChapterTipOnScreen} style={{
           position:      'fixed',
           left:          chapterTip.x,
           top:           chapterTip.y,

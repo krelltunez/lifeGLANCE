@@ -301,6 +301,36 @@ history captures lives.
   the Lives switched off, so a Life added later starts on). Not synced. With
   fewer than two left on, every Life is shown.
 
+**Decided in the layout check** (after Phase 6b; landscape phones, tablet,
+laptop and desktop, light and dark, English, German and Chinese. Portrait phones
+and tablets show the app's existing "rotate your device" screen.)
+
+- **The header with a second Life:** the side columns take their share of the
+  width, so nothing slides under the centred controls. The Life switcher shrinks
+  inside its column (the name cut first, down to its avatar and ▾). On the narrow
+  header (≤1080px) the switcher replaces the wordmark; on a wider one the
+  wordmark gives way when the column is too narrow for both. If even the
+  switcher has no room (long zoom labels, e.g. German on a tablet), the header
+  takes its narrow layout until the window grows. A single-Life header is
+  unchanged.
+- **The switcher menu** never runs off the screen: the Lives scroll, and Compare,
+  Add and Manage stay in view.
+- **Compare:** the Life chips are one line that scrolls sideways; the title and
+  the read-only note drop out on small screens. The names column is 180px with
+  two lines, avatars only below 900px. The tooltip is placed from its real
+  height inside the visible rows; its age list scrolls past half the screen.
+- **Sheets:** a checklist directly in a sheet keeps its height (Share Lives); the
+  sheet's buttons wrap rather than overflow (German import). The hosted demo's
+  sample-data pill hides while a sheet or a chapter is open.
+- **Breadcrumb:** it stays inside its column; on a narrow header the chapter
+  title gives way first, then the crumbs, never the ✕. On a wide header a long
+  title takes its own line, two at most.
+- **Chapter hover label** (the main timeline): for a mouse only (a tap no longer
+  leaves it on screen), and kept inside the window.
+- **Not changed:** on a small phone with only one Life, the wordmark already
+  touches the centre controls (34px in English, more in German). That is 4.x
+  behaviour, outside Lives.
+
 **Decided in Phase 5a: the JSON backup**
 
 - **"Save backup" holds every Life**, read from the stores
@@ -625,7 +655,7 @@ when v5.0 ships, and takes `main` in periodically so it does not drift.
 | 5c | 5.0 | Shared chapters: a chapter in several Lives, merged per Life on both tiers. | Compare view. |
 | 6a | 5.0 | Compare view: rows per Life on a shared date axis, Life chips, ages on hover, read-only detail, shared zoom and filters. | Chapter drill-in from compare, remembered selection (6b); age alignment (v5.1); editing. |
 | 6b | 5.0 | Chapter drill-in from compare with the breadcrumb back; remembered selection. | Age alignment (v5.1), editing in compare; layout (the final check). |
-| Layout | 5.0 | One layout check across phases 3a-6b: phone portrait and landscape, header crowding (the Life switcher and the zoom control), long names and titles. | New features. |
+| Layout | 5.0 | One layout check across phases 3a-6b: landscape phones, tablet, laptop, desktop; light and dark; English, German, Chinese; header crowding, long names and titles. | New features; the single-Life header. |
 
 Cross-cutting costs every UI phase pays: 10 locales and 13 namespaces with
 parity tests (`src/locales.test.js` and friends), native string catalogs where

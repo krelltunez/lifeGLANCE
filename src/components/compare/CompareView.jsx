@@ -40,8 +40,9 @@ export default function CompareView({
     return () => obs.disconnect()
   }, [])
 
-  const narrow = w < 640
-  const labelW = narrow ? 44 : 150
+  // The names column: avatar only on small screens, else up to two lines.
+  const narrow = w < 900
+  const labelW = narrow ? 44 : 180
   const plotW = w - labelW
   const today = new Date()
   const { startMs, endMs } = getTimeRangeForView(zoom, today.getTime() + panMs, viewMode, customHalfMs)
@@ -78,11 +79,19 @@ export default function CompareView({
   function onPointerUp() { setTimeout(() => { drag.current = null }, 0) }
   const wasDrag = () => drag.current?.moved
 
-  // A tooltip sits below its dot, or above it when there is no room left in view.
-  function openTip(m, row, x, y, pinned) {
-    const el = wrapRef.current
-    const above = !!el && y + 200 > el.scrollTop + el.clientHeight
-    setTip({ m, row, x, y, pinned, above })
+  function openTip(m, row, x, y, pinned) { setTip({ m, row, x, y, pinned }) }
+  // A tooltip sits below its dot, or above it when there is no room below, and
+  // never past the top or bottom of the visible rows: placed from its real
+  // height once it is drawn (layout check).
+  const placeTip = (el) => {
+    const body = wrapRef.current
+    if (!el || !body || !tip) return
+    const h = el.offsetHeight
+    const viewTop = body.scrollTop + 6, viewBottom = body.scrollTop + body.clientHeight - 6
+    let top = tip.y + 14
+    if (top + h > viewBottom) top = tip.y - 14 - h
+    if (top < viewTop) top = Math.max(viewTop, viewBottom - h)
+    el.style.top = `${top}px`
   }
 
   useEffect(() => {
@@ -128,7 +137,7 @@ export default function CompareView({
           {/* Life names */}
           {laid.map(({ row, top }) => (
             <g key={`n-${row.life.id}`}>
-              <foreignObject x={6} y={top + LINE_Y - 14} width={labelW - 10} height={28}>
+              <foreignObject x={6} y={top + LINE_Y - 18} width={labelW - 10} height={36}>
                 <div className="compare-name" style={{ '--life-color': lifeColor(row.life) }} title={lifeName(row.life, t)}>
                   <LifeAvatar life={row.life} size="1.2rem" />
                   {!narrow && <span>{lifeName(row.life, t)}</span>}
@@ -257,9 +266,8 @@ export default function CompareView({
         </svg>
 
         {tip && (
-          <div className={`compare-tip${tip.pinned ? ' pinned' : ''}`}
-            style={{ left: Math.min(Math.max(8, tip.x - 110), w - 236), top: tip.above ? tip.y - 14 : tip.y + 14,
-              transform: tip.above ? 'translateY(-100%)' : undefined }}>
+          <div className={`compare-tip${tip.pinned ? ' pinned' : ''}`} ref={placeTip}
+            style={{ left: Math.min(Math.max(8, tip.x - 140), w - 296), top: tip.y + 14 }}>
             <div className="compare-tip-title">{tip.m.title}</div>
             <div className="compare-tip-date">{formatDateDisplay(tip.m.date, tip.m.date_precision, i18n.language)}</div>
             <ul className="compare-tip-ages">
