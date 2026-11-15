@@ -151,15 +151,25 @@ try {
     (text) => text.includes('page: smoke test line'),
   )
   check(log.includes('page: smoke test line'), 'the page\'s log lines reach the log file')
-  check(log.includes('main window show (ready-to-show)'), 'the window was shown after its first paint')
+  // The page can be up and answering before its first frame is painted, so
+  // wait for the line: within the 10 s after which main shows the window anyway.
+  const shown = await until(
+    async () => { try { return /main window show \(([^)]+)\)/.exec(readFileSync(logFile, 'utf-8'))?.[1] ?? null } catch { return null } },
+    (why) => why !== null,
+    150,
+  )
+  check(shown === 'ready-to-show', `the window was shown after its first paint (${shown})`)
 
-  // The wake signal replays visibilitychange, which the page's hooks listen for.
-  const wakeSeen = page.evaluate(() => new Promise((resolve) => {
-    document.addEventListener('visibilitychange', () => resolve(true), { once: true })
-    setTimeout(() => resolve(false), 3000)
-  }))
+  // The wake signal replays visibilitychange, which the page's hooks listen
+  // for. The listener is in place before main sends the signal.
+  await page.evaluate(() => {
+    window.__wakeSeen = new Promise((resolve) => {
+      document.addEventListener('visibilitychange', () => resolve(true), { once: true })
+      setTimeout(() => resolve(false), 5000)
+    })
+  })
   await app.evaluate(({ BrowserWindow }) => { BrowserWindow.getAllWindows()[0].webContents.send('shell:wake', 'resume') })
-  check(await wakeSeen, 'a wake from the main process reaches the page as visibilitychange')
+  check(await page.evaluate(() => window.__wakeSeen), 'a wake from the main process reaches the page as visibilitychange')
 
   // iCloud Drive is macOS's. Elsewhere the page's bridge is null (so the Cloud
   // Sync section and the first-run question never appear), and main answers
