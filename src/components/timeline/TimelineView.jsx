@@ -178,6 +178,30 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   // who never adds one sees the app exactly as before.
   const currentLife   = lives.find(l => l.id === currentLifeId) ?? { id: ME_LIFE_ID, name: 'Me' }
   const multiLife     = lives.length > 1
+  // With a second Life the full header can be too wide for the switcher's
+  // column (long zoom labels, e.g. German on a tablet). Then the header takes
+  // its narrow layout until the window is wider than it was when that
+  // happened, so the two layouts never flip back and forth.
+  const [narrowBelow, setNarrowBelow] = useState(0)
+  const [winW, setWinW] = useState(() => window.innerWidth)
+  useEffect(() => {
+    const on = () => setWinW(window.innerWidth)
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
+  }, [])
+  const narrowHeader = compactHeader || (multiLife && winW <= narrowBelow)
+  const headerLeftRef = useRef(null)
+  useEffect(() => {
+    const el = headerLeftRef.current
+    if (!el || narrowHeader || !multiLife) return
+    const ro = new ResizeObserver(() => {
+      // Room for the switcher at its smallest (avatar and ▾) and its padding.
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+      if (el.clientWidth < rem * 3.8) setNarrowBelow(window.innerWidth)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [narrowHeader, multiLife])
   const lifeBirthday  = currentLifeId === ME_LIFE_ID ? birthday : (currentLife.birthDate || '')
   const lifeDeath     = currentLife.deathDate || ''
   const [livesSheet, setLivesSheet] = useState(null)   // null | 'list' | 'add' | 'restoreBlocked'
@@ -1942,7 +1966,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div
-        className="timeline-header"
+        className={`timeline-header${multiLife ? ' multi-life' : ''}`}
         style={drilledChapter ? { borderBottom: `1px solid ${drilledChapter.color}44` } : undefined}
       >
         {/* Left: logo / breadcrumb */}
@@ -1987,11 +2011,15 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             </div>
           </div>
         ) : (
-          <div className="header-left">
-            <div className="logo logo-sm">
-              <span className="logo-life">life</span>
-              <span className="logo-glance">GLANCE</span>
-            </div>
+          <div className="header-left" ref={headerLeftRef}>
+            {/* On a narrow header the Life switcher takes the wordmark's place
+                once there is a second Life (Lives v5.0, layout check). */}
+            {!(multiLife && narrowHeader) && (
+              <div className="logo logo-sm">
+                <span className="logo-life">life</span>
+                <span className="logo-glance">GLANCE</span>
+              </div>
+            )}
             {multiLife && (
               <LifeSwitcher
                 lives={lives}
@@ -2007,7 +2035,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
         {/* Center: zoom row + view picker */}
         <div className="header-center">
-          {compactHeader ? (
+          {narrowHeader ? (
             /* Single row on narrow screens: zoom ▾  |  past ↺  |  rec: next */
             <div className="compact-controls-row">
               <div className="zoom-dropdown-wrap" onClick={e => e.stopPropagation()}>
@@ -2367,6 +2395,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               transition: background 0.15s;
             }
             .demo-pill:hover { background: rgba(var(--amber-rgb), 0.28); }
+            /* Out of the way while any sheet is open (layout check). */
+            body:has(.sheet-overlay) .demo-pill, body:has(.drill-breadcrumb) .demo-pill { display: none; }
             .demo-pill-dot {
               width: 7px; height: 7px; border-radius: 50%;
               background: var(--amber-bright); flex-shrink: 0;

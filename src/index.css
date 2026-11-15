@@ -1126,7 +1126,8 @@ button, input, select, textarea {
   border-top: 1px solid var(--border);
   gap: 0.75rem;
 }
-.sheet-actions-right { display: flex; gap: 0.5rem; }
+/* Wraps rather than overflows when the labels are long (German import sheet). */
+.sheet-actions-right { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
 
 .btn-ghost {
   background: none;
@@ -2547,6 +2548,9 @@ select.settings-select {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  /* Directly in a sheet (Share Lives), the list keeps its height and the sheet
+     scrolls; it would otherwise be squeezed to a sliver on a short screen. */
+  flex-shrink: 0;
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid var(--border);
@@ -2652,11 +2656,29 @@ select.settings-select {
   align-items: flex-start;
   gap: 0.18rem;
   font-family: var(--font);
+  /* Stays inside its header column, as the Life switcher does (layout check). */
+  min-width: 0;
+  max-width: 100%;
+  padding-right: 0.6rem;
 }
 .drill-breadcrumb-nav {
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  min-width: 0;
+  max-width: 100%;
+}
+.drill-breadcrumb-nav > * { flex-shrink: 0; }
+/* On a very narrow header the crumbs give way too ("Com… › Dad › Our…");
+   the separators and ✕ never do. */
+.drill-breadcrumb-nav > .drill-breadcrumb-life,
+.drill-breadcrumb-nav > .drill-breadcrumb-lifename { flex-shrink: 1; min-width: 1.8em; overflow: hidden; }
+.drill-breadcrumb-lifename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 700px) {
+  .drill-breadcrumb-nav { gap: 0.25rem; }
+  .drill-breadcrumb-nav > .drill-breadcrumb-life,
+  .drill-breadcrumb-nav > .drill-breadcrumb-lifename { min-width: 1.2em; }
+  .drill-breadcrumb-nav > .drill-breadcrumb-chapter { min-width: 1.4em; }
 }
 .drill-breadcrumb-meta {
   display: flex;
@@ -2695,7 +2717,7 @@ select.settings-select {
   font-size: 0.8rem;
   opacity: 0.6;
 }
-.drill-breadcrumb-chapter {
+.drill-breadcrumb-nav > .drill-breadcrumb-chapter {
   font-size: 0.82rem;
   color: var(--drill-color, var(--amber));
   letter-spacing: 0.01em;
@@ -2703,6 +2725,26 @@ select.settings-select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* The title is what gives way first when the column is narrow. */
+  flex: 0 4 auto;
+  min-width: 2.2em;
+}
+/* On a wide header a long title takes its own line, two at most, under the
+   crumbs, with the column's full width (layout check). */
+@media (min-width: 1081px) {
+  .drill-breadcrumb-nav { flex-wrap: wrap; row-gap: 0.15rem; }
+  .drill-breadcrumb-nav > .drill-breadcrumb-chapter {
+    /* Shares a line with the ✕; drops below the crumbs when they leave it
+       less than 9rem. */
+    flex: 1 1 0;
+    min-width: 9rem;
+    max-width: 100%;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.15;
+  }
 }
 .drill-breadcrumb-close {
   background: none;
@@ -2915,6 +2957,30 @@ select.settings-select {
   gap: 0.7rem;
   min-width: 0;
 }
+.header-left .logo { flex-shrink: 0; }
+/* With a second Life (Lives v5.0): the side columns take their share of the
+   width, not their content's, so nothing on the left can slide under the
+   centred controls. The Life switcher shrinks inside its column (the name cut
+   first), and the wordmark gives way when the column is too narrow for both.
+   A single-Life header is unchanged. */
+/* The right column keeps its content's width (as before); only the left one,
+   which holds the switcher, gives way. */
+.timeline-header.multi-life { grid-template-columns: minmax(0, 1fr) auto minmax(min-content, 1fr); }
+.timeline-header.multi-life .header-left { container-type: inline-size; padding-right: 0.6rem; }
+/* On the narrow header the links on the right may wrap to a second line
+   rather than squeeze the switcher out (a small phone in German). */
+@media (max-width: 1080px) {
+  .timeline-header.multi-life .header-right { flex-wrap: wrap; row-gap: 2px; }
+}
+/* About the wordmark (7.3rem) plus a switcher with a few letters of its name. */
+@container (max-width: 13rem) {
+  .header-left .logo { display: none; }
+}
+/* Very narrow (a small phone in German): avatar and ▾ only, tighter. */
+@container (max-width: 5.5rem) {
+  .header-left .life-switcher-name { display: none; }
+  .header-left .life-switcher-btn { padding: 0.2rem 0.3rem; gap: 0.15rem; }
+}
 .life-dot {
   display: inline-block;
   width: 0.55rem;
@@ -2923,12 +2989,14 @@ select.settings-select {
   background: var(--life-color, var(--amber));
   flex-shrink: 0;
 }
-.life-switcher { position: relative; min-width: 0; }
+.life-switcher { position: relative; min-width: 0; flex: 0 1 auto; }
 .life-switcher-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  max-width: 12rem;
+  /* Shrinks with its column, the name cut first, down to avatar and ▾. */
+  max-width: min(12rem, 100%);
+  min-width: 0;
   padding: 0.2rem 0.55rem;
   border: 1px solid color-mix(in srgb, var(--life-color, var(--amber)) 55%, transparent);
   border-radius: 999px;
@@ -2938,11 +3006,16 @@ select.settings-select {
   font-size: 0.75rem;
   cursor: pointer;
 }
-.life-switcher-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.life-switcher-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.life-switcher-btn > [aria-hidden] { flex-shrink: 0; }
 .life-switcher-menu {
   /* Fixed in a portal (LifeSwitcher.jsx): above the timeline and the demo
-     pill (850), below toasts (10000). top/left come from the button. */
+     pill (850), below toasts (10000). top/left/max-height come from the
+     button; the list of Lives scrolls, the actions stay in view. */
   position: fixed;
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 16px);
   min-width: 11rem;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -2964,7 +3037,9 @@ select.settings-select {
   cursor: pointer;
 }
 .life-switcher-item:hover, .life-switcher-item.active { color: var(--text); background: rgba(var(--amber-rgb), 0.08); }
-.life-switcher-sep { height: 1px; margin: 0.25rem 0; background: var(--border); }
+.life-switcher-sep { height: 1px; margin: 0.25rem 0; background: var(--border); flex-shrink: 0; }
+.life-switcher-lives { overflow-y: auto; min-height: 2.2rem; flex: 0 1 auto; }
+.life-switcher-menu > .life-switcher-item { flex-shrink: 0; }
 
 /* The Life on screen tints the header's rule (only with more than one Life). */
 .timeline-view.life-tinted .timeline-header {
@@ -3039,34 +3114,43 @@ select.settings-select {
 
 /* ── Compare Lives (Lives v5.0, Phase 6a) ─────────────────────────────────── */
 .compare-view { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); z-index: 5; }
-.compare-head { display: flex; align-items: center; gap: 0.6rem 0.9rem; flex-wrap: wrap; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); }
-.compare-title { font-size: 0.85rem; color: var(--amber); letter-spacing: 0.06em; text-transform: lowercase; }
-.compare-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; flex: 1; }
+.compare-head { display: flex; align-items: center; gap: 0.9rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); }
+.compare-title { font-size: 0.85rem; color: var(--amber); letter-spacing: 0.06em; text-transform: lowercase; flex-shrink: 0; white-space: nowrap; }
+/* One line of chips that scrolls sideways, never a wall of them (layout check). */
+.compare-chips { display: flex; gap: 0.4rem; flex-wrap: nowrap; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding: 2px 0; }
 .compare-chip {
   display: inline-flex; align-items: center; gap: 0.35rem; font: inherit; font-size: 0.72rem;
-  padding: 0.25rem 0.6rem; border-radius: 999px; cursor: pointer;
+  padding: 0.25rem 0.6rem; border-radius: 999px; cursor: pointer; flex-shrink: 0; white-space: nowrap;
   border: 1px solid var(--border); background: transparent; color: var(--text-muted);
 }
 .compare-chip.on { border-color: var(--life-color); color: var(--text); background: color-mix(in srgb, var(--life-color) 14%, transparent); }
 .compare-chip:disabled { cursor: default; }
-.compare-note { font-size: 0.65rem; color: var(--text-muted); }
+.compare-note { font-size: 0.65rem; color: var(--text-muted); flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 1100px), (max-height: 600px) {
+  .compare-note { display: none; }
+}
+@media (max-width: 700px), (max-height: 420px) {
+  .compare-title { display: none; }
+}
 .compare-body { position: relative; flex: 1; overflow-y: auto; overflow-x: hidden; cursor: grab; touch-action: pan-y; user-select: none; }
 .compare-body:active { cursor: grabbing; }
 .compare-svg { display: block; overflow: visible; }
-.compare-name { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 28px; }
-.compare-name span { overflow: hidden; text-overflow: ellipsis; }
+.compare-name { display: flex; align-items: center; gap: 0.4rem; font-size: 0.68rem; color: var(--text); height: 36px; overflow: hidden; }
+/* Up to two lines of the name, then … */
+.compare-name span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; word-break: break-word; }
 .compare-dot { cursor: pointer; outline: none; }
 .compare-chapter { cursor: pointer; outline: none; }
 .compare-chapter:hover rect:nth-child(2), .compare-chapter:focus-visible rect:nth-child(2) { fill-opacity: 0.55; }
 .compare-dot:focus-visible circle:nth-child(2) { stroke: var(--amber); stroke-width: 2.5; }
 .compare-tip {
-  position: absolute; width: 220px; padding: 0.55rem 0.7rem; z-index: 6; pointer-events: none;
+  position: absolute; width: 280px; max-width: calc(100% - 16px); padding: 0.55rem 0.7rem; z-index: 6; pointer-events: none;
   background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); font-size: 0.7rem; color: var(--text);
 }
 .compare-tip.pinned { pointer-events: auto; }
 .compare-tip-title { font-size: 0.78rem; margin-bottom: 0.15rem; }
 .compare-tip-date { color: var(--text-muted); margin-bottom: 0.35rem; }
-.compare-tip-ages { list-style: none; margin: 0 0 0.4rem; padding: 0; }
+/* Every Life's age fits on a desktop; on a phone the list scrolls (a tapped tooltip). */
+.compare-tip-ages { list-style: none; margin: 0 0 0.4rem; padding: 0; max-height: 50vh; overflow-y: auto; }
 .compare-tip-ages li { padding-left: 0.7rem; position: relative; line-height: 1.5; }
 .compare-tip-ages li::before { content: ''; position: absolute; left: 0; top: 0.5em; width: 6px; height: 6px; border-radius: 50%; background: var(--life-color); }

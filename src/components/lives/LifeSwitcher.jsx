@@ -48,7 +48,9 @@ export default function LifeSwitcher({ lives, currentLifeId, onSwitch, onAddLife
         aria-label={t('switcherLabel')}
         onClick={(e) => {
           const r = e.currentTarget.getBoundingClientRect()
-          setPos({ top: r.bottom + 4, left: r.left })
+          // The menu never runs off the screen: the Lives scroll, the actions
+          // below them stay in view (layout check).
+          setPos({ top: r.bottom + 4, left: r.left, maxHeight: window.innerHeight - r.bottom - 12 })
           setOpen(o => !o)
         }}
       >
@@ -57,7 +59,8 @@ export default function LifeSwitcher({ lives, currentLifeId, onSwitch, onAddLife
         <span aria-hidden="true">▾</span>
       </button>
       {open && pos && createPortal(
-        <div className="life-switcher-menu" role="menu" ref={menuRef} style={{ top: pos.top, left: pos.left }}>
+        <div className="life-switcher-menu" role="menu" ref={menuRef} style={{ top: pos.top, left: pos.left, maxHeight: pos.maxHeight }}>
+          <div className="life-switcher-lives">
           {lives.map(l => (
             <button
               key={l.id}
@@ -72,6 +75,7 @@ export default function LifeSwitcher({ lives, currentLifeId, onSwitch, onAddLife
               {lifeName(l, t)}
             </button>
           ))}
+          </div>
           <div className="life-switcher-sep" role="separator" />
           {onCompare && lives.length > 1 && (
             <button type="button" role="menuitem" className="life-switcher-item" onClick={pick(onCompare)}>{t('compareLives')}</button>
