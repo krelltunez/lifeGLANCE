@@ -21,6 +21,14 @@ export function categoryColor(category) {
   return CATEGORY_COLOR[category] ?? '#C8A96E'
 }
 
+// The swatches offered for categories (Settings) and Lives (the Lives sheet).
+export const COLOR_PALETTE = [
+  'var(--purple)', 'var(--cat-violet)', 'var(--cat-indigo)', 'var(--indigo)',
+  'var(--accent-blue)', 'var(--cat-blue)', 'var(--teal)', 'var(--success)',
+  'var(--success-muted)', 'var(--amber)', 'var(--cat-orange)', 'var(--amber-bright)',
+  'var(--rose)', 'var(--cat-pink)', 'var(--cat-magenta)', 'var(--cat-red)',
+]
+
 const CAT_KEY = 'lifeglance-categories'
 
 export function loadCategories() {

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Capacitor } from '@capacitor/core'
 import { formatDateDisplay, relativeLabel, ageAtDate } from '../../utils/dates'
+import { lifeIdsOf } from '../../data/lifeMembership'
+import { lifeName, lifeColor } from '../lives/lifeLabels'
 import { dbGetMedia, dbGetPhoto, dbPutMedia } from '../../data/db'
 import { isRealBlobHash, fetchFullResBytes, fetchFullResBytesChunked, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
 
@@ -21,9 +23,12 @@ const readPins = () => {
   try { return JSON.parse(localStorage.getItem(PINS_KEY) || '{}') } catch { return {} }
 }
 
-export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, categories = [] }) {
+// `readOnly` (the compare view, Lives v5.0): no delete, edit or widget pins;
+// `onOpenInLife` offers the Life's own timeline instead.
+export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelete, onDeleteSeries, birthday, deathDate = '', lives = [], categories = [], readOnly = false, onOpenInLife, openInLifeLabel }) {
   const { t, i18n } = useTranslation('milestone')
   const { t: tc } = useTranslation('common')
+  const { t: tl } = useTranslation('lives')
   const [audioUrl,  setAudioUrl]  = useState(null)
   const [photoUrl,  setPhotoUrl]  = useState(null)
   const [mediaLoading, setMediaLoading] = useState(null) // { received, total } while downloading a remote clip
@@ -167,12 +172,24 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
             {relativeLabel(m.date, m.date_precision)}
           </div>
           {(() => {
-            const age = birthday ? ageAtDate(birthday, m.date) : null
+            // Ages stop at the Life's death date.
+            const age = birthday && !(deathDate && m.date.slice(0, 10) > deathDate) ? ageAtDate(birthday, m.date) : null
             return age !== null ? (
               <div className="detail-age">{t('ageYearsOld', { age })}</div>
             ) : null
           })()}
         </div>
+
+        {/* Lives it belongs to (only once there is more than one Life) */}
+        {lives.length > 1 && (
+          <div className="detail-lives">
+            {lives.filter(l => lifeIdsOf(m).includes(l.id)).map(l => (
+              <span key={l.id} className="detail-life" style={{ '--life-color': lifeColor(l) }}>
+                <span className="life-dot" aria-hidden="true" />{lifeName(l, tl)}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Category */}
         <div className="detail-category">
@@ -265,6 +282,18 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
           </div>
         ) : (
           <>
+            {readOnly ? (
+              <div className="sheet-actions">
+                <span />
+                <div className="sheet-actions-right">
+                  {onOpenInLife && (
+                    <button className="btn" onClick={onOpenInLife} style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
+                      {openInLifeLabel}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (<>
             {canPin && showPinHelp && (
               <div className="detail-pin-help"
                 style={{ fontSize: '0.72rem', opacity: 0.72, lineHeight: 1.45, padding: '0 0 0.55rem' }}>
@@ -325,6 +354,7 @@ export default function MilestoneDetail({ milestone: m, onClose, onEdit, onDelet
               </button>
             </div>
           </div>
+          </>)}
           </>
         )}
       </div>

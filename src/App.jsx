@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import Onboarding   from './components/onboarding/Onboarding'
 import TimelineView from './components/timeline/TimelineView'
@@ -6,6 +6,8 @@ import CloudSyncModal from './components/sync/CloudSyncModal'
 import SyncPassphraseModal from './components/sync/SyncPassphraseModal'
 import { initDB, dbGetAll, dbGetAllChapters } from './data/db'
 import { backfillMediaIds } from './data/milestones'
+import { ME_LIFE_ID, milestonesForLife, chaptersForLife, isInLife, isChapterInLife, applyScopedUpdate } from './data/lifeMembership'
+import { loadLives } from './data/lives'
 import { initSyncEngine, getSyncEngine } from './sync/engine'
 import { useDirectAccessSync } from './hooks/useDirectAccessSync'
 import { useSnapshotFileSync } from './hooks/useSnapshotFileSync'
@@ -23,6 +25,9 @@ import { maybePushSpotlightIndex } from './native/spotlightBridge'
 import { useSubscription } from './billing/billing'
 import PaywallModal from './components/billing/PaywallModal'
 import ReviewerBanner from './components/billing/ReviewerBanner'
+
+// Which Life is on screen, per device.
+const CURRENT_LIFE_KEY = 'lifeglance-current-life'
 
 export default function App() {
   const { t } = useTranslation('common')
@@ -95,6 +100,32 @@ export default function App() {
     () => window.matchMedia('(orientation: portrait) and (max-width: 1024px)').matches
   )
 
+  // Lives, and the one on screen. The app state keeps every Life's milestones
+  // and chapters, because sync has to see all of them; the timeline gets the
+  // current Life's view, and its updates are folded back into the full lists.
+  // The current Life is remembered per device and falls back to Me when it
+  // no longer exists (deleted here or on another device).
+  const [lives, setLives] = useState([])
+  const [chosenLifeId, setChosenLifeId] = useState(
+    () => { try { return localStorage.getItem(CURRENT_LIFE_KEY) || ME_LIFE_ID } catch { return ME_LIFE_ID } }
+  )
+  const currentLifeId = lives.some(l => l.id === chosenLifeId) ? chosenLifeId : ME_LIFE_ID
+  const switchLife = useCallback((id) => {
+    setChosenLifeId(id)
+    try { localStorage.setItem(CURRENT_LIFE_KEY, id) } catch { /* not remembered; still switches */ }
+  }, [])
+  const reloadLives = useCallback(() => { loadLives().then(setLives).catch(() => {}) }, [])
+  const lifeMilestones = useMemo(() => milestonesForLife(milestones, currentLifeId), [milestones, currentLifeId])
+  const lifeChapters   = useMemo(() => chaptersForLife(chapters, currentLifeId), [chapters, currentLifeId])
+  const setLifeMilestones = useCallback(
+    (update) => setMilestones(prev => applyScopedUpdate(prev, update, m => isInLife(m, currentLifeId))),
+    [currentLifeId],
+  )
+  const setLifeChapters = useCallback(
+    (update) => setChapters(prev => applyScopedUpdate(prev, update, c => isChapterInLife(c, currentLifeId))),
+    [currentLifeId],
+  )
+
   const milestonesRef = useRef(milestones)
   const chaptersRef   = useRef(chapters)
 
@@ -109,10 +140,25 @@ export default function App() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
+  // Lives change locally (the Lives sheet), through sync (both tiers announce
+  // 'lifeglance:lives-changed'), and with a restore or a Life's deletion (which
+  // also reloads milestones). Reload the list on each.
+  useEffect(() => {
+    reloadLives()
+    const events = ['lifeglance:lives-changed', 'lifeglance:milestones-reload', 'lifeglance:sync-applied']
+    for (const e of events) window.addEventListener(e, reloadLives)
+    return () => { for (const e of events) window.removeEventListener(e, reloadLives) }
+  }, [reloadLives])
+
   // Reload milestones from the store on demand — e.g. after the media backfill
   // writes real-hash slots, so the newly vault-backed media appears immediately.
   useEffect(() => {
-    const reload = () => { dbGetAll().then(setMilestones).catch(() => {}) }
+    // Chapters too: a backup restore replaces both stores outright, and the
+    // timeline only holds its own Life's view of them.
+    const reload = () => {
+      dbGetAll().then(setMilestones).catch(() => {})
+      dbGetAllChapters().then(setChapters).catch(() => {})
+    }
     window.addEventListener('lifeglance:milestones-reload', reload)
     return () => window.removeEventListener('lifeglance:milestones-reload', reload)
   }, [])
@@ -144,6 +190,7 @@ export default function App() {
 
         setMilestones(all)
         setChapters(allChapters)
+        reloadLives()   // the store is open now; the mount-time read may have run first
         setScreen(all.length === 0 ? 'onboarding' : 'timeline')
 
         // Initialize sync engine after IDB is ready
@@ -193,7 +240,7 @@ export default function App() {
         console.error('DB init failed:', err)
         setScreen('onboarding')
       })
-  }, [])
+  }, [reloadLives])   // stable (useCallback with no deps): runs once, as before
 
   // Direct Access (docs/direct-access.md): the folder tier's poll and its
   // prompts. Inert on the web and on a shell without the plugin. A file this
@@ -302,14 +349,17 @@ export default function App() {
       const birthday = localStorage.getItem('lifeglance-birthday') || null
       let pins = {}
       try { pins = JSON.parse(localStorage.getItem('lifeglance-pins') || '{}') } catch { /* ignore malformed pins */ }
+      // Widgets and Spotlight are Me-only in v5.0, whichever Life is on screen.
+      const meMilestones = milestonesForLife(milestonesRef.current, ME_LIFE_ID)
+      const meChapters   = chaptersForLife(chaptersRef.current, ME_LIFE_ID)
       pushWidgetSnapshot(
-        buildWidgetSnapshot(milestonesRef.current, chaptersRef.current, birthday, new Date(), pins)
+        buildWidgetSnapshot(meMilestones, meChapters, birthday, new Date(), pins)
       )
       // Same trigger discipline feeds Core Spotlight on iOS (no-op elsewhere).
       // Factory form so the full index is only built where a plugin will take it;
       // the bridge also skips the push when the payload hasn't changed.
       maybePushSpotlightIndex(() =>
-        buildSpotlightIndex(milestonesRef.current, chaptersRef.current)
+        buildSpotlightIndex(meMilestones, meChapters)
       )
     }
 
@@ -345,10 +395,15 @@ export default function App() {
     <Onboarding onComplete={handleOnboardingComplete} />
   ) : (
     <TimelineView
-      milestones={milestones}
-      setMilestones={setMilestones}
-      chapters={chapters}
-      setChapters={setChapters}
+      milestones={lifeMilestones}
+      setMilestones={setLifeMilestones}
+      chapters={lifeChapters}
+      setChapters={setLifeChapters}
+      allMilestones={milestones}
+      allChapters={chapters}
+      lives={lives}
+      currentLifeId={currentLifeId}
+      onSwitchLife={switchLife}
       syncStatus={syncStatus}
       syncError={displayError}
       syncHalted={displayHalted}

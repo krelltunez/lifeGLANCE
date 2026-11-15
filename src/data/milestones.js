@@ -37,6 +37,9 @@ export function buildMilestone({
   dayglance_task_id      = null,
   dayglance_completed    = false,
   dayglance_completed_at = null,
+  // Lives (v5.0): which Lives the milestone belongs to. Left off for Me, so a
+  // milestone created in Me looks exactly like one from before Lives.
+  lifeOps                = undefined,
 }) {
   const dateObj = date instanceof Date ? date : new Date(date)
   const today   = new Date()
@@ -66,6 +69,7 @@ export function buildMilestone({
     dayglance_completed_at,
     created_at:     now,
     updated_at:     now,
+    ...(lifeOps ? { lifeOps } : {}),
   }
 }
 

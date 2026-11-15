@@ -1,8 +1,10 @@
-import { dirtyMilestoneTombstones, dirtyChapterTombstones } from './dirty.js';
+import { dirtyMilestoneTombstones, dirtyChapterTombstones, dirtyLifeTombstones, dirtyRelationshipTombstones } from './dirty.js';
 import { tombstoneCutoff, pruneTombstoneMap } from './tombstoneRetention.js';
 
 const MILESTONE_TOMBSTONE_KEY = 'lifeglance-milestone-tombstones';
 const CHAPTER_TOMBSTONE_KEY = 'lifeglance-chapter-tombstones';
+const LIFE_TOMBSTONE_KEY = 'lifeglance-life-tombstones';
+const RELATIONSHIP_TOMBSTONE_KEY = 'lifeglance-relationship-tombstones';
 
 const hasStorage = typeof localStorage !== 'undefined';
 
@@ -33,4 +35,30 @@ export const writeChapterTombstone = (id) => {
   t[id] = new Date().toISOString();
   localStorage.setItem(CHAPTER_TOMBSTONE_KEY, JSON.stringify(pruneTombstoneMap(t, tombstoneCutoff())));
   dirtyChapterTombstones();
+};
+
+export const getLifeTombstones = () => {
+  if (!hasStorage) return {};
+  try { return JSON.parse(localStorage.getItem(LIFE_TOMBSTONE_KEY) || '{}'); } catch { return {}; }
+};
+
+export const writeLifeTombstone = (id, at = new Date().toISOString()) => {
+  if (!hasStorage) return;
+  const t = getLifeTombstones();
+  t[id] = at;
+  localStorage.setItem(LIFE_TOMBSTONE_KEY, JSON.stringify(pruneTombstoneMap(t, tombstoneCutoff())));
+  dirtyLifeTombstones();
+};
+
+export const getRelationshipTombstones = () => {
+  if (!hasStorage) return {};
+  try { return JSON.parse(localStorage.getItem(RELATIONSHIP_TOMBSTONE_KEY) || '{}'); } catch { return {}; }
+};
+
+export const writeRelationshipTombstone = (id, at = new Date().toISOString()) => {
+  if (!hasStorage) return;
+  const t = getRelationshipTombstones();
+  t[id] = at;
+  localStorage.setItem(RELATIONSHIP_TOMBSTONE_KEY, JSON.stringify(pruneTombstoneMap(t, tombstoneCutoff())));
+  dirtyRelationshipTombstones();
 };

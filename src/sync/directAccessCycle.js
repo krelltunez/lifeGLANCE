@@ -100,7 +100,7 @@ export async function runDirectAccessCycle(deps, state) {
       buildSyncPayload: () => ({ version: SNAPSHOT_DATA_VERSION, lastModified: new Date((now ?? Date.now)()).toISOString(), data }),
       applyEngineData: (merged, opts) => { applied = applyPayload(merged, opts) },
       mergeSyncData: (local, remote) => {
-        const r = mergePayloads(local, remote)
+        const r = mergePayloads(local, remote, { fileKey: transport?.id ?? 'file' })
         return { data: r.data, localChanged: r.localChanged, remoteChanged: r.remoteChanged }
       },
       syncRetentionDays: SYNC_RETENTION_DAYS,

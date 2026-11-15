@@ -19,16 +19,18 @@ import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS, applyRecurFilter } from '../../utils/timeline'
 import { expandAnnualDates } from '../../utils/recurrence'
-import { loadCategories, saveCategories } from '../../utils/colors'
+import { loadCategories } from '../../utils/colors'
 import { getMilestoneVisibility, precomputeEndpoints, filterChaptersByCategory } from '../../utils/visibility'
-import { addMilestone, updateMilestone, deleteMilestone, restoreMilestones, uid } from '../../data/milestones'
+import { addMilestone, updateMilestone, deleteMilestone, uid } from '../../data/milestones'
+import { buildBackup, readBackup, restoreBackup, SharedFileRestoreError } from '../../data/backup'
+import { MultipleLivesBlockedError } from '../../sync/lifeGate'
 import * as undoHistory from '../../data/undoHistory'
-import { listChapters, restoreChapters, createChapter, updateChapter, deleteChapter } from '../../data/chapters'
+import { createChapter, updateChapter, deleteChapter } from '../../data/chapters'
 import { writeMilestoneTombstone } from '../../sync/tombstones'
 import { getSyncEngine } from '../../sync/engine'
 import { dirtyBirthday } from '../../sync/dirty'
 import { readVaultConfig } from '../../sync/dbSync'
-import { uploadMilestoneMedia, releaseMilestoneMedia, retainMilestoneMedia, isRealBlobHash, fetchFullResBytes, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
+import { uploadMilestoneMedia, releaseMilestoneMedia, retainMilestoneMedia, isRealBlobHash, fetchThumbnailBytes } from '../../blobs/milestoneMedia.js'
 import ChapterSheet from '../chapter/ChapterSheet'
 import CloudSyncModal from '../sync/CloudSyncModal'
 import SyncPassphraseModal from '../sync/SyncPassphraseModal'
@@ -45,25 +47,22 @@ import { consumeWidgetLaunchTarget } from '../../native/widgetBridge.js'
 import { emitCreateForMilestone, emitRescheduledNotify, emitStateNotify, isIntegrationEnabled } from '../../lib/intentsTransport.js'
 import { isSyncing, SYNC_ERROR_I18N_KEYS } from '../../sync/status.js'
 import { readNewerWriter } from '../../sync/writerStamp.js'
+import { ME_LIFE_ID, newMilestoneLifeFields, newChapterLifeFields, lifeIdsOf, chapterLifeIds } from '../../data/lifeMembership'
+
+// Compare Lives: the Lives this device has switched off there (Phase 6b).
+const COMPARE_OFF_KEY = 'lifeglance-compare-off'
+
+const sameLives = (a, b) => [...a].sort().join() === [...(b ?? a)].sort().join()
+import { setMilestoneLife, chapterLivesUpdate } from '../../data/lives'
+import LifeSwitcher from '../lives/LifeSwitcher'
+import LivesSheet from '../lives/LivesSheet'
+import ImportSheet from '../lives/ImportSheet'
+import ShareSheet from '../lives/ShareSheet'
+import CompareView from '../compare/CompareView'
+import { lifeName, lifeColor } from '../lives/lifeLabels'
 import { appendActivityEntry } from '../../lib/intentsActivityLog.js'
 import ActivityLogModal from '../dayglance/ActivityLogModal.jsx'
 import { EVENTS } from '@glance-apps/intents'
-
-// A blob-backed photo slot carries no stored mime type (the encrypted bytes are
-// opaque). For a backup data-URI the declared mime matters — restore reads it
-// back from the header — so sniff the image type from the magic bytes rather than
-// mislabel it. Falls back to JPEG (the capture default) for anything unrecognized.
-function sniffImageMime(bytes) {
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg'
-  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return 'image/png'
-  if (bytes.length >= 6 && bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return 'image/gif'
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
-  ) return 'image/webp'
-  return 'image/jpeg'
-}
 
 const ZOOM_RANK = { decades: 5, '30yr': 4, years: 3, months: 2, weeks: 1, custom: 3.5 }
 
@@ -85,11 +84,12 @@ const IDLE_TIMEOUT_OPTIONS = [
   { ms: 600000, label: '10m' },
 ]
 
-export default function TimelineView({ milestones, setMilestones, chapters, setChapters, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync, onOpenSubscription, licenseSource, demoLoaded, onClearDemo }) {
+export default function TimelineView({ milestones, setMilestones, chapters, setChapters, allMilestones = milestones, allChapters = chapters, lives = [], currentLifeId = ME_LIFE_ID, onSwitchLife = () => {}, syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, onOpenCloudSync, onOpenSubscription, licenseSource, demoLoaded, onClearDemo }) {
   const { t, i18n } = useTranslation('timeline')
   const { t: tdg } = useTranslation('dayglance')
   const { t: tc } = useTranslation('common')
   const { t: ts } = useTranslation('sync')
+  const { t: tl } = useTranslation('lives')
 
   // Computed display labels (stable within a render, i18next t is referentially stable)
   const ZOOM_LABELS = {
@@ -170,6 +170,89 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const [birthday,      setBirthday]      = useState(
     () => localStorage.getItem('lifeglance-birthday') || ''
   )
+
+  // ── The Life on screen ───────────────────────────────────────────────────
+  // `birthday` above is Me's (the Settings value). The timeline's ages use the
+  // current Life's birth date, and stop at its death date. The switcher and the
+  // Life-named breadcrumb appear only once there is a second Life, so someone
+  // who never adds one sees the app exactly as before.
+  const currentLife   = lives.find(l => l.id === currentLifeId) ?? { id: ME_LIFE_ID, name: 'Me' }
+  const multiLife     = lives.length > 1
+  // With a second Life the full header can be too wide for the switcher's
+  // column (long zoom labels, e.g. German on a tablet). Then the header takes
+  // its narrow layout until the window is wider than it was when that
+  // happened, so the two layouts never flip back and forth.
+  const [narrowBelow, setNarrowBelow] = useState(0)
+  const [winW, setWinW] = useState(() => window.innerWidth)
+  useEffect(() => {
+    const on = () => setWinW(window.innerWidth)
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
+  }, [])
+  const narrowHeader = compactHeader || (multiLife && winW <= narrowBelow)
+  const headerLeftRef = useRef(null)
+  useEffect(() => {
+    const el = headerLeftRef.current
+    if (!el || narrowHeader || !multiLife) return
+    const ro = new ResizeObserver(() => {
+      // Room for the switcher at its smallest (avatar and ▾) and its padding.
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+      if (el.clientWidth < rem * 3.8) setNarrowBelow(window.innerWidth)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [narrowHeader, multiLife])
+  const lifeBirthday  = currentLifeId === ME_LIFE_ID ? birthday : (currentLife.birthDate || '')
+  const lifeDeath     = currentLife.deathDate || ''
+  const [livesSheet, setLivesSheet] = useState(null)   // null | 'list' | 'add' | 'restoreBlocked'
+  const [importing, setImporting] = useState(null)     // a backup read for Import and merge
+  const [shareOpen, setShareOpen] = useState(false)
+  // Compare Lives (Phase 6a): read-only rows of several Lives. This device
+  // remembers which Lives were switched off (Phase 6b), so a Life added later
+  // starts on; with fewer than two left on, every Life is shown.
+  const [comparing, setComparing]   = useState(false)
+  const [compareOff, setCompareOff] = useState(() => {
+    try { const v = JSON.parse(localStorage.getItem(COMPARE_OFF_KEY) || '[]'); return Array.isArray(v) ? v : [] } catch { return [] }
+  })
+  const [compareDetail, setCompareDetail] = useState(null)   // { m, life }
+  const compareOn = lives.map(l => l.id).filter(id => !compareOff.includes(id))
+  const compareSelected = compareOn.length >= 2 ? compareOn : lives.map(l => l.id)
+  const birthDateOf = useCallback((l) => (l.id === ME_LIFE_ID ? birthday : l.birthDate), [birthday])
+  // The main timeline's category and recurrence filters, over every Life.
+  const compareMilestones = React.useMemo(
+    () => applyRecurFilter(filter.size === 0 ? allMilestones : allMilestones.filter(m => filter.has(m.category)), recurFilter),
+    [allMilestones, filter, recurFilter],
+  )
+  function toggleCompareLife(id) {
+    const on = compareSelected.includes(id)
+    if (on && compareSelected.length <= 2) return   // at least two stay on
+    const off = on ? [...compareOff.filter(x => x !== id), id] : compareOff.filter(x => x !== id)
+    setCompareOff(off)
+    try { localStorage.setItem(COMPARE_OFF_KEY, JSON.stringify(off)) } catch { /* not remembered */ }
+  }
+  // Opening a chapter from compare (Phase 6b): it opens in that Life's own
+  // timeline, drilled in; leaving the chapter returns to compare, with the Life
+  // that was on screen before.
+  const [drillFromCompare, setDrillFromCompare] = useState(null)   // { lifeId } | null
+  const drillFromCompareRef = useRef(null)
+  const compareSwitchRef = useRef(null)   // the Life a chapter from compare switched to
+  function handleCompareChapter(chapter, life) {
+    // CompareView hands back the display copy (an ongoing chapter given the
+    // death date as its end): drill into the stored chapter.
+    const stored = allChapters.find(c => c.id === chapter.id) ?? chapter
+    const back = { lifeId: currentLifeId }
+    drillFromCompareRef.current = back
+    setDrillFromCompare(back)
+    setComparing(false)
+    if (life.id !== currentLifeId) {
+      // This switch must not end the drill-in it is part of (see below).
+      compareSwitchRef.current = life.id
+      onSwitchLife(life.id)
+    }
+    handleChapterClick(stored)
+  }
+  // Compare needs a second Life: it is off whenever there is only one.
+  const showCompare = comparing && lives.length > 1
   const [canUndo,       setCanUndo]       = useState(false)
   const [canRedo,       setCanRedo]       = useState(false)
   const [chapterSheetOpen, setChapterSheetOpen] = useState(false)
@@ -701,6 +784,30 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const handleUndo = () => stepHistory(undoHistory.undo)
   const handleRedo = () => stepHistory(undoHistory.redo)
 
+  // ── Switching Lives ───────────────────────────────────────────────────────
+  // Undo history belongs to the Life it was made in, so it is cleared whenever
+  // the Life on screen changes (a switch, or the current Life being deleted),
+  // and a chapter drill-in from the previous Life is left.
+  const shownLifeRef = useRef(currentLifeId)
+  useEffect(() => {
+    if (shownLifeRef.current === currentLifeId) return
+    shownLifeRef.current = currentLifeId
+    historyRef.current = undoHistory.createHistory()
+    setCanUndo(false)
+    setCanRedo(false)
+    // Opening a chapter from compare switches to its Life and drills in at once.
+    const fromCompare = compareSwitchRef.current === currentLifeId
+    compareSwitchRef.current = null
+    if (drilledChapter && !fromCompare) exitDrillIn(true)
+  }, [currentLifeId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleSwitchLife(id) {
+    if (id === currentLifeId) return
+    onSwitchLife(id)
+    const life = lives.find(l => l.id === id)
+    if (life) showToast(tl('nowViewing', { name: lifeName(life, tl) }), 'info')
+  }
+
   // ── Keyboard shortcuts ────────────────────────────────────────────────────────
   // Use a ref so the listener is registered once but always sees fresh state
   const keyStateRef = useRef(null)
@@ -711,6 +818,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     handleUndo, handleRedo, canUndo, canRedo,
     clustering, setClustering,
     exitDrillIn, openChapterCreate,
+    comparing: showCompare, setComparing, multiLife, compareDetail, setCompareDetail,
   }
 
   useEffect(() => {
@@ -724,7 +832,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       }
       audio.init()   // unlock AudioContext on first keystroke (idempotent)
       const s = keyStateRef.current
-      const anyModal = s.addOpen || !!s.detail || s.settingsOpen || s.helpOpen || s.kbdOpen || s.searchOpen || s.chapterSheetOpen
+      const anyModal = s.addOpen || !!s.detail || !!s.compareDetail || s.settingsOpen || s.helpOpen || s.kbdOpen || s.searchOpen || s.chapterSheetOpen
       const anyDrillIn = !!s.drilledChapter
 
       switch (e.key) {
@@ -770,13 +878,20 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           handleExportImage()
           break
         }
+        case 'v': case 'V': {
+          // Compare Lives, and back (Phase 6a).
+          if (anyModal || anyDrillIn || !s.multiLife) break
+          e.preventDefault()
+          s.setComparing(c => !c)
+          break
+        }
         case 'n': {
-          if (s.settingsOpen || !!s.detail) break
+          if (s.settingsOpen || !!s.detail || s.comparing) break   // compare is read-only
           if (!s.addOpen) { e.preventDefault(); setAddOpen(true) }
           break
         }
         case 'N': {
-          if (anyModal) break
+          if (anyModal || s.comparing) break
           e.preventDefault()
           s.openChapterCreate()
           break
@@ -884,6 +999,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             // If drilled in, fall through and exit drill-in after blurring the input.
           }
           if (s.detail)                { setDetail(null); break }
+          if (s.compareDetail)         { s.setCompareDetail(null); break }
           if (s.addOpen)               { s.closeSheet(); break }
           if (s.chapterSheetOpen)      { setChapterSheetOpen(false); setEditChapter(null); break }
           if (s.settingsOpen)          { setSettingsOpen(false); break }
@@ -892,6 +1008,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           if (s.searchOpen)            { setSearchOpen(false); break }
           if (s.activityLogOpen)        { setActivityLogOpen(false); break }
           if (anyDrillIn)              { s.exitDrillIn(); break }
+          if (s.comparing)             { s.setComparing(false); break }
           break
         }
         default: break
@@ -966,8 +1083,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     // photoFile / photoRemoved / mediaFile / mediaRemoved are transfer-only fields
     // from the form — strip them before passing to the data layer and handle blob
     // persistence here.
-    const { mediaFile, mediaRemoved, photoFile, photoRemoved, chapterIds, closeChapterIds,
-            trackAsDayglanceGoal, applyToSeries, ...milestoneData } = data
+    const { mediaFile, mediaRemoved, photoFile, photoRemoved, chapterIds: chapterIdsIn, closeChapterIds,
+            trackAsDayglanceGoal, applyToSeries, lifeIds, ...milestoneData } = data
+    // Lives the milestone belongs to: the sheet's choice when it offers one,
+    // else the Life on screen. Chapter suggestions are this Life's chapters, so
+    // each applies only if the milestone shares a Life with that chapter (a
+    // shared chapter may still take it after the Life on screen is unchecked).
+    const newLives = lifeIds ?? [currentLifeId]
+    const chapterIds = (chapterIdsIn ?? []).filter(id => {
+      const ch = chapters.find(c => c.id === id)
+      return ch && chapterLifeIds(ch).some(l => newLives.includes(l))
+    })
     const newMediaType = mediaFile
       ? (mediaFile.type.startsWith('video/') ? 'video' : 'audio')
       : null
@@ -986,7 +1112,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         const photoId   = photoFile    ? `${existing.id}-photo`
                         : photoRemoved ? null
                         : (existing.photo_id ?? (existing.has_photo ? `${existing.id}-photo` : null))
-        const updated = await updateMilestone(existing.id, { ...milestoneData, media_type: mediaType, has_photo: hasPhoto, media_id: mediaId, photo_id: photoId }, existing)
+        let updated = await updateMilestone(existing.id, { ...milestoneData, media_type: mediaType, has_photo: hasPhoto, media_id: mediaId, photo_id: photoId }, existing)
+        // Lives changed in the sheet: one op per Life, adds before removes so
+        // the milestone never passes through having none. Removing a Life also
+        // takes it out of that Life's chapters, so reload the full lists then.
+        if (lifeIds) {
+          const before = lifeIdsOf(existing)
+          for (const id of lifeIds) if (!before.includes(id)) updated = await setMilestoneLife(updated, id, true)
+          const removing = before.filter(id => !lifeIds.includes(id))
+          for (const id of removing) updated = await setMilestoneLife(updated, id, false)
+          if (removing.length) window.dispatchEvent(new Event('lifeglance:milestones-reload'))
+        }
         if (mediaFile)    await dbPutMedia(updated.id, mediaFile, mediaFile.type)
         if (photoFile)    await dbPutPhoto(updated.id, photoFile, photoFile.type)
         if (photoRemoved) await dbDeletePhoto(updated.id)
@@ -1057,6 +1193,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           const wantMedia = (isBase || rep.media) && !!newMediaType
           const m = await addMilestone({
             ...milestoneData,
+            ...newMilestoneLifeFields(newLives),
             date:          d,
             recurrence_id: rid,
             // Base year always keeps the full record; siblings keep whichever
@@ -1085,6 +1222,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         const dgLinked = !!trackAsDayglanceGoal
         const m = await addMilestone({
           ...milestoneData,
+          ...newMilestoneLifeFields(newLives),
           media_type:       newMediaType,
           has_photo:        !!photoFile,
           dayglance_linked: dgLinked,
@@ -1242,6 +1380,11 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           description:            data.description,
           defaultMemberVisibility: data.defaultMemberVisibility,
           milestoneIds:           data.milestoneIds,
+          // Which Lives it belongs to: written only when that changed, so a
+          // chapter edited in Me alone keeps its pre-Lives shape.
+          ...(sameLives(chapterLifeIds(existing), data.lifeIds)
+            ? {}
+            : { lifeOps: chapterLivesUpdate(existing, data.lifeIds, allMilestones).lifeOps }),
         },
         existing,
       )
@@ -1250,6 +1393,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       if (drilledChapter?.id === existing.id) setDrilledChapter(updated)
     } else {
       const chapter = await createChapter({
+        ...newChapterLifeFields(data.lifeIds ?? [currentLifeId]),
         title:                  data.title,
         start:                  data.start,
         end:                    data.end,   // null for ongoing
@@ -1323,6 +1467,14 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       }
       setDrilledChapter(null)
       setZoomAnim('')
+      // Opened from compare: go back there, with the Life on screen before.
+      const back = drillFromCompareRef.current
+      if (back) {
+        drillFromCompareRef.current = null
+        setDrillFromCompare(null)
+        onSwitchLife(back.lifeId)
+        setComparing(true)
+      }
     }
     if (immediate) { restore(); return }
     audio.playDrillOut()
@@ -1451,42 +1603,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   }
 
   // ── Backup ───────────────────────────────────────────────────────────────────
+  // Every Life's data, read from the stores (src/data/backup.js), so a backup
+  // made while another Life is on screen still holds everything.
   async function handleSaveBackup() {
-    // Collect photos as base64 data-URIs keyed by milestone id. A photo synced
-    // from another device lives only as a vault blob (photo_id is a real blob
-    // hash, no local copy), so fetch+decrypt those too — otherwise a backup made
-    // on the receiving device would silently omit every synced-in photo.
-    const photos = {}
-    for (const m of milestones) {
-      if (!m.has_photo) continue
-      try {
-        let bytes, mimeType
-        if (isRealBlobHash(m.photo_id)) {
-          const b = await fetchFullResBytes(m.photo_id)
-          if (b) { bytes = b; mimeType = sniffImageMime(b) }
-        } else {
-          const result = await dbGetPhoto(m.id)
-          if (result) { bytes = new Uint8Array(await result.blob.arrayBuffer()); mimeType = result.mimeType }
-        }
-        if (!bytes) continue
-        const b64 = btoa([...bytes].map(b => String.fromCharCode(b)).join(''))
-        photos[m.id] = `data:${mimeType};base64,${b64}`
-      } catch { /* skip unreadable photo */ }
-    }
-
-    const chapters = await listChapters()
-    const payload = {
-      milestones,
-      photos,
-      chapters,
-      categories: loadCategories(),
-      categoriesUpdatedAt: localStorage.getItem('lifeglance-categories-updated-at') || '',
-      // Settings worth preserving across a restore (mirrors the cloud-sync payload
-      // in sync/adapter.js, which already carried these).
-      birthday: localStorage.getItem('lifeglance-birthday') || '',
-      birthdayUpdatedAt: localStorage.getItem('lifeglance-birthday-updated-at') || '',
-    }
-    const json = JSON.stringify(payload, null, 2)
+    const json = JSON.stringify(await buildBackup(), null, 2)
     const blob = new Blob([json], { type: 'application/json' })
     const d    = new Date()
     const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
@@ -1496,6 +1616,44 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       console.error('Backup export failed:', err)
       showToast(t('exportFailed'), 'error')
     }
+  }
+
+  // ── Lives: share and import (Phase 5b) ───────────────────────────────────────
+  async function handleShareLives(lifeIds) {
+    const json = JSON.stringify(await buildBackup({ lifeIds }), null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const d    = new Date()
+    const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    try {
+      await saveOrShareFile({ filename: `lifeglance-lives-${stamp}.json`, blob })
+      setShareOpen(false)
+    } catch (err) {
+      console.error('Share Lives failed:', err)
+      showToast(t('exportFailed'), 'error')
+    }
+  }
+
+  async function handleImportLivesFile(file) {
+    try {
+      setImporting(readBackup(JSON.parse(await file.text())))
+    } catch (err) {
+      console.error('Import failed:', err)
+      showToast(err.message || 'Import failed. The file may be invalid.')
+    }
+  }
+
+  // Import and merge wrote to the stores: reload the full lists and the Lives,
+  // and start the undo history over (an import cannot be undone).
+  function handleImportDone(counts) {
+    setImporting(null)
+    window.dispatchEvent(new Event('lifeglance:milestones-reload'))
+    window.dispatchEvent(new Event('lifeglance:lives-changed'))
+    setCategories(loadCategories())
+    historyRef.current = undoHistory.createHistory()
+    setCanUndo(false)
+    setCanRedo(false)
+    showToast(tl('importDone', { count: counts.milestonesAdded + counts.milestonesMerged }), 'success')
+    getSyncEngine()?.upload()
   }
 
   // Categories changed in Settings (add / rename / recolor / delete). The list
@@ -1540,6 +1698,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     for (const row of selected) {
       try {
         const m = await addMilestone({
+          ...newMilestoneLifeFields(currentLifeId),
           title:          row.title,
           date:           row.date,
           date_precision: 'day',
@@ -1566,72 +1725,27 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     const file = e.target.files[0]
     if (!file) return
     try {
-      const text   = await file.text()
-      const parsed = JSON.parse(text)
-
-      // Support legacy milestone-only format (plain array) and current format
-      // ({ milestones, photos, chapters }).  Backups with an 'eras' key instead of
-      // 'chapters' are from a pre-rename dev build and are not supported.
-      if (!Array.isArray(parsed) && Array.isArray(parsed.eras) && !Array.isArray(parsed.chapters)) {
-        throw new Error('This backup was created before the Chapters rename and cannot be imported. Please regenerate the backup from the app.')
-      }
-
-      const items    = Array.isArray(parsed) ? parsed : (parsed.milestones ?? parsed)
-      const photos   = (!Array.isArray(parsed) && parsed.photos) ? parsed.photos : {}
-      const chapters = (!Array.isArray(parsed) && Array.isArray(parsed.chapters)) ? parsed.chapters : []
-      const restoredCategories = (!Array.isArray(parsed) && Array.isArray(parsed.categories) && parsed.categories.length > 0)
-        ? parsed.categories : null
-      const restoredBirthday = (!Array.isArray(parsed) && typeof parsed.birthday === 'string' && parsed.birthday)
-        ? parsed.birthday : null
-
-      const restored = await restoreMilestones(items)
-      await restoreChapters(chapters)
-      if (restoredCategories) {
-        saveCategories(restoredCategories)
-        if (!Array.isArray(parsed) && parsed.categoriesUpdatedAt) {
-          localStorage.setItem('lifeglance-categories-updated-at', parsed.categoriesUpdatedAt)
-        }
-      }
-      if (restoredBirthday) {
-        localStorage.setItem('lifeglance-birthday', restoredBirthday)
-        localStorage.setItem('lifeglance-birthday-updated-at',
-          parsed.birthdayUpdatedAt || new Date().toISOString())
-        dirtyBirthday()
-        setBirthday(restoredBirthday)
+      const backup = readBackup(JSON.parse(await file.text()))
+      const restored = await restoreBackup(backup)
+      if (backup.categories) setCategories(backup.categories)
+      if (restored.birthday) {
+        setBirthday(restored.birthday)
         window.dispatchEvent(new Event('lifeglance:widget-refresh'))
       }
-
-      // Re-import photo blobs into the media store
-      for (const m of restored) {
-        const dataUri = photos[m.id]
-        if (!dataUri) continue
-        try {
-          const [header, b64] = dataUri.split(',')
-          const mimeType = header.match(/:(.*?);/)[1]
-          const raw      = atob(b64)
-          const arr      = new Uint8Array(raw.length)
-          for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
-          const blob = new Blob([arr], { type: mimeType })
-          await dbPutPhoto(m.id, blob, mimeType)
-          // Mark the milestone as having a photo now that the blob is stored
-          m.has_photo = true
-        } catch { /* malformed data-URI — skip */ }
-      }
-
-      // Persist any has_photo=true updates
-      for (const m of restored) {
-        if (m.has_photo) await dbPut(m)
-      }
-
-      setMilestones([...restored])
-      setChapters([...chapters])
-      if (restoredCategories) setCategories(restoredCategories)
+      // Restore replaced the stores outright: reload the app's full lists,
+      // Lives included.
+      window.dispatchEvent(new Event('lifeglance:milestones-reload'))
+      window.dispatchEvent(new Event('lifeglance:lives-changed'))
       historyRef.current = undoHistory.createHistory()
       setCanUndo(false)
       setCanRedo(false)
     } catch (err) {
-      console.error('Restore failed:', err)
-      showToast(err.message || 'Restore failed. The backup file may be invalid.')
+      if (err instanceof MultipleLivesBlockedError) setLivesSheet('restoreBlocked')
+      else if (err instanceof SharedFileRestoreError) showToast(tl('restoreSharedFile'))
+      else {
+        console.error('Restore failed:', err)
+        showToast(err.message || 'Restore failed. The backup file may be invalid.')
+      }
     }
     e.target.value = ''
   }
@@ -1647,7 +1761,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   // Chapter bands on the main timeline honor the category filter (a drilled-in
   // chapter is shown as-is). Milestone visibility still uses the FULL chapters
   // list above, so hiding a chapter band never changes milestone cascade.
-  const drillChapters   = drilledChapter ? [drilledChapter] : filterChaptersByCategory(chapters, filter)
+  // A Life with a death date: its ongoing chapters end there on screen. Display
+  // only; the stored chapters stay ongoing, so editing one never saves the date.
+  const endAtDeath = (cs) => (lifeDeath ? cs.map(c => (c.end ? c : { ...c, end: `${lifeDeath}T00:00:00.000Z` })) : cs)
+  const drillChapters   = endAtDeath(drilledChapter ? [drilledChapter] : filterChaptersByCategory(chapters, filter))
   const drillHighlighted = highlightedIds
 
   function fmtChapterDate(iso) {
@@ -1843,19 +1960,35 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     : 0
 
   return (
-    <div className={`timeline-view${idle.active ? ' idle-active' : ''}`}>
+    <div
+      className={`timeline-view${idle.active ? ' idle-active' : ''}${multiLife ? ' life-tinted' : ''}`}
+      style={multiLife ? { '--life-color': lifeColor(currentLife) } : undefined}
+    >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div
-        className="timeline-header"
+        className={`timeline-header${multiLife ? ' multi-life' : ''}`}
         style={drilledChapter ? { borderBottom: `1px solid ${drilledChapter.color}44` } : undefined}
       >
         {/* Left: logo / breadcrumb */}
         {drilledChapter ? (
           <div className="drill-breadcrumb" style={{ '--drill-color': drilledChapter.color }}>
             <div className="drill-breadcrumb-nav">
-              <button className="drill-breadcrumb-life" onClick={() => exitDrillIn()}>
-                <span className="logo-life">life</span><span className="logo-glance">GLANCE</span>
-              </button>
+              {drillFromCompare ? (
+                // Opened from compare: "Compare › Mom › Lisbon", back to compare.
+                <>
+                  <button className="drill-breadcrumb-life" onClick={() => exitDrillIn()}>
+                    <span className="drill-breadcrumb-lifename">{tl('compareCrumb')}</span>
+                  </button>
+                  <span className="drill-breadcrumb-sep">›</span>
+                  <span className="drill-breadcrumb-lifename">{lifeName(currentLife, tl)}</span>
+                </>
+              ) : (
+                <button className="drill-breadcrumb-life" onClick={() => exitDrillIn()}>
+                  {multiLife
+                    ? <span className="drill-breadcrumb-lifename">{lifeName(currentLife, tl)}</span>
+                    : <><span className="logo-life">life</span><span className="logo-glance">GLANCE</span></>}
+                </button>
+              )}
               <span className="drill-breadcrumb-sep">›</span>
               <TypewriterText
                 key={drilledChapter.id}
@@ -1868,7 +2001,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               <button className="drill-breadcrumb-close" onClick={() => exitDrillIn()} title="exit chapter view">✕</button>
             </div>
             <div className="drill-breadcrumb-meta">
-              <span>{fmtChapterDate(drilledChapter.start)} – {drilledChapter.end ? fmtChapterDate(drilledChapter.end) : t('ongoing')}</span>
+              <span>{fmtChapterDate(drilledChapter.start)} – {drilledChapter.end ? fmtChapterDate(drilledChapter.end) : lifeDeath ? fmtChapterDate(`${lifeDeath}T00:00:00.000Z`) : t('ongoing')}</span>
               <span className="drill-breadcrumb-dot">·</span>
               <span>{t('memberCount', { count: drilledChapter.milestoneIds.length })}</span>
               {drilledChapter.description && <>
@@ -1878,15 +2011,31 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             </div>
           </div>
         ) : (
-          <div className="logo logo-sm">
-            <span className="logo-life">life</span>
-            <span className="logo-glance">GLANCE</span>
+          <div className="header-left" ref={headerLeftRef}>
+            {/* On a narrow header the Life switcher takes the wordmark's place
+                once there is a second Life (Lives v5.0, layout check). */}
+            {!(multiLife && narrowHeader) && (
+              <div className="logo logo-sm">
+                <span className="logo-life">life</span>
+                <span className="logo-glance">GLANCE</span>
+              </div>
+            )}
+            {multiLife && (
+              <LifeSwitcher
+                lives={lives}
+                currentLifeId={currentLifeId}
+                onSwitch={handleSwitchLife}
+                onAddLife={() => setLivesSheet('add')}
+                onManage={() => setLivesSheet('list')}
+                onCompare={() => setComparing(true)}
+              />
+            )}
           </div>
         )}
 
         {/* Center: zoom row + view picker */}
         <div className="header-center">
-          {compactHeader ? (
+          {narrowHeader ? (
             /* Single row on narrow screens: zoom ▾  |  past ↺  |  rec: next */
             <div className="compact-controls-row">
               <div className="zoom-dropdown-wrap" onClick={e => e.stopPropagation()}>
@@ -2044,6 +2193,25 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
       {/* ── Body ───────────────────────────────────────────────────────────── */}
       <div className="timeline-body" ref={bodyRef}>
+        {showCompare && (
+          <CompareView
+            lives={lives}
+            selectedIds={compareSelected}
+            onToggleLife={toggleCompareLife}
+            milestones={compareMilestones}
+            chapters={allChapters}
+            categoryFilter={filter}
+            birthDateOf={birthDateOf}
+            zoom={zoom}
+            customHalfMs={customHalfMs}
+            viewMode={viewMode}
+            panMs={panMs}
+            onPanMs={setPanMs}
+            onMilestoneClick={(m, life) => setCompareDetail({ m, life })}
+            onChapterClick={handleCompareChapter}
+            onClose={() => setComparing(false)}
+          />
+        )}
         {/* Watch-mode photo backdrop — sits behind the timeline (dimmed + Ken Burns) */}
         {idle.active && idlePhotoUrl && (
           <div className="idle-photo-layer" aria-hidden="true">
@@ -2051,7 +2219,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             <div className="idle-photo-scrim" />
           </div>
         )}
-        {!isEmpty && (
+        {!isEmpty && !showCompare && (
           <StatsPanel
             past={past} future={future}
             pastIdx={pastIdx} futureIdx={futureIdx}
@@ -2077,15 +2245,19 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             highlightedIds={timelineHighlighted}
             highlightScale={idle.active ? 1.22 : 1.06}
             onMilestoneClick={handleMilestoneClick}
-            onChapterClick={handleChapterClick}
-            onChapterDoubleClick={openChapterEdit}
+            // Timeline hands back the display copy (an ongoing chapter given the
+            // death date as its end); act on the stored chapter, so a drill-in
+            // or an edit never saves that date.
+            onChapterClick={c => handleChapterClick(chapters.find(x => x.id === c.id) ?? c)}
+            onChapterDoubleClick={c => openChapterEdit(chapters.find(x => x.id === c.id) ?? c)}
             panMs={panMs}
             onPanMs={setPanMs}
             onPinch={handlePinch}
             viewMode={viewMode}
             onClusterClick={handleClusterClick}
             clustering={clustering}
-            birthday={birthday}
+            birthday={lifeBirthday}
+            deathDate={lifeDeath}
             newlyAddedId={newlyAddedId}
             ultraCompact={ultraCompact}
           />
@@ -2111,7 +2283,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
       {!isEmpty && (
         <MinimapBar
           milestones={filteredMilestones}
-          chapters={chapters}
+          chapters={endAtDeath(chapters)}
           panMs={panMs}
           onPanDirect={setPanMs}
           panToMs={(ms) => timelineRef.current?.panToMs(ms)}
@@ -2123,12 +2295,17 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
 
       {/* ── Bottom bar ─────────────────────────────────────────────────────── */}
       <div className="timeline-bottom">
-        <button className="add-milestone-btn" onClick={() => setAddOpen(true)}>
-          {ultraCompact ? t('addMilestoneShort') : t('addMilestone')}
-        </button>
-        <button className="add-chapter-btn" onClick={openChapterCreate}>
-          {ultraCompact ? t('addChapterShort') : t('addChapter')}
-        </button>
+        {/* Compare is read-only: no adding while it is on screen. */}
+        {!showCompare && (
+          <>
+            <button className="add-milestone-btn" onClick={() => setAddOpen(true)}>
+              {ultraCompact ? t('addMilestoneShort') : t('addMilestone')}
+            </button>
+            <button className="add-chapter-btn" onClick={openChapterCreate}>
+              {ultraCompact ? t('addChapterShort') : t('addChapter')}
+            </button>
+          </>
+        )}
 
         {presentCategories.length > 0 && (
           compactFilter ? (
@@ -2183,7 +2360,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             {t('onThisDay')}
           </button>
         )}
-        {hiddenMilestones.length > 0 && (
+        {hiddenMilestones.length > 0 && !showCompare && (
           <button className="today-btn" onClick={() => setHiddenListOpen(true)}>
             {t('hiddenCount', { count: hiddenMilestones.length })}
           </button>
@@ -2198,7 +2375,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           the bottom toolbar. Hidden while the idle/watch overlay is active. The
           styles ride along in a gated <style> so the WHOLE block — markup and CSS
           — is stripped from every non-Vercel build by the VITE_DEMO literal. */}
-      {import.meta.env.VITE_DEMO && demoLoaded && !idle.active && (
+      {import.meta.env.VITE_DEMO && demoLoaded && !idle.active && !showCompare && (
         <>
           <style>{`
             .demo-pill {
@@ -2218,6 +2395,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
               transition: background 0.15s;
             }
             .demo-pill:hover { background: rgba(var(--amber-rgb), 0.28); }
+            /* Out of the way while any sheet is open (layout check). */
+            body:has(.sheet-overlay) .demo-pill, body:has(.drill-breadcrumb) .demo-pill { display: none; }
             .demo-pill-dot {
               width: 7px; height: 7px; border-radius: 50%;
               background: var(--amber-bright); flex-shrink: 0;
@@ -2254,7 +2433,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           {idle.currentEvent && (() => {
             const ev      = idle.currentEvent
             const chapter = chapters.find(c => c.milestoneIds?.includes(ev.id))
-            const age     = birthday ? ageAtDate(birthday, ev.date) : null
+            const age     = lifeBirthday && !(lifeDeath && ev.date.slice(0, 10) > lifeDeath) ? ageAtDate(lifeBirthday, ev.date) : null
             const isPastEv = new Date(ev.date) < new Date()
             return (
               <div className="idle-caption" key={ev.id}>
@@ -2293,6 +2472,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           chapters={chapters}
           visibilityPrecomputed={visibilityPrecomputed}
           drilledChapter={drilledChapter}
+          lives={lives}
+          currentLifeId={currentLifeId}
         />
       )}
       {chapterSheetOpen && (
@@ -2301,7 +2482,55 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onClose={closeChapterSheet}
           onDelete={handleChapterDelete}
           existing={editChapter}
-          milestones={milestones}
+          milestones={allMilestones}
+          categories={categories}
+          lives={lives}
+          currentLifeId={currentLifeId}
+        />
+      )}
+      {importing && (
+        <ImportSheet
+          backup={importing}
+          lives={lives}
+          onClose={() => setImporting(null)}
+          onDone={handleImportDone}
+        />
+      )}
+      {shareOpen && (
+        <ShareSheet
+          lives={lives}
+          currentLifeId={currentLifeId}
+          onClose={() => setShareOpen(false)}
+          onShare={handleShareLives}
+        />
+      )}
+      {livesSheet && (
+        <LivesSheet
+          lives={lives}
+          milestones={allMilestones}
+          chapters={allChapters}
+          start={livesSheet}
+          onClose={() => setLivesSheet(null)}
+          onChanged={() => window.dispatchEvent(new Event('lifeglance:lives-changed'))}
+          onDeleted={() => {
+            // deleteLife changed milestones and chapters too: reload the full
+            // lists (and the Lives). The app falls back to Me if this was the
+            // Life on screen.
+            window.dispatchEvent(new Event('lifeglance:milestones-reload'))
+            getSyncEngine()?.upload()
+          }}
+        />
+      )}
+      {compareDetail && (
+        <MilestoneDetail
+          milestone={compareDetail.m}
+          readOnly
+          onClose={() => setCompareDetail(null)}
+          onOpenInLife={() => { const id = compareDetail.life.id; setCompareDetail(null); setComparing(false); handleSwitchLife(id) }}
+          openInLifeLabel={tl('openInLife', { name: lifeName(compareDetail.life, tl) })}
+          birthday={birthDateOf(compareDetail.life) || ''}
+          deathDate={compareDetail.life.deathDate || ''}
+          lives={lives}
           categories={categories}
         />
       )}
@@ -2312,7 +2541,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onEdit={openEdit}
           onDelete={handleDelete}
           onDeleteSeries={handleDeleteSeries}
-          birthday={birthday}
+          birthday={lifeBirthday}
+          deathDate={lifeDeath}
+          lives={lives}
           categories={categories}
         />
       )}
@@ -2391,6 +2622,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           onOpenAutoBackup={() => { setSettingsOpen(false); setAutoBackupOpen(true) }}
           onOpenActivityLog={isIntegrationEnabled() ? () => { setSettingsOpen(false); setActivityLogOpen(true) } : undefined}
           onClose={() => setSettingsOpen(false)}
+          onOpenLives={() => { setSettingsOpen(false); setLivesSheet('list') }}
+          onShareLives={lives.length > 1 ? () => { setSettingsOpen(false); setShareOpen(true) } : undefined}
+          onImportLivesFile={handleImportLivesFile}
         />
       )}
       {activityLogOpen && (

@@ -24,6 +24,8 @@
 
 import { dbGet } from './db'
 import { updateMilestone, deleteMilestone, reinstateMilestone } from './milestones'
+import { setMilestoneLife } from './lives'
+import { lifeIdsOf } from './lifeMembership'
 
 export const MAX_HISTORY = 50
 
@@ -35,6 +37,10 @@ const IGNORED_FIELDS = new Set([
   'updated_at', 'created_at', 'direction',
   // colour always tracks the category's current colour, derived on apply
   'color',
+  // Life membership is recorded per Life (`lives` on a change), never as the
+  // whole set: writing an old set back would undo a concurrent change another
+  // device made to a different Life.
+  'lifeOps',
 ])
 
 const same = (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b)
@@ -58,7 +64,12 @@ export function diffMilestones(before, after) {
       fb[k] = b[k]
       fa[k] = a[k]
     }
-    if (Object.keys(fa).length) changed.push({ id: a.id, before: fb, after: fa })
+    const lb = lifeIdsOf(b), la = lifeIdsOf(a)
+    const lives = { add: la.filter(id => !lb.includes(id)), remove: lb.filter(id => !la.includes(id)) }
+    const hasLives = lives.add.length + lives.remove.length > 0
+    if (Object.keys(fa).length || hasLives) {
+      changed.push({ id: a.id, before: fb, after: fa, ...(hasLives ? { lives } : {}) })
+    }
   }
   if (!added.length && !removed.length && !changed.length) return null
   return { added, removed, changed }
@@ -68,7 +79,10 @@ export function invertEntry(entry) {
   return {
     added:   entry.removed,
     removed: entry.added,
-    changed: entry.changed.map(c => ({ id: c.id, before: c.after, after: c.before })),
+    changed: entry.changed.map(c => ({
+      id: c.id, before: c.after, after: c.before,
+      ...(c.lives ? { lives: { add: c.lives.remove, remove: c.lives.add } } : {}),
+    })),
   }
 }
 
@@ -77,6 +91,7 @@ const defaultDeps = {
   update:    updateMilestone,
   remove:    deleteMilestone,
   reinstate: reinstateMilestone,
+  setLife:   setMilestoneLife,
 }
 
 // Apply one entry against the CURRENT stored state. Each part is skipped when
@@ -110,11 +125,21 @@ export async function applyEntry(entry, { colorFor = () => undefined, ...overrid
   }
 
   for (const c of entry.changed) {
-    const current = await deps.get(c.id)
+    let current = await deps.get(c.id)
     if (!current) continue
-    const category = c.after.category ?? current.category
-    const color = colorFor(category) ?? current.color
-    updated.push(await deps.update(c.id, { ...c.after, color }, current))
+    if (Object.keys(c.after).length) {
+      const category = c.after.category ?? current.category
+      const color = colorFor(category) ?? current.color
+      current = await deps.update(c.id, { ...c.after, color }, current)
+    }
+    // Each Life as its own op with a fresh timestamp. A step that would leave
+    // the milestone with no Life (another device removed the rest meanwhile)
+    // is skipped rather than forced.
+    for (const lifeId of c.lives?.add ?? []) current = await deps.setLife(current, lifeId, true)
+    for (const lifeId of c.lives?.remove ?? []) {
+      try { current = await deps.setLife(current, lifeId, false) } catch { /* would orphan it */ }
+    }
+    updated.push(current)
   }
 
   return { removed, reinstated, updated }

@@ -15,6 +15,7 @@ describe('locale bundles', () => {
     'dayglance',
     'help',
     'import',
+    'lives',
     'milestone',
     'onboarding',
     'search',

@@ -63,7 +63,7 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, highlightScale = 1.06, panMs, onPanMs, onPinch, viewMode = 'all', onClusterClick, clustering = true, birthday = '', newlyAddedId = null, ultraCompact = false },
+  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, highlightScale = 1.06, panMs, onPanMs, onPinch, viewMode = 'all', onClusterClick, clustering = true, birthday = '', deathDate = '', newlyAddedId = null, ultraCompact = false },
   ref
 ) {
   const { t, i18n } = useTranslation('timeline')
@@ -89,6 +89,14 @@ const Timeline = forwardRef(function Timeline(
   )
   const [photoTip,    setPhotoTip]    = useState(null) // { uri, x, y }
   const [chapterTip,  setChapterTip]  = useState(null) // { chapter, x, y } | null
+  // The chapter label is centred on the pointer; near an edge of the window,
+  // keep it whole (it was cut off at the left edge).
+  const keepChapterTipOnScreen = (el) => {
+    if (!el) return
+    const half = el.offsetWidth / 2
+    const x = parseFloat(el.style.left)
+    el.style.left = `${Math.min(Math.max(x, half + 8), window.innerWidth - half - 8)}px`
+  }
   const [playingId,   setPlayingId]   = useState(null)
   const audioElRef = useRef(null)
   // Hover-preview of a card's photo. The image is loaded on demand: a synced-in
@@ -517,9 +525,11 @@ const Timeline = forwardRef(function Timeline(
               return (
                 <g key={chapter.id}
                   style={{ cursor: 'pointer' }}
-                  onMouseEnter={e => setChapterTip({ chapter, x: e.clientX, y: e.clientY })}
-                  onMouseLeave={() => setChapterTip(null)}
-                  onMouseMove={e => setChapterTip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null)}
+                  // A hover label, for a mouse only: a tap on a touch screen
+                  // would otherwise leave it on screen (layout check).
+                  onPointerEnter={e => { if (e.pointerType === 'mouse') setChapterTip({ chapter, x: e.clientX, y: e.clientY }) }}
+                  onPointerLeave={() => setChapterTip(null)}
+                  onPointerMove={e => { if (e.pointerType === 'mouse') setChapterTip(t => t ? { ...t, x: e.clientX, y: e.clientY } : null) }}
                   onClick={() => {
                     // Clear any previous timer before setting a new one — a double-click
                     // fires onClick twice, and without this the first timer survives even
@@ -601,7 +611,8 @@ const Timeline = forwardRef(function Timeline(
           const tYear    = today.getFullYear()
           const centered = Math.abs(panMs) < 1
           const todayLocalDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-          const todayAge = birthday ? ageAtDate(birthday, todayLocalDate) : null
+          // No age at today for a Life that has died: it would keep counting.
+          const todayAge = birthday && !(deathDate && todayLocalDate > deathDate) ? ageAtDate(birthday, todayLocalDate) : null
           const lineY1   = todayAge !== null ? 68 : 54
           return (
             <g style={{
@@ -767,7 +778,8 @@ const Timeline = forwardRef(function Timeline(
               >{relStr}</text>
 
               {birthday && (() => {
-                const age = ageAtDate(birthday, m.date)
+                // Ages stop at the death date (a memorial after it has none).
+                const age = deathDate && m.date.slice(0, 10) > deathDate ? null : ageAtDate(birthday, m.date)
                 return age !== null ? (
                   <text x={cardX + 10} y={yAge}
                     fill="rgba(var(--amber-rgb), 0.52)"
@@ -971,7 +983,7 @@ const Timeline = forwardRef(function Timeline(
       )}
 
       {chapterTip && (
-        <div style={{
+        <div ref={keepChapterTipOnScreen} style={{
           position:      'fixed',
           left:          chapterTip.x,
           top:           chapterTip.y,

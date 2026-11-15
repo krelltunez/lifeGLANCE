@@ -97,13 +97,16 @@ history captures lives.
   `life_id`. Two devices can each add or remove a Life from the same milestone,
   so the set must merge without one side overwriting the other: model it like
   Chapter membership (`milestoneIds` with `memberOps`, an LWW element set).
-- **Chapters belong to one Life** (proposed, see open question 6).
+- **Chapters can be shared by several Lives**, like milestones (decided before
+  Phase 6, replacing the one-Life rule of open question 6; see "Shared chapters").
 - **Categories are global**, shared by every Life. They stay where they are on
   the wire (`lives.default.categories`, `life:default:categories`).
 - **Where ownership lives on the wire: inside the records** (decided in Phase 1).
   - A milestone's Life set is a field of the milestone record (an LWW element
     set, like Chapter `memberOps`). No field means Me.
-  - A Chapter's Life is a `lifeId` field of the chapter record. No field means Me.
+  - A Chapter's Lives are a `lifeOps` field of the chapter record, the same LWW
+    element set as a milestone's. No field means Me. (A pre-release build used a
+    single `lifeId`; it is still read as that one Life.)
   - Life records and relationship edges are new vault row kinds, and new arrays
     (with their own tombstone maps) under `lives.default` in the file.
   - All file data stays under `lives.default`; there are no `lives.<lifeId>`
@@ -112,7 +115,21 @@ history captures lives.
   - Why: shared milestones cannot live under per-Life slots (a wedding cannot sit
     under two keys), and keeping ownership in the record removes most of the
     damage a 4.0.x client would do (table above).
-  - Field names are settled in Phase 2.
+  - Field names (Phase 2a):
+    - Me is the Life with the fixed id `me`. Every device creates the identical
+      record (`{ id: 'me', name: 'Me' }`, epoch timestamps) in the IndexedDB v7
+      migration, so two devices can never produce two Mes. An imported `me`
+      from someone else's export is never matched by id (Phase 5).
+    - Life record: `{ id, name, nickname?, about?, birthDate?, deathDate?,
+      photo_id?, color?, notes?, created_at, updated_at }`. Me's birth date stays
+      in the existing birthday setting, so older devices and the widgets keep
+      reading the same value.
+    - Milestone: `lifeOps: { [lifeId]: { op: 'add'|'remove', at } }`. The set of
+      Lives is derived on read (`lifeIdsOf`), not stored as a second field.
+    - Chapter: `lifeId` in Phase 2a; `lifeOps`, like a milestone, since shared
+      chapters (before Phase 6).
+    - Vault: row kind `life`, bundle `life:default:lifeTombstones`. File:
+      `lives.default.lifeRecords`, `lives.default.lifeTombstones`. Sync schema 2.
 - **Migration:** all existing milestones, chapters and the birthday attach to
   the Me Life. IndexedDB v7; idempotent; safe to re-run after an interrupted
   upgrade.
@@ -158,6 +175,230 @@ history captures lives.
   is the lifeGLANCE logo markup, not a translated "Life" string, so this adds a
   new string in every locale.)
 
+**Decided in Phase 3a**
+
+- **Someone who never adds a Life sees no change.** The switcher and the
+  Life-named breadcrumb appear only once a second Life exists; the way in is
+  Settings, Lives.
+- **Undo history is cleared when the Life on screen changes** (a switch, or the
+  current Life being deleted), so an undo never reaches into a Life that is
+  not on screen.
+- **The current Life is remembered per device** and falls back to Me when it
+  no longer exists.
+- **Me is shown as the translated "Me"** (with its nickname, if set); the stored
+  name stays `Me`.
+- **A death date on screen:** ages stop at it (milestone cards, the detail view,
+  watch mode), the today marker shows no age, and ongoing chapters end at it.
+  The chapter ending is display only: chapter clicks and edits act on the
+  stored chapter, which stays ongoing.
+
+**Decided in Phase 3b**
+
+- **Which Lives a milestone belongs to** is a checklist on the milestone sheet
+  (and shown on the detail view), only once there is more than one Life. A new
+  milestone starts in the Life on screen; at least one stays checked. An edit
+  writes one op per Life changed, adds before removes. Chapter suggestions on a
+  new milestone apply only if it stays in the Life on screen. (Since shared
+  chapters: to each chapter it shares a Life with.)
+- **Undo of such an edit** is a Life change, not a delete: the edit replaces
+  the record in the timeline's list rather than dropping it, so the history
+  diff records `lives: { add, remove }` and undo replays it per Life.
+- **Life photos** take the milestone-photo path: kept locally under
+  `<lifeId>-photo`; with GLANCEvault on, uploaded and referenced by real hash
+  (`photo_id`, `thumbnail_id`) only after the upload succeeds, and released when
+  replaced, removed, or the Life is deleted. Without the vault they stay on the
+  device, like milestone photos. The JSON backup carries them from Phase 5a.
+
+**Decided in Phase 4**
+
+- **Edge record:** `{ id, fromLifeId, toLifeId, type, relationshipNote?,
+  created_at, updated_at }`, read "`toLifeId` is `fromLifeId`'s `type`". The
+  picker on Mom's Life writes `from: 'me', to: <Mom>, type: 'parent'`: "Mom is
+  Me's parent". Stored in the IndexedDB v8 `relationships` store
+  (`src/data/relationships.js`).
+- **Picker types:** none, parent, child, partner (shown as "Partner or spouse"),
+  sibling, other. "None" deletes the edge, with a tombstone. Any number of edges
+  between the same two Lives, in either direction, is representable; the picker
+  shows and changes only the most recently changed edge from Me to that Life and
+  leaves any others alone. A type this build does not offer (from a newer build)
+  is shown as stored and kept unless the user picks another.
+- **Me's own editor has no picker**, and the Lives list shows each Life's
+  relationship to Me under its name.
+- **Deleting a Life deletes every edge that touches it**, from or to, each with
+  a tombstone.
+- **`relationshipNote`** is stored and synced; no UI in v5.0.
+- **On the wire:** vault row kind `relationship` and bundle
+  `life:default:relationshipTombstones`; file arrays `lives.default.relationships`
+  and `lives.default.relationshipTombstones`, applied only when the file carries
+  them (same rule as `lifeRecords`).
+- **Life records and edges are LWW-on-apply on the vault.** The engine pushes
+  before it pulls, so with its own LWW an older concurrent edit could overwrite
+  a newer row in the vault, and the device with the newer one would keep it
+  without pushing it again: the devices would disagree. Both kinds are now
+  insert-only rows resolved in the adapter (newer `updated_at` wins; a tie goes
+  to the larger canonical form), and a local copy that wins is re-pushed. This
+  also fixes Life records as shipped in Phase 2b.
+
+**Shared chapters (decided before Phase 6)**
+
+- **A chapter belongs to one or more Lives**: `lifeOps` on the chapter record,
+  merged per Life on both sync tiers (`mergeChapters`), as a milestone's are.
+  A chapter with no `lifeOps` belongs to Me and is left exactly as it was.
+- **Members:** a chapter holds any milestone that shares at least one Life with
+  it. A Me + Mom chapter may hold a milestone that is only Me's; each Life's
+  view shows only its own milestones. When a milestone leaves a Life, it leaves
+  the chapters it no longer shares a Life with. When a chapter leaves a Life,
+  the members that no longer fit leave it (the sheet says how many first).
+- **The chapter sheet** has the same Lives checklist as the milestone sheet once
+  there is a second Life; a new chapter starts in the Life on screen; at least
+  one stays checked. The members offered are those of the checked Lives. A
+  chapter's Lives are written only when they change.
+- **Chapter suggestions on a new milestone** apply to each chapter it shares a
+  Life with.
+- **Deleting a Life:** chapters only it has are deleted; shared ones lose it,
+  along with the milestones the deletion removed. The confirmation counts both.
+- **Backup, Share Lives and import** treat a chapter's Lives as a milestone's:
+  trimmed to the chosen Lives when sharing, mapped to the matched Lives on
+  import, and left out when none is chosen.
+
+**Decided in Phase 6a: the compare view** (`src/utils/compare.js`, `src/components/compare/CompareView.jsx`)
+
+- **Getting there:** "Compare Lives" in the Life switcher menu (only with a
+  second Life) and the `v` key; Esc or ✕ goes back. It takes the timeline's
+  place under the same header, so zoom, position and the category and
+  recurrence filters are shared with the main timeline.
+- **Choosing Lives:** a chip per Life above the rows; every Life starts on, and
+  the last two cannot be turned off.
+- **A row** per chosen Life, in the Lives' order: a line in the Life's colour
+  from its birth date (or its earliest milestone or chapter without one) to its
+  death date (with an end cap) or to today. Milestones are dots on the line with
+  their titles above and below where there is room; chapters are bars under it,
+  in up to three lanes. A shared milestone or chapter appears on every row it
+  belongs to. The visibility cascade is worked out per Life, with that Life's
+  chapters. A milestone after the death date is drawn, fainter, past the line.
+- **Ages:** hovering or focusing a milestone shows its date and every row's age
+  then ("not born yet", "after their death", "no birth date"). On touch the first
+  tap shows this, with a Details button.
+- **The detail is read-only:** no edit, delete or widget pins; "Open in
+  <Life>'s timeline" leaves compare and switches to that Life.
+- **Read-only throughout:** the add buttons, the `n` / `N` keys, the past/future
+  panels and the hidden-milestones list are off while comparing.
+- **The axis** is `x(time, row)` through `lifeOffsetMs(row, alignment)`, 0 for
+  every Life when date-aligned; age alignment (v5.1) adds an offset and an age
+  tick generator.
+- **Left for 6b:** opening a chapter from compare (with the breadcrumb back) and
+  remembering the chosen Lives. Phone layout work moved to a layout check once
+  every phase is done.
+
+**Decided in Phase 6b**
+
+- **A chapter in compare** opens in that Life's own timeline, drilled in. The
+  breadcrumb reads "Compare › Mom › Our house"; the Compare crumb, ✕, Esc or the
+  chapter band leave the chapter and return to compare, at the same zoom and
+  position, with the Life that was on screen before. (A Life switch normally
+  ends a drill-in; the switch made by this step does not.)
+- **The chosen Lives are remembered** on this device (`lifeglance-compare-off`,
+  the Lives switched off, so a Life added later starts on). Not synced. With
+  fewer than two left on, every Life is shown.
+
+**Decided in the layout check** (after Phase 6b; landscape phones, tablet,
+laptop and desktop, light and dark, English, German and Chinese. Portrait phones
+and tablets show the app's existing "rotate your device" screen.)
+
+- **The header with a second Life:** the side columns take their share of the
+  width, so nothing slides under the centred controls. The Life switcher shrinks
+  inside its column (the name cut first, down to its avatar and ▾). On the narrow
+  header (≤1080px) the switcher replaces the wordmark; on a wider one the
+  wordmark gives way when the column is too narrow for both. If even the
+  switcher has no room (long zoom labels, e.g. German on a tablet), the header
+  takes its narrow layout until the window grows. A single-Life header is
+  unchanged.
+- **The switcher menu** never runs off the screen: the Lives scroll, and Compare,
+  Add and Manage stay in view.
+- **Compare:** the Life chips are one line that scrolls sideways; the title and
+  the read-only note drop out on small screens. The names column is 180px with
+  two lines, avatars only below 900px. The tooltip is placed from its real
+  height inside the visible rows; its age list scrolls past half the screen.
+- **Sheets:** a checklist directly in a sheet keeps its height (Share Lives); the
+  sheet's buttons wrap rather than overflow (German import). The hosted demo's
+  sample-data pill hides while a sheet or a chapter is open.
+- **Breadcrumb:** it stays inside its column; on a narrow header the chapter
+  title gives way first, then the crumbs, never the ✕. On a wide header a long
+  title takes its own line, two at most.
+- **Chapter hover label** (the main timeline): for a mouse only (a tap no longer
+  leaves it on screen), and kept inside the window.
+- **Not changed:** on a small phone with only one Life, the wordmark already
+  touches the centre controls (34px in English, more in German). That is 4.x
+  behaviour, outside Lives.
+
+**Decided in Phase 5a: the JSON backup**
+
+- **"Save backup" holds every Life**, read from the stores
+  (`src/data/backup.js`), never from what is on screen. (Before 5a it saved only
+  the milestones of the Life on screen, and Restore then deleted every other
+  Life's milestones.)
+- **Format 2** is the 4.x flat file plus `format: 2`, `exportedAt`,
+  `lifeRecords` (every Life; Me's carries its `birthDate` from the birthday
+  setting, for matching on import), `relationships`, and `lifePhotos` (Life id
+  to data URI, like `photos` for milestones).
+- **Restore replaces**, Lives and relationships included. Me is never deleted and
+  stays named Me; its birth date goes back to the birthday setting. A file with
+  no `lifeRecords` (4.x, or the oldest bare-array format) replaces milestones and
+  chapters and leaves Lives, their photos and relationships as they are.
+- **The gate:** while an older device has synced in the last 60 days, a file
+  that holds any Life but Me (in Life records, milestone memberships, chapters,
+  or relationships) is refused before anything changes, with the gate message.
+- **Unchanged from 4.x:** restore writes no tombstones and marks nothing but the
+  birthday for sync, so with sync on, a peer's copy can bring back what the
+  restore removed.
+
+**Decided before Phase 5b: import and merge, and sharing**
+
+- **Import and merge** sits next to Restore and reads the same file. A preview
+  lists each Life in the file: match it to one of yours, add it as new, or skip
+  it. Same Life id is matched automatically; otherwise a match is suggested only
+  when name and birth date both agree; any Life can be matched by hand.
+- **The exporter's Me** is never matched by id. It starts as Skip; adding it asks
+  for a name (their nickname, if set, filled in); it can be matched to your own
+  Me (your own export from another install).
+- **Merging:** a milestone you both have (same id) merges as sync merges it;
+  others are added; one that belongs only to skipped Lives is left out.
+  Chapters follow their Lives. Relationships are unioned with Life ids remapped
+  to the matched Lives; exact duplicates (same from, to and type) are dropped.
+  Tombstones in the file are ignored: an import only adds.
+- **A matched Life:** your own fields win; the file fills only empty ones.
+- **Undo:** an import is not undoable and clears the undo history, as Restore
+  does. The preview, with its counts, is the safeguard.
+- **Share Lives…:** an export of chosen Lives only: their milestones (memberships
+  trimmed to the chosen Lives), chapters, photos, and the relationships between
+  them.
+- **Out of scope:** detecting duplicate milestones entered separately (different
+  ids) by both people.
+
+**Decided in Phase 5b** (`src/data/importMerge.js`, `ImportSheet.jsx`, `ShareSheet.jsx`)
+
+- **Where:** Settings, under Lives: "Share Lives" (shown once there is more than
+  one Life) and "Import and merge". Share starts with the Life on screen checked.
+- **A shared file** is format 2 with `scope: 'shared'`. Restore refuses it (it
+  would replace everything with a part) and points to Import and merge. Me's
+  birthday travels only when Me is shared. A shared file without Me shows no Me
+  row in the preview.
+- **Ids:** a Life added as new keeps the file's id, unless it is the exporter's
+  Me or the id is taken here; then it gets a new one.
+- **Milestones added** bring no one else's dayGLANCE links, media or vault
+  references; the photo comes along as a local copy. **Milestones merged** keep
+  this device's photo, media and links. Categories the added milestones use and
+  this device lacks are added; no others.
+- **Chapters** drop members this device does not end up with.
+- **Relationships:** an edge whose two ends map to the same Life is dropped.
+- **Matched to my own Me:** a birth date in the file fills the birthday setting
+  only if it is empty.
+- **Deleted here before:** a record this device has a tombstone for is written
+  dated now, so sync keeps it (a tombstone only beats an older record).
+- **Every write is marked for sync**, and the sync engine is asked to upload.
+- **The gate** refuses an import that adds to or matches any Life but Me while an
+  older device is active; importing into Me alone is allowed.
+
 **OS surfaces are Me-only in v5.0**
 
 Widgets, Spotlight, Siri / App Intents (AddMilestone), the share extension,
@@ -188,7 +429,7 @@ A separate relationships record holds `fromLifeId`, `toLifeId`, `type`, plus an
 optional freeform `relationshipNote`.
 
 **What ships in v5.0:** a "relationship to Me" dropdown on the Life editor
-(parent / child / spouse / sibling / other). Selecting one writes a single edge
+(parent / child / partner or spouse / sibling / other; see "Decided in Phase 4"). Selecting one writes a single edge
 from the Me Life. No relationship editor screen, no tree view, no genealogy
 features, no additional user-facing surface of any kind.
 
@@ -254,14 +495,23 @@ abandoned device cannot block Lives forever. The window is
   platform, day }`, merged per device by latest UTC day and pruned at 60 days.
   `day` changes at most once a day, so an idle device does not rewrite the file.
 
-**How v5.0 detects a device older than Phase 1.**
+**How v5.0 sees which devices are active (built in Phase 2b, `src/sync/lifeGate.js`).**
 
-- **Vault:** a row pulled after this device's first full sync (cursor above 0)
-  whose `life_id` is the plain string `'default'` was written by a pre-Phase-1
-  client.
-- **File tier:** a 4.0.x write drops every top-level key it does not know, so a
-  file whose `writers` map no longer holds this device's own entry (which it
-  wrote last time) was rewritten by a pre-Phase-1 client.
+- **Vault:** every row pulled after this device has *caught up* records its
+  writer: the stamp's device and schema, or "a device older than Phase 1" for a
+  plain `'default'`. Caught up means the engine's first fully successful cycle
+  (its last-synced stamp changed); until then pulled rows are the account's
+  history, not new writes, and do not count. The flag is per-account stream
+  state, cleared with the cursor on a vault reset.
+- **File tier:** every other device's `writers` entry records that device,
+  dated by its `day`. A file that no longer holds this device's own entry,
+  which this device saw there within the last 59 days (so the 60-day prune
+  cannot explain it), was rewritten by a pre-Phase-1 client. This is tracked per
+  file (`webdav`, `icloud`, `direct-access`), since a device can sync several.
+- **The gate:** `canUseMultipleLives()` is false while any recorded writer other
+  than this device, seen in the last 60 days, has schema below 2. `createLife`
+  refuses then (`MultipleLivesBlockedError`, carrying the blocking writers for
+  the Phase 3 banner), so no other Life, and so no multi-Life data, can exist.
 
 **What Phase 1 clients do with v5.0 data.** They keep it intact and say so:
 
@@ -276,6 +526,13 @@ abandoned device cannot block Lives forever. The window is
 - They still *show* other Lives' milestones as their own, because they do not
   know the v5.0 fields. The gate is what keeps v5.0 from writing those while a
   Phase 1 device is active.
+
+**Milestones are merge-on-apply (Phase 2b).** On the vault, milestones join
+chapters and bundles as insert-only rows: every pulled version is merged with
+the local one. Every field but `lifeOps` stays entity-grain LWW (exact ties
+resolved the same way on both devices); `lifeOps` merges per Life. Records with
+no `lifeOps` on either side are left exactly as they were. The file tier applies
+the same merge to milestones both sides hold.
 
 **Known cost.** The first time a 4.0.x client pulls a stamped chapter row, its
 equality check (which compares `life_id` with `'default'`) fails and it re-pushes
@@ -292,9 +549,8 @@ key and bundle while any older client is active, so their age labels stay right.
 3. ~~Relationship field shape?~~ **Resolved:** edges, single picker in v5.0.
 4. ~~Breadcrumb phrasing?~~ **Resolved:** "Mom › University".
 5. ~~Categories global or per-Life?~~ **Resolved:** global.
-6. **Chapters across Lives.** Proposed: a Chapter belongs to exactly one Life,
-   and may contain any milestone that belongs to that Life (including a shared
-   one). Confirm before Phase 2.
+6. ~~Chapters across Lives?~~ **Resolved:** first one Life per chapter (Phase 2a);
+   then shareable, like milestones, before Phase 6 ("Shared chapters").
 7. **Undo with Lives.** The new undo history records milestone deltas; with
    shared milestones, a delta can touch Life membership. Phase 2 must decide
    whether membership changes are undoable (proposed: yes, through the same
@@ -380,17 +636,26 @@ should not foreclose any of it.
 
 ## Build phases
 
-Each phase is one PR, merged and verified before the next starts.
+Each phase is one PR, merged and verified before the next starts. From Phase
+2 on, phase PRs target the `lives-v5` branch, not `main`, so 4.x releases cut
+from `main` never carry half-built Lives code. `lives-v5` merges into `main`
+when v5.0 ships, and takes `main` in periodically so it does not drift.
 
 | Phase | Ships in | Scope | Out of scope |
 |---|---|---|---|
 | 0 | docs | This document: reconcile, retag to v5.0.0, record decisions. | Any code. |
 | 1 | 4.x | Forward-compat sync: writer stamps on both tiers, unknown file keys passed through, unknown vault row kinds ignored quietly, "newer version" notice. Records the in-record ownership model and the 60-day gate. | Any Life entity or field, filtering, migration; UI beyond the notice. |
-| 2 | 5.0 | Data layer: Life record and row kind, Me marker, milestone Life set (LWW), Chapter Life, IndexedDB v7 migration into Me, Life-aware sync, undo with membership. | UI beyond what is needed to keep the app working as single-Life. |
-| 3 | 5.0 | Life switcher, Life editor, per-Life `birthDate` / `deathDate`, chrome tint, breadcrumb, shared-milestone UI. | Compare view, relationships, import. |
+| 2a | 5.0 | Local data model: Life records, Me, milestone `lifeOps`, chapter `lifeId`, IndexedDB v7, deleting a Life, undo of membership, the app showing Me's view. | Sync of Lives, any Lives UI. |
+| 2b | 5.0 | Sync: `life` rows and tombstones on both tiers, merge-on-apply for milestone `lifeOps`, schema 2, the 60-day gate. | Any Lives UI. |
+| 3a | 5.0 | Life switcher, Lives sheet (list, editor, delete with impact, gate message), Settings entry, chrome tint, Life-named breadcrumb, new records in the current Life, per-Life `birthDate` / `deathDate` on screen. | Shared-milestone UI, Life photos, compare view, relationships, import. |
+| 3b | 5.0 | Shared-milestone UI (Lives chips on the milestone sheet and detail) with its own undo entries; Life photos. | Compare view, relationships, import. |
 | 4 | 5.0 | Relationship edges and the "relationship to Me" picker. | Any other relationship UI. |
-| 5 | 5.0 | Export/import with merge and the Life matching flow. | Real-time collaboration. |
-| 6 | 5.0 | Read-only compare view, date-aligned, `deathDate` row ends. | Age-alignment (v5.1), editing in compare. |
+| 5a | 5.0 | JSON backup of every Life (Life records, relationships, Life photos); restore replaces them, behind the gate. | Import and merge, Share Lives. |
+| 5b | 5.0 | Import and merge with the Life matching preview; Share Lives (export of chosen Lives). | Real-time collaboration, duplicate-milestone detection. |
+| 5c | 5.0 | Shared chapters: a chapter in several Lives, merged per Life on both tiers. | Compare view. |
+| 6a | 5.0 | Compare view: rows per Life on a shared date axis, Life chips, ages on hover, read-only detail, shared zoom and filters. | Chapter drill-in from compare, remembered selection (6b); age alignment (v5.1); editing. |
+| 6b | 5.0 | Chapter drill-in from compare with the breadcrumb back; remembered selection. | Age alignment (v5.1), editing in compare; layout (the final check). |
+| Layout | 5.0 | One layout check across phases 3a-6b: landscape phones, tablet, laptop, desktop; light and dark; English, German, Chinese; header crowding, long names and titles. | New features; the single-Life header. |
 
 Cross-cutting costs every UI phase pays: 10 locales and 13 namespaces with
 parity tests (`src/locales.test.js` and friends), native string catalogs where
