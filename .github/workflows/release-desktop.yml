@@ -1,0 +1,92 @@
+# The desktop app's installers (docs/desktop-app.md, "Packaging"). After
+# lastGLANCE's release-desktop.yml, itself dayGLANCE's.
+#
+# Builds macOS (dmg and zip, Developer ID-signed and notarized when the signing
+# secrets are set, ad-hoc otherwise), Windows (nsis) and Linux (AppImage and
+# deb), and uploads them to the run.
+#
+# BY HAND ONLY, and it attaches nothing to a release: the desktop app is not
+# ready to ship (the doc's "What is next"), and a version tag here is also the
+# phone apps' release. This is the way to try the installers on real machines.
+# When the app is ready, add the tag trigger and the release job from
+# lastGLANCE's workflow:
+#
+#   on:
+#     push:
+#       tags: ['v*']
+#
+#   release: download the artifacts, then `gh release upload` to the tag's
+#   release if it exists, else `gh release create --draft`.
+name: Desktop installers
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      # One platform's failure must not cancel the others.
+      fail-fast: false
+      matrix:
+        include:
+          # Pinned, not macos-latest: dayGLANCE's signing broke when that label
+          # moved to a newer image with no change on its side.
+          - os: macos-15
+          - os: windows-latest
+          - os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # electron-builder's Electron and tool downloads, kept across runs: the
+      # GitHub release host they come from has answered 504 before.
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Build (macOS, signed and notarized when the secrets are set)
+        if: runner.os == 'macOS'
+        run: npm run build:electron:release
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Build (Windows, Linux)
+        if: runner.os != 'macOS'
+        run: npm run build:electron:release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: |
+            dist-app/*.dmg
+            dist-app/*-mac.zip
+            dist-app/*.exe
+            dist-app/*.AppImage
+            dist-app/*.deb
+          if-no-files-found: error

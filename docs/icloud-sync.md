@@ -1,8 +1,13 @@
 # iCloud sync
 
-Zero-config sync for the iOS app: every iPhone and iPad signed in to the same
-Apple ID keeps the timeline in step through iCloud, with nothing to set up. It
-is dayGLANCE's iCloud tier (`src/sync/icloudSnapshotTransport.js`,
+Zero-config sync for the iOS app, and for the desktop app on macOS: every
+iPhone, iPad and Mac signed in to the same Apple ID keeps the timeline in step
+through iCloud, with nothing to set up. This document is the tier as iOS runs
+it. The Mac runs the same transport, cycle and hook over the iCloud Drive
+folders, and what differs there is in `docs/desktop-app.md`, "iCloud Drive on
+macOS".
+
+It is dayGLANCE's iCloud tier (`src/sync/icloudSnapshotTransport.js`,
 `src/utils/icloudSyncPref.js`, `dayglance-ios/.../ICloudBridge.swift`) and
 lastGLANCE's (`src/sync/icloud.ts`), built on this app's file-tier machinery:
 the same cycle Direct Access runs (`docs/direct-access.md`).
@@ -24,14 +29,17 @@ the same cycle Direct Access runs (`docs/direct-access.md`).
   once. The snapshot is written atomically; event files in place, keeping the
   xattrs that queue the upload.
 - **The bridge**, `src/native/icloud.js`: the plugin's calls, every failure
-  answered rather than thrown. iOS only; elsewhere `icloudBridge()` is null
-  and nothing below runs.
+  answered rather than thrown. iOS, and the desktop app on macOS, where the
+  main process answers the same calls (`electron/icloud.js`); elsewhere
+  `icloudBridge()` is null and nothing below runs.
 - **The transport**, `src/sync/icloud.js`, with its own seed-guard stamp
   (`lifeglance-icloud-last-synced`). Plaintext (iCloud Drive is encrypted by
   Apple), so `encryptsWrites` is false and an envelope is rewritten plain
   (`allowsPlaintextReseed`). 15 s poll, 5 s write throttle, and a download
   stalled past `ICLOUD_DOWNLOAD_GRACE_MS` (2 min) is read from the last
-  downloaded copy. Availability is re-probed every cycle, so iCloud switched
+  downloaded copy. On a bridge whose missing file may only be unlisted yet
+  (`absentMayBePending`, the Mac), a first sync waits
+  `ICLOUD_FIRST_SYNC_GRACE_MS` (10 min) before seeding. Availability is re-probed every cycle, so iCloud switched
   off mid-session goes quiet and comes back by itself.
 - **The hook**, `src/hooks/useSnapshotFileSync.js`, shared with Direct Access
   (`useDirectAccessSync` is a thin wrapper): the poll, foreground and change
@@ -53,6 +61,8 @@ the same cycle Direct Access runs (`docs/direct-access.md`).
   holds data and this device holds none (`ICloudFirstRunModal.jsx`); either
   answer is recorded, and "start fresh" turns the switch off. A device with
   data of its own merges without asking, which is what keeps it zero-config.
+  The question comes over the onboarding screen; once a restore has brought
+  the timeline in, the app shows it (`App.jsx`).
 - **Data is milestones and chapters** (`payloadHasData`), as for the folder.
   A native install starts empty (the demo timeline is the hosted build's
   only), so nothing else is needed for the question to come.
@@ -62,7 +72,9 @@ the same cycle Direct Access runs (`docs/direct-access.md`).
   here".
 
 `src/sync/icloudSync.scenarios.test.js` walks two devices over one container
-with the real transport, cycle and merge.
+with the real transport, cycle and merge;
+`src/sync/icloudDesktop.scenarios.test.js` does the same for a Mac and an
+iPhone over real files.
 
 ## Intents
 
@@ -70,8 +82,8 @@ with the real transport, cycle and merge.
 file per event (the package's `filenameFor`) in `GLANCE/events/` of
 dayGLANCE's container, so lifeGLANCE, dayGLANCE and lastGLANCE exchange
 intents with nothing but iCloud. A fourth choice of the one intents transport
-(`transport: 'icloud'`, offered on iOS only in the dayGLANCE integration
-settings), so it is opt-in and off by default like the others. Always
+(`transport: 'icloud'`, offered on iOS and on the Mac desktop app in the
+dayGLANCE integration settings), so it is opt-in and off by default like the others. Always
 plaintext: dayGLANCE's iCloud poll refuses an encrypted envelope as a
 misconfigured sender, and this poll does the same. The deliverer holds while
 the integration is off or iCloud is away; the poll runs on the integration's

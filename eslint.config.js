@@ -14,6 +14,7 @@ export default [
       'android/**',
       'ios/**',
       'dev-dist/**',
+      'dist-app/**',
       'proxy/node_modules/**',
     ],
   },
@@ -82,6 +83,44 @@ export default [
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: 'module',
+      globals: { ...globals.node },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
+    },
+  },
+
+  // The desktop shell (docs/desktop-app.md): the Electron main process and its
+  // tests are Node ES modules. So is the smoke test that drives the built app,
+  // whose page.evaluate callbacks run in the page (hence the browser globals).
+  {
+    files: ['electron/**/*.js', 'e2e/**/*.mjs'],
+    ...js.configs.recommended,
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: 'module',
+      globals: { ...globals.node },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
+    },
+  },
+
+  {
+    files: ['e2e/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+
+  // CommonJS: the sandboxed preload (it can only require electron), and the
+  // electron-builder config and hooks, which electron-builder loads with require.
+  {
+    files: ['electron/**/*.cjs', 'scripts/**/*.cjs', '*.config.cjs'],
+    ...js.configs.recommended,
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'commonjs',
       globals: { ...globals.node },
     },
     rules: {

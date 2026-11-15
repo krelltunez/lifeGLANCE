@@ -157,7 +157,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "Sincronizar com o iCloud",
-    "onHint": "A sua linha do tempo fica atualizada em todo iPhone e iPad com o seu ID Apple. Nada para configurar.",
+    "onHint": "A sua linha do tempo fica atualizada em todo iPhone, iPad e Mac com o seu ID Apple. Nada para configurar.",
     "offHint": "Desativado neste dispositivo. A cópia no iCloud e os seus outros dispositivos não são alterados.",
     "syncNow": "Sincronizar agora",
     "syncing": "A sincronizar…",

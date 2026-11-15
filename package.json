@@ -1,9 +1,13 @@
 {
   "name": "lifeglance",
   "version": "5.0.0",
+  "description": "Your life, at a glance. A zoomable timeline for life's milestones, past and future.",
+  "homepage": "https://www.glance-apps.com/apps/lifeglance",
+  "author": "GLANCE Apps <support@glance-apps.com>",
   "private": true,
   "license": "MIT",
   "type": "module",
+  "main": "electron/main.js",
   "engines": {
     "node": ">=20.19.0"
   },
@@ -23,7 +27,13 @@
     "screenshots": "vite build && node scripts/screenshots.mjs",
     "feature-graphic": "node scripts/feature-graphic.mjs",
     "android": "npm run build:mobile && cap open android",
-    "ios": "npm run build:ios && cap open ios"
+    "ios": "npm run build:ios && cap open ios",
+    "dev:electron": "node scripts/dev-electron.mjs",
+    "build:electron:renderer": "vite build --mode electron",
+    "build:electron": "npm run build:electron:renderer && electron-builder --config electron-builder.config.cjs",
+    "build:electron:release": "npm run build:electron -- --publish never",
+    "build:electron:dir": "npm run build:electron:renderer && electron-builder --config electron-builder.config.cjs --dir --publish never",
+    "test:electron-smoke": "node e2e/electron-smoke.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
@@ -67,8 +77,11 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
+    "@electron/notarize": "^3.1.2",
     "@eslint/js": "^9.39.4",
     "@vitejs/plugin-react": "^6.0.3",
+    "electron": "^43.8.10",
+    "electron-builder": "^26.18.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",

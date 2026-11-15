@@ -157,7 +157,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "Mit iCloud synchronisieren",
-    "onHint": "Deine Zeitleiste bleibt auf jedem iPhone und iPad mit deiner Apple-ID abgeglichen. Keine Einrichtung nötig.",
+    "onHint": "Deine Zeitleiste bleibt auf jedem iPhone, iPad und Mac mit deiner Apple-ID abgeglichen. Keine Einrichtung nötig.",
     "offHint": "Auf diesem Gerät aus. Die Kopie in iCloud und deine anderen Geräte bleiben unberührt.",
     "syncNow": "Jetzt synchronisieren",
     "syncing": "Synchronisiert…",

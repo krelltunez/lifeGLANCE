@@ -5,6 +5,7 @@ import './index.css'
 import { ready as i18nReady } from './i18n'
 import { applyTheme, getTheme } from './utils/theme'
 import { hydrateSecureConfig, installSecureConfigShim } from './sync/secureConfigShim'
+import { installDesktopShell } from './native/desktop'
 
 // On native shells, route credential-bearing localStorage keys through the
 // SecureStore before ANYTHING can read or write them. Install must precede the
@@ -17,6 +18,10 @@ installSecureConfigShim()
 // Reflect the saved theme (the inline script in index.html also does this early
 // to avoid a flash; this keeps things correct if that script is ever stripped).
 applyTheme(getTheme())
+
+// The Electron desktop app (docs/desktop-app.md): its html classes, the theme
+// for the window's own chrome, and the wake signal. A no-op anywhere else.
+installDesktopShell()
 
 function mount() {
   ReactDOM.createRoot(document.getElementById('root')).render(

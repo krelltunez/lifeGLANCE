@@ -41,7 +41,12 @@ function webdavProxyPlugin() {
   }
 }
 
-export default defineConfig({
+// `--mode electron` is the desktop app's renderer (docs/desktop-app.md): the
+// same bundle with no PWA. The desktop shell serves the files itself and
+// replaces them whole on an update, so a service worker there could only serve
+// a stale bundle. Everything else, including the root base path
+// app://lifeglance serves from, is shared.
+export default defineConfig(({ mode }) => ({
   // Captured at build time (and at dev-server start) so the help modal can show
   // when this bundle was built rather than the current wall-clock time.
   define: {
@@ -53,7 +58,7 @@ export default defineConfig({
   plugins: [
     webdavProxyPlugin(),
     react(),
-    VitePWA({
+    mode !== 'electron' && VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon-*.png', 'maskable-icon-*.png'],
       manifest: false,          // we ship our own public/manifest.json
@@ -99,4 +104,4 @@ export default defineConfig({
   test: {
     environment: 'node',
   },
-})
+}))

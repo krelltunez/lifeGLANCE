@@ -49,6 +49,6 @@
   "directAccessPlaintextNote": "Il file degli eventi viene scritto in chiaro, come il file di sincronizzazione ad accesso diretto. Attiva \"Cifra il file\" in Sincronizzazione cloud per cifrarli entrambi.",
   "directAccessPassphraseRequired": "Gli intent ad accesso diretto sono cifrati con la tua passphrase di sincronizzazione. Inseriscila per inviarli e riceverli su questo dispositivo.",
   "directAccessKeyReady": "Chiave pronta. Passphrase non memorizzata; non servirà più su questo dispositivo.",
-  "icloudTransportNote": "Usa la cartella eventi iCloud di dayGLANCE, così dayGLANCE e lastGLANCE sul tuo iPhone o iPad si scambiano intent senza altro da configurare. Lì sono sempre in chiaro, protetti dalla crittografia iCloud di Apple. Anche nelle altre app devono essere attivati gli intent iCloud.",
+  "icloudTransportNote": "Usa la cartella eventi iCloud di dayGLANCE, così dayGLANCE e lastGLANCE sul tuo iPhone, iPad o Mac si scambiano intent senza altro da configurare. Lì sono sempre in chiaro, protetti dalla crittografia iCloud di Apple. Anche nelle altre app devono essere attivati gli intent iCloud.",
   "icloudUnavailableNote": "iCloud non è disponibile su questo dispositivo. Accedi a iCloud e attiva iCloud Drive; fino ad allora questo canale resta inattivo."
 }

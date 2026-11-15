@@ -160,6 +160,18 @@ The iOS app ships the full web app with native integrations for iPhone and iPad:
 
 ---
 
+## Desktop App
+
+A desktop app for macOS, Windows and Linux is in development. It is the same app in its own window, and on a Mac it syncs with the iPhone and iPad apps through iCloud with nothing to set up. There are no downloads yet. To run it from source:
+
+```bash
+npm install
+npm run dev:electron      # the app, with live reload
+npm run build:electron    # installers for your system, in dist-app/
+```
+
+WebDAV sync does not work in the desktop app yet. The design, what is built and what is left are in [docs/desktop-app.md](docs/desktop-app.md).
+
 ## Features
 
 **Timeline**

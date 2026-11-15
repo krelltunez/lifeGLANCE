@@ -16,15 +16,29 @@
 //     (`allowsPlaintextReseed`).
 //   • A download that stalls past ICLOUD_DOWNLOAD_GRACE_MS is read from the
 //     last downloaded copy, so this device's edits are not held hostage.
+//   • On the desktop app (a Mac reading the iCloud Drive folder as plain
+//     files, docs/desktop-app.md), a device that has never read the snapshot
+//     treats a missing file as one iCloud has not listed yet, for
+//     ICLOUD_FIRST_SYNC_GRACE_MS, rather than seeding it. The folder exists
+//     only once the iOS app has used iCloud on this Apple ID, and that app
+//     writes the file on its first cycle, so on a Mac's first launch "missing"
+//     almost always means "not downloaded yet". iOS asks Apple's API, which
+//     lists a file before its bytes arrive; a folder iCloud has not filled in
+//     yet just looks empty. Seeding there is how lastGLANCE's first Mac launch
+//     wrote its own file under the name, and iCloud kept the phone's as a
+//     "… 2.json" conflict copy.
 //   • "Data" is milestones and chapters (payloadHasData), as for the folder;
 //     a fresh native install starts empty, so that alone decides the question.
 
+import { MISSING_GRACE_MS } from '@glance-apps/sync'
 import { icloudBridge } from '../native/icloud.js'
 
 export const ICLOUD_POLL_MS = 15 * 1000
 /** The daemon's round trip takes ~5-10 s; writing faster piles up conflict versions. */
 export const ICLOUD_WRITE_THROTTLE_MS = 5 * 1000
 export const ICLOUD_DOWNLOAD_GRACE_MS = 2 * 60 * 1000
+/** How long a first sync waits for a file iCloud may not have listed yet: the shared eviction window. */
+export const ICLOUD_FIRST_SYNC_GRACE_MS = MISSING_GRACE_MS
 export const ICLOUD_SYNC_FILE = 'lifeglance-sync.json'
 export const ICLOUD_LAST_SYNCED_KEY = 'lifeglance-icloud-last-synced'
 /** 'true' | 'false' | absent. Absent means ON and the first-run question not yet answered. */
@@ -66,6 +80,7 @@ const readToText = (r) => {
  * @param {() => Storage | null} [deps.storage]
  * @param {() => number} [deps.now]
  * @param {number} [deps.downloadGraceMs]
+ * @param {number} [deps.firstSyncGraceMs]
  * @param {{ warn: Function }} [deps.log]
  */
 export function createICloudTransport({
@@ -73,11 +88,16 @@ export function createICloudTransport({
   storage = defaultStorage,
   now = Date.now,
   downloadGraceMs = ICLOUD_DOWNLOAD_GRACE_MS,
+  firstSyncGraceMs = ICLOUD_FIRST_SYNC_GRACE_MS,
   log = console,
 } = {}) {
   const isEnabled = () => isICloudSyncEnabled(storage)
   // The first consecutive read that found the copy downloading, or null.
   let downloadingSince = null
+  // The first consecutive read that found no file on a device that has never
+  // read one (a bridge whose absence may be a listing still to come), or null.
+  let missingSince = null
+  const hasSyncedBefore = () => { try { return !!storage()?.getItem(ICLOUD_LAST_SYNCED_KEY) } catch { return false } }
 
   return {
     id: 'icloud',
@@ -102,6 +122,14 @@ export function createICloudTransport({
       const b = bridge()
       if (!b) return JSON.stringify({ error: 'no iCloud' })
       const fresh = await b.read(ICLOUD_SYNC_FILE)
+      if (fresh.kind === 'absent' && b.absentMayBePending && !hasSyncedBefore()) {
+        // Not listed yet, most likely (see the header): wait for it.
+        const t = now()
+        if (missingSince === null) missingSince = t
+        if (t - missingSince < firstSyncGraceMs) return readToText({ kind: 'downloading' })
+        log.warn(`[icloud] still missing after ${Math.round((t - missingSince) / 1000)} s on a first sync; seeding it`)
+      }
+      if (fresh.kind !== 'absent') missingSince = null
       if (fresh.kind !== 'downloading') { downloadingSince = null; return readToText(fresh) }
       const t = now()
       if (downloadingSince === null) downloadingSince = t

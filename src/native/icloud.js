@@ -1,4 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
+import { desktopBridge } from './desktop.js'
 
 // Zero-config iCloud sync (docs/icloud-sync.md): the iOS plugin
 // (ios/App/App/ICloudPlugin.swift) and the bridge the transports use. Files
@@ -8,13 +9,37 @@ import { Capacitor, registerPlugin } from '@capacitor/core'
 // classification every file shell answers ({ kind: absent | downloading |
 // error | text, text?, error? }). lastGLANCE's src/native/icloud.ts.
 //
-// iOS only: Android and the web have no plugin and isICloudAvailable() is false.
+// iOS, and the desktop app on macOS (electron/icloud.js: the same calls over
+// the iCloud Drive folders, docs/desktop-app.md). Android, the web and the
+// desktop app elsewhere have none, and isICloudAvailable() is false.
 
 export const ICloud = registerPlugin('ICloud')
 
-/** True only inside an iOS shell that registered the plugin. */
+/** The desktop app's iCloud group, on macOS only. */
+function desktopICloud() {
+  const desktop = desktopBridge()
+  return desktop?.info.platform === 'darwin' && desktop.icloud ? desktop.icloud : null
+}
+
+/** True inside an iOS shell that registered the plugin, or the desktop app on macOS. */
 export function isICloudAvailable() {
-  return Capacitor.getPlatform() === 'ios' && Capacitor.isPluginAvailable('ICloud')
+  return (Capacitor.getPlatform() === 'ios' && Capacitor.isPluginAvailable('ICloud')) || desktopICloud() !== null
+}
+
+/** The desktop's iCloud as the plugin: the same calls, its change event as addListener. */
+export function desktopICloudPlugin(desktop) {
+  return {
+    available: () => desktop.available(),
+    readFile: (o) => desktop.readFile(o),
+    writeFile: (o) => desktop.writeFile(o),
+    listFiles: (o) => desktop.listFiles(o),
+    deleteFile: (o) => desktop.deleteFile(o),
+    makeDir: (o) => desktop.makeDir(o),
+    addListener: async (_event, cb) => {
+      const unsubscribe = desktop.onChanged(() => cb())
+      return { remove: async () => { unsubscribe() } }
+    },
+  }
 }
 
 const badAnswer = { kind: 'error', error: 'bad answer from the shell' }
@@ -22,10 +47,16 @@ const badAnswer = { kind: 'error', error: 'bad answer from the shell' }
 /**
  * The calls the transports make, every failure answered rather than thrown.
  * @param {object} [plugin] injectable for tests
+ * @param {object} [options]
+ * @param {boolean} [options.absentMayBePending] A missing file may be one
+ *   iCloud has not listed on this device yet: the desktop app reads the iCloud
+ *   Drive folder as plain files. iOS's API lists a file before its bytes
+ *   arrive, so there a missing file is missing.
  */
-export function createICloudBridge(plugin = ICloud) {
+export function createICloudBridge(plugin = ICloud, { absentMayBePending = false } = {}) {
   const errorOf = (err) => ({ kind: 'error', error: err?.message ?? String(err) })
   return {
+    absentMayBePending,
     available: async () => { try { return (await plugin.available())?.available === true } catch { return false } },
     read: async (path, { container = 'own', allowStale = false } = {}) => {
       try {
@@ -60,6 +91,11 @@ let shared = null
 /** The app's bridge, or null where there is no iCloud plugin. */
 export function icloudBridge() {
   if (!isICloudAvailable()) return null
-  shared ??= createICloudBridge()
+  if (!shared) {
+    const desktop = desktopICloud()
+    shared = desktop
+      ? createICloudBridge(desktopICloudPlugin(desktop), { absentMayBePending: true })
+      : createICloudBridge()
+  }
   return shared
 }

@@ -157,7 +157,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "透過 iCloud 同步",
-    "onHint": "你的時間軸會在登入同一 Apple ID 的每部 iPhone 和 iPad 上保持同步，無需任何設定。",
+    "onHint": "你的時間軸會在登入同一 Apple ID 的每部 iPhone、iPad 和 Mac 上保持同步，無需任何設定。",
     "offHint": "已在此裝置上關閉。iCloud 中的副本和你的其他裝置不受影響。",
     "syncNow": "立即同步",
     "syncing": "正在同步…",
