@@ -17,6 +17,15 @@ const require = createRequire(import.meta.url)
 const PORT = 5184 // main.js's default VITE_DEV_SERVER_URL
 const url = `http://localhost:${PORT}`
 
+// Checked before anything starts: a checkout from before the desktop app has
+// no `electron` in node_modules until dependencies are installed again.
+try {
+  require.resolve('electron')
+} catch {
+  console.error('The desktop app\'s dependencies are not installed. Run `npm install`, then `npm run dev:electron` again.')
+  process.exit(1)
+}
+
 const viteBin = path.join(path.dirname(require.resolve('vite/package.json')), 'bin', 'vite.js')
 const vite = spawn(process.execPath, [viteBin, '--mode', 'electron', '--port', String(PORT), '--strictPort'], { cwd: root, stdio: 'inherit' })
 
@@ -50,12 +59,23 @@ async function viteIsUp() {
 
 if (await viteIsUp()) {
   // The `electron` package's export, required from Node, is the binary's path.
-  electron = spawn(require('electron'), ['.', ...process.argv.slice(2)], {
-    cwd: root,
-    stdio: 'inherit',
-    env: { ...process.env, VITE_DEV_SERVER_URL: url },
-  })
-  electron.on('exit', (code) => stop(code))
+  // The first require downloads the binary, which can fail: Vite must not be
+  // left running behind an error.
+  let electronBinary = null
+  try {
+    electronBinary = require('electron')
+  } catch (err) {
+    console.error(`Electron could not be started: ${err?.message ?? err}`)
+    stop(1)
+  }
+  if (electronBinary) {
+    electron = spawn(electronBinary, ['.', ...process.argv.slice(2)], {
+      cwd: root,
+      stdio: 'inherit',
+      env: { ...process.env, VITE_DEV_SERVER_URL: url },
+    })
+    electron.on('exit', (code) => stop(code))
+  }
 } else if (!stopping) {
   console.error(`Vite did not come up on ${url}`)
   stop(1)
