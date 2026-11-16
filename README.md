@@ -168,7 +168,7 @@ lifeGLANCE also runs as a desktop app on macOS, Windows and Linux: the same app 
 - **On a Mac it syncs through iCloud** with the iPhone and iPad apps, with nothing to set up.
 - **It works offline**, and your sync credentials are kept in the system keychain (on Linux, where a keyring is running).
 
-Installers are published on the [releases page](../../releases), starting with the release after 5.0.0: a `.dmg` for macOS, an `.exe` for Windows, and an `.AppImage` or `.deb` for Linux. The Windows installer is not code-signed, so SmartScreen asks before the first run.
+Installers are published on the [releases page](../../releases) from version 5.1.0 on: a `.dmg` for macOS, an `.exe` for Windows, and an `.AppImage` or `.deb` for Linux. Earlier releases have no desktop build. The Windows installer is not code-signed, so SmartScreen asks before the first run.
 
 To run it from source:
 
