@@ -162,7 +162,15 @@ The iOS app ships the full web app with native integrations for iPhone and iPad:
 
 ## Desktop App
 
-A desktop app for macOS, Windows and Linux is in development. It is the same app in its own window, and on a Mac it syncs with the iPhone and iPad apps through iCloud with nothing to set up. There are no downloads yet. To run it from source:
+lifeGLANCE also runs as a desktop app on macOS, Windows and Linux: the same app in its own window, free, with no account.
+
+- **Sync works with nothing in between.** WebDAV, Nextcloud and GLANCEvault connect directly, with no proxy to host. A server on your own network (a NAS, a Tailscale address) asks for your permission once.
+- **On a Mac it syncs through iCloud** with the iPhone and iPad apps, with nothing to set up.
+- **It works offline**, and your sync credentials are kept in the system keychain (on Linux, where a keyring is running).
+
+Installers are published on the [releases page](../../releases), starting with the release after 5.0.0: a `.dmg` for macOS, an `.exe` for Windows, and an `.AppImage` or `.deb` for Linux. The Windows installer is not code-signed, so SmartScreen asks before the first run.
+
+To run it from source:
 
 ```bash
 npm install
@@ -170,7 +178,7 @@ npm run dev:electron      # the app, with live reload
 npm run build:electron    # installers for your system, in dist-app/
 ```
 
-WebDAV sync does not work in the desktop app yet. The design, what is built and what is left are in [docs/desktop-app.md](docs/desktop-app.md).
+The design is in [docs/desktop-app.md](docs/desktop-app.md).
 
 ## Features
 
@@ -247,7 +255,7 @@ WebDAV sync does not work in the desktop app yet. The design, what is built and 
 
 By default all data stays on your device, stored locally using IndexedDB — nothing is sent anywhere. Cross-device sync is opt-in: when you enable it, your timeline is synced to a WebDAV server or GLANCEvault instance that **you** choose and control, and can be end-to-end encrypted with a passphrase so the server only ever sees ciphertext.
 
-On iPhone and iPad, the app syncs through **iCloud** with nothing to set up: every device signed in to the same Apple ID stays in step, protected by Apple's iCloud encryption. It can be switched off per device in Cloud Sync, and a fresh install that finds a timeline in iCloud asks before restoring it. See [docs/icloud-sync.md](docs/icloud-sync.md).
+On iPhone, iPad and the Mac desktop app, lifeGLANCE syncs through **iCloud** with nothing to set up: every device signed in to the same Apple ID stays in step, protected by Apple's iCloud encryption. It can be switched off per device in Cloud Sync, and a fresh install that finds a timeline in iCloud asks before restoring it. See [docs/icloud-sync.md](docs/icloud-sync.md).
 
 | Store | Contents |
 |---|---|
