@@ -23,7 +23,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { readVaultConfig } from '../sync/dbSync.js'
-import { VaultSse } from '../native/vaultSse.js'
+import { vaultSseBridge } from '../native/vaultSse.js'
 import {
   createBridgeSseClient,
   createNudgeCoalescer,
@@ -131,23 +131,25 @@ export function useVaultEventStream({ drainSync, drainIntents }) {
     }
 
     // ── NATIVE-BRIDGE: the shell owns the socket + reconnect + fg/bg ─────────
-    if (transport === 'native-bridge') {
+    // The Capacitor plugin on the phones, the main process on the desktop.
+    const shell = transport === 'native-bridge' ? vaultSseBridge() : null
+    if (shell) {
       const client = createBridgeSseClient({
         getConnection,
         // JS → native: hand over the connection and say "SSE desired on". The
         // shell connects only while the app is foreground and reconnects with
         // backoff — all invisible here.
         startNative: (c) => {
-          VaultSse.start({ vaultUrl: c.vaultUrl, vaultToken: c.vaultToken, accountId: c.accountId })
+          shell.start({ vaultUrl: c.vaultUrl, vaultToken: c.vaultToken, accountId: c.accountId })
             .catch(err => onStateChange('error', err instanceof Error ? err.message : String(err)))
         },
-        stopNative: () => { VaultSse.stop().catch(() => { /* teardown is best-effort */ }) },
+        stopNative: () => { shell.stop().catch(() => { /* teardown is best-effort */ }) },
         onEvent,
         onStateChange,
       })
-      // Native → JS: every reader message arrives as an sseMessage plugin event.
-      let handle
-      VaultSse.addListener('sseMessage', client.receive).then(h => { handle = h })
+      // Native → JS: every reader message arrives as an sseMessage plugin event
+      // (the desktop's main process sends the same messages).
+      const unlisten = shell.listen(client.receive)
       // No visibilitychange wiring here: the native shell owns
       // foreground/background and reconnect. The renderer only declares intent
       // and hands over the connection.
@@ -155,7 +157,7 @@ export function useVaultEventStream({ drainSync, drainIntents }) {
 
       return () => {
         client.stop()
-        handle?.remove()
+        unlisten()
         coalescer.cancel()
       }
     }

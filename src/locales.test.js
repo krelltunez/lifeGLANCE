@@ -13,6 +13,7 @@ describe('locale bundles', () => {
     'chapter',
     'common',
     'dayglance',
+    'desktop',
     'help',
     'import',
     'lives',

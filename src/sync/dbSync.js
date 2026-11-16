@@ -25,6 +25,7 @@ import { DB_CRYPTO_CONFIG } from './cryptoConfig.js'
 import { ensureDeviceId } from './deviceId.js'
 import { flushOutbox, isVaultIntentsActive } from '../lib/intentsTransport.js'
 import { createRosterEngine } from './rosterVault.js'
+import { desktopVaultFetchImpl } from './nativeVaultFetch.js'
 
 const CONFIG_KEY     = 'lifeglance-cloud-sync-config'
 const SEEDED_KEY     = 'lifeglance-db-sync-seeded'
@@ -161,7 +162,9 @@ export const initDbSyncEngine = (opts = {}) => {
     ...DB_CRYPTO_CONFIG,
     ...(opts.cryptoDBName ? { cryptoDBName: opts.cryptoDBName } : {}),
     vaultClient: opts.vaultClient,
-    fetchImpl: opts.fetchImpl,
+    // The platform fetch everywhere but the desktop app, whose page makes no
+    // request of its own: there the main process does (nativeVaultFetch.js).
+    fetchImpl: opts.fetchImpl ?? desktopVaultFetchImpl(),
 
     // Cursor durability contract (@glance-apps/sync 2.0.0). DECLARED, not
     // inherited: 2.0.0 flipped the default to 'end-of-pull', so saying nothing

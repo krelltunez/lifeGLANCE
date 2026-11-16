@@ -1,0 +1,102 @@
+name: Desktop build
+
+# Verifies the desktop app (docs/desktop-app.md) still works after web or shell
+# changes, the desktop twin of android.yml and ios.yml: the shell's own tests,
+# then the packaged Linux app launched under xvfb with the smoke test. No
+# signing and no upload beyond the smoke test's screenshot.
+#
+# Scoped to changes that can affect the desktop app, so a docs-only or
+# phone-only change does not spend the run.
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'electron/**'
+      - 'e2e/**'
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.js'
+      - 'electron-builder.config.cjs'
+      - 'scripts/codesign-ad-hoc.cjs'
+      - 'scripts/notarize.cjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/desktop.yml'
+  pull_request:
+    paths:
+      - 'electron/**'
+      - 'e2e/**'
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'vite.config.js'
+      - 'electron-builder.config.cjs'
+      - 'scripts/codesign-ad-hoc.cjs'
+      - 'scripts/notarize.cjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # electron-builder downloads the Electron binary (a GitHub release asset)
+      # into ~/.cache/electron. Cached, the zip comes down only when the
+      # lockfile changes.
+      - name: Cache the Electron download
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The shell's own tests: the main process modules, the bridge contract,
+      # the page's side of the bridge, and iCloud over real files.
+      - name: Test the desktop shell
+        run: npx vitest run electron src/native/desktop.test.js src/sync/icloud.test.js src/sync/icloudDesktop.scenarios.test.js
+
+      # Retried: even with the zip cached, electron-builder fetches Electron's
+      # checksum file from GitHub releases, which has answered 504 before. A
+      # real build failure fails all three attempts.
+      - name: Package the unpacked Linux app
+        run: |
+          for attempt in 1 2 3; do
+            npm run build:electron:dir && exit 0
+            echo "::warning::Packaging failed (attempt $attempt of 3)"
+            sleep $((attempt * 15))
+          done
+          exit 1
+
+      - name: Smoke test
+        env:
+          SMOKE_SCREENSHOT: desktop-smoke.png
+        run: xvfb-run -a npm run test:electron-smoke
+
+      - name: Upload the screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-smoke
+          path: desktop-smoke.png
+          if-no-files-found: ignore

@@ -1,0 +1,137 @@
+# The desktop app's installers (docs/desktop-app.md, "Packaging" and
+# "Releasing"). After lastGLANCE's release-desktop.yml, itself dayGLANCE's.
+#
+# On a v* tag: builds macOS (dmg and zip, Developer ID-signed and notarized),
+# Windows (nsis) and Linux (AppImage and deb), then adds them to the GitHub
+# release for that tag: uploaded to the release if it already exists (the
+# Android APK's release, for instance), else attached to a new draft. A
+# published release stays published.
+#
+# A tagged macOS build must be signed: without the signing secrets the job
+# fails rather than publish a build Gatekeeper warns about, and that macOS may
+# not let read the iCloud folder.
+#
+# Manual dispatch builds and uploads the artifacts to the run without touching
+# any release (macOS ad-hoc signed if the secrets are not set): the way to try
+# a packaging change, or the installers on real machines, before tagging.
+name: Desktop installers
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      # One platform's failure must not cancel the others.
+      fail-fast: false
+      matrix:
+        include:
+          # Pinned, not macos-latest: dayGLANCE's signing broke when that label
+          # moved to a newer image with no change on its side.
+          - os: macos-15
+          - os: windows-latest
+          - os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # electron-builder's Electron and tool downloads, kept across runs: the
+      # GitHub release host they come from has answered 504 before.
+      - name: Cache Electron downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Require the signing secrets for a release (macOS)
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=""
+          for name in CSC_LINK APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::A tagged macOS build must be signed and notarized. Missing repository secrets:$missing"
+            exit 1
+          fi
+
+      - name: Build (macOS, signed and notarized when the secrets are set)
+        if: runner.os == 'macOS'
+        run: npm run build:electron:release
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Build (Windows, Linux)
+        if: runner.os != 'macOS'
+        run: npm run build:electron:release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: |
+            dist-app/*.dmg
+            dist-app/*-mac.zip
+            dist-app/*.exe
+            dist-app/*.AppImage
+            dist-app/*.deb
+          if-no-files-found: error
+
+  release:
+    needs: build
+    # Tag pushes only: a manual run is a build-only check.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Add the files to the tag's release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          shopt -s nullglob
+          files=(artifacts/*)
+          if [ ${#files[@]} -eq 0 ]; then echo "no artifacts" >&2; exit 1; fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "${files[@]}" --draft --title "$TAG" --notes "" --verify-tag --repo "$GITHUB_REPOSITORY"
+          fi

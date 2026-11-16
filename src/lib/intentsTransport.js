@@ -16,7 +16,7 @@ import {
   MalformedEnvelopeError,
 } from '@glance-apps/intents'
 import { loadIntentsRootKey, setupIntentsEncryption, makeDeriveFn } from './intentsKeyStore.js'
-import { isNativePlatform, nativeWebdavResponse } from '../sync/nativeHttp.js'
+import { hasNativeHttp, nativeWebdavResponse } from '../sync/nativeHttp.js'
 import { enqueue, flush } from './intentsOutbox.js'
 import { readVaultIntentsConnection, makeVaultDeliverer } from './intentsVaultTransport.js'
 import { createDirectAccessDeliverer } from './intentsDirectAccessTransport.js'
@@ -126,7 +126,7 @@ function proxyFetch(cfg, filename, method, extraHeaders = {}, body) {
     ? { Authorization: 'Basic ' + btoa(`${cfg.webdavUser}:${cfg.webdavPass}`) }
     : {}
 
-  if (isNativePlatform()) {
+  if (hasNativeHttp()) {
     return nativeWebdavResponse(method, target, { ...authHeader, ...extraHeaders }, body)
   }
 

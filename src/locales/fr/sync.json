@@ -157,7 +157,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "Synchroniser avec iCloud",
-    "onHint": "Votre chronologie reste à jour sur chaque iPhone et iPad connecté à votre identifiant Apple. Rien à configurer.",
+    "onHint": "Votre chronologie reste à jour sur chaque iPhone, iPad et Mac connecté à votre identifiant Apple. Rien à configurer.",
     "offHint": "Désactivé sur cet appareil. La copie dans iCloud et vos autres appareils ne sont pas modifiés.",
     "syncNow": "Synchroniser maintenant",
     "syncing": "Synchronisation…",

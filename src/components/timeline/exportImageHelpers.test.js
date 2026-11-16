@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { collectCssVariables, REQUIRED_EXPORT_TOKENS } from './exportImageHelpers'
+import { describe, it, expect, vi } from 'vitest'
+import { collectCssVariables, embeddedFontFaces, REQUIRED_EXPORT_TOKENS } from './exportImageHelpers'
 
 // These tests target the image-export token-inlining logic in isolation. The
 // real export rasterizes an SVG via <img> + canvas, which the vitest 'node'
@@ -80,5 +80,68 @@ describe('collectCssVariables', () => {
     for (const token of ['--bg', '--bg-deep-rgb', '--text-rgb', '--amber', '--amber-rgb', '--success']) {
       expect(REQUIRED_EXPORT_TOKENS).toContain(token)
     }
+  })
+})
+
+// The desktop app bundles the typeface, so the export reads the faces from the
+// page's own stylesheets instead of from Google Fonts.
+describe('embeddedFontFaces', () => {
+  const face = (props, cssText = '@font-face { }') => ({
+    cssText,
+    style: { getPropertyValue: (name) => props[name] ?? '' },
+  })
+  const courier = (src, extra = {}) => face({ 'font-family': '"Courier Prime"', 'font-style': 'normal', 'font-weight': '400', src, ...extra })
+  const doc = (sheets) => ({ baseURI: 'app://lifeglance/', styleSheets: sheets })
+
+  it('inlines each woff2 of the family, with its style, weight and range', async () => {
+    const fetchBytes = vi.fn(async () => new Uint8Array([1, 2, 3]))
+    const css = await embeddedFontFaces(doc([{
+      href: 'app://lifeglance/assets/index-abc.css',
+      cssRules: [
+        courier('url("courier-prime-latin-400-normal-x.woff2") format("woff2"), url("courier-prime-latin-400-normal-x.woff") format("woff")', { 'unicode-range': 'U+0000-00FF' }),
+        courier('url(/assets/courier-prime-latin-700-italic-y.woff2) format("woff2")', { 'font-style': 'italic', 'font-weight': '700' }),
+      ],
+    }]), 'Courier Prime', { fetchBytes })
+    expect(fetchBytes.mock.calls.map((c) => c[0])).toEqual([
+      'app://lifeglance/assets/courier-prime-latin-400-normal-x.woff2',   // relative to the stylesheet
+      'app://lifeglance/assets/courier-prime-latin-700-italic-y.woff2',
+    ])
+    const blocks = css.split('\n')
+    expect(blocks).toHaveLength(2)
+    expect(blocks[0]).toBe("@font-face { font-family: 'Courier Prime'; font-style: normal; font-weight: 400; unicode-range: U+0000-00FF; src: url('data:font/woff2;base64,AQID') format('woff2'); }")
+    expect(blocks[1]).toContain('font-style: italic; font-weight: 700;')
+    expect(blocks[1]).not.toContain('unicode-range')
+  })
+
+  it('leaves out other families, other rules, and a face with no woff2', async () => {
+    const fetchBytes = vi.fn(async () => new Uint8Array([1]))
+    const css = await embeddedFontFaces(doc([{
+      href: 'app://lifeglance/assets/index.css',
+      cssRules: [
+        face({ 'font-family': 'Other', src: 'url(o.woff2)' }),
+        { cssText: '.btn { color: red }', style: { getPropertyValue: () => '' } },
+        { cssText: '@media print { }' },
+        courier('url(old.woff) format("woff")'),
+      ],
+    }]), 'Courier Prime', { fetchBytes })
+    expect(css).toBe('')
+    expect(fetchBytes).not.toHaveBeenCalled()
+  })
+
+  it('skips a stylesheet it may not read and a file it cannot fetch', async () => {
+    const crossOrigin = { href: 'https://elsewhere.example/x.css', get cssRules() { throw new Error('SecurityError') } }
+    const fetchBytes = vi.fn(async (url) => { if (url.includes('missing')) throw new Error('404'); return new Uint8Array([255]) })
+    const css = await embeddedFontFaces(doc([
+      crossOrigin,
+      { href: null, cssRules: [courier('url(/assets/missing.woff2)'), courier('url(/assets/there.woff2)')] },
+    ]), 'Courier Prime', { fetchBytes })
+    expect(css.split('\n')).toHaveLength(1)
+    expect(css).toContain('base64,/w==')
+    expect(fetchBytes).toHaveBeenCalledWith('app://lifeglance/assets/there.woff2')   // no stylesheet URL: the document's
+  })
+
+  it('answers nothing for a document with no stylesheets', async () => {
+    expect(await embeddedFontFaces({ styleSheets: [] }, 'Courier Prime')).toBe('')
+    expect(await embeddedFontFaces(null, 'Courier Prime')).toBe('')
   })
 })

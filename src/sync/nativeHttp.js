@@ -25,12 +25,39 @@
 //     the mangling at the source, and normalize any validator that still slips
 //     through with the engine's exported helper.
 //
-// Every caller gates on isNativePlatform(), so the browser/PWA build is untouched.
+// The Electron desktop app is the third native stack (docs/desktop-app.md,
+// "Sync through the main process"): its page may make no request of its own,
+// so the same calls go to the main process through the desktop bridge. It is
+// not a Capacitor shell, so `isNativePlatform()` stays false there and
+// `hasNativeHttp()` is the question the WebDAV and vault call sites ask.
+//
+// Every caller gates on hasNativeHttp(), so the browser/PWA build is untouched.
 
 import { Capacitor, CapacitorHttp, registerPlugin } from '@capacitor/core'
 import { normalizeEtag } from '@glance-apps/sync'
+import { desktopBridge } from '../native/desktop.js'
 
+/** A Capacitor shell (Android, iOS). Not the desktop app. */
 export const isNativePlatform = () => Capacitor.isNativePlatform()
+
+/**
+ * True wherever requests leave through a native HTTP stack with no CORS and no
+ * proxy: the Capacitor shells, and the desktop app, whose main process makes
+ * every request.
+ */
+export const hasNativeHttp = () => isNativePlatform() || desktopBridge() !== null
+
+/**
+ * One request through the desktop app's main process. A request that got no
+ * response (a refused address, a timeout, no network) throws, as
+ * CapacitorHttp does on the phones. `options.binary` asks for the body as
+ * bytes; `body` may be text or a Uint8Array.
+ */
+export async function desktopHttpRequest(http, method, url, headers, body, options) {
+  const res = await http.request(method, url, headers ?? {}, body ?? null, options)
+  if (!res || typeof res.status !== 'number') throw new Error(res?.error || 'No answer from the desktop app')
+  return res
+}
 
 // OkHttp-backed transport for WebDAV verbs HttpURLConnection rejects.
 const WebDavHttp = registerPlugin('WebDavHttp')
@@ -60,6 +87,17 @@ export async function nativeRequest(method, url, headers, body) {
   // Force an unencoded response so a content-coding filter can't mangle the
   // ETag. Callers may override by passing their own Accept-Encoding.
   const reqHeaders = { 'Accept-Encoding': 'identity', ...headers }
+
+  const desktop = desktopBridge()
+  if (desktop) {
+    const r = await desktopHttpRequest(desktop.http, method, url, reqHeaders, body)
+    return {
+      status: r.status,
+      ok: r.status >= 200 && r.status < 300,
+      etag: normalizeEtag(headerGet(r.headers, 'etag')),
+      body: typeof r.body === 'string' ? r.body : '',
+    }
+  }
 
   const res = needsOkHttp(method)
     ? await WebDavHttp.request({ method, url, headers: reqHeaders, data: body ?? '' })

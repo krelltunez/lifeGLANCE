@@ -45,6 +45,7 @@
 
 import { isNativePlatform } from './nativeHttp'
 import { isVaultSseNativeAvailable } from '../native/vaultSse'
+import { desktopBridge } from '../native/desktop.js'
 
 // ─── SSE frame parsing ───────────────────────────────────────────────────────
 
@@ -110,6 +111,9 @@ export function detectSseTransport() {
   // Capacitor shell: the shell streams natively when it carries the VaultSse
   // plugin; an older shell degrades to polling (see header).
   if (isNativePlatform()) return isVaultSseNativeAvailable() ? 'native-bridge' : 'native-unsupported'
+  // The desktop app: its main process reads the stream (the page may make no
+  // request of its own) and relays the same messages the phone shells do.
+  if (desktopBridge()) return 'native-bridge'
   if (typeof fetch === 'function' && typeof ReadableStream !== 'undefined') return 'web'
   return 'none'
 }

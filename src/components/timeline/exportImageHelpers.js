@@ -44,3 +44,57 @@ export function collectCssVariables(rootStyle, extra = REQUIRED_EXPORT_TOKENS) {
   }
   return pairs
 }
+
+function bytesToBase64(bytes) {
+  let binary = ''
+  const chunk = 0x8000
+  for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  return btoa(binary)
+}
+
+const defaultFetchBytes = async (url) => new Uint8Array(await (await fetch(url)).arrayBuffer())
+
+/**
+ * The @font-face rules of one family, from the page's own stylesheets, with
+ * each woff2 file inlined as a data URL, as CSS text for a <style> inside the
+ * exported SVG.
+ *
+ * For the desktop app, which bundles the typeface (vite.config.js,
+ * appFontsPlugin) rather than linking Google Fonts: the exported SVG is drawn
+ * through an <img>, which loads nothing from outside itself, so the faces have
+ * to travel inside it. A face that cannot be read is left out; with none, the
+ * answer is '' and the export falls back to the system monospace.
+ *
+ * @param {Document} doc
+ * @param {string} family
+ * @param {object} [deps]
+ * @param {(url: string) => Promise<Uint8Array>} [deps.fetchBytes]
+ * @returns {Promise<string>}
+ */
+export async function embeddedFontFaces(doc, family, { fetchBytes = defaultFetchBytes } = {}) {
+  const faces = []
+  for (const sheet of Array.from(doc?.styleSheets ?? [])) {
+    let rules
+    try { rules = Array.from(sheet.cssRules ?? []) } catch { continue } // a stylesheet from another origin
+    for (const rule of rules) {
+      const style = rule.style
+      if (!style || !String(rule.cssText ?? '').startsWith('@font-face')) continue
+      if (style.getPropertyValue('font-family').replace(/["']/g, '').trim() !== family) continue
+      const woff2 = /url\(\s*["']?([^"')]+\.woff2[^"')]*)["']?\s*\)/.exec(style.getPropertyValue('src'))
+      if (woff2) faces.push({ style, url: woff2[1], base: sheet.href || doc.baseURI })
+    }
+  }
+  const blocks = await Promise.all(faces.map(async ({ style, url, base }) => {
+    try {
+      const bytes = await fetchBytes(new URL(url, base).href)
+      const descriptors = ['font-style', 'font-weight', 'unicode-range']
+        .map((name) => [name, style.getPropertyValue(name)])
+        .filter(([, value]) => value)
+        .map(([name, value]) => `${name}: ${value};`)
+      return `@font-face { font-family: '${family}'; ${descriptors.join(' ')} src: url('data:font/woff2;base64,${bytesToBase64(bytes)}') format('woff2'); }`
+    } catch {
+      return null
+    }
+  }))
+  return blocks.filter(Boolean).join('\n')
+}

@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# The desktop app's packages (npm run build:electron).
+dist-app/
 outputs/
 .DS_Store
 *.local

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { initSessionKey } from '@glance-apps/sync'
 import { runDirectAccessCycle } from '../sync/directAccessCycle.js'
 import { FILE_CRYPTO_CONFIG } from '../sync/cryptoConfig.js'
+import { desktopLog } from '../native/desktop.js'
 
 // Schedules snapshot-file sync for one transport: Direct Access (a folder a
 // third-party tool keeps in step, sync/directAccess.js) or iCloud (the app's
@@ -77,6 +78,17 @@ export function useSnapshotFileSync({
   // Carried between cycles: the eviction clock, the write throttle stamp and the pending relay.
   const cycleStateRef = useRef({ missingSince: 0, lastWriteAt: 0 })
   const keyRestoreTriedRef = useRef(false)
+  const loggedOutcomeRef = useRef(null)
+
+  // The desktop app's log file gets a line when a cycle's outcome changes
+  // (merged, seeded, waiting for a download, not available): packaged builds
+  // have no DevTools, so this is what a report from a real Mac is traced with.
+  // A no-op anywhere else.
+  const logOutcome = (line) => {
+    if (loggedOutcomeRef.current === line) return
+    loggedOutcomeRef.current = line
+    desktopLog(`[${transport.id ?? 'file-tier'}] ${line}`)
+  }
 
   const runCycle = async (isRetry = false) => {
     if (!enabled || !readyRef.current || firstRunPendingRef.current) return
@@ -102,9 +114,15 @@ export function useSnapshotFileSync({
     }
     let rerunWithKey = false
     try {
-      if (!(await transport.isAvailable())) return
+      if (!(await transport.isAvailable())) { logOutcome('not available'); return }
       const { state, outcome } = await runDirectAccessCycle({ transport, ...callbacksRef.current.cycleDeps }, cycleStateRef.current)
       cycleStateRef.current = state
+      logOutcome([
+        outcome.kind, outcome.reason, outcome.error,
+        outcome.applied ? 'applied' : '',
+        outcome.wrote === true ? 'written' : '',
+        outcome.wrote === false && outcome.kind !== 'merged' ? 'not written' : '',
+      ].filter(Boolean).join(' '))
       if (outcome.kind === 'prompted') {
         firstRunPendingRef.current = true
         setFirstRun({ data: outcome.info?.data ?? {}, lastModified: outcome.info?.lastModified ?? null })
@@ -127,6 +145,7 @@ export function useSnapshotFileSync({
       // not surface as an unhandled rejection from a timer; the next poll
       // retries exactly as it does for a skipped cycle.
       console.error(`[${transport.id ?? 'file-tier'}] sync cycle failed:`, err?.message ?? err)
+      logOutcome(`cycle failed: ${err?.message ?? String(err)}`)
     } finally {
       fileTierLock.held = false
     }

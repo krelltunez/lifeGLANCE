@@ -1,4 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
+import { desktopBridge } from './desktop.js'
 
 // Native GLANCEvault SSE reader (the Android and iOS shells implement the same
 // plugin surface, ported from lastGLANCE's). BOTH shells now register it:
@@ -33,4 +34,38 @@ export const VaultSse = registerPlugin('VaultSse')
 // established.
 export function isVaultSseNativeAvailable() {
   return Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('VaultSse')
+}
+
+/**
+ * The shell's reader as three calls, whichever shell it is: the Capacitor
+ * plugin on the phones, or the desktop app's main process (electron/vaultSse.js),
+ * which speaks the same messages. Null where no shell reads the stream (the web
+ * reads it itself; an older phone shell polls).
+ *
+ * @returns {{ start: (options: object) => Promise<void>, stop: () => Promise<void>, listen: (listener: (message: object) => void) => () => void } | null}
+ */
+export function vaultSseBridge() {
+  const desktop = desktopBridge()
+  if (desktop) {
+    return {
+      start: (options) => Promise.resolve(desktop.vaultSse.start(options)),
+      stop: () => Promise.resolve(desktop.vaultSse.stop()),
+      listen: (listener) => desktop.vaultSse.onMessage(listener),
+    }
+  }
+  if (!isVaultSseNativeAvailable()) return null
+  return {
+    start: (options) => VaultSse.start(options),
+    stop: () => VaultSse.stop(),
+    listen: (listener) => {
+      // Capacitor hands the handle back asynchronously; an unsubscribe that
+      // comes first removes it on arrival.
+      let handle = null
+      let removed = false
+      Promise.resolve(VaultSse.addListener('sseMessage', listener))
+        .then((h) => { if (removed) void h?.remove?.(); else handle = h })
+        .catch(() => {})
+      return () => { removed = true; void handle?.remove?.() }
+    },
+  }
 }

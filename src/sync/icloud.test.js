@@ -7,7 +7,7 @@ vi.mock('@capacitor/core', () => ({
 
 import {
   createICloudTransport, getICloudSyncPref, isICloudSyncEnabled, setICloudSyncEnabled,
-  ICLOUD_SYNC_PREF_KEY, ICLOUD_LAST_SYNCED_KEY, ICLOUD_DOWNLOAD_GRACE_MS, ICLOUD_SYNC_FILE,
+  ICLOUD_SYNC_PREF_KEY, ICLOUD_LAST_SYNCED_KEY, ICLOUD_DOWNLOAD_GRACE_MS, ICLOUD_FIRST_SYNC_GRACE_MS, ICLOUD_SYNC_FILE,
 } from './icloud.js'
 import { createICloudBridge } from '../native/icloud.js'
 
@@ -123,6 +123,49 @@ describe('the iCloud transport', () => {
     expect(await t.read()).toBe('{"downloading":true}')
     now += ICLOUD_DOWNLOAD_GRACE_MS + 1
     expect(await t.read()).toBe('{"downloading":true}')
+  })
+
+  it('on iOS a missing file is missing: a first sync seeds it at once', async () => {
+    const f = fakeICloud()
+    const t = createICloudTransport({ bridge: () => f.bridge, storage: memStorage() })
+    expect(await t.read()).toBeNull()
+  })
+
+  it('on a Mac that has never synced, a missing file is waited for before it is seeded', async () => {
+    const f = fakeICloud()
+    let now = 0
+    const storage = memStorage()
+    const warn = vi.fn()
+    const mac = () => ({ ...f.bridge, absentMayBePending: true })
+    const t = createICloudTransport({ bridge: mac, storage, now: () => now, log: { warn } })
+    expect(await t.read()).toBe('{"downloading":true}')
+    now += ICLOUD_FIRST_SYNC_GRACE_MS - 1
+    expect(await t.read()).toBe('{"downloading":true}')
+    expect(warn).not.toHaveBeenCalled()
+    now += 1
+    expect(await t.read()).toBeNull()                        // still missing after the wait: seed it
+    expect(warn).toHaveBeenCalledOnce()
+  })
+
+  it('the Mac\'s wait restarts once the file has shown up', async () => {
+    const f = fakeICloud()
+    let now = 0
+    const t = createICloudTransport({ bridge: () => ({ ...f.bridge, absentMayBePending: true }), storage: memStorage(), now: () => now, log: { warn: () => {} } })
+    expect(await t.read()).toBe('{"downloading":true}')
+    now += ICLOUD_FIRST_SYNC_GRACE_MS - 1
+    f.files.set(ICLOUD_SYNC_FILE, '{"theirs":true}')
+    expect(await t.read()).toBe('{"theirs":true}')
+    f.files.delete(ICLOUD_SYNC_FILE)
+    now += 2
+    expect(await t.read()).toBe('{"downloading":true}')      // a new absence, a new clock
+  })
+
+  it('once a Mac has read a snapshot, a missing file is the cycle\'s eviction rule, not this wait', async () => {
+    const f = fakeICloud()
+    const storage = memStorage()
+    storage().setItem(ICLOUD_LAST_SYNCED_KEY, '2026-11-10T00:00:00.000Z')
+    const t = createICloudTransport({ bridge: () => ({ ...f.bridge, absentMayBePending: true }), storage, now: () => 0 })
+    expect(await t.read()).toBeNull()
   })
 
   it('reports a shell error in the shape the cycle reads as an error', async () => {

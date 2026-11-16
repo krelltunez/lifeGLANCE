@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The Developer ID build (docs/desktop-app.md, "Packaging"): Hardened
+     Runtime, not sandboxed. iCloud needs no entitlement here: the app reads the
+     iCloud Drive folders as plain files (electron/icloud.js). -->
+<plist version="1.0">
+  <dict>
+    <!-- Electron's V8 JIT under Hardened Runtime. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <!-- Electron loads its own unsigned executable memory. -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Outbound network: GLANCEvault, WebDAV, the typeface. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+  </dict>
+</plist>

@@ -2,7 +2,9 @@ import React, { useState, useEffect, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 import { loadIntentsConfig, saveIntentsConfig, enableIntentsEncryption, resolveDirectAccessKey } from '../../lib/intentsTransport.js'
 import { readVaultIntentsConnection } from '../../lib/intentsVaultTransport.js'
-import { isNativePlatform, nativeWebdavResponse } from '../../sync/nativeHttp.js'
+import { hasNativeHttp, nativeWebdavResponse } from '../../sync/nativeHttp.js'
+import { blockedMessage, checkPrivateAddress } from '../../sync/privateAddress.js'
+import { AllowAddressButton } from '../sync/PrivateAddress'
 import { directAccessTransport } from '../../sync/directAccess.js'
 import DirectAccessFileRow from '../sync/DirectAccessFileRow.jsx'
 import { icloudBridge } from '../../native/icloud.js'
@@ -11,6 +13,10 @@ const PROXY_URL = import.meta.env.VITE_WEBDAV_PROXY_URL ?? '/api/webdav-proxy'
 
 export default function IntegrationSettings() {
   const { t } = useTranslation('dayglance')
+  const { t: td } = useTranslation('desktop')
+  // The desktop app refuses a private-network server until it is allowed
+  // (sync/privateAddress.js): the URL a refused test may be allowed for.
+  const [allowUrl, setAllowUrl] = useState(null)
   const [cfg, setCfg] = useState(loadIntentsConfig)
   const [testStatus, setTestStatus] = useState(null)
   const [testMsg,    setTestMsg]    = useState('')
@@ -29,7 +35,15 @@ export default function IntegrationSettings() {
   async function handleTest() {
     setTestStatus('testing')
     setTestMsg('')
+    setAllowUrl(null)
     try {
+      const block = await checkPrivateAddress(cfg.webdavUrl)
+      if (block) {
+        setTestStatus('error')
+        setTestMsg(blockedMessage(td, block))
+        setAllowUrl(block.canGrant ? cfg.webdavUrl : null)
+        return
+      }
       const base   = cfg.webdavUrl.replace(/\/$/, '')
       const dir    = cfg.eventsPath.endsWith('/') ? cfg.eventsPath : cfg.eventsPath + '/'
       const target = `${base}${dir}`
@@ -40,7 +54,7 @@ export default function IntegrationSettings() {
       const propfindBody = '<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:displayname/></d:prop></d:propfind>'
       // Native shells hit the WebDAV server directly; the browser/PWA path keeps
       // routing through the CORS proxy (X-WebDAV-Url header).
-      const res = isNativePlatform()
+      const res = hasNativeHttp()
         ? await nativeWebdavResponse('PROPFIND', target, extraHeaders, propfindBody)
         : await fetch(PROXY_URL || target, {
             method:  'PROPFIND',
@@ -280,6 +294,9 @@ export default function IntegrationSettings() {
                   </span>
                 )}
               </div>
+              {allowUrl && (
+                <AllowAddressButton url={allowUrl} kind="server" onAllowed={() => { void handleTest() }} />
+              )}
 
               {/* Encryption (file tier — the vault tier is always encrypted). */}
               <label className="settings-toggle-row" style={{ marginTop: '0.5rem' }}>

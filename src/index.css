@@ -3154,3 +3154,68 @@ select.settings-select {
 .compare-tip-ages { list-style: none; margin: 0 0 0.4rem; padding: 0; max-height: 50vh; overflow-y: auto; }
 .compare-tip-ages li { padding-left: 0.7rem; position: relative; line-height: 1.5; }
 .compare-tip-ages li::before { content: ''; position: absolute; left: 0; top: 0.5em; width: 6px; height: 6px; border-radius: 50%; background: var(--life-color); }
+
+/* ─── Desktop app on macOS: the title strip ──────────────────────────────────
+   The window has no title bar there (titleBarStyle hiddenInset, electron/main.js),
+   so the page keeps a strip of its own background at the top: the traffic
+   lights sit in it and the window is dragged by it. The app's layout starts
+   below it, and so do the full-window overlays, so nothing interactive is ever
+   under the strip: Chromium resolves drag regions without regard to stacking,
+   and a button there could not be clicked.
+
+   The strip goes away in fullscreen, native (html.desktop-fullscreen, from the
+   shell) or the page's own (watch mode), where macOS hides the traffic lights.
+   Windows and Linux keep their native frame and none of this applies. */
+html.desktop-darwin { --desktop-titlebar: 28px; }
+html.desktop-darwin.desktop-fullscreen,
+html.desktop-darwin:fullscreen { --desktop-titlebar: 0px; }
+
+html.desktop-darwin #root {
+  box-sizing: border-box;
+  padding-top: var(--desktop-titlebar);
+}
+html.desktop-darwin body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--desktop-titlebar);
+  -webkit-app-region: drag;
+}
+html.desktop-darwin :is(.sheet-overlay, .search-overlay, .portrait-overlay) {
+  top: var(--desktop-titlebar);
+}
+
+/* ─── Desktop app: the "update available" notice ─────────────────────────────
+   A card in the corner (components/ui/UpdateNotice.jsx), above the timeline
+   and below sheets, so it never covers a dialog's buttons. */
+.update-notice {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: min(26rem, calc(100vw - 2rem));
+  padding: 0.55rem 0.6rem 0.55rem 0.9rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(var(--shadow-rgb), 0.35);
+  font-size: 0.78rem;
+  color: var(--text);
+}
+.update-notice-text { flex: 1; min-width: 0; }
+.update-notice-btn { flex-shrink: 0; font-size: 0.72rem; padding: 0.35rem 0.75rem; }
+.update-notice-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.35rem;
+}
+.update-notice-close:hover { color: var(--text); }

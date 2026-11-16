@@ -27,6 +27,7 @@ npm run preview    # Preview production build locally
 npm run lint       # ESLint (lint errors fail CI; warnings are advisory)
 npm run lint:fix   # Auto-fix what ESLint can
 npm test           # Run the Vitest suite
+npm run dev:electron   # The desktop app (docs/desktop-app.md)
 ```
 
 Node 20 or later is required. CI runs `npm run lint` on every push and PR, so run it locally before opening a PR.

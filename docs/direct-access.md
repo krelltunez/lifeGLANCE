@@ -6,6 +6,11 @@ reads and writes one file there, and the tool moves it. The design is
 dayGLANCE's `docs/direct-access-sync.md`; this tier is its Phase 7c, built
 in the order that document gives, so the same folder carries all three apps:
 
+The desktop app holds a real folder, as Android does, so it implements
+Android's side of everything below: its main process answers the folder calls
+(`electron/directAccess.js`, `docs/desktop-app.md`), and adds a watcher on the
+folder that runs a cycle when another program changes the file.
+
 1. **The folder bridge (this page).** `DirectAccessPlugin` on both shells,
    behind `src/native/directAccess.js`, which hands the transport the same
    bridge shape dayGLANCE's shells produce and lastGLANCE's

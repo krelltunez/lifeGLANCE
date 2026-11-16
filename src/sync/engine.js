@@ -1,6 +1,6 @@
 import { createSyncEngine } from '@glance-apps/sync';
 import { buildPayload, buildBackupPayload, mergePayloads, makeApplyPayload } from './adapter.js';
-import { isNativePlatform, nativeWebdavFetch } from './nativeHttp.js';
+import { hasNativeHttp, nativeWebdavFetch } from './nativeHttp.js';
 import { FILE_CRYPTO_CONFIG } from './cryptoConfig.js';
 import { normalizeSyncFolder } from './syncFolder.js';
 import { withoutLocalEditStamp } from './localEditStamp.js';
@@ -54,9 +54,10 @@ const buildEngine = ({ setSyncStatus, setSyncError, setSyncHalted, setLastSynced
 
     // On native (Capacitor) shells the WebView enforces CORS and the proxy URL
     // resolves to localhost, so route WebDAV straight through the native HTTP
-    // stack. The engine prefers electronProxyFetch over proxyUrl when set, so
-    // the browser/PWA build (electronProxyFetch == null) is unchanged.
-    electronProxyFetch: isNativePlatform() ? nativeWebdavFetch : null,
+    // stack; the desktop app's main process is the same road (nativeHttp.js).
+    // The engine prefers electronProxyFetch over proxyUrl when set, so the
+    // browser/PWA build (electronProxyFetch == null) is unchanged.
+    electronProxyFetch: hasNativeHttp() ? nativeWebdavFetch : null,
 
     onStatusChange: (status) => {
       setSyncStatus(status)

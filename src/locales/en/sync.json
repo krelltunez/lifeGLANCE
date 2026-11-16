@@ -157,7 +157,7 @@
   "icloud": {
     "title": "iCloud",
     "switchLabel": "Sync with iCloud",
-    "onHint": "Your timeline stays in step on every iPhone and iPad signed in to your Apple ID. Nothing to set up.",
+    "onHint": "Your timeline stays in step on every iPhone, iPad and Mac signed in to your Apple ID. Nothing to set up.",
     "offHint": "Off on this device. The copy in iCloud and your other devices are untouched.",
     "syncNow": "Sync now",
     "syncing": "Syncing…",
