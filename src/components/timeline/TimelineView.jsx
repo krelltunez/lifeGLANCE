@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Timeline          from './Timeline'
-import { collectCssVariables } from './exportImageHelpers'
+import { collectCssVariables, embeddedFontFaces } from './exportImageHelpers'
 import { saveOrShareFile } from '../../native/saveFile'
 import { shareToMilestoneDraft } from '../../native/shareDraft'
 import StatsPanel        from '../stats/StatsPanel'
@@ -1543,6 +1543,16 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           if (valid.length) {
             const style = document.createElementNS('http://www.w3.org/2000/svg', 'style')
             style.textContent = valid.join('\n')
+            clone.insertBefore(style, clone.firstChild)
+          }
+        } else {
+          // The desktop app bundles the typeface instead of linking it
+          // (vite.config.js, appFontsPlugin): embed those same faces, read
+          // from the page's own stylesheets.
+          const css = await embeddedFontFaces(document, 'Courier Prime')
+          if (css) {
+            const style = document.createElementNS('http://www.w3.org/2000/svg', 'style')
+            style.textContent = css
             clone.insertBefore(style, clone.firstChild)
           }
         }

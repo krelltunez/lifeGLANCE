@@ -32,6 +32,7 @@
   "platformIos": "iPhone 或 iPad",
   "platformAndroid": "Android",
   "platformWeb": "網頁瀏覽器",
+  "platformDesktop": "桌面版 App",
   "platformUnknown": "一部裝置",
   "gateFooter": "這些裝置更新並完成同步後，你就可以在此新增人生了。",
   "back": "返回",

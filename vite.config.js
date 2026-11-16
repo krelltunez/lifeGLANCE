@@ -41,11 +41,38 @@ function webdavProxyPlugin() {
   }
 }
 
+// The typeface. The web build links Courier Prime from Google Fonts in
+// index.html (cached offline by the service worker). The desktop app has no
+// service worker and must open with no network, so its build carries the font
+// files instead: the Google links are taken out of index.html, and
+// `virtual:app-fonts` (imported by src/main.jsx) becomes the @font-face rules
+// of @fontsource/courier-prime, whose woff2 files Vite then bundles. In every
+// other build that module is empty and nothing is added.
+function appFontsPlugin(bundled) {
+  const VIRTUAL = 'virtual:app-fonts'
+  const RESOLVED = '\0' + VIRTUAL
+  const faces = ['400', '400-italic', '700', '700-italic']
+  return {
+    name: 'app-fonts',
+    resolveId: (id) => (id === VIRTUAL ? RESOLVED : null),
+    load(id) {
+      if (id !== RESOLVED) return null
+      return bundled ? faces.map((f) => `import '@fontsource/courier-prime/${f}.css'`).join('\n') : 'export {}'
+    },
+    transformIndexHtml(html) {
+      if (!bundled) return html
+      const stripped = html.replace(/\s*<link\b[^>]*fonts\.(?:googleapis|gstatic)\.com[^>]*>/g, '')
+      if (stripped === html) throw new Error('app-fonts: index.html no longer links Google Fonts; update this plugin')
+      return stripped
+    },
+  }
+}
+
 // `--mode electron` is the desktop app's renderer (docs/desktop-app.md): the
 // same bundle with no PWA. The desktop shell serves the files itself and
 // replaces them whole on an update, so a service worker there could only serve
-// a stale bundle. Everything else, including the root base path
-// app://lifeglance serves from, is shared.
+// a stale bundle. It also bundles the typeface (appFontsPlugin). Everything
+// else, including the root base path app://lifeglance serves from, is shared.
 export default defineConfig(({ mode }) => ({
   // Captured at build time (and at dev-server start) so the help modal can show
   // when this bundle was built rather than the current wall-clock time.
@@ -58,6 +85,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     webdavProxyPlugin(),
     react(),
+    appFontsPlugin(mode === 'electron'),
     mode !== 'electron' && VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon-*.png', 'maskable-icon-*.png'],

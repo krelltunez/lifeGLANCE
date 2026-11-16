@@ -27,6 +27,7 @@
 // `writers` map has vanished was last written by a 4.0.x client.
 
 import { Capacitor } from '@capacitor/core'
+import { desktopBridge } from '../native/desktop.js'
 
 /** The sync schema this build writes: 1 from Phase 1 (4.x), 2 from Lives v5.0. */
 export const SYNC_SCHEMA = 2
@@ -43,7 +44,11 @@ const DAY_MS = 24 * 60 * 60 * 1000
 /* global __APP_VERSION__ */
 export const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'
 
+// 'ios' | 'android' | 'web', and 'desktop' for the Electron app, where
+// Capacitor reads 'web' (docs/desktop-app.md). Shown in the Lives sheet
+// (components/lives/lifeLabels.js).
 const platform = () => {
+  if (desktopBridge()) return 'desktop'
   try { return Capacitor.getPlatform() } catch { return 'web' }
 }
 

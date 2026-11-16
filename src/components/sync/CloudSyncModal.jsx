@@ -8,8 +8,11 @@ import { describeBackoff, backoffStatusText } from '../../sync/backoffStatus.js'
 import { getDbSyncEngine } from '../../sync/dbSync.js'
 import { verifyVaultCredentials, runVaultSetup, disableVault, VAULT_OUTCOME } from '../../sync/vaultSetup'
 import { resolveWebdavBase } from '../../sync/webdav'
+import { blockedMessage, checkPrivateAddress } from '../../sync/privateAddress.js'
+import { AllowAddressButton, AllowedAddresses } from './PrivateAddress'
+import { usePrivateAddressGrants } from '../../hooks/usePrivateAddressGrants'
 import { normalizeSyncFolder } from '../../sync/syncFolder.js'
-import { isNativePlatform, nativeRequest } from '../../sync/nativeHttp'
+import { hasNativeHttp, isNativePlatform, nativeRequest } from '../../sync/nativeHttp'
 import { FILE_CRYPTO_CONFIG } from '../../sync/cryptoConfig.js'
 import { runMediaBackfill } from '../../blobs/mediaBackfill'
 
@@ -32,7 +35,7 @@ const PROXY = '/api/webdav-proxy'
 // through the native HTTP stack, exactly like every other WebDAV request. On
 // web/PWA, go through the proxy.
 async function mkcol(url, auth) {
-  if (isNativePlatform()) {
+  if (hasNativeHttp()) {
     const r = await nativeRequest('MKCOL', url, auth)
     return r.status
   }
@@ -97,6 +100,15 @@ function SyncDot({ syncStatus, syncError, syncHalted }) {
 export default function CloudSyncModal({ syncStatus, syncError, syncHalted, lastSynced, vaultSkipped, directAccess, icloud, onClose }) {
   const { t, i18n } = useTranslation('sync')
   const { t: tc } = useTranslation('common')
+  const { t: td } = useTranslation('desktop')
+  // The desktop app's private-network permission (PrivateAddress.jsx): a
+  // connection test for a server it would refuse says so, with an Allow
+  // button. Never anything off the desktop.
+  const privateGrants = usePrivateAddressGrants()
+  const refusedAsPrivate = async (serverUrl) => {
+    const block = await checkPrivateAddress(serverUrl)
+    return block ? { ok: false, message: blockedMessage(td, block), allowUrl: block.canGrant ? serverUrl : null } : null
+  }
   const engine = getSyncEngine()
   const existingConfig = engine?.getConfig() ?? null
 
@@ -174,6 +186,8 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setTestResult(null)
     try {
       const webdavBase = resolveWebdavBase(provider, url, username)
+      const refused = await refusedAsPrivate(webdavBase)
+      if (refused) { setTestResult(refused); return }
       const config = { provider, url, username, password, folder, enabled: true,
         webdavUrl: webdavBase, nextcloudUrl: url, appPassword: password }
       const result = await engine?.test?.(config)
@@ -216,6 +230,8 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setSaving(true)
     try {
       const webdavBase = resolveWebdavBase(provider, url, username)
+      const refused = await refusedAsPrivate(webdavBase)
+      if (refused) { setTestResult(refused); return }
       // Stored and created normalized, so a leading or trailing slash can't
       // double up in the WebDAV URL (krelltunez/dayGLANCE#2037).
       const savedFolder = normalizeSyncFolder(folder)
@@ -302,6 +318,8 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setVaultTesting(true)
     setVaultResult(null)
     try {
+      const refused = await refusedAsPrivate(vaultUrl.trim())
+      if (refused) { setVaultResult(refused); return }
       const { kind } = await verifyVaultCredentials({ vaultUrl, vaultToken, accountId })
       const ok = kind === VAULT_OUTCOME.SUCCESS || kind === VAULT_OUTCOME.UNINITIALIZED
       setVaultResult({ ok, message: vaultMsg(kind) })
@@ -318,6 +336,8 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
     setVaultSaving(true)
     setVaultResult(null)
     try {
+      const refused = await refusedAsPrivate(vaultUrl.trim())
+      if (refused) { setVaultResult(refused); return }
       // The single sync passphrase: take what was typed here, else whatever is
       // already loaded in this session (e.g. from WebDAV encryption setup).
       const { getSyncPassphrase } = await import('@glance-apps/sync')
@@ -586,6 +606,9 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
               {testResult.message}
             </div>
           )}
+          {testResult?.allowUrl && (
+            <AllowAddressButton url={testResult.allowUrl} kind="server" onAllowed={() => { void privateGrants.refresh(); void handleTest() }} />
+          )}
         </div>
         </>
         )}
@@ -647,6 +670,9 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
                 }}>
                   {vaultResult.message}
                 </div>
+              )}
+              {vaultResult?.allowUrl && (
+                <AllowAddressButton url={vaultResult.allowUrl} kind="vault" onAllowed={() => { void privateGrants.refresh(); void handleVaultVerify() }} />
               )}
 
               <div className="settings-backup-row" style={{ justifyContent: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.6rem' }}>
@@ -725,6 +751,9 @@ export default function CloudSyncModal({ syncStatus, syncError, syncHalted, last
             {t('lastSynced')} {new Date(lastSynced).toLocaleString(i18n.language)}
           </p>
         )}
+
+        {/* Desktop app: the private-network servers it has been allowed to reach. */}
+        <AllowedAddresses grants={privateGrants.grants} onRemove={privateGrants.revoke} />
 
         {/* Actions */}
         <div className="settings-backup-row" style={{ justifyContent: 'flex-end', flexWrap: 'wrap', gap: '0.5rem' }}>

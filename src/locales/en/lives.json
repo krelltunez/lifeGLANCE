@@ -32,6 +32,7 @@
   "platformIos": "iPhone or iPad",
   "platformAndroid": "Android",
   "platformWeb": "Web browser",
+  "platformDesktop": "Desktop app",
   "platformUnknown": "A device",
   "gateFooter": "Once they are updated and have synced, you can add Lives here.",
   "back": "Back",

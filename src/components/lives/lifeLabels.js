@@ -14,7 +14,7 @@ export function lifeName(life, t) {
 /** The Life's accent colour; Me without a colour keeps the app's amber. */
 export const lifeColor = (life) => life?.color || 'var(--amber)'
 
-const PLATFORM_KEYS = { ios: 'platformIos', android: 'platformAndroid', web: 'platformWeb' }
+const PLATFORM_KEYS = { ios: 'platformIos', android: 'platformAndroid', web: 'platformWeb', desktop: 'platformDesktop' }
 
 /** One line for a device that keeps Lives off (lifeGate.js blockingWriters). */
 export function blockingDeviceLabel(writer, t) {

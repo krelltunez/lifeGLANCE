@@ -32,6 +32,7 @@
   "platformIos": "iPhone o iPad",
   "platformAndroid": "Android",
   "platformWeb": "Browser web",
+  "platformDesktop": "App desktop",
   "platformUnknown": "Un dispositivo",
   "gateFooter": "Quando saranno aggiornati e avranno sincronizzato, potrai aggiungere vite qui.",
   "back": "Indietro",

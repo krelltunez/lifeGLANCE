@@ -32,6 +32,7 @@
   "platformIos": "iPhone ou iPad",
   "platformAndroid": "Android",
   "platformWeb": "Navegador",
+  "platformDesktop": "App para computador",
   "platformUnknown": "Um dispositivo",
   "gateFooter": "Depois que eles forem atualizados e sincronizarem, você poderá adicionar vidas aqui.",
   "back": "Voltar",

@@ -1,8 +1,9 @@
 # Desktop app (Electron)
 
-Status: in development, not released. The shell, iCloud Drive sync on macOS
-and unsigned packaging for all three systems are built and tested. What is
-left before a release is under [What is next](#what-is-next).
+Status: built, not yet released. The shell, sync through the main process
+(WebDAV, GLANCEvault and its real-time push), iCloud Drive on macOS, secure
+storage, Direct Access, the update notice and packaging for all three systems
+are in place and tested. What is left is under [What is next](#what-is-next).
 
 The desktop app is the existing web bundle in an Electron window for macOS,
 Windows and Linux. It follows lastGLANCE's desktop app (`krelltunez/lastGLANCE`,
@@ -13,8 +14,9 @@ much smaller than either:
 - no tray or menu bar popup, no background mode, no reminders, no deep links;
 - no MCP server and no Stream Deck listener, so the app opens no port.
 
-What it adds to the web app is **iCloud Drive sync on macOS**: the timeline
-stays in step with the iPhone and iPad apps with nothing to set up.
+Everything that syncs on the web or the phones syncs here, with no proxy and no
+CORS setup, and on a Mac the timeline stays in step with the iPhone and iPad
+apps through iCloud with nothing to set up.
 
 ## Running it
 
@@ -30,6 +32,10 @@ These need Node 22.12 or later, which is Electron's own requirement. The
 Electron binary is downloaded the first time one of them runs, not by
 `npm install`, so the web, Docker and phone builds are not slowed by it.
 
+The dev loop loads the page from Vite, which serves no CSP and links the
+typeface from Google Fonts as the web build does. The packaged app is the one
+with the policy and the bundled font, and the one the smoke test checks.
+
 ## Layout
 
 | Path | Contents |
@@ -43,10 +49,13 @@ Electron binary is downloaded the first time one of them runs, not by
 | `scripts/dev-electron.mjs` | the dev loop |
 | `e2e/electron-smoke.mjs` | the smoke test |
 | `src/native/desktop.js` | the page's side of the bridge |
-| `vite.config.js`, `--mode electron` | the same bundle with no PWA plugin |
+| `src/locales/<lng>/desktop.json` | the desktop app's own strings |
+| `vite.config.js`, `--mode electron` | the same bundle with no PWA plugin, and the typeface bundled |
 
 The main process is plain ES modules and the preload is CommonJS. Neither is
 compiled: there is no TypeScript in this repo and no build step for `electron/`.
+Most modules come from lastGLANCE's TypeScript ones with the types removed; each
+says so at its top.
 
 ## Shell shape
 
@@ -54,31 +63,39 @@ compiled: there is no TypeScript in this repo and no build step for `electron/`.
 `Capacitor.getPlatform()` reads `'web'` and `Capacitor.isNativePlatform()` is
 false, so everything gated on those behaves as the web build does: export is a
 download (Electron shows a save dialog), import is a file input, billing is
-ungated. A module that needs the shell asks for it explicitly.
+ungated. A module that needs the shell asks for it explicitly, and each one
+that does is named below.
 
 ### The bridge
 
 The preload exposes one frozen object, `window.lifeGlanceDesktop`, through
 `contextBridge`. `src/native/desktop.js` reads it: `desktopBridge()` is the
-object, or null on the web and the phones.
+object, or null on the web and the phones. Its groups mirror the plugin
+contracts the app already has, so the existing wrappers take the desktop
+implementation with a small adapter each.
 
-| Group | Contents |
-|---|---|
-| `info` | `{ platform: 'darwin' \| 'win32' \| 'linux' }` |
-| `shell` | `setTheme(dark)`, `log(message)`, `onWake(listener)` |
-| `icloud` | the iOS `ICloud` plugin's calls: `available`, `readFile`, `writeFile`, `listFiles`, `deleteFile`, `makeDir`, and `onChanged(listener)` for its `changed` event |
+| Group | Contents | Used by |
+|---|---|---|
+| `info` | `platform`, `version`, `isMAS`, `secureStorage` | `desktop.js` |
+| `shell` | `setTheme`, `setMenuLabels`, `log`, `latestRelease`, `onWake`, `onFullscreen` | `desktop.js`, `useUpdateNotice.js` |
+| `http` | `request(method, url, headers, body, options)`; `inspect`, `grant`, `grants`, `revoke` | `sync/nativeHttp.js`, `sync/nativeVaultFetch.js`, `sync/privateAddress.js` |
+| `vaultSse` | the `VaultSse` plugin's `start` and `stop`, and `onMessage` | `native/vaultSse.js` |
+| `secureStore` | the `SecureStore` plugin's `get`, `set`, `delete` | `native/secureStore.js` |
+| `directAccess` | the Android folder contract, and `onChanged` | `native/directAccess.js` |
+| `icloud` | the iOS `ICloud` plugin's calls, and `onChanged` | `native/icloud.js` |
 
 `electron/bridgeContract.test.js` holds three things to one list: the methods
-`src/native/desktop.js` names, what `preload.cjs` exposes, and the
-`ipcMain` handlers in `main.js`. It also checks that every handler answers only
-the main window. It reads the source text, as `icloudIosParity.test.js` does for
-the iOS plugin, so a method added on one side only fails the suite.
+`src/native/desktop.js` names, what `preload.cjs` exposes, and the IPC handlers
+in the main process. It also checks that every handler answers only the main
+window. It reads the source text, as `icloudIosParity.test.js` does for the iOS
+plugin, so a method added on one side only fails the suite.
 
 `installDesktopShell()` runs once in `src/main.jsx`, before first paint:
 
 - it adds `html.desktop` and `html.desktop-<platform>`;
 - it reports the app's theme, now and on every change;
-- it replays the shell's wake signal as `visibilitychange`.
+- it replays the shell's wake signal as `visibilitychange`;
+- it marks native fullscreen with `html.desktop-fullscreen`.
 
 ### Origin and storage
 
@@ -89,8 +106,9 @@ the iOS plugin, so a method added on one side only fails the suite.
   has no client-side routes, so anything that is not a file is a 404, never the
   app's HTML.
 - **userData is `<appData>/lifeGLANCE`**, whatever the bundle id. The startup
-  log, window bounds and theme live there. Chromium's `--user-data-dir` switch
-  still wins, which is how the smoke test runs on a profile of its own.
+  log, window bounds and theme, the granted addresses, the secure store and the
+  Direct Access folder live there. Chromium's `--user-data-dir` switch still
+  wins, which is how the smoke test runs on a profile of its own.
 - **No service worker.** The `electron` Vite mode leaves the PWA plugin out,
   and `app://` is not registered to allow workers. The shell replaces the
   bundle whole on an update, so a precache could only serve a stale one.
@@ -99,21 +117,42 @@ the iOS plugin, so a method added on one side only fails the suite.
 
 ### The window
 
-- A standard title bar on every system. The app's theme is its own setting
-  (dark until the user picks light), so the shell follows it rather than the
-  OS: `nativeTheme.themeSource` for the title bar and menus, and the window's
-  background color before the page paints. The page reports the theme; main
-  keeps it in `window-theme.json` for the next launch.
+- **macOS has no title bar** (`titleBarStyle: 'hiddenInset'`). The page keeps a
+  28 px strip of its own background at the top (`html.desktop-darwin` in
+  `src/index.css`): the traffic lights sit in it and the window is dragged by
+  it. The app's layout starts below it, and so do the full-window overlays, so
+  nothing clickable is ever under the strip (Chromium resolves drag regions
+  without regard to stacking). The strip goes away in fullscreen, native or the
+  page's own (watch mode), where macOS hides the traffic lights.
+- **Windows and Linux keep the native frame**, and hide the menu bar until Alt
+  is pressed.
+- The app's theme is its own setting (dark until the user picks light), so the
+  shell follows it rather than the OS: `nativeTheme.themeSource`, and the
+  window's background color before the page paints. The page reports the theme;
+  main keeps it in `window-theme.json` for the next launch.
 - Size, position and the maximized state persist. A position left on a display
   that is gone is dropped.
 - The window is shown after its first paint, with a 10 s fallback so a renderer
   that never paints still leaves a window to report.
-- Windows and Linux hide the menu bar until Alt is pressed. The menu
-  (`applicationMenu.js`) is the standard roles and one Help item; Electron's
-  default menu links to electronjs.org.
+- **The menu speaks the app's language** (`applicationMenu.js`). The page
+  pushes the `menu` block of `desktop.json`, on every platform, since
+  Electron's own role labels are English everywhere. Until a complete set
+  arrives the menu is in English. It is the standard items and one Help item;
+  Electron's default menu links to electronjs.org.
 - A machine that wakes, or a screen that unlocks, sends the page a wake signal.
   The page's foreground work hangs off `visibilitychange`, which a window left
   up across a sleep never sends.
+
+### The typeface
+
+The web build links Courier Prime from Google Fonts and the service worker
+caches it. The desktop app has no service worker and must open with no network,
+so its build carries the font: `appFontsPlugin` in `vite.config.js` takes the
+Google links out of `index.html` and makes `virtual:app-fonts` the
+`@font-face` rules of `@fontsource/courier-prime`. In every other build that
+module is empty. The image export, which embeds the typeface in the picture,
+reads the bundled faces from the page's own stylesheets there
+(`embeddedFontFaces` in `exportImageHelpers.js`).
 
 ### Hardening
 
@@ -138,14 +177,103 @@ the iOS plugin, so a method added on one side only fails the suite.
   - `script-src 'self'` plus the hashes of `index.html`'s two inline boot
     scripts, computed from the built file at startup. No other inline script
     and no eval.
-  - Styles and fonts allow Google Fonts, the typeface `index.html` links.
+  - `connect-src 'self'` (and `data:`, `blob:`, the page reading back what it
+    made). The page makes no network request of its own. This is also a test of
+    the next section: a fetch site that was missed fails loudly instead of
+    meeting a server's CORS rules.
+  - Styles and fonts from the bundle only.
   - `img-src` and `media-src` allow `data:` and `blob:`, for decrypted photos,
     video and audio.
-  - `connect-src 'self' https: http:`. The page still makes its own requests,
-    as the web build does. This narrows to `'self'` when sync moves into the
-    main process (see below).
 - A renderer crash is recovered by a ladder: reload, then recreate the window,
   then stop (`rendererRecovery.js`).
+
+## Sync through the main process
+
+**Every request to a sync server is made by the main process.** WebDAV,
+GLANCEvault and intents traffic goes through `bridge.http`, which is
+`net.fetch` (`electron/httpProxy.js`) with:
+
+- a 30 s timeout, or 2 minutes for a request that carries bytes;
+- manual redirects, re-checked on every hop, with `Authorization`, `Cookie`
+  and `Proxy-Authorization` dropped on a redirect to another origin;
+- methods including PROPFIND and MKCOL;
+- text or bytes in either direction. GLANCEvault's media goes up and down as
+  `Uint8Array`, which crosses IPC as it is.
+
+A request that got no response (refused, timed out, network failure) comes back
+as an error, not a made-up HTTP status, and the page throws it, as Capacitor's
+native HTTP does on the phones.
+
+This removes CORS and the WebDAV proxy from the picture. A self-hosted vault or
+Nextcloud needs no `app://lifeglance` entry in its allowed origins.
+
+**Wiring.** `hasNativeHttp()` in `src/sync/nativeHttp.js` is the question every
+WebDAV and vault call site asks: a Capacitor shell, or the desktop app.
+`isNativePlatform()` stays the Capacitor-shell question, which export and the
+cleartext-`http://` refusal still ask.
+
+| Call site | Desktop path |
+|---|---|
+| the WebDAV engine (`sync/engine.js`, `electronProxyFetch`) | `nativeWebdavFetch` |
+| Cloud Sync's folder creation, the intents WebDAV transport and its test | `nativeRequest`, `nativeWebdavResponse` |
+| the vault database engine (`sync/dbSync.js`) | `desktopVaultFetchImpl()` |
+| vault setup, the roster, vault intents, media (`blobTransport.js`) | `nativeVaultFetchImpl()` |
+
+**Real-time push** also runs in main. `bridge.vaultSse` reads GLANCEvault's
+`/events` stream over `net.fetch` (`electron/vaultSse.js`) and relays the same
+messages the phone shells do, so `vaultEventStream.js` takes its
+`'native-bridge'` road.
+
+**Servers on a private network.** `proxyUrlPolicy.js` is dayGLANCE's policy,
+held to `proxy/ssrf-vectors.json` like this repo's web proxy
+(`electron/networkTrust.js` adds the DNS lookup, the grants file and the
+dialog).
+
+- Private, loopback, CGNAT and ULA addresses are refused until the user grants
+  that one host, port and scheme, in a native dialog that only a button press
+  can open. A background sync can never raise it.
+- Redirect targets and link-local addresses can never be granted.
+- In Cloud Sync, and in the dayGLANCE integration's WebDAV test, a connection
+  test asks first (`sync/privateAddress.js`). A refused server says it needs
+  permission and that it has not been contacted, with "Allow this address…"
+  under it; once allowed, the test runs again. The allowed addresses are listed
+  at the bottom of Cloud Sync, each with Remove.
+
+A home Nextcloud on `192.168.x.x` and a vault on a Tailscale address are the
+common cases this is for.
+
+## Secure storage
+
+`bridge.secureStore` uses Electron `safeStorage`, which is the macOS Keychain,
+Windows DPAPI or the Linux secret service. Ciphertext is kept in
+`userData/secure-store.json`. The app's existing shim
+(`sync/secureConfigShim.js`) then keeps the sync credentials and keys there
+instead of in web storage, as on the phones.
+
+On Linux, `getSelectedStorageBackend()` can return `basic_text`, meaning there
+is no keyring. The shell then reports `info.secureStorage` false and the app
+keeps web storage, so the store never claims protection it does not give.
+
+An unsigned or dev build on macOS may ask for the Keychain the first time.
+
+## Direct Access
+
+The desktop implements the **Android folder contract**: pick a folder, the
+snapshot in it, and files by path below it (the roster and the intents event
+set). The settings show "Choose folder", since they branch only on iOS.
+
+The store (`directAccessStore.js`) is Electron-free and tested under vitest:
+
+- paths are confined to the folder;
+- writes replace crash-safely (temp file, fsync, rename);
+- a zero-length file reads as `downloading`, never `absent`;
+- a vanished folder reads as `error`.
+
+Picking uses `dialog.showOpenDialog` with security-scoped bookmarks, which a
+Mac App Store build would need; the folder is restored on launch. A debounced
+`fs.watch` on the snapshot nudges a cycle, with its own writes suppressed,
+through an `onChanged` event the phone bridges do not have. The 15 s poll stays
+the source of truth.
 
 ## iCloud Drive on macOS
 
@@ -223,7 +351,7 @@ reads and writes the `dayglance` container through the same calls, so it is
 offered in the dayGLANCE integration settings on a Mac as it is on iOS. It is
 still opt-in.
 
-**Tested without a Mac.**
+**Tested.**
 
 - `electron/icloud.test.js` runs the store over real files in a temp home.
 - `src/sync/icloudDesktop.scenarios.test.js` runs the real transport, cycle and
@@ -231,19 +359,22 @@ still opt-in.
   a Mac: a Mac and an iPhone merging both ways, an edit written in place, and a
   Mac's first launch (an empty folder, the iPhone's file arriving later,
   nothing written by the Mac in between, then the question).
-- By hand, on Linux, with a copy of the shell patched to answer as macOS and a
-  fake `~/Library/Mobile Documents`: the first-run question, the restore, and a
-  change written by another device appearing about a second later.
+- On a real Mac, in the dev build (2026-11-15): it ran and synced.
 
-**Verify on a real Mac before release.** None of this can run in CI:
+**Still to see on a real Mac, with the signed build:** a read faulting in an
+evicted file, and that macOS lets the signed build read `iCloud~com~lifeglance`
+without a prompt. The log lines above say what each cycle did.
 
-- the dataless-file read path, a read faulting in an evicted file;
-- that macOS lets the build read `iCloud~com~lifeglance` without a prompt or a
-  refusal. A build signed by the same team as the iOS app is expected to be
-  let in, as dayGLANCE's and lastGLANCE's are. An ad-hoc build may be asked or
-  refused, in which case the folder reads as not there and iCloud stays quiet;
-- the watcher seeing a change that arrives from the iPhone;
-- the log lines above, which say what each cycle did.
+## Updates
+
+There is no auto-update. Direct builds show a small notice when a newer release
+can be downloaded (`useUpdateNotice.js`, `components/ui/UpdateNotice.jsx`): the
+page asks 15 s after launch, every 6 hours and on return to the app; main reads
+the repository's latest GitHub release (the page's CSP allows it no request)
+and answers only for a published release that is newer and has a download for
+this system, so a phone-only release is never announced on the desktop
+(`electron/updateCheck.js`). Download opens the release page in the browser.
+Dismissing hides that version for good.
 
 ## Packaging
 
@@ -268,61 +399,58 @@ one Vite bundle and main imports only Electron and Node.
 `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID`. Hardened Runtime
 is on for a Developer ID build.
 
-**Versioning.** `package.json` is the single source.
+**Versioning.** `package.json` is the single source, shared with the phones.
 
-**CI.**
+## Releasing
 
-- `desktop.yml` runs on changes that can affect the desktop app: the shell's
-  tests, then the unpacked Linux app under xvfb with the smoke test.
-- `release-desktop.yml` builds the installers for all three systems. It runs
-  by hand only for now and attaches nothing to a release. Its header says what
-  to change when the app is ready to ship with a tag.
+**Once, on this repository** (Settings, Secrets and variables, Actions): the
+Developer ID secrets. They can be the same team's values dayGLANCE and
+lastGLANCE use.
+
+| Secret | What it is |
+|---|---|
+| `CSC_LINK` | the Developer ID Application certificate and key, exported as a `.p12` and base64-encoded |
+| `CSC_KEY_PASSWORD` | the password chosen when exporting the `.p12` |
+| `APPLE_ID` | the Apple ID email of the developer account |
+| `APPLE_APP_SPECIFIC_PASSWORD` | an app-specific password, for the notary service |
+| `APPLE_TEAM_ID` | the 10-character Team ID |
+
+**Each release.**
+
+1. To try the installers first, run **Desktop installers** from the Actions
+   tab. A manual run builds all three systems and uploads the files to the
+   run, without touching any release.
+2. Tag the version (`v*`), as for the phones. `release-desktop.yml` builds the
+   installers and adds them to that tag's GitHub release: uploaded to it if it
+   exists, else a new draft. A published release stays published.
+3. A tagged macOS build must be signed and notarized. Without the secrets the
+   macOS job fails rather than publish a build Gatekeeper warns about; Windows
+   and Linux are unaffected by that failure, but nothing is attached until all
+   three have built.
+
+`desktop.yml` runs on every change that can affect the desktop app: the shell's
+tests, then the unpacked Linux app under xvfb with the smoke test.
 
 ## Tests
 
-- **Unit tests**, beside each module in `electron/`, run with the rest of the
-  suite (`npm test`).
+- **Unit tests**, beside each module in `electron/`, and for the page's side in
+  `src/native/` and `src/sync/`, run with the rest of the suite (`npm test`).
 - **The smoke test** (`e2e/electron-smoke.mjs`) launches the packaged app on a
-  fresh profile and checks what no unit test can see: the origin, the bridge,
-  IndexedDB opening there, no service worker, the CSP letting the app's own
-  scripts through and blocking an injected one, the theme and the log reaching
-  main, the wake signal, iCloud answering "not available" off macOS, which
-  permissions are granted, a link leaving for the browser, and an export being
-  saved as a file.
+  fresh profile and checks what no unit test can see. Besides the origin, the
+  bridge, IndexedDB, the CSP and the window, it starts a local server and
+  drives Cloud Sync against it: a WebDAV connection test is refused before the
+  server is contacted, allowed through the dialog, then succeeds; the vault
+  client verifies an account; bytes cross the bridge both ways; the vault's
+  push arrives; the grant is revoked. It also picks a Direct Access folder,
+  checks the bundled typeface, and switches the menu's language.
 
 ## What is next
 
-In rough order:
-
-1. **Sync through the main process.** WebDAV does not work in the desktop app
-   yet: there is no proxy and a WebDAV server sends no CORS headers. GLANCEvault
-   works only if the server allows the `app://lifeglance` origin. lastGLANCE's
-   answer is the one to take: every request goes through main (`net.fetch`), the
-   engine's `electronProxyFetch` slot and `nativeVaultFetchImpl()` gain a
-   desktop branch, private addresses need a grant, GLANCEvault's push is read in
-   main, and `connect-src` narrows to `'self'`. The vault's blob media needs a
-   binary body on that path, which lastGLANCE's does not have. The image export
-   fetches the typeface to embed it (`TimelineView.jsx`), so the font hosts
-   stay in `connect-src` unless the font is bundled first.
-2. **Secure storage** over Electron's `safeStorage`, behind
-   `src/native/secureStore.js`. Until then credentials are in web storage, as
-   on the web.
-3. **Direct Access** on a real folder, the Android folder contract.
-4. **Release.** A real-Mac pass (above), the Developer ID secrets on this repo,
-   a tag trigger for `release-desktop.yml`, an "update available" notice, and
-   the README's download section.
-5. **Mac App Store build**, if wanted: the sandbox entitlements with both
+1. **A signed build on a real Mac**, for the two iCloud points above.
+2. **Mac App Store build**, if wanted: the sandbox entitlements with both
    iCloud containers, a provisioning profile, and the paywall through
-   `@glance-apps/billing`'s Electron half. Direct builds stay free, like the
-   web app and the sideload APK.
-
-Smaller things:
-
-- The menu is in English on Windows and Linux. Translating it needs a `menu`
-  block in every locale, pushed from the page.
-- The typeface comes from Google Fonts, as on the web, so a first launch with
-  no network falls back to the system monospace. Bundling it would fix that.
-- A sync writer on the desktop is labelled "web" in the Lives sheet
-  (`writerStamp.js` reads Capacitor's platform).
-- macOS could hide the title bar (`hiddenInset`) once the header leaves room
-  for the traffic lights.
+   `@glance-apps/billing`'s Electron half (lastGLANCE has all three to copy).
+   It needs the macOS platform added to the app's App Store Connect record.
+   Direct builds stay free, like the web app and the sideload APK.
+3. **Windows code signing**, to be rid of the SmartScreen warning. dayGLANCE
+   and lastGLANCE ship unsigned too.

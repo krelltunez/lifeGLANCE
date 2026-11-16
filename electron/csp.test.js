@@ -43,12 +43,16 @@ describe('contentSecurityPolicy', () => {
     expect(directive(policy, 'media-src')).toBe("media-src 'self' data: blob:")
   })
 
-  it('loads the typeface index.html links, and no other remote style or font', () => {
-    expect(directive(policy, 'style-src')).toBe("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com")
-    expect(directive(policy, 'font-src')).toBe("font-src 'self' data: https://fonts.gstatic.com")
-    const html = fs.readFileSync(path.resolve(import.meta.dirname, '../index.html'), 'utf-8')
-    const remoteStyles = [...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*>/gs)].map((m) => /href="([^"]+)"/.exec(m[0])?.[1])
-    expect(remoteStyles.map((u) => new URL(u).origin)).toEqual(['https://fonts.googleapis.com'])
+  it('allows the page no network request of its own', () => {
+    // Sync goes through the main process. Loosening this hides a missed fetch
+    // site behind a server's CORS rules.
+    expect(directive(policy, 'connect-src')).toBe("connect-src 'self' data: blob:")
+    expect(policy).not.toMatch(/https?:/)
+  })
+
+  it('loads styles and the typeface from the bundle only', () => {
+    expect(directive(policy, 'style-src')).toBe("style-src 'self' 'unsafe-inline'")
+    expect(directive(policy, 'font-src')).toBe("font-src 'self' data:")
   })
 
   it('closes plugins, base tags, frames and form posts', () => {

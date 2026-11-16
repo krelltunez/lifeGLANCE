@@ -25,6 +25,8 @@ import { maybePushSpotlightIndex } from './native/spotlightBridge'
 import { useSubscription } from './billing/billing'
 import PaywallModal from './components/billing/PaywallModal'
 import ReviewerBanner from './components/billing/ReviewerBanner'
+import UpdateNotice from './components/ui/UpdateNotice'
+import { useUpdateNotice } from './hooks/useUpdateNotice'
 
 // Which Life is on screen, per device.
 const CURRENT_LIFE_KEY = 'lifeglance-current-life'
@@ -262,6 +264,9 @@ export default function App() {
     onKeyNeeded: () => setShowPassphraseModal(true),
   })
 
+  // The desktop app's "update available" notice; never anything elsewhere.
+  const updateNotice = useUpdateNotice()
+
   // "Restore from iCloud" is answered on a fresh install, so over the
   // onboarding screen. Once the timeline has arrived, show it: the answer was
   // to bring a life back, not to enter one again.
@@ -464,6 +469,7 @@ export default function App() {
           onClose={() => setCloudSyncOpen(false)}
         />
       )}
+      <UpdateNotice update={updateNotice.update} onDismiss={updateNotice.dismiss} />
       <ICloudFirstRunModal
         info={icloud.firstRun}
         onRestore={restoreFromICloud}

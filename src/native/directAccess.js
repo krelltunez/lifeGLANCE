@@ -1,4 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core'
+import { desktopBridge } from './desktop.js'
 
 // Direct Access sync (docs/direct-access.md): the native folder plugin, and
 // the bridge shape the shared file transport consumes.
@@ -21,6 +22,12 @@ import { Capacitor, registerPlugin } from '@capacitor/core'
 //   users.{status, read, write, forget}          iOS only
 //   events.{status, read, write, forget}         iOS only
 //
+// The desktop app holds a real folder, as Android does: its main process
+// (electron/directAccess.js) answers the Android folder methods, and
+// desktopDirectAccessPlugin() below presents them as the plugin, so the bridge
+// is built with platform 'android' and the settings show "Choose folder". It
+// adds one thing the phones lack: a change event from a watcher on the folder.
+//
 // Web/PWA has no folder access a page could hold across sessions: the plugin
 // is absent there and isDirectAccessAvailable() is false.
 //
@@ -33,7 +40,37 @@ export const DirectAccess = registerPlugin('DirectAccess')
 // vaultSse.js use): true only inside a shell that registered the plugin. An
 // older shell, and the web, answer false.
 export function isDirectAccessAvailable() {
-  return Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('DirectAccess')
+  return (Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('DirectAccess')) || desktopDirectAccess() !== null
+}
+
+/** The desktop app's folder group, or null anywhere else. */
+export function desktopDirectAccess() {
+  return desktopBridge()?.directAccess ?? null
+}
+
+const notOnDesktop = () => Promise.reject(new Error('Not available on the desktop'))
+
+/**
+ * The desktop app's folder as the plugin: Android's folder methods, the
+ * iOS-only file and slot methods refused. Built into a bridge with platform
+ * 'android', so the transport sees what it sees on Android.
+ */
+export function desktopDirectAccessPlugin(desktop) {
+  return {
+    status: () => desktop.status(),
+    pickFolder: () => desktop.pickFolder(),
+    pickFile: notOnDesktop,
+    createFile: notOnDesktop,
+    disconnect: () => desktop.disconnect(),
+    read: () => desktop.read(),
+    write: (o) => desktop.write(o),
+    deleteFile: () => desktop.deleteFile(),
+    listFiles: (o) => desktop.listFiles(o),
+    readFile: (o) => desktop.readFile(o),
+    writeFile: (o) => desktop.writeFile(o),
+    deleteFileAt: (o) => desktop.deleteFileAt(o),
+    makeDir: (o) => desktop.makeDir(o),
+  }
 }
 
 /** A plugin rejection becomes the `{ error, path? }` the transport shows on its card; a dismissal becomes null. */

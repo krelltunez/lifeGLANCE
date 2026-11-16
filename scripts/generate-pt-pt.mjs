@@ -51,6 +51,29 @@ const KEY_OVERRIDES = {
     ['a sincronização desta mídia', 'a sincronização deste conteúdo multimédia'],
   ],
   'timeline.json:mediaUnavailable': [['mídia indisponível', 'multimédia indisponível']],
+  // The desktop app's strings (desktop.json), whose European wording is
+  // lastGLANCE's reviewed pt-PT: menu names Windows and macOS users know
+  // (Ver, Anular, Cortar), "ecrã inteiro" (tela→ecrã flips the gender of
+  // "cheia"), and ligar/aceder/devolver for conectar/acessar/retornar.
+  'desktop.json:menu': [
+    ['Exibir', 'Ver'],
+    ['Desfazer', 'Anular'],
+    ['Recortar', 'Cortar'],
+    ['ferramentas do desenvolvedor', 'ferramentas de programador'],
+    ['tela cheia', 'ecrã inteiro'],
+  ],
+  'desktop.json:privateAddress': [
+    ['então o lifeGLANCE precisa da sua permissão para se conectar', 'por isso o lifeGLANCE precisa da sua permissão para se ligar'],
+    ['ainda não foi contatado', 'ainda não foi contactado'],
+    ['não se conecta', 'não se liga'],
+    ['se conecte a', 'se ligue a'],
+    ['Ele aponta', 'Aponta'],
+    ['um host Docker', 'um anfitrião Docker'],
+    ['poderá acessá-lo, e tudo o que ele retornar', 'poderá aceder-lhe, e tudo o que devolver'],
+    ['em que ele escuta', 'em que este escuta'],
+    ['em outras portas', 'noutras portas'],
+    ['Isso vale apenas para este endereço. Você pode removê-lo depois em', 'Isto aplica-se apenas a este endereço. Pode removê-lo mais tarde em'],
+  ],
 }
 
 // ---------------------------------------------------------------------------

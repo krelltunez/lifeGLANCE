@@ -7,17 +7,26 @@
 //
 // Plain ES modules run as they are: there is no compile step for this folder.
 
-import { app, BrowserWindow, ipcMain, Menu, nativeTheme, powerMonitor, protocol, screen, session, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, powerMonitor, protocol, safeStorage, screen, session, shell } from 'electron'
 import { execFile } from 'node:child_process'
+import dns from 'node:dns'
 import fs from 'node:fs'
+import nodeNet from 'node:net'
 import path from 'node:path'
 import { APP_BASE_URL, APP_HOST, APP_SCHEME, resolveAppRequest } from './appProtocol.js'
-import { buildApplicationMenuTemplate } from './applicationMenu.js'
+import { buildApplicationMenuTemplate, isApplicationMenuLabels } from './applicationMenu.js'
 import { contentSecurityPolicy, inlineScriptHashes } from './csp.js'
+import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js'
+import { registerDirectAccessHandlers } from './directAccess.js'
 import { isAllowedExternalUrl } from './externalLinks.js'
+import { createHttpProxy } from './httpProxy.js'
 import { createICloudStore, NO_ICLOUD } from './icloud.js'
+import { createNetworkTrust } from './networkTrust.js'
 import { decideRecovery } from './rendererRecovery.js'
+import { createSecureStore, secureStorageUsable } from './secureStore.js'
 import { initStartupLog, logStartup } from './startupLog.js'
+import { availableUpdate, CHECK_CACHE_MS, RELEASES_API } from './updateCheck.js'
+import { createVaultSseReader } from './vaultSse.js'
 import { loadWindowState, onScreen, savedThemeIsDark, saveWindowState, saveWindowTheme, windowBackgroundColor } from './windowState.js'
 
 // The app:// scheme as a real web origin, before ready (a no-op after it).
@@ -53,6 +62,9 @@ const DEV = !app.isPackaged
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL ?? 'http://localhost:5184'
 const APP_DIST_DIR = path.join(import.meta.dirname, '../dist')
 const IS_MAC = process.platform === 'darwin'
+// The macOS title strip: the traffic lights (12 px tall) centered in the 28 px
+// the page leaves for them (--desktop-titlebar in src/index.css).
+const TRAFFIC_LIGHT_POSITION = { x: 12, y: 8 }
 
 let mainWindow = null
 let isQuitting = false
@@ -99,6 +111,40 @@ ipcMain.on('shell:set-theme', (event, dark) => {
   applyTheme(dark)
 })
 
+// The menu in the app's language (applicationMenu.js): English until the page
+// sends a complete set of labels, and again whenever the language changes.
+let menuLabels = null
+function setApplicationMenu() {
+  Menu.setApplicationMenu(Menu.buildFromTemplate(
+    buildApplicationMenuTemplate({ platform: process.platform, devTools: DEV, openExternal: openExternalSafe, labels: menuLabels }),
+  ))
+}
+
+ipcMain.on('shell:set-menu-labels', (event, labels) => {
+  if (!isMainWindowSender(event.sender) || !isApplicationMenuLabels(labels)) return
+  const next = { ...labels }
+  if (JSON.stringify(next) === JSON.stringify(menuLabels)) return
+  menuLabels = next
+  if (app.isReady()) setApplicationMenu()
+})
+
+// The "update available" notice (updateCheck.js): never on a Mac App Store
+// build, which the App Store updates. Answers from a cache within the hour,
+// and never throws: a failed check is simply no notice.
+let updateCache = null
+ipcMain.handle('shell:latest-release', async (event) => {
+  if (!isMainWindowSender(event.sender) || process.mas) return null
+  if (updateCache && Date.now() - updateCache.at < CHECK_CACHE_MS) return updateCache.result
+  try {
+    const res = await net.fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'lifeGLANCE-desktop' } })
+    const result = res.ok ? availableUpdate(await res.json(), app.getVersion(), process.platform) : null
+    updateCache = { at: Date.now(), result }
+    return result
+  } catch {
+    return null
+  }
+})
+
 // The page's lines for the log file (src/native/desktop.js, desktopLog), so a
 // report from a real machine can be traced: packaged builds have no DevTools.
 // Capped per session; a line is cut at 500 characters.
@@ -117,6 +163,130 @@ ipcMain.on('shell:log', (event, message) => {
 function sendWake(why) {
   live(mainWindow)?.webContents.send('shell:wake', why)
 }
+
+// ── Network (docs/desktop-app.md, "Sync through the main process") ──────────
+// The page's only way to a sync server: WebDAV, GLANCEvault and intents all
+// arrive here as `http:request`. networkTrust.js decides which servers may be
+// reached (a private address only once the user grants it); httpProxy.js makes
+// the request.
+
+// Every A/AAAA record, so a public name with a private record is caught.
+// dns.lookup goes through the OS resolver, which is what resolves Tailscale
+// MagicDNS names (host.tailnet.ts.net).
+async function resolveHostAddresses(host) {
+  const bare = host.replace(/^\[|\]$/g, '')
+  if (nodeNet.isIP(bare)) return [bare]
+  return (await dns.promises.lookup(bare, { all: true })).map(({ address }) => address)
+}
+
+let networkTrust = null
+function trust() {
+  networkTrust ??= createNetworkTrust({
+    grantsFile: path.join(app.getPath('userData'), 'proxy-trusted-hosts.json'),
+    resolve: resolveHostAddresses,
+    confirm: async ({ title, message, detail, allow, cancel }) => {
+      const options = { type: 'warning', buttons: [cancel, allow], defaultId: 0, cancelId: 0, title, message, detail }
+      const parent = live(mainWindow)
+      const { response } = parent ? await dialog.showMessageBox(parent, options) : await dialog.showMessageBox(options)
+      return response === 1
+    },
+    log: logStartup,
+  })
+  return networkTrust
+}
+
+const httpRequest = createHttpProxy({
+  send: (url, init) => net.fetch(url, init),
+  validate: (url, isRedirect) => trust().validate(url, isRedirect),
+})
+
+ipcMain.handle('http:request', (event, method, url, headers, body, options) => {
+  if (!isMainWindowSender(event.sender)) return { error: 'Not allowed from this window' }
+  return httpRequest(method, url, headers, body, options)
+})
+
+ipcMain.handle('http:inspect', (event, url) => {
+  if (!isMainWindowSender(event.sender) || typeof url !== 'string') return { blocked: false }
+  return trust().inspect(url)
+})
+
+// The only path to the permission dialog, called from the "Allow this
+// address" button in Cloud Sync.
+ipcMain.handle('http:grant', (event, url, labels) => {
+  if (!isMainWindowSender(event.sender) || typeof url !== 'string') return { ok: false, reason: 'Invalid URL' }
+  return trust().request(url, labels)
+})
+
+ipcMain.handle('http:grants', (event) => (isMainWindowSender(event.sender) ? trust().list() : []))
+
+ipcMain.handle('http:revoke', (event, origin) => {
+  if (!isMainWindowSender(event.sender) || typeof origin !== 'string') return { ok: false }
+  return trust().revoke(origin)
+})
+
+// GLANCEvault's real-time push, read here and relayed to the page, which takes
+// the same 'native-bridge' road as the phone shells (vaultSse.js).
+const vaultSse = createVaultSseReader({
+  fetch: (url, init) => net.fetch(url, init),
+  validate: (url) => trust().validate(url, false),
+  push: (message) => {
+    if (message.type === 'error') logStartup(`vault SSE: ${message.code ?? 'error'}: ${message.message}`)
+    live(mainWindow)?.webContents.send('vault-sse:message', message)
+  },
+})
+
+ipcMain.handle('vault-sse:start', (event, options) => {
+  if (!isMainWindowSender(event.sender) || !options || typeof options !== 'object') return
+  const { vaultUrl, vaultToken, accountId } = options
+  if (typeof vaultUrl !== 'string' || typeof vaultToken !== 'string' || typeof accountId !== 'string') return
+  vaultSse.start({ vaultUrl, vaultToken, accountId })
+})
+
+ipcMain.handle('vault-sse:stop', (event) => {
+  if (isMainWindowSender(event.sender)) vaultSse.stop()
+})
+
+// ── Secure storage (docs/desktop-app.md, "Secure storage") ──────────────────
+// The SecureStore contract over safeStorage. Asked only after ready, when
+// safeStorage can answer; unusable (a Linux machine without a keyring) means
+// the page keeps its web storage, as the web build does.
+function isSecureStorageUsable() {
+  try {
+    return secureStorageUsable(
+      process.platform,
+      safeStorage.isEncryptionAvailable(),
+      process.platform === 'linux' ? safeStorage.getSelectedStorageBackend() : undefined,
+    )
+  } catch {
+    return false
+  }
+}
+
+let secureStore = null
+function store() {
+  if (!isSecureStorageUsable()) throw new Error('Secure storage is not available')
+  secureStore ??= createSecureStore({
+    file: path.join(app.getPath('userData'), 'secure-store.json'),
+    cipher: { encrypt: (plain) => safeStorage.encryptString(plain), decrypt: (cipher) => safeStorage.decryptString(cipher) },
+  })
+  return secureStore
+}
+
+ipcMain.handle('secure-store:get', (event, key) => {
+  if (!isMainWindowSender(event.sender)) return { value: null }
+  return store().get(key)
+})
+ipcMain.handle('secure-store:set', (event, key, value) => {
+  if (!isMainWindowSender(event.sender)) throw new Error('Not allowed from this window')
+  store().set(key, value)
+})
+ipcMain.handle('secure-store:delete', (event, key) => {
+  if (!isMainWindowSender(event.sender)) return
+  store().delete(key)
+})
+
+// Direct Access: a folder a sync tool keeps in step (directAccess.js).
+registerDirectAccessHandlers({ app, dialog, ipcMain, getWindow: () => live(mainWindow), isMainWindowSender, log: logStartup })
 
 // ── iCloud Drive (docs/desktop-app.md, "iCloud Drive on macOS") ─────────────
 // macOS only: the containers live under ~/Library/Mobile Documents, which no
@@ -186,15 +356,29 @@ function createWindow() {
     // Windows and Linux: the menu bar stays out of the timeline's way until
     // Alt asks for it. Its shortcuts work either way.
     autoHideMenuBar: true,
+    // macOS: no title bar. The page keeps a strip of its own background at the
+    // top (TITLE_BAR_HEIGHT, html.desktop-darwin in src/index.css) that the
+    // traffic lights sit in and the window is dragged by.
+    ...(IS_MAC ? { titleBarStyle: 'hiddenInset', trafficLightPosition: TRAFFIC_LIGHT_POSITION } : {}),
     webPreferences: {
       preload: path.join(import.meta.dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
       devTools: DEV,
+      // The facts the preload exposes as bridge.info (desktopInfo.js).
+      additionalArguments: [
+        `${DESKTOP_INFO_ARG}${encodeDesktopInfo({ version: app.getVersion(), isMAS: process.mas === true, secureStorage: isSecureStorageUsable() })}`,
+      ],
     },
   })
   mainWindow = win
+
+  // Native fullscreen hides the traffic lights, and the page's strip with them.
+  const sendFullscreen = () => { if (live(win)) win.webContents.send('shell:fullscreen', win.isFullScreen()) }
+  win.on('enter-full-screen', sendFullscreen)
+  win.on('leave-full-screen', sendFullscreen)
+  win.webContents.on('did-finish-load', sendFullscreen)
 
   // The last non-maximized bounds, so a maximized window restores correctly.
   let normalBounds = { x: saved.x, y: saved.y, width: saved.width, height: saved.height }
@@ -317,9 +501,7 @@ app.whenReady().then(() => {
   // The theme the page reported last time, before the window exists.
   nativeTheme.themeSource = savedThemeIsDark(app.getPath('userData')) ? 'dark' : 'light'
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate(
-    buildApplicationMenuTemplate({ platform: process.platform, devTools: DEV, openExternal: openExternalSafe }),
-  ))
+  setApplicationMenu()
 
   // What the page may ask the browser engine for: fullscreen and the screen
   // wake lock (watch mode), clipboard writes, and storage that is not evicted
@@ -372,6 +554,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   isQuitting = true
+  vaultSse.stop()
 })
 
 // Closing the window quits, except on macOS, where apps stay in the Dock. The

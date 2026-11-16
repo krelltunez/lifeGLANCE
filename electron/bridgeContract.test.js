@@ -12,7 +12,8 @@
 import { describe, expect, it } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { DESKTOP_BRIDGE_METHODS } from '../src/native/desktop.js'
+import { DESKTOP_BRIDGE_METHODS, DESKTOP_INFO_FIELDS } from '../src/native/desktop.js'
+import { DESKTOP_INFO_ARG } from './desktopInfo.js'
 
 const root = path.resolve(import.meta.dirname, '..')
 const read = (rel) => readFileSync(path.join(root, rel), 'utf-8')
@@ -52,12 +53,20 @@ describe('desktop bridge contract', () => {
   it('exposes info as plain facts, and nothing else that is not a function', () => {
     const facts = Object.entries(groups).flatMap(([g, keys]) =>
       Object.entries(keys).filter(([, fn]) => !fn).map(([k]) => `${g}.${k}`))
-    expect(facts).toEqual(['info.platform'])
+    expect(facts.sort()).toEqual(DESKTOP_INFO_FIELDS.map((f) => `info.${f}`).sort())
+  })
+
+  it('spells the info switch the same in the preload and desktopInfo.js', () => {
+    expect(preload).toContain(`const DESKTOP_INFO_ARG = '${DESKTOP_INFO_ARG}'`)
   })
 
   it('handles in main every channel the preload sends or invokes', () => {
     const sent = new Set([...preload.matchAll(/ipcRenderer\.(?:send|invoke)\('([^']+)'/g)].map((m) => m[1]))
-    const handled = new Set([...mainProcess.matchAll(/ipcMain\.(?:on|handle)\('([^']+)'/g)].map((m) => m[1]))
+    const handled = new Set([
+      ...[...mainProcess.matchAll(/ipcMain\.(?:on|handle)\('([^']+)'/g)].map((m) => m[1]),
+      // A module that registers through a helper names the channel as its first argument (directAccess.js).
+      ...[...mainProcess.matchAll(/\bhandle\('([a-z-]+:[a-z-]+)'/g)].map((m) => m[1]),
+    ])
     expect(sent.size).toBeGreaterThan(0)
     expect([...sent].sort()).toEqual([...handled].sort())
   })
@@ -72,12 +81,16 @@ describe('desktop bridge contract', () => {
   it('answers every call only to the main window', () => {
     // Each handler's first act is the sender check; a handler without one
     // would answer any frame that reached the channel.
-    const starts = [...mainJs.matchAll(/ipcMain\.(?:on|handle)\('([^']+)', \(event/g)]
+    const starts = [...mainJs.matchAll(/ipcMain\.(?:on|handle)\('([^']+)', (?:async )?\(event/g)]
     expect(starts.map((m) => m[1]).sort()).toEqual([...mainJs.matchAll(/ipcMain\.(?:on|handle)\('([^']+)'/g)].map((m) => m[1]).sort())
     const unchecked = starts
       .filter((m) => !mainJs.slice(m.index).split('\n').slice(0, 2).join('\n').includes('isMainWindowSender(event.sender)'))
       .map((m) => m[1])
     expect(unchecked).toEqual([])
+    // The folder handlers register through one helper, which makes the check for all of them.
+    const directAccess = read('electron/directAccess.js')
+    expect(directAccess).toMatch(/deps\.ipcMain\.handle\(channel, \(event, \.\.\.args\) => \{\n\s+if \(!deps\.isMainWindowSender\(event\.sender\)\) return fallback/)
+    expect([...directAccess.matchAll(/ipcMain\.(?:on|handle)\(/g)]).toHaveLength(1)
   })
 
   it('loads the preload main.js names, in a sandboxed, isolated window', () => {
@@ -88,6 +101,13 @@ describe('desktop bridge contract', () => {
     // The sandboxed preload may load nothing but electron.
     const required = [...preload.matchAll(/require\('([^']+)'\)/g)].map((m) => m[1])
     expect(required).toEqual(['electron'])
+  })
+
+  it('offers the page the folder calls its Direct Access adapter makes', () => {
+    const adapter = read('src/native/directAccess.js')
+    const body = adapter.slice(adapter.indexOf('export function desktopDirectAccessPlugin'))
+    const called = [...new Set([...body.slice(0, body.indexOf('\n}\n')).matchAll(/desktop\.(\w+)\(/g)].map((m) => m[1]))]
+    expect([...called, 'onChanged'].sort()).toEqual(Object.keys(groups.directAccess).sort())
   })
 
   it('offers the page the iOS plugin\'s iCloud calls, by the same names', () => {

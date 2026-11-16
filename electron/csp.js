@@ -6,14 +6,16 @@
 //  - script-src: the bundle's own scripts, plus index.html's two inline boot
 //    scripts (the theme before first paint) by hash. No other inline script,
 //    no eval.
-//  - style-src 'unsafe-inline': React sets inline style attributes. Google
-//    Fonts is the typeface index.html links (Courier Prime), as on the web.
+//  - style-src 'unsafe-inline': React sets inline style attributes.
+//  - font-src 'self': the typeface is bundled into the desktop build
+//    (vite.config.js, appFontsPlugin); nothing is fetched from Google Fonts.
 //  - img-src / media-src data: blob:: photos, video and audio are decrypted
 //    into object URLs; exports draw SVG through a data URL.
-//  - connect-src: the renderer still makes its own requests, as the web build
-//    does: GLANCEvault, and WebDAV where the server allows the origin. When
-//    sync moves into the main process this narrows to 'self' (the doc's
-//    "What is next").
+//  - connect-src 'self' is the point: the page makes no network request of its
+//    own. Sync, the vault and intents go through the main process
+//    (httpProxy.js), which decides what may be reached, so a fetch site that
+//    was missed fails loudly here instead of meeting a server's CORS rules.
+//    blob: and data: are the page reading back what it made itself.
 //  - object-src, base-uri, frame-src, form-action 'none': no plugins, no
 //    base-tag injection, no frames, no form posts.
 
@@ -45,11 +47,11 @@ export function contentSecurityPolicy({ scriptHashes = [] } = {}) {
   return [
     "default-src 'self'",
     ["script-src 'self'", ...scriptHashes].join(' '),
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self' data:",
     "img-src 'self' data: blob:",
     "media-src 'self' data: blob:",
-    "connect-src 'self' https: http:",
+    "connect-src 'self' data: blob:",
     "object-src 'none'",
     "base-uri 'none'",
     "frame-src 'none'",

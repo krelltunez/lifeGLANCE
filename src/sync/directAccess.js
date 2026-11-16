@@ -24,7 +24,7 @@
 // The folder's tree URI and the iOS bookmarks live in the shell; the page sees
 // a name for the settings section and nothing else.
 
-import { createDirectAccessBridge, isDirectAccessAvailable } from '../native/directAccess.js'
+import { createDirectAccessBridge, desktopDirectAccess, desktopDirectAccessPlugin, isDirectAccessAvailable } from '../native/directAccess.js'
 
 /** Poll cadence: the tool does the network work; we read the local file. */
 export const DIRECT_ACCESS_POLL_MS = 15 * 1000
@@ -51,7 +51,14 @@ export const DIRECT_ACCESS_PICK_TIMEOUT_MS = 3 * 60 * 1000
 let nativeBridge = null
 const defaultBridge = () => {
   if (!isDirectAccessAvailable()) return null
-  nativeBridge ??= createDirectAccessBridge()
+  if (!nativeBridge) {
+    // The desktop holds a real folder, as Android does: the same bridge, plus
+    // the folder watcher's change event.
+    const desktop = desktopDirectAccess()
+    nativeBridge = desktop
+      ? { ...createDirectAccessBridge(desktopDirectAccessPlugin(desktop), 'android'), onChanged: (cb) => desktop.onChanged(() => cb()) }
+      : createDirectAccessBridge()
+  }
   return nativeBridge
 }
 const defaultStorage = () => (typeof localStorage === 'undefined' ? null : localStorage)
@@ -94,6 +101,8 @@ export function createDirectAccessTransport({
   const state = { status: 'unknown', name: null, path: null, pickError: null, roster: null, events: null }
   const statusListeners = new Set()
   const changeListeners = new Set()
+  // The desktop folder watcher's unsubscribe, while there are listeners.
+  let unwatch = null
   let initPromise = null
   let reprobing = false
 
@@ -319,10 +328,16 @@ export function createDirectAccessTransport({
     files,
 
     // Push signals: a folder picked or re-enabled in settings, and a folder
-    // that came back from unreachable. The shells have no folder watcher.
+    // that came back from unreachable. The phone shells have no folder
+    // watcher; the desktop app has one (bridge.onChanged), joined while anyone
+    // is listening.
     onChanged: (cb) => {
       changeListeners.add(cb)
-      return () => { changeListeners.delete(cb) }
+      if (changeListeners.size === 1) unwatch = bridge()?.onChanged?.(emitChanged) ?? null
+      return () => {
+        changeListeners.delete(cb)
+        if (changeListeners.size === 0 && unwatch) { unwatch(); unwatch = null }
+      }
     },
 
     isEnabled,

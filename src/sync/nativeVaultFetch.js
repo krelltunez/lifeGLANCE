@@ -19,11 +19,17 @@
 // string) exactly as before. An ERROR response body is always a plain string
 // even under 'arraybuffer', so we only base64-decode on a 2xx binary read.
 //
+// DESKTOP: the Electron app's page may make no request of its own
+// (docs/desktop-app.md, "Sync through the main process"), so there the same
+// fetch shape goes to the main process (makeDesktopVaultFetch). Bytes cross
+// that bridge as they are: no base64 in either direction.
+//
 // Web is untouched: nativeVaultFetchImpl() returns undefined off-native, so
 // callers fall back to global fetch (the vault serves CORS in a browser).
 
 import { CapacitorHttp } from '@capacitor/core'
-import { isNativePlatform } from './nativeHttp.js'
+import { desktopHttpRequest, isNativePlatform } from './nativeHttp.js'
+import { desktopBridge } from '../native/desktop.js'
 
 // ── base64 <-> bytes (chunked; avoids spread-arg overflow on large blobs) ────
 function bytesToBase64(bytes) {
@@ -105,5 +111,42 @@ export function makeNativeVaultFetch(httpRequest = defaultNativeHttp) {
   }
 }
 
-// undefined on web (callers keep global fetch), the native adapter on native.
-export const nativeVaultFetchImpl = () => (isNativePlatform() ? makeNativeVaultFetch() : undefined)
+/**
+ * The same fetch shape over the desktop app's main process
+ * (`bridge.http`, electron/httpProxy.js). A request that got no response
+ * rejects, as fetch does.
+ */
+export function makeDesktopVaultFetch(http) {
+  return async (url, init = {}) => {
+    const wantBinary = init.responseType === 'arraybuffer'
+    const body = init.body instanceof ArrayBuffer ? new Uint8Array(init.body) : init.body ?? null
+    const res = await desktopHttpRequest(http, init.method || 'GET', url, { ...init.headers }, body, wantBinary ? { binary: true } : undefined)
+    const bytes = res.body instanceof Uint8Array ? res.body : null
+    const textOf = () => (bytes ? new TextDecoder().decode(bytes) : String(res.body ?? ''))
+    return {
+      ok: res.status >= 200 && res.status < 300,
+      status: res.status,
+      statusText: res.statusText ?? '',
+      headers: { get: (n) => headerGet(res.headers, n) },
+      text: async () => textOf(),
+      json: async () => JSON.parse(textOf()),
+      // A copy of exactly these bytes: the view may sit in a larger buffer.
+      arrayBuffer: async () => (bytes ? bytes.slice().buffer : new TextEncoder().encode(textOf()).buffer),
+    }
+  }
+}
+
+/**
+ * The desktop app's fetch, and undefined everywhere else. For the callers that
+ * rely on the platform fetch in the phone shells (CapacitorHttp patches it
+ * there), and so need an adapter on the desktop only: the vault database
+ * engine (dbSync.js).
+ */
+export const desktopVaultFetchImpl = () => {
+  const desktop = desktopBridge()
+  return desktop ? makeDesktopVaultFetch(desktop.http) : undefined
+}
+
+// undefined on web (callers keep global fetch); the desktop app's main process
+// there; the CapacitorHttp adapter in the phone shells.
+export const nativeVaultFetchImpl = () => desktopVaultFetchImpl() ?? (isNativePlatform() ? makeNativeVaultFetch() : undefined)
