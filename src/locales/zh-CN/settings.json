@@ -11,6 +11,7 @@
   "themeLabel": "外观",
   "theme_dark": "深色模式",
   "theme_light": "浅色模式",
+  "defaultZoom": "默认缩放",
   "clustering": "合并邻近里程碑",
   "soundEffects": "开启音效",
   "idleAutoStart": "「漫游模式」在闲置时启用",

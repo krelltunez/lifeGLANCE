@@ -7,6 +7,7 @@
   "themeLabel": "Design",
   "theme_dark": "Dunkel",
   "theme_light": "Hell",
+  "defaultZoom": "Standard-Zoom",
   "clustering": "nahe beieinanderliegende Meilensteine automatisch gruppieren",
   "soundEffects": "Soundeffekte",
   "idleAutoStart": "Beobachtungsmodus bei Inaktivität automatisch starten",

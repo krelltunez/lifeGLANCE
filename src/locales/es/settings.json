@@ -7,6 +7,7 @@
   "themeLabel": "Tema",
   "theme_dark": "Oscuro",
   "theme_light": "Claro",
+  "defaultZoom": "Zoom predeterminado",
   "clustering": "agrupar automáticamente los hitos cercanos",
   "soundEffects": "efectos de sonido",
   "idleAutoStart": "iniciar el modo de observación automáticamente al estar inactivo",
