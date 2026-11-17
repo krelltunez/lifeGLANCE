@@ -51,6 +51,8 @@ const KEY_OVERRIDES = {
     ['a sincronização desta mídia', 'a sincronização deste conteúdo multimédia'],
   ],
   'timeline.json:mediaUnavailable': [['mídia indisponível', 'multimédia indisponível']],
+  // "padrão" for a default setting is Brazilian usage; Portugal says "predefinido".
+  'settings.json:defaultZoom': [['Zoom padrão', 'Zoom predefinido']],
   // The desktop app's strings (desktop.json), whose European wording is
   // lastGLANCE's reviewed pt-PT: menu names Windows and macOS users know
   // (Ver, Anular, Cortar), "ecrã inteiro" (tela→ecrã flips the gender of

@@ -18,6 +18,7 @@ import IcsImportModal    from '../import/IcsImportModal'
 import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
 import { ZOOM_LEVELS, applyRecurFilter } from '../../utils/timeline'
+import { getDefaultZoom, setDefaultZoom } from '../../utils/defaultZoom'
 import { expandAnnualDates } from '../../utils/recurrence'
 import { loadCategories } from '../../utils/colors'
 import { getMilestoneVisibility, precomputeEndpoints, filterChaptersByCategory } from '../../utils/visibility'
@@ -107,7 +108,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
     future: t('recurLabelFuture'),
   }
 
-  const [zoom,          setZoom]          = useState('years')
+  // Opens at this device's default zoom (Settings; utils/defaultZoom.js).
+  const [defaultZoom,   setDefaultZoomState] = useState(() => getDefaultZoom())
+  const [zoom,          setZoom]          = useState(defaultZoom)
   const [zoomAnim,      setZoomAnim]      = useState('')
   const [filter,        setFilter]        = useState(new Set())
   const [addOpen,       setAddOpen]       = useState(false)
@@ -273,7 +276,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const timelineRef    = useRef(null)
   const zoomWrapRef    = useRef(null)
   const bodyRef        = useRef(null)
-  const zoomRef        = useRef('years')
+  const zoomRef        = useRef(zoom)
   const zoomLocked     = useRef(false)
   const customInputRef = useRef(null)
   // True while 'custom' zoom was entered via a pinch gesture (not a deliberate
@@ -2603,6 +2606,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             setClustering(v)
             localStorage.setItem('lifeglance-clustering', String(v))
           }}
+          defaultZoom={defaultZoom} onDefaultZoomChange={v => setDefaultZoomState(setDefaultZoom(v))}
+          zoomLabels={ZOOM_LABELS}
           idleAutoStart={idleAutoStart} onIdleAutoStartChange={v => {
             setIdleAutoStart(v)
             localStorage.setItem('lifeglance-idle-autostart', v ? 'on' : 'off')

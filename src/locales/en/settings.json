@@ -7,6 +7,7 @@
   "themeLabel": "Theme",
   "theme_dark": "Dark",
   "theme_light": "Light",
+  "defaultZoom": "Default zoom",
   "clustering": "auto-cluster nearby milestones",
   "soundEffects": "sound effects",
   "idleAutoStart": "auto-start watch mode when idle",

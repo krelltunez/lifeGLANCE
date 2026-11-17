@@ -3,6 +3,7 @@ import { useTranslation, Trans } from 'react-i18next'
 import { saveCategories, COLOR_PALETTE } from '../../utils/colors'
 import { isMuted, setMuted } from '../../utils/audio'
 import { THEMES, getTheme, setTheme } from '../../utils/theme'
+import { ZOOM_LEVELS } from '../../utils/timeline'
 import IntegrationSettings from '../dayglance/IntegrationSettings'
 import LanguagePicker from './LanguagePicker'
 import BirthdayPicker from './BirthdayPicker'
@@ -21,6 +22,7 @@ export default function SettingsModal({
   textSize, onTextSizeChange,
   categories, onCategoriesChange,
   clustering, onClusteringChange,
+  defaultZoom, onDefaultZoomChange, zoomLabels = {},
   idleAutoStart, onIdleAutoStartChange,
   idleTimeoutMs, onIdleTimeoutChange, idleTimeoutOptions = [],
   birthday, onBirthdayChange,
@@ -170,6 +172,21 @@ export default function SettingsModal({
               ))}
             </div>
           </div>
+          {/* The zoom the timeline opens at on this device (utils/defaultZoom.js). */}
+          {onDefaultZoomChange && (
+            <div className="settings-idle-timeout">
+              <span className="settings-toggle-label">
+                <label htmlFor="settings-default-zoom">{t('defaultZoom')}</label>
+              </span>
+              <select id="settings-default-zoom" className="settings-select"
+                value={defaultZoom}
+                onChange={e => onDefaultZoomChange(e.target.value)}>
+                {ZOOM_LEVELS.map(z => (
+                  <option key={z} value={z}>{zoomLabels[z] ?? z}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <label className="settings-toggle-row">
             <span className="settings-toggle-label">{t('clustering')}</span>
             <input type="checkbox" className="settings-toggle"
