@@ -89,5 +89,6 @@
   "compareNoBirthDate": "{{name}}：没有出生日期",
   "compareOpenDetail": "详情",
   "openInLife": "在{{name}}的时间线中打开",
-  "compareCrumb": "比较"
+  "compareCrumb": "比较",
+  "seriesLivesNote": "在此添加或移除的人生，也会同步套用到所有周年约定。"
 }

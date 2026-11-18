@@ -54,7 +54,7 @@ import { ME_LIFE_ID, newMilestoneLifeFields, newChapterLifeFields, lifeIdsOf, ch
 const COMPARE_OFF_KEY = 'lifeglance-compare-off'
 
 const sameLives = (a, b) => [...a].sort().join() === [...(b ?? a)].sort().join()
-import { setMilestoneLife, chapterLivesUpdate } from '../../data/lives'
+import { applyLivesChange, chapterLivesUpdate } from '../../data/lives'
 import LifeSwitcher from '../lives/LifeSwitcher'
 import LivesSheet from '../lives/LivesSheet'
 import ImportSheet from '../lives/ImportSheet'
@@ -1119,12 +1119,15 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
         // Lives changed in the sheet: one op per Life, adds before removes so
         // the milestone never passes through having none. Removing a Life also
         // takes it out of that Life's chapters, so reload the full lists then.
-        if (lifeIds) {
-          const before = lifeIdsOf(existing)
-          for (const id of lifeIds) if (!before.includes(id)) updated = await setMilestoneLife(updated, id, true)
-          const removing = before.filter(id => !lifeIds.includes(id))
-          for (const id of removing) updated = await setMilestoneLife(updated, id, false)
-          if (removing.length) window.dispatchEvent(new Event('lifeglance:milestones-reload'))
+        const livesBefore = lifeIdsOf(existing)
+        const livesChange = lifeIds
+          ? { added: lifeIds.filter(id => !livesBefore.includes(id)), removed: livesBefore.filter(id => !lifeIds.includes(id)) }
+          : { added: [], removed: [] }
+        let livesRemoved = false
+        if (livesChange.added.length || livesChange.removed.length) {
+          const r = await applyLivesChange(updated, livesChange)
+          updated = r.milestone
+          livesRemoved = r.removedAny
         }
         if (mediaFile)    await dbPutMedia(updated.id, mediaFile, mediaFile.type)
         if (photoFile)    await dbPutPhoto(updated.id, photoFile, photoFile.type)
@@ -1140,7 +1143,7 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           if (siblings.length) {
             updatedById = {}
             for (const s of siblings) {
-              const su = await updateMilestone(s.id, {
+              let su = await updateMilestone(s.id, {
                 title:                  updated.title,
                 category:               updated.category,
                 color:                  updated.color,
@@ -1148,10 +1151,18 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
                 url:                    updated.url,
                 mainTimelineVisibility: updated.mainTimelineVisibility,
               }, s)
+              // The Lives added and removed on this instance (#394). Only the
+              // change is applied, so a year with other Lives keeps them.
+              if (livesChange.added.length || livesChange.removed.length) {
+                const r = await applyLivesChange(su, livesChange)
+                su = r.milestone
+                livesRemoved ||= r.removedAny
+              }
               updatedById[s.id] = su
             }
           }
         }
+        if (livesRemoved) window.dispatchEvent(new Event('lifeglance:milestones-reload'))
         const newMs = milestones.map(m =>
           m.id === existing.id ? updated : (updatedById?.[m.id] ?? m)
         )

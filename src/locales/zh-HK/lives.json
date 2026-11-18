@@ -89,5 +89,6 @@
   "compareNoBirthDate": "「{{name}}」：沒有出生日期",
   "compareOpenDetail": "詳情",
   "openInLife": "在「{{name}}」的時間軸中開啟",
-  "compareCrumb": "歲月相會"
+  "compareCrumb": "歲月相會",
+  "seriesLivesNote": "在此新增或移除的「人物故事」，亦會同步套用至所有週年約定。"
 }

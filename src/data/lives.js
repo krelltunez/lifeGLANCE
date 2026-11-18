@@ -67,6 +67,27 @@ export async function setMilestoneLife(milestone, lifeId, present, { at = new Da
   return updated
 }
 
+/**
+ * Apply a change of Lives made on one milestone to another (another yearly
+ * instance of the same series, issue #394): add `added`, then remove
+ * `removed`, one op per Life, so Lives this milestone has that the change did
+ * not touch stay. A removal that would leave it with no Life is skipped.
+ * Returns the updated milestone and whether a Life was removed (the caller then
+ * reloads chapters, which a removal may have changed).
+ */
+export async function applyLivesChange(milestone, { added = [], removed = [] }, opts) {
+  let updated = milestone
+  for (const id of added) updated = await setMilestoneLife(updated, id, true, opts)
+  let removedAny = false
+  for (const id of removed) {
+    const present = lifeIdsOf(updated)
+    if (!present.includes(id) || present.length === 1) continue
+    updated = await setMilestoneLife(updated, id, false, opts)
+    removedAny = true
+  }
+  return { milestone: updated, removedAny }
+}
+
 // ── Changing a chapter's Lives ──────────────────────────────────────────────
 
 /**
