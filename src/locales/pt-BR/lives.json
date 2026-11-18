@@ -89,5 +89,6 @@
   "compareNoBirthDate": "{{name}}: sem data de nascimento",
   "compareOpenDetail": "Detalhes",
   "openInLife": "Abrir na linha do tempo de {{name}}",
-  "compareCrumb": "Comparar"
+  "compareCrumb": "Comparar",
+  "seriesLivesNote": "As vidas que você adicionar ou remover aqui também são adicionadas ou removidas em cada ano."
 }

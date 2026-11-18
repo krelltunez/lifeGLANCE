@@ -432,7 +432,9 @@ export default function AddMilestoneSheet({ onSave, onClose, existing, draft = n
                 checked={applyToSeries}
                 onChange={e => setApplyToSeries(e.target.checked)} />
             </label>
-            <p className="settings-note" style={{ marginTop: '0.35rem' }}>{t('applyToSeriesNote')}</p>
+            <p className="settings-note" style={{ marginTop: '0.35rem' }}>
+              {t('applyToSeriesNote')}{multiLife && <> {tl('seriesLivesNote')}</>}
+            </p>
           </div>
         )}
 
