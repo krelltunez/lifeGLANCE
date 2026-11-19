@@ -78,8 +78,8 @@ export default function App() {
   }
 
   // Entitlement engine — inert (ungated, 'channel' source) everywhere except
-  // the store builds (Play on Android, the iOS app), the only ones that get an
-  // adapter (src/billing/billing.js).
+  // the store builds (Play on Android, the iOS app, the Mac App Store desktop
+  // build), the only ones that get an adapter (src/billing/billing.js).
   const billing = useSubscription()
   const [subscriptionOpen, setSubscriptionOpen] = useState(false)
 

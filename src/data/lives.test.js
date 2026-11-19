@@ -393,3 +393,39 @@ describe('deleting a Life with shared chapters', () => {
     expect(kept.milestoneIds).toEqual([mine.id])
   })
 })
+
+// ── Issue #394: "apply to all yearly instances" carries a change of Lives ───
+
+describe('applying a change of Lives to another yearly instance', () => {
+  it('adds and removes only the Lives that changed; other Lives on that year stay', async () => {
+    const { ms, lives, lm } = await setup()
+    const mom = await lives.createLife({ name: 'Mom' })
+    const dad = await lives.createLife({ name: 'Dad' })
+    const kid = await lives.createLife({ name: 'Kid' })
+    // This year was given Kid on its own; the edit on another year added Mom and removed Dad.
+    const year = await ms.addMilestone({ title: 'Anniversary', date: '2020-06-01', ...lm.newMilestoneLifeFields(['me', dad.id, kid.id]) })
+    const r = await lives.applyLivesChange(year, { added: [mom.id], removed: [dad.id] })
+    expect(lm.lifeIdsOf(r.milestone).sort()).toEqual(['me', mom.id, kid.id].sort())
+    expect(r.removedAny).toBe(true)
+  })
+
+  it('skips a removal that would leave the year with no Life', async () => {
+    const { ms, lives, lm } = await setup()
+    const mom = await lives.createLife({ name: 'Mom' })
+    // The edited year went from Me + Mom to Me; this year had Mom only.
+    const year = await ms.addMilestone({ title: 'Visit', date: '2021-06-01', ...lm.newMilestoneLifeFields(mom.id) })
+    const r = await lives.applyLivesChange(year, { added: [], removed: [mom.id] })
+    expect(lm.lifeIdsOf(r.milestone)).toEqual([mom.id])
+    expect(r.removedAny).toBe(false)
+  })
+
+  it('takes the year out of a chapter it no longer shares a Life with', async () => {
+    const { ms, ch, lives, lm, db } = await setup()
+    const mom = await lives.createLife({ name: 'Mom' })
+    const hers = await ch.createChapter({ title: 'Hers', start: '2010-01-01', color: '#000', ...lm.newChapterLifeFields(mom.id) })
+    const year = await ms.addMilestone({ title: 'Visit', date: '2021-06-01', ...lm.newMilestoneLifeFields(['me', mom.id]) })
+    await ch.addMilestoneToChapter(hers.id, year.id)
+    await lives.applyLivesChange(await db.dbGet(year.id), { removed: [mom.id] })
+    expect((await db.dbGetChapter(hers.id)).milestoneIds).toEqual([])
+  })
+})

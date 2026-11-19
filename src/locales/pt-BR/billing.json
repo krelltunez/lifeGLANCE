@@ -26,6 +26,7 @@
   "restore": "Restaurar compra",
   "restoreNone": "Nenhuma compra anterior encontrada.",
   "restoreDone": "Compras restauradas.",
+  "restoreChecking": "Verificando…",
   "statusLabel": "status",
   "statusLifetime": "Desbloqueio vitalício ativo",
   "statusSubscription": "Assinatura anual ativa",

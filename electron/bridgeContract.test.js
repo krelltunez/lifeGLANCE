@@ -3,7 +3,8 @@
 //
 //  - src/native/desktop.js: DESKTOP_BRIDGE_METHODS, what the page may call;
 //  - electron/preload.cjs: what contextBridge actually exposes;
-//  - electron/main.js: the ipcMain handlers behind it.
+//  - electron/main.js: the ipcMain handlers behind it, and for the `billing`
+//    group @glance-apps/billing's main half, which registers its own.
 //
 // A source-text test, as icloudIosParity.test.js is for the iOS plugin: the
 // preload is sandboxed and cannot be imported here, and this is the seam a
@@ -20,10 +21,13 @@ const read = (rel) => readFileSync(path.join(root, rel), 'utf-8')
 
 const preload = read('electron/preload.cjs')
 const mainJs = read('electron/main.js')
-const mainProcess = readdirSync(path.join(root, 'electron'))
-  .filter((f) => f.endsWith('.js') && !f.endsWith('.test.js'))
-  .map((f) => read(`electron/${f}`))
-  .join('\n')
+const billingMain = read('node_modules/@glance-apps/billing/dist/electron-main/index.js')
+const mainProcess = [
+  ...readdirSync(path.join(root, 'electron'))
+    .filter((f) => f.endsWith('.js') && !f.endsWith('.test.js'))
+    .map((f) => read(`electron/${f}`)),
+  billingMain,
+].join('\n')
 
 /** The exposed object literal's groups: { group: { key: isFunction } }. */
 function preloadGroups() {

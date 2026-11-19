@@ -89,4 +89,15 @@ contextBridge.exposeInMainWorld('lifeGlanceDesktop', {
     makeDir: (options) => ipcRenderer.invoke('icloud:make-dir', options),
     onChanged: (listener) => subscribe('icloud:changed', listener),
   },
+  // In-app purchases on the Mac App Store build: the ElectronBillingApi of
+  // @glance-apps/billing, whose main half registers these channels. No other
+  // build registers them, and no other build's page calls them.
+  billing: {
+    subscriptionStatus: () => ipcRenderer.invoke('subscription:status'),
+    subscriptionPurchase: (productId) => ipcRenderer.invoke('subscription:purchase', productId),
+    subscriptionRestore: () => ipcRenderer.invoke('subscription:restore'),
+    subscriptionPrices: () => ipcRenderer.invoke('subscription:prices'),
+    onSubscriptionEvent: (listener) => subscribe('subscription:event', listener),
+    onSubscriptionPricesReady: (listener) => subscribe('subscription:prices-ready', listener),
+  },
 })

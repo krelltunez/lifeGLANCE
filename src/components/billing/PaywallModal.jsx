@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME } from '../../billing/billing'
+import { HAS_HOME_SCREEN_WIDGETS, MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME } from '../../billing/billing'
 
 // Feature bullets shown on the gate — the whole app is Pro, so these are the
 // headline capabilities an unlock grants. App stores (Apple especially) expect
-// the paywall to spell out what the purchase includes.
+// the paywall to spell out what the purchase includes, and to list nothing the
+// app in front of the reviewer lacks: the Mac App Store build has no widgets.
 const FEATURE_KEYS = [
   'featureTimeline',
   'featureContent',
-  'featureWidgets',
+  ...(HAS_HOME_SCREEN_WIDGETS ? ['featureWidgets'] : []),
   'featureSync',
   'featureImportExport',
 ]
+
+// How long the Restore control stays busy with no outcome before it gives up
+// showing so. Well past the Mac App Store's ten-second wait plus a slow network.
+const RESTORE_GIVE_UP_MS = 45_000
 
 const PRIVACY_URL = 'https://www.glance-apps.com/privacy'
 const TERMS_URL = 'https://www.glance-apps.com/eula'
@@ -48,6 +53,7 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
 
   const gate = mode === 'gate'
   const [purchasing,      setPurchasing]      = useState(false)
+  const [restoring,       setRestoring]       = useState(false)
   const [reviewerOpen,    setReviewerOpen]    = useState(false)
   const [reviewerCode,    setReviewerCode]    = useState('')
   const [reviewerInvalid, setReviewerInvalid] = useState(false)
@@ -58,6 +64,7 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
   useEffect(() => {
     if (!billingEvent) return
     setPurchasing(false)
+    setRestoring(false)
     if (billingEvent.status === 'error') {
       setNotice({ kind: 'error', text: t(ERROR_KEYS[billingEvent.code] ?? 'errorGeneric') })
     } else if (billingEvent.status === 'cancelled') {
@@ -89,6 +96,26 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
     setPurchasing(true)
     subscribe(productId)
   }
+
+  // A restore can take a while to answer, and says so until it does. On the Mac
+  // App Store build "nothing to restore" takes ten seconds and more, by design:
+  // StoreKit sends no signal when it finds nothing, so the main process waits
+  // that long for a restored purchase before it asks RevenueCat
+  // (@glance-apps/billing, restoreFallbackMs). With nothing on screen for that
+  // long, the control looked dead.
+  function startRestore() {
+    setNotice(null)
+    setRestoring(true)
+    restore()
+  }
+
+  // Every restore ends in a billingEvent, which clears the state above. This is
+  // for the one that somehow does not, so the controls cannot stay busy for good.
+  useEffect(() => {
+    if (!restoring) return
+    const timer = setTimeout(() => setRestoring(false), RESTORE_GIVE_UP_MS)
+    return () => clearTimeout(timer)
+  }, [restoring])
 
   async function applyReviewerCode() {
     const ok = await setReviewerUnlocked(reviewerCode.trim())
@@ -127,12 +154,12 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
     <>
       <div className="paywall-plans">
         <button className="btn btn-filled paywall-plan-btn"
-          disabled={purchasing}
+          disabled={purchasing || restoring}
           onClick={() => buy(PRODUCT_IDS.yearly)}>
           {annualLabel}
         </button>
         <button className="btn paywall-plan-btn"
-          disabled={purchasing}
+          disabled={purchasing || restoring}
           onClick={() => buy(PRODUCT_IDS.lifetime)}>
           {lifetimeLabel}
         </button>
@@ -212,10 +239,11 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
         {/* Compact footer: plain text actions under a divider instead of
             full-width buttons — "Restore purchase · Reviewer access". */}
         <div className="paywall-links">
-          <button className="paywall-link paywall-link-restore"
-            disabled={purchasing}
-            onClick={() => { setNotice(null); restore() }}>
-            {t('restore')}
+          <button className={`paywall-link paywall-link-restore${restoring ? ' paywall-link-busy' : ''}`}
+            disabled={purchasing || restoring}
+            aria-busy={restoring}
+            onClick={startRestore}>
+            {restoring ? t('restoreChecking') : t('restore')}
           </button>
           {gate && (
             <>

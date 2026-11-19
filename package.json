@@ -32,6 +32,7 @@
     "build:electron:renderer": "vite build --mode electron",
     "build:electron": "npm run build:electron:renderer && electron-builder --config electron-builder.config.cjs",
     "build:electron:release": "npm run build:electron -- --publish never",
+    "build:electron:mas": "npm run build:electron:renderer && LIFEGLANCE_APP_ID=com.lifeglance electron-builder --config electron-builder.config.cjs --mac mas --universal --publish never",
     "build:electron:dir": "npm run build:electron:renderer && electron-builder --config electron-builder.config.cjs --dir --publish never",
     "test:electron-smoke": "node e2e/electron-smoke.mjs"
   },
@@ -41,7 +42,7 @@
     "@capacitor/filesystem": "8.1.2",
     "@capacitor/ios": "^8.4.0",
     "@capacitor/share": "8.0.1",
-    "@glance-apps/billing": "0.2.2",
+    "@glance-apps/billing": "0.2.3",
     "@glance-apps/intents": "1.4.0",
     "@glance-apps/sync": "2.4.0",
     "date-fns": "^3.6.0",

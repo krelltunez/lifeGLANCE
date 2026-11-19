@@ -24,6 +24,7 @@
   "restore": "Restaurer l'achat",
   "restoreNone": "Aucun achat précédent trouvé.",
   "restoreDone": "Achats restaurés.",
+  "restoreChecking": "Vérification…",
   "statusLabel": "statut",
   "statusLifetime": "Déblocage à vie actif",
   "statusSubscription": "Abonnement annuel actif",

@@ -108,7 +108,14 @@ try {
   check(info?.platform === mainPlatform, `bridge reports the platform (${info?.platform})`)
   check(info?.version === version, `bridge reports version ${version} (${info?.version})`)
   check(info?.isMAS === false, 'bridge reports a build that is not the Mac App Store one')
-  check(JSON.stringify(bridge?.groups) === JSON.stringify(['directAccess', 'http', 'icloud', 'info', 'secureStore', 'shell', 'vaultSse']), `bridge exposes its groups (${bridge?.groups})`)
+  check(JSON.stringify(bridge?.groups) === JSON.stringify(['billing', 'directAccess', 'http', 'icloud', 'info', 'secureStore', 'shell', 'vaultSse']), `bridge exposes its groups (${bridge?.groups})`)
+
+  // This build is free (docs/desktop-app.md, "Billing"): only the Mac App
+  // Store one sells. The page builds no billing adapter, so nothing is gated,
+  // and main registered no billing, so the channel has no handler at all.
+  const billingAnswer = await page.evaluate(() => window.lifeGlanceDesktop.billing.subscriptionStatus().then(() => 'answered', (e) => String(e?.message ?? e)))
+  check(/No handler registered/.test(billingAnswer), `a direct build registers no billing (${billingAnswer})`)
+  check(await page.evaluate(() => document.querySelector('.paywall-overlay') === null), 'a direct build shows no paywall')
   check(await page.evaluate(() => typeof window.require === 'undefined' && typeof window.process === 'undefined'), 'no Node in the page')
 
   const classes = await page.evaluate(() => document.documentElement.className)

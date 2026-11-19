@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The Mac App Store build (docs/desktop-app.md, "The Mac App Store build"),
+     after lastGLANCE's electron/entitlements.mas.plist. The app id and team
+     come from the provisioning profile, which electron-builder embeds. -->
+<plist version="1.0">
+  <dict>
+    <!-- Kept for parity with Electron's defaults; the sandbox governs execution.
+         allow-unsigned-executable-memory is a Hardened Runtime key and is left
+         out: App Review questions it and the sandboxed build does not need it. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!-- Outbound network: WebDAV, GLANCEvault, RevenueCat. There is no
+         network.server: the app listens on nothing. -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- Direct Access: a folder the user picks, kept across launches with a
+         security-scoped bookmark (electron/directAccess.js). -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <key>com.apple.security.files.bookmarks.app-scope</key>
+    <true/>
+    <!-- iCloud Drive: the app's own container (sync) and dayGLANCE's (intents),
+         both as the iOS app uses them (ios/App/App/App.entitlements). -->
+    <key>com.apple.developer.icloud-container-identifiers</key>
+    <array>
+      <string>iCloud.com.lifeglance</string>
+      <string>iCloud.com.dayglance</string>
+    </array>
+    <key>com.apple.developer.icloud-services</key>
+    <array>
+      <string>CloudDocuments</string>
+    </array>
+    <!-- No com.apple.security.in-app-payments: that is Apple Pay, App Store
+         validation rejects it on macOS, and StoreKit needs no entitlement. -->
+  </dict>
+</plist>
