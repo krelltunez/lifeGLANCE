@@ -2931,6 +2931,14 @@ select.settings-select {
 }
 .paywall-link:hover { color: var(--text); }
 .paywall-link:disabled { opacity: 0.35; cursor: not-allowed; }
+/* A restore under way: busy, not unavailable. Full strength, with the app's
+   typewriter cursor after it for as long as the store takes to answer. */
+.paywall-link.paywall-link-busy:disabled { opacity: 1; color: var(--text); cursor: progress; }
+.paywall-link-busy::after {
+  content: '▍';
+  margin-left: 0.25em;
+  animation: cursor-blink 1s step-end infinite;
+}
 .paywall-link-restore { font-size: 0.65rem; }
 .paywall-link-reviewer { font-size: 0.55rem; }
 .paywall-link-sep {

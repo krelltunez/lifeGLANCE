@@ -22,6 +22,7 @@
   "restore": "回復購買",
   "restoreNone": "未找到之前的購買紀錄。",
   "restoreDone": "購買已回復。",
+  "restoreChecking": "正在檢查…",
   "statusLabel": "狀態",
   "statusLifetime": "終身解鎖已啟用",
   "statusSubscription": "年度訂閱已啟用",

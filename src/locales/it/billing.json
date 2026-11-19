@@ -26,6 +26,7 @@
   "restore": "Ripristina acquisto",
   "restoreNone": "Nessun acquisto precedente trovato.",
   "restoreDone": "Acquisti ripristinati.",
+  "restoreChecking": "Verifica in corso…",
   "statusLabel": "stato",
   "statusLifetime": "Sblocco a vita attivo",
   "statusSubscription": "Abbonamento annuale attivo",

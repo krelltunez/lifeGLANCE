@@ -22,6 +22,7 @@
   "restore": "恢复购买",
   "restoreNone": "未找到以前的购买记录。",
   "restoreDone": "购买已恢复。",
+  "restoreChecking": "正在检查…",
   "statusLabel": "状态",
   "statusLifetime": "终身解锁已激活",
   "statusSubscription": "年度订阅已激活",
