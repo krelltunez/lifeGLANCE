@@ -179,14 +179,14 @@ describe('the Mac App Store build', () => {
     // answered by hand.
     expect(config.mac.extendInfo.ITSAppUsesNonExemptEncryption).toBe(false)
     expect(readFileSync(path.join(root, 'ios/App/App/Info.plist'), 'utf-8')).toMatch(/<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\/>/)
-    // electron-builder writes the MAS build's Info.plist from mac.extendInfo
-    // too (macPackager, applyCommonInfo) and never reads one under mas, so a
-    // key moved there would be dropped without a word.
+    // The MAS build's Info.plist is mac's extendInfo with mas's laid over it
+    // (seen in a mas build's Info.plist, electron-builder 26.18): the flag
+    // arrives from mac unless a mas entry says otherwise.
     process.env.LIFEGLANCE_APP_ID = 'com.lifeglance'
     try {
       const mas = loadConfig()
-      expect(mas.mac.extendInfo.ITSAppUsesNonExemptEncryption).toBe(false)
-      expect(mas.mas.extendInfo).toBeUndefined()
+      const info = { ...mas.mac.extendInfo, ...(mas.mas.extendInfo ?? {}) }
+      expect(info.ITSAppUsesNonExemptEncryption).toBe(false)
     } finally {
       delete process.env.LIFEGLANCE_APP_ID
     }
