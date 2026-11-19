@@ -1,12 +1,12 @@
 {
   "title": "订阅",
   "trialHeadline_other": "开始 {{count}} 天免费试用",
-  "trialSubline_other": "{{count}} 天免费，今天不收费。随时取消，数据保留。",
+  "trialSubline_other": "{{count}} 天免费，今天不会收费。可随时取消，数据保留。",
   "headline": "解锁 lifeGLANCE",
   "trialHeadlineGeneric": "开始免费试用",
-  "trialSublineGeneric": "今天不收费。随时取消，数据保留。",
+  "trialSublineGeneric": "今天不会收费。可随时取消，数据保留。",
   "tagline": "随时光绵延成线，让你我的一生织就锦绣长卷，细细绘写回忆﹑篇章与每个里程碑；多装置无缝同步，随处皆可展卷。",
-  "featureTimeline": "在可缩放的时间线上回顾过去与未来的里程碑",
+  "featureTimeline": "自由缩放时间线，回顾过去与未来的里程碑",
   "featureContent": "章节、卷宗、照片、音频和视频",
   "featureWidgets": "主屏幕小组件和快速添加磁贴",
   "featureSync": "跨设备的加密同步",
@@ -21,7 +21,7 @@
   "paymentNote": "通过 {{store}} 支付。可随时在 {{store}} 订阅设置中取消。",
   "restore": "恢复购买",
   "restoreNone": "未找到以前的购买记录。",
-  "restoreDone": "购买已恢复。",
+  "restoreDone": "购买纪录已恢复。",
   "restoreChecking": "正在检查…",
   "statusLabel": "状态",
   "statusLifetime": "终身解锁已激活",
@@ -41,6 +41,6 @@
   "errorUnavailable": "此设备不支持支付。",
   "errorSubUnavailable": "该订阅目前不可用。请稍后重试。",
   "errorNetwork": "网络错误。请检查连接后重试。",
-  "errorOwned": "你已拥有此商品。",
-  "errorGeneric": "购买时出了点问题。请重试。"
+  "errorOwned": "你已经拥有此商品。",
+  "errorGeneric": "购买时出了点问题。请稍后重试。"
 }
