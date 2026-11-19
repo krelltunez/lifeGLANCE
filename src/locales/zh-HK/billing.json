@@ -37,10 +37,10 @@
   "reviewerInvalid": "該代碼無效。",
   "reviewerBannerText": "審核員存取已啟用——毋須購買即可解鎖應用程式。",
   "reviewerExitPlans": "退出並查看方案",
-  "errorNotFound": "找不到此商品，請稍後再試。",
-  "errorUnavailable": "此裝置目前不支援付款功能。",
-  "errorSubUnavailable": "該訂閱目前暫時無法使用。請稍後再試。",
-  "errorNetwork": "網路連線不穩定，請檢查連線後再試。",
+  "errorNotFound": "找不到商品。請稍後再試。",
+  "errorUnavailable": "此裝置不支援付款",
+  "errorSubUnavailable": "該訂閱目前不可用。請稍後再試。",
+  "errorNetwork": "網絡錯誤。請檢查連線後再試。",
   "errorOwned": "你已經擁有此項目。",
   "errorGeneric": "購買時出了問題。請稍後再試。"
 }
