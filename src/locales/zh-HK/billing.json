@@ -19,7 +19,7 @@
   "renewalExplainer": "免費試用結束後，訂閱將按 {{price}}/年自動續訂，直至取消。",
   "renewalExplainerNoTrial": "年度訂閱將按 {{price}}/年自動續訂，直至取消。",
   "paymentNote": "透過 {{store}} 付款。可隨時在 {{store}} 訂閱設定中取消。",
-  "restore": "恢復購買紀錄",
+  "restore": "恢復購買",
   "restoreNone": "未找到之前的購買紀錄。",
   "restoreDone": "購買紀錄已恢復。",
   "restoreChecking": "正在檢查…",
@@ -34,13 +34,13 @@
   "reviewerHelper": "僅供應用商店審核人員使用。這不是優惠碼。",
   "reviewerPlaceholder": "審核代碼",
   "reviewerApply": "套用",
-  "reviewerInvalid": "該代碼無效，請重新確認。",
+  "reviewerInvalid": "該代碼無效。",
   "reviewerBannerText": "審核員存取已啟用——毋須購買即可解鎖應用程式。",
   "reviewerExitPlans": "退出並查看方案",
-  "errorNotFound": "暫時找不到此商品，請稍後再試。",
+  "errorNotFound": "找不到此商品，請稍後再試。",
   "errorUnavailable": "此裝置目前不支援付款功能。",
   "errorSubUnavailable": "該訂閱目前暫時無法使用。請稍後再試。",
-  "errorNetwork": "網路連線不穩定，請檢查連線後再試一次。",
+  "errorNetwork": "網路連線不穩定，請檢查連線後再試。",
   "errorOwned": "你已經擁有此項目。",
-  "errorGeneric": "購買過程發生一點小狀況，請稍後再試一次。"
+  "errorGeneric": "購買時出了問題。請稍後再試。"
 }
