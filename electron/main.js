@@ -3,11 +3,13 @@
 // The web bundle in an Electron window on macOS, Windows and Linux, after
 // lastGLANCE's desktop app (krelltunez/lastGLANCE, electron/main.ts) and much
 // smaller than it: one window, no tray, no background mode, no local servers.
-// What it adds to the web app is iCloud Drive sync on macOS (icloud.js).
+// What it adds to the web app is iCloud Drive sync on macOS (icloud.js), and
+// the App Store's purchases on the Mac App Store build (billingConfig.js).
 //
 // Plain ES modules run as they are: there is no compile step for this folder.
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, powerMonitor, protocol, safeStorage, screen, session, shell } from 'electron'
+import { registerElectronBilling } from '@glance-apps/billing/electron-main'
 import { execFile } from 'node:child_process'
 import dns from 'node:dns'
 import fs from 'node:fs'
@@ -15,6 +17,7 @@ import nodeNet from 'node:net'
 import path from 'node:path'
 import { APP_BASE_URL, APP_HOST, APP_SCHEME, resolveAppRequest } from './appProtocol.js'
 import { buildApplicationMenuTemplate, isApplicationMenuLabels } from './applicationMenu.js'
+import { MAS_BILLING } from './billingConfig.js'
 import { contentSecurityPolicy, inlineScriptHashes } from './csp.js'
 import { DESKTOP_INFO_ARG, encodeDesktopInfo } from './desktopInfo.js'
 import { registerDirectAccessHandlers } from './directAccess.js'
@@ -537,6 +540,13 @@ app.whenReady().then(() => {
   })
 
   createWindow()
+
+  // In-app purchases, on the Mac App Store build only (billingConfig.js; every
+  // other build is free). Registered once: its handlers are app-wide. The
+  // window is a getter because this app's window does not last the process:
+  // closing it on macOS destroys it and the Dock opens another, and a purchase
+  // made in that one must reach it.
+  if (process.mas) registerElectronBilling(() => live(mainWindow), { ...MAS_BILLING, products: { ...MAS_BILLING.products } })
 
   // A woken machine or an unlocked screen: the page's foreground kicks.
   powerMonitor.on('resume', () => sendWake('resume'))

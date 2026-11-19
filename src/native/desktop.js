@@ -28,6 +28,10 @@
 //                plus onChanged from the folder watcher
 //   icloud       the iOS plugin's calls (src/native/icloud.js), over the iCloud
 //                Drive folders on macOS; onChanged is its "changed" event
+//   billing      @glance-apps/billing's ElectronBillingApi, which
+//                createElectronRendererAdapter drives (src/billing/billing.js):
+//                the App Store's purchases, answered on the Mac App Store
+//                build only
 //
 // Every `on…` method returns its unsubscribe function.
 
@@ -72,6 +76,12 @@ export const DESKTOP_BRIDGE_METHODS = Object.freeze([
   'icloud.deleteFile',
   'icloud.makeDir',
   'icloud.onChanged',
+  'billing.subscriptionStatus',
+  'billing.subscriptionPurchase',
+  'billing.subscriptionRestore',
+  'billing.subscriptionPrices',
+  'billing.onSubscriptionEvent',
+  'billing.onSubscriptionPricesReady',
 ])
 
 /** The facts the preload exposes under `info`. */

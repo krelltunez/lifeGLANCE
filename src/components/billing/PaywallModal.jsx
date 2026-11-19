@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME } from '../../billing/billing'
+import { HAS_HOME_SCREEN_WIDGETS, MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME } from '../../billing/billing'
 
 // Feature bullets shown on the gate — the whole app is Pro, so these are the
 // headline capabilities an unlock grants. App stores (Apple especially) expect
-// the paywall to spell out what the purchase includes.
+// the paywall to spell out what the purchase includes, and to list nothing the
+// app in front of the reviewer lacks: the Mac App Store build has no widgets.
 const FEATURE_KEYS = [
   'featureTimeline',
   'featureContent',
-  'featureWidgets',
+  ...(HAS_HOME_SCREEN_WIDGETS ? ['featureWidgets'] : []),
   'featureSync',
   'featureImportExport',
 ]
