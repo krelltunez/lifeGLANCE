@@ -24,6 +24,7 @@
   "restore": "Kauf wiederherstellen",
   "restoreNone": "Keine früheren Käufe gefunden.",
   "restoreDone": "Käufe wiederhergestellt.",
+  "restoreChecking": "Wird geprüft…",
   "statusLabel": "Status",
   "statusLifetime": "Lebenslange Freischaltung aktiv",
   "statusSubscription": "Jahresabo aktiv",

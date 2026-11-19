@@ -24,6 +24,7 @@
   "restore": "Restore purchase",
   "restoreNone": "No previous purchases found.",
   "restoreDone": "Purchases restored.",
+  "restoreChecking": "Checking…",
   "statusLabel": "status",
   "statusLifetime": "Lifetime unlock active",
   "statusSubscription": "Annual subscription active",
