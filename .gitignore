@@ -2,6 +2,9 @@ node_modules/
 dist/
 # The desktop app's packages (npm run build:electron).
 dist-app/
+# The Mac App Store provisioning profile (docs/desktop-app.md, "The Mac App
+# Store build").
+electron/*.provisionprofile
 outputs/
 .DS_Store
 *.local
