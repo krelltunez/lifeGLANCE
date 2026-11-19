@@ -174,6 +174,24 @@ describe('the Mac App Store build', () => {
     }
   })
 
+  it('answers the export compliance question in the bundle, as the iOS app does', () => {
+    // Left out, each upload sits in App Store Connect until the question is
+    // answered by hand.
+    expect(config.mac.extendInfo.ITSAppUsesNonExemptEncryption).toBe(false)
+    expect(readFileSync(path.join(root, 'ios/App/App/Info.plist'), 'utf-8')).toMatch(/<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\/>/)
+    // electron-builder writes the MAS build's Info.plist from mac.extendInfo
+    // too (macPackager, applyCommonInfo) and never reads one under mas, so a
+    // key moved there would be dropped without a word.
+    process.env.LIFEGLANCE_APP_ID = 'com.lifeglance'
+    try {
+      const mas = loadConfig()
+      expect(mas.mac.extendInfo.ITSAppUsesNonExemptEncryption).toBe(false)
+      expect(mas.mas.extendInfo).toBeUndefined()
+    } finally {
+      delete process.env.LIFEGLANCE_APP_ID
+    }
+  })
+
   it('takes its build number and its profile from the environment when given', () => {
     Object.assign(process.env, { LIFEGLANCE_APP_ID: 'com.lifeglance', BUILD_NUMBER: '42', MAC_PROVISIONING_PROFILE: '/tmp/x.provisionprofile' })
     try {

@@ -550,7 +550,9 @@ npm run build:electron:mas
 
 This builds the universal `.pkg` in `dist-app/mas-universal/`, as
 `com.lifeglance`, sandboxed. Its build number is `YYYYMMDD.HHMM`, so every
-upload is higher than the last (`BUILD_NUMBER` overrides). The version is
+upload is higher than the last (`BUILD_NUMBER` overrides). Its `Info.plist`
+answers the export compliance question (`ITSAppUsesNonExemptEncryption`, false,
+as for iOS), so the build does not wait in App Store Connect for it. The version is
 `package.json`'s, as for the phones. Then:
 
 1. Upload the `.pkg` with **Transporter**.
