@@ -94,6 +94,7 @@ const SUBSTITUTIONS = [
   // App Store's own Taiwan wording for restoring purchases.
   ['恢復購買', '回復購買'],
   ['購買已恢復', '購買已回復'],
+  ['購買紀錄已恢復', '購買紀錄已回復'],
   ['一次性支付', '一次付清'],
   // Nouns
   ['幫助&', '說明&'],

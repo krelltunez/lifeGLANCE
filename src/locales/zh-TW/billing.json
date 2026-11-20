@@ -21,7 +21,7 @@
   "paymentNote": "透過 {{store}} 付款。可隨時在 {{store}} 訂閱設定中取消。",
   "restore": "回復購買",
   "restoreNone": "未找到之前的購買紀錄。",
-  "restoreDone": "購買紀錄已恢復。",
+  "restoreDone": "購買紀錄已回復。",
   "restoreChecking": "正在檢查…",
   "statusLabel": "狀態",
   "statusLifetime": "終身解鎖已啟用",
