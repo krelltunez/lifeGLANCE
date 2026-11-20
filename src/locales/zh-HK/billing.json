@@ -1,12 +1,12 @@
 {
   "title": "訂閱",
   "trialHeadline_other": "開始 {{count}} 天免費試用",
-  "trialSubline_other": "{{count}} 天免費，今天不收費。隨時取消，資料保留。",
+  "trialSubline_other": "{{count}} 天免費，今天不會收費。可隨時取消，資料保留。",
   "headline": "解鎖 lifeGLANCE",
   "trialHeadlineGeneric": "開始免費試用",
-  "trialSublineGeneric": "今天不收費。隨時取消，資料保留。",
-  "tagline": "你的一生，盡在一條時間軸：里程碑、篇章與回憶，多裝置同步。",
-  "featureTimeline": "在可縮放的時間線上回顧過去與未來的里程碑",
+  "trialSublineGeneric": "今天不會收費。可隨時取消，資料保留。",
+  "tagline": "隨時光綿延成線，讓你我的一生織就錦繡長卷，細細描繪每段回憶、篇章與里程碑；多裝置無縫同步，隨處皆可展卷。",
+  "featureTimeline": "自由縮放時間線，回顧過去與未來的里程碑",
   "featureContent": "章節、卷宗、照片、音訊和影片",
   "featureWidgets": "主畫面小工具和快速新增圖塊",
   "featureSync": "跨裝置的加密同步",
@@ -21,7 +21,7 @@
   "paymentNote": "透過 {{store}} 付款。可隨時在 {{store}} 訂閱設定中取消。",
   "restore": "恢復購買",
   "restoreNone": "未找到之前的購買紀錄。",
-  "restoreDone": "購買已恢復。",
+  "restoreDone": "購買紀錄已恢復。",
   "restoreChecking": "正在檢查…",
   "statusLabel": "狀態",
   "statusLifetime": "終身解鎖已啟用",
@@ -41,6 +41,6 @@
   "errorUnavailable": "此裝置不支援付款。",
   "errorSubUnavailable": "該訂閱目前不可用。請稍後再試。",
   "errorNetwork": "網絡錯誤。請檢查連線後再試。",
-  "errorOwned": "你已擁有此項目。",
-  "errorGeneric": "購買時出了問題。請再試一次。"
+  "errorOwned": "你已經擁有此項目。",
+  "errorGeneric": "購買時出了問題。請稍後再試。"
 }
