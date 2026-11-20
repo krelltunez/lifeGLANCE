@@ -57,7 +57,7 @@
   "fileMe": "我（此檔案中）",
   "fileMeNick": "我（此檔案中）：{{nickname}}",
   "importSameAs": "與「{{name}}」相同",
-  "importAsNew": "作為新的「人物故事」建立",
+  "importAsNew": "建立新的「人物故事」",
   "importSkip": "略過",
   "importLivesAdded": "將建立{{count}}篇新人物故事。",
   "importMilestonesAdded": "將建立{{count}}個里程碑。",
