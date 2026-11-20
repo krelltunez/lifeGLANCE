@@ -45,7 +45,11 @@ few things are worth knowing before editing it:
   number from `IOS_BUILD`) and included by the project-level `ios/debug.xcconfig`
   and `ios/release.xcconfig`, so the App, widgets and share extension always
   agree. Do not edit Version or Build in Xcode's General tab: that writes a
-  target-level override, which the script refuses.
+  target-level override, which the script refuses. For a TestFlight build of
+  unreleased work after a version has shipped, override the version for that one
+  build instead: `MARKETING_VERSION=<next> IOS_BUILD=<n> npm run build:ios`
+  (App Store Connect refuses an already-published marketing version;
+  package.json is untouched, and the next run without it goes back).
 
 `NSExtensionPrincipalClass` is the bare string `ShareViewController`, not
 `$(PRODUCT_MODULE_NAME).ShareViewController`. `ShareViewController` is declared
