@@ -70,9 +70,25 @@ describe('what the desktop package carries', () => {
     // main.js gives it a getter (billingConfig.test.js), which 0.2.3 is the
     // first version to accept: an older one would call isDestroyed() on the
     // function and throw on every purchase and restore result.
-    expect(pkg.dependencies['@glance-apps/billing']).toBe('0.2.3')
+    //
+    // This asserts that property, not a version string. It used to pin
+    // exactly '0.2.3', which failed every later bump for a reason unrelated to
+    // what it protects; the protection is the same: no older package (the
+    // floor), the installed copy is the pinned one, and the installed
+    // main-process code takes a getter.
+    const atLeast = (version, floor) => {
+      const parse = (v) => (/^\d+\.\d+\.\d+$/.test(v) ? v.split('.').map(Number) : null)
+      const [a, b] = [parse(version), parse(floor)]
+      if (!a) return false // a range or tag is not an exact pin
+      for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] > b[i]
+      return true
+    }
+    const pinned = pkg.dependencies['@glance-apps/billing']
+    expect(atLeast(pinned, '0.2.3'), `@glance-apps/billing ${pinned} must be an exact version, 0.2.3 or later`).toBe(true)
     const billingPkg = JSON.parse(readFileSync(path.join(root, 'node_modules/@glance-apps/billing/package.json'), 'utf-8'))
-    expect(billingPkg.version).toBe('0.2.3')
+    expect(billingPkg.version).toBe(pinned)
+    const main = readFileSync(path.join(root, 'node_modules/@glance-apps/billing/dist/electron-main/index.js'), 'utf-8')
+    expect(main).toContain("typeof window === 'function'")
   })
 
   it('imports only files that ship', () => {

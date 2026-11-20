@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { HAS_HOME_SCREEN_WIDGETS, MANAGE_SUBSCRIPTION_URL, PRODUCT_IDS, STORE_NAME } from '../../billing/billing'
+import { noticeFor } from './paywallNotice'
 
 // Feature bullets shown on the gate — the whole app is Pro, so these are the
 // headline capabilities an unlock grants. App stores (Apple especially) expect
@@ -20,17 +21,6 @@ const RESTORE_GIVE_UP_MS = 45_000
 
 const PRIVACY_URL = 'https://www.glance-apps.com/privacy'
 const TERMS_URL = 'https://www.glance-apps.com/eula'
-
-// Localized messages for the billing error codes the package maps; anything
-// else falls through to the generic errorGeneric string. Code 2 (user
-// cancelled) never reaches here — the engine reports it as 'cancelled'.
-const ERROR_KEYS = {
-  1: 'errorNotFound',
-  3: 'errorUnavailable',
-  4: 'errorSubUnavailable',
-  6: 'errorNetwork',
-  7: 'errorOwned',
-}
 
 // Paywall surface for gated store builds (Play, App Store), in two modes:
 //
@@ -65,21 +55,7 @@ export default function PaywallModal({ mode = 'gate', billing, onClose }) {
     if (!billingEvent) return
     setPurchasing(false)
     setRestoring(false)
-    if (billingEvent.status === 'error') {
-      setNotice({ kind: 'error', text: t(ERROR_KEYS[billingEvent.code] ?? 'errorGeneric') })
-    } else if (billingEvent.status === 'cancelled') {
-      // Restore results arrive as 'cancelled' so UI clears its spinner without
-      // treating them like a new purchase; a plain cancel stays silent.
-      if (billingEvent.message === 'restore_complete') {
-        setNotice({ kind: 'info', text: t('restoreNone') })
-      } else if (billingEvent.message === 'restore_complete_active') {
-        setNotice({ kind: 'info', text: t('restoreDone') })
-      } else {
-        setNotice(null)
-      }
-    } else {
-      setNotice(null)
-    }
+    setNotice(noticeFor(billingEvent, t))
     clearBillingEvent()
   }, [billingEvent, clearBillingEvent, t])
 
