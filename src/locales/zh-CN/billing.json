@@ -20,7 +20,7 @@
   "renewalExplainerNoTrial": "年度订阅将按 {{price}}/年自动续订，直至取消。",
   "paymentNote": "通过 {{store}} 支付。可随时在 {{store}} 订阅设置中取消。",
   "restore": "恢复购买",
-  "restoreNone": "未找到以前的购买记录。",
+  "restoreNone": "暂时无法确认购买记录。如果你已经付款，请联系 support@glance-apps.com，我们会为你处理。",
   "restoreDone": "购买记录已恢复。",
   "restoreChecking": "正在检查…",
   "statusLabel": "状态",

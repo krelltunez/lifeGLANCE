@@ -24,7 +24,7 @@
   "renewalExplainerNoTrial": "La suscripción anual se renueva automáticamente a {{price}}/año hasta que la canceles.",
   "paymentNote": "Pago a través de {{store}}. Cancela cuando quieras en los ajustes de suscripción de {{store}}.",
   "restore": "Restaurar compra",
-  "restoreNone": "No se encontraron compras anteriores.",
+  "restoreNone": "No hemos podido confirmar ninguna compra por ahora. Si ya has pagado, escribe a support@glance-apps.com y lo resolveremos.",
   "restoreDone": "Compras restauradas.",
   "restoreChecking": "Comprobando…",
   "statusLabel": "estado",

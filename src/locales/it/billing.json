@@ -24,7 +24,7 @@
   "renewalExplainerNoTrial": "L'abbonamento annuale si rinnova automaticamente a {{price}}/anno finché non lo annulli.",
   "paymentNote": "Pagamento tramite {{store}}. Annulla in qualsiasi momento nelle impostazioni abbonamenti di {{store}}.",
   "restore": "Ripristina acquisto",
-  "restoreNone": "Nessun acquisto precedente trovato.",
+  "restoreNone": "Al momento non è stato possibile confermare un acquisto. Se hai già pagato, scrivi a support@glance-apps.com e risolveremo il problema.",
   "restoreDone": "Acquisti ripristinati.",
   "restoreChecking": "Verifica in corso…",
   "statusLabel": "stato",

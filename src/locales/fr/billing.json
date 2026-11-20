@@ -22,7 +22,7 @@
   "renewalExplainerNoTrial": "L'abonnement annuel se renouvelle automatiquement à {{price}}/an jusqu'à résiliation.",
   "paymentNote": "Paiement via {{store}}. Résiliable à tout moment dans les paramètres d'abonnement {{store}}.",
   "restore": "Restaurer l'achat",
-  "restoreNone": "Aucun achat précédent trouvé.",
+  "restoreNone": "Nous n'avons pas pu confirmer d'achat pour le moment. Si tu as déjà payé, écris à support@glance-apps.com et nous réglerons le problème.",
   "restoreDone": "Achats restaurés.",
   "restoreChecking": "Vérification…",
   "statusLabel": "statut",

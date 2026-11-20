@@ -24,7 +24,7 @@
   "renewalExplainerNoTrial": "A assinatura anual é renovada automaticamente por {{price}}/ano até ser cancelada.",
   "paymentNote": "Pagamento via {{store}}. Cancele a qualquer momento nas configurações de assinatura do {{store}}.",
   "restore": "Restaurar compra",
-  "restoreNone": "Nenhuma compra anterior encontrada.",
+  "restoreNone": "Não foi possível confirmar uma compra agora. Se já pagou, envie um e-mail para support@glance-apps.com e vamos resolver isso.",
   "restoreDone": "Compras restauradas.",
   "restoreChecking": "Verificando…",
   "statusLabel": "status",
