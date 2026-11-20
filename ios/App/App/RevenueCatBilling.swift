@@ -10,34 +10,57 @@ import RevenueCat
 // same file ships in lastGLANCE; keep the two in sync when fixing either.
 //
 // A singleton because Purchases is configured in AppDelegate, before the
-// bridge (and so the plugin instance) exists.
+// bridge (and so the plugin instance) exists. An NSObject because it is also
+// RevenueCat's PurchasesDelegate, an Objective-C protocol.
 //
 // Product ids default to the ones src/billing/billing.js passes and are
 // replaced by the plugin's initialize(), so the web layer stays the single
 // source of truth. Prices, trial length and eligibility are cached per product
 // id, so a change of ids never serves another product's cached values.
-final class RevenueCatBilling {
+final class RevenueCatBilling: NSObject, PurchasesDelegate {
 
     static let shared = RevenueCatBilling()
 
     static let entitlementId = "pro"
 
+    /// The 'pending' outcome's codes, BILLING_CODE_PENDING and
+    /// BILLING_CODE_UNCONFIRMED in @glance-apps/billing (billingIosParity
+    /// holds them equal). Pending: deferred, nothing charged yet (Ask to Buy,
+    /// extra authentication). Unconfirmed: the store completed the purchase
+    /// but the entitlement RevenueCat returned does not include ours.
+    static let codePending = 100
+    static let codeUnconfirmed = 101
+
     /// Terminal purchase outcomes, `{status, code, message, productId}`. Set by
     /// BillingBridgePlugin.load(); called from any thread.
     var onBillingEvent: ((_ status: String, _ code: Int, _ message: String, _ productId: String) -> Void)?
 
+    /// An ACTIVE entitlement RevenueCat reported on its own (its delegate), with
+    /// the product it came from. There is no inactive counterpart, by design: a
+    /// push may rescue an entitlement and never revoke one (the Mac app can move
+    /// the entitlement to its own RevenueCat customer for a while; revocation
+    /// stays with the reads and the engine's downgrade hold). The package drops
+    /// an inactive push too. Set by BillingBridgePlugin.load().
+    var onActiveEntitlement: ((_ productId: String?) -> Void)?
+
     private let lock = NSLock()
     private var yearlyId = "lifeglance_pro_annual"
     private var lifetimeId = "lifeglance_pro_lifetime"
-    private var syncInFlight = false
+    /// The refresh in flight, which every overlapping refresh() joins.
+    private var refreshTask: Task<Void, Never>?
 
-    private init() {}
+    private override init() { super.init() }
 
     // MARK: - Configuration
 
     func configure(apiKey: String) {
         Purchases.logLevel = .warn
         Purchases.configure(withAPIKey: apiKey)
+        // Before the first fetch below, so its answer arrives as an update. The
+        // plugin is not loaded yet at this point: anything RevenueCat reports
+        // before it is (cached info, typically) finds no listener and is
+        // dropped, and the mount's reads cover it.
+        Purchases.shared.delegate = self
         Task { _ = try? await Purchases.shared.customerInfo() }
         fetchPrices()
         checkTrialEligibility()
@@ -83,6 +106,17 @@ final class RevenueCatBilling {
         UserDefaults.standard.object(forKey: Self.trialEligibleKey(productIds.yearly)) as? Bool ?? true
     }
 
+    // MARK: - Updates RevenueCat reports on its own
+
+    /// RevenueCat's PurchasesDelegate: customer info changed (a purchase whose
+    /// post was retried later, an Ask to Buy approved, an entitlement synced
+    /// back from another device, a foreground refresh). Only an ACTIVE
+    /// entitlement is passed on; see onActiveEntitlement.
+    func purchases(_ purchases: Purchases, receivedUpdated customerInfo: CustomerInfo) {
+        guard let ent = customerInfo.entitlements[Self.entitlementId], ent.isActive else { return }
+        onActiveEntitlement?(ent.productIdentifier)
+    }
+
     // MARK: - Refresh
 
     /// Re-reads the entitlement, and syncs the store's transactions when it
@@ -102,31 +136,39 @@ final class RevenueCatBilling {
     /// installs (dayGLANCE's autoSyncRecover).
     ///
     /// Nothing restore-specific is emitted: the adapter synthesizes
-    /// restore_complete / restore_complete_active itself after its settle, so
+    /// restore_complete / restore_complete_active itself once this returns, so
     /// an event from here would reach the engine twice.
-    func refresh() {
+    ///
+    /// Returns when the re-read (and the sync, when it ran) has finished, so
+    /// status() reflects it: the plugin resolves refresh() then, which is what
+    /// lets the adapter read on completion rather than after a guessed delay
+    /// (initialize() reports refreshReportsCompletion). One refresh at a time:
+    /// a mount refresh, a Restore tap and a foreground can overlap, and an
+    /// overlapping call JOINS the one in flight, returning when it finishes.
+    /// It must not return early: its caller reads status() next.
+    func refresh() async {
         guard Purchases.isConfigured else { return }
-        Task {
-            let info = try? await Purchases.shared.customerInfo(fetchPolicy: .fetchCurrent)
-            if info?.entitlements[Self.entitlementId]?.isActive == true { return }
-            guard beginSync() else { return }
-            defer { endSync() }
-            _ = try? await Purchases.shared.syncPurchases()
-        }
         fetchPrices()
         checkTrialEligibility()
+        await inFlightRefresh().value
     }
 
-    /// One sync at a time: a mount refresh and a Restore tap can land together.
-    private func beginSync() -> Bool {
+    private func inFlightRefresh() -> Task<Void, Never> {
         lock.lock(); defer { lock.unlock() }
-        if syncInFlight { return false }
-        syncInFlight = true
-        return true
+        if let task = refreshTask { return task }
+        let task = Task {
+            let info = try? await Purchases.shared.customerInfo(fetchPolicy: .fetchCurrent)
+            if info?.entitlements[Self.entitlementId]?.isActive != true {
+                _ = try? await Purchases.shared.syncPurchases()
+            }
+            self.endRefresh()
+        }
+        refreshTask = task
+        return task
     }
 
-    private func endSync() {
-        lock.lock(); syncInFlight = false; lock.unlock()
+    private func endRefresh() {
+        lock.lock(); refreshTask = nil; lock.unlock()
     }
 
     // MARK: - Purchase
@@ -160,8 +202,18 @@ final class RevenueCatBilling {
                 }
                 if result.userCancelled {
                     emit(status: "cancelled", code: -1, message: "User cancelled", productId: productId)
-                } else {
+                } else if result.customerInfo.entitlements[Self.entitlementId]?.isActive == true {
                     emit(status: "success", code: 0, message: "ok", productId: productId)
+                } else {
+                    // The store completed the purchase, but the customer info
+                    // RevenueCat validated it into does not include our
+                    // entitlement: the product is not attached to it, or the
+                    // entitlement sits with another of the user's RevenueCat
+                    // customers. 'success' would unlock now and lock again at
+                    // the next read; an error would tell someone who may have
+                    // paid that it failed. Neither: a pending outcome, and the
+                    // unlock comes from the delegate if the entitlement appears.
+                    emit(status: "pending", code: Self.codeUnconfirmed, message: "unconfirmed", productId: productId)
                 }
             } catch {
                 emitError(error, productId: productId)
@@ -184,6 +236,13 @@ final class RevenueCatBilling {
         // rather than result.userCancelled — not an error the user should see.
         if rcError == .purchaseCancelledError {
             emit(status: "cancelled", code: -1, message: "User cancelled", productId: productId)
+            return
+        }
+        // Deferred (Ask to Buy, extra authentication): nothing has failed and
+        // nothing is charged yet. A pending outcome, not an error; if it is
+        // approved later the delegate reports the entitlement.
+        if rcError == .paymentPendingError {
+            emit(status: "pending", code: Self.codePending, message: "deferred", productId: productId)
             return
         }
         let code: Int
