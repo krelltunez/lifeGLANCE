@@ -22,6 +22,17 @@
 // sincronizar") — so determiner, agreement and clitic handling run as their
 // own passes, and the localeVariants.test.js guardrail plus the placeholder
 // check below run over the output.
+//
+// WHAT THE GUARDRAILS CANNOT SEE: REGISTER. localeVariants.test.js checks
+// markers, words that belong to one standard only. A word that is correct in
+// both standards but wrong in tone passes every check. "você" is the case that
+// surfaced it: "Se você já pagou" is natural Brazilian, but this transform
+// copies "você" through unchanged, and in Portugal addressing the reader as
+// "você" reads Brazilian (or curt). The European file addresses the reader in
+// the plain third person instead. So when writing new pt-BR copy, prefer a
+// sentence that needs no pronoun at all ("Se já pagou, envie…"), which reads
+// naturally in both, over adding a rule here. Read the generated pt-PT string
+// for tone, not just for markers.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'

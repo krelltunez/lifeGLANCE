@@ -22,7 +22,7 @@
   "renewalExplainerNoTrial": "Das Jahresabo verlängert sich automatisch zu {{price}}/Jahr, bis es gekündigt wird.",
   "paymentNote": "Zahlung über {{store}}. Jederzeit in deinen {{store}}-Aboeinstellungen kündbar.",
   "restore": "Kauf wiederherstellen",
-  "restoreNone": "Keine früheren Käufe gefunden.",
+  "restoreNone": "Wir konnten gerade keinen Kauf bestätigen. Wenn du schon bezahlt hast, schreib an support@glance-apps.com und wir kümmern uns darum.",
   "restoreDone": "Käufe wiederhergestellt.",
   "restoreChecking": "Wird geprüft…",
   "statusLabel": "Status",
