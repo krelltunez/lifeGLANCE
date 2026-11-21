@@ -83,6 +83,12 @@ jobs:
         env:
           IOS_BUILD: ${{ github.run_number }}
 
+      # The billing status read's rule (which copy of RevenueCat's customer
+      # info wins), with its behavioural tests. Dependency-free: runs on the
+      # runner with no simulator, before the app build.
+      - name: Run EntitlementRead tests
+        run: swift test --package-path ios/App/Packages/EntitlementRead
+
       - name: Build iOS app (no signing)
         run: |
           xcodebuild build \

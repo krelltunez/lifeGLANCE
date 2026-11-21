@@ -1,5 +1,6 @@
 import Foundation
 import RevenueCat
+import EntitlementRead
 
 // RevenueCat (StoreKit 2) billing behind BillingBridgePlugin: the iOS
 // counterpart of @glance-apps/billing's PlayBillingCore, which the same plugin
@@ -48,6 +49,9 @@ final class RevenueCatBilling: NSObject, PurchasesDelegate {
     private var lifetimeId = "lifeglance_pro_lifetime"
     /// The refresh in flight, which every overlapping refresh() joins.
     private var refreshTask: Task<Void, Never>?
+    /// The last customer info RevenueCat reported to the delegate, whatever it
+    /// said. Read by currentCustomerInfo(); see there for why.
+    private var lastReported: CustomerInfo?
 
     private override init() { super.init() }
 
@@ -83,11 +87,34 @@ final class RevenueCatBilling: NSObject, PurchasesDelegate {
 
     // MARK: - Cached reads
 
-    /// The entitlement from RevenueCat's cached customer info.
+    /// The entitlement from RevenueCat's most recent customer info.
     func status() -> (active: Bool, productId: String?) {
         guard Purchases.isConfigured else { return (false, nil) }
-        let ent = Purchases.shared.cachedCustomerInfo?.entitlements[Self.entitlementId]
+        let ent = currentCustomerInfo()?.entitlements[Self.entitlementId]
         return (ent?.isActive == true, ent?.productIdentifier)
+    }
+
+    /// RevenueCat's most recent customer info: its cache, or, when the cache is
+    /// empty, what it last reported to the delegate. The rule, and why it is
+    /// arrival order rather than a requestDate comparison, are in the
+    /// EntitlementRead package (Packages/EntitlementRead), which tests it.
+    ///
+    /// The cache alone is not enough. RevenueCat writes it BEFORE it tells the
+    /// delegate, so for server-verified info a read after a push always sees
+    /// what the push carried. But customer info verified ON DEVICE (RevenueCat
+    /// computing entitlements from StoreKit while its servers are unreachable)
+    /// is never cached, and the existing cache is cleared
+    /// (CustomerInfoManager.cache(customerInfo:) in purchases-ios 5.90.1). A
+    /// 'billingStatus' push of that info that finds no listener yet (before
+    /// the page binds, during a reload) would then be covered by no read at
+    /// all. With the delegate's copy included, every status read sees
+    /// everything the delegate has seen.
+    private func currentCustomerInfo() -> CustomerInfo? {
+        let cached = Purchases.shared.cachedCustomerInfo
+        lock.lock()
+        let reported = lastReported
+        lock.unlock()
+        return EntitlementRead.newest(cached: cached, reported: reported)
     }
 
     /// Localized prices and the yearly free-trial length (nil until known).
@@ -110,9 +137,13 @@ final class RevenueCatBilling: NSObject, PurchasesDelegate {
 
     /// RevenueCat's PurchasesDelegate: customer info changed (a purchase whose
     /// post was retried later, an Ask to Buy approved, an entitlement synced
-    /// back from another device, a foreground refresh). Only an ACTIVE
-    /// entitlement is passed on; see onActiveEntitlement.
+    /// back from another device, a foreground refresh). Recorded whatever it
+    /// says (status() reads it, so revocations flow through the reads as
+    /// before); only an ACTIVE entitlement is passed on, see onActiveEntitlement.
     func purchases(_ purchases: Purchases, receivedUpdated customerInfo: CustomerInfo) {
+        lock.lock()
+        lastReported = customerInfo
+        lock.unlock()
         guard let ent = customerInfo.entitlements[Self.entitlementId], ent.isActive else { return }
         onActiveEntitlement?(ent.productIdentifier)
     }
