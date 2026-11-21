@@ -55,7 +55,7 @@ export default function StatsPanel({ past, future, pastIdx, futureIdx, onPastCha
 
   if (compact) {
     return (
-      <div className="stat-panels" style={viewMode === 'future' ? { justifyContent: 'flex-end' } : undefined}>
+      <div className="stat-panels" data-timeline-overlay style={viewMode === 'future' ? { justifyContent: 'flex-end' } : undefined}>
         {showPast && (
           <div className="stat-pill-wrap">
             <button className={`stat-pill${pastOpen ? ' stat-pill-active' : ''}`}
@@ -113,7 +113,7 @@ export default function StatsPanel({ past, future, pastIdx, futureIdx, onPastCha
   }
 
   return (
-    <div className="stat-panels" style={viewMode === 'future' ? { justifyContent: 'flex-end' } : undefined}>
+    <div className="stat-panels" data-timeline-overlay style={viewMode === 'future' ? { justifyContent: 'flex-end' } : undefined}>
       {/* Left — past */}
       {showPast && <div className="stat-panel"
         onTouchStart={e => { pastSwipeX.current = e.touches[0].clientX }}

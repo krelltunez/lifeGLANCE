@@ -1,5 +1,7 @@
 {
   "today": "aujourd'hui",
+  "laneGeneral": "général",
+  "lanesHidden": "lignes masquées : {{count}} · filtrez les catégories pour les voir",
   "ongoing": "en cours",
   "onThisDay": "ce jour-là",
   "hiddenCount": "{{count}} masqués",

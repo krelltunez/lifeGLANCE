@@ -1,11 +1,12 @@
 import React, {
-  useRef, useState, useEffect, useCallback,
+  useRef, useState, useEffect, useLayoutEffect, useCallback,
   useImperativeHandle, forwardRef,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { dateToX, getTimeRangeForView, getTickMarks, assignLanes, getMsPerPx, computePinchZoom } from '../../utils/timeline'
 import { relativeLabel, formatDateDisplay, ageAtDate, formatDuration } from '../../utils/dates'
 import { dbGetMedia, dbGetPhoto } from '../../data/db'
+import { buildChapterLanes, buildSwimlanes, packMarkers } from '../../utils/categoryLanes'
 import { isRealBlobHash, fetchThumbnailBytes, fetchFullResBytes } from '../../blobs/milestoneMedia.js'
 
 // Map text-size labels → root px value (must match TimelineView TEXT_SIZES)
@@ -63,7 +64,7 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, highlightScale = 1.06, panMs, onPanMs, onPinch, viewMode = 'all', onClusterClick, clustering = true, birthday = '', deathDate = '', newlyAddedId = null, ultraCompact = false },
+  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, highlightScale = 1.06, panMs, onPanMs, onPinch, viewMode = 'all', onClusterClick, clustering = true, birthday = '', deathDate = '', newlyAddedId = null, ultraCompact = false, chapterLanes = false, swimlanes = false, categories = [] },
   ref
 ) {
   const { t, i18n } = useTranslation('timeline')
@@ -235,32 +236,16 @@ const Timeline = forwardRef(function Timeline(
   }, [])
 
   const { w, h } = size
+  // Swimlanes (issue #408, phase 2) put milestones in category lanes too, so
+  // nothing hangs below the axis: it sits at the bottom, as in compact layout.
+  const swim = chapterLanes && swimlanes
   // ultraCompact + compactLayout (≤900px): axis pinned 40px from bottom so
   //   cards maximise space above and axis sits just above the minimap bar.
   //   Floor at 193 prevents card overflow at very small heights.
   // normal: axis centred.
-  const axisY = compactLayout
+  const axisY = compactLayout || swim
     ? Math.max(193, h - 40)
     : Math.round(h * 0.50)
-
-  // ── Chapter band: sits between milestones and the time axis ─────────────
-  // CHAPTER_ROW_H scales with text size so the band feels proportional.
-  const CHAPTER_ROW_H    = Math.round(remPx * 0.62)  // ~14px at normal (22px rem)
-  const CHAPTER_ROW_GAP  = 2                           // px gap between stacked rows
-  const CHAPTER_BAND_PAD = 4                           // top + bottom padding inside band
-
-  const chaptersWithRows = assignChapterRows(chapters)
-  const numChapterRows   = chaptersWithRows.length > 0
-    ? Math.max(...chaptersWithRows.map(c => c._row)) + 1 : 0
-  const chaptersBandH    = numChapterRows > 0
-    ? CHAPTER_BAND_PAD + numChapterRows * CHAPTER_ROW_H + (numChapterRows - 1) * CHAPTER_ROW_GAP + CHAPTER_BAND_PAD
-    : 0
-
-  // Milestones (above-axis) connect to msAxisY; the chapter band fills [msAxisY, axisY].
-  // Below-axis (future) milestones still connect to axisY directly.
-  const msAxisY = axisY - chaptersBandH
-
-  // ─────────────────────────────────────────────────────────────────────────
 
   const today    = new Date()
   const centerMs = today.getTime() + panMs
@@ -269,6 +254,120 @@ const Timeline = forwardRef(function Timeline(
   const todayX   = dateToX(today.getTime(), startMs, endMs, w)
   const msPerPx  = getMsPerPx(zoom, w, customHalfMs)
   const daysPerPx = msPerPx / 86400000
+
+  // ── Chapter band: sits between milestones and the time axis ─────────────
+  // CHAPTER_ROW_H scales with text size so the band feels proportional.
+  const CHAPTER_ROW_H    = Math.round(remPx * 0.62)  // ~14px at normal (22px rem)
+  const CHAPTER_ROW_GAP  = 2                           // px gap between stacked rows
+  const CHAPTER_BAND_PAD = 4                           // top + bottom padding inside band
+
+  // Category lanes (issue #408): one fixed lane per category, each lane packed
+  // on its own. Every chapter gets its bar's y as `_y`; `laneGeom` holds each
+  // lane's { id, label, color, top, height } for the rules and labels.
+  const CHAPTER_LANE_GAP = 6                           // px between category lanes
+  const rowsH = n => (n > 0 ? n * (CHAPTER_ROW_H + CHAPTER_ROW_GAP) - CHAPTER_ROW_GAP : 0)
+  let chaptersWithRows = [], laneGeom = [], laneMarkers = [], hiddenLaneCount = 0
+  let chaptersBandH = 0, msAxisY = axisY
+
+  if (swim) {
+    // Each lane: a strip of milestone markers (up to two rows, packed by pixel
+    // position so labels do not collide), then its chapter rows. Lanes stack
+    // up from the axis; when they do not fit, markers drop to one row, then
+    // the last lanes are left out and a note says how many.
+    const MS_ROW_H   = Math.round(remPx * 0.85)
+    const LANE_PAD   = 4
+    const LANES_TOP  = 84                              // below the today label
+    const charW      = remPx * 0.5 * 0.6
+    const labelOf    = m => (m.title.length > 24 ? m.title.slice(0, 23) + '…' : m.title)
+    const xOf        = m => dateToX(new Date(m.date).getTime(), startMs, endMs, w)
+    const widthOf    = m => 12 + labelOf(m).length * charW + 10
+    const lanes      = buildSwimlanes(chapters, milestones, categories)
+    const layout = maxMsRows => lanes.map(lane => {
+      const markers = packMarkers(lane.milestones, xOf, widthOf, maxMsRows)
+      const msRows  = markers.length ? Math.max(...markers.map(m => m._row)) + 1 : 0
+      const height  = 2 * LANE_PAD + msRows * MS_ROW_H + rowsH(lane.rows)
+      return { lane, markers, msRows, height }
+    })
+    const totalH = ls => ls.reduce((sum, l) => sum + l.height, 0) + Math.max(0, ls.length - 1) * CHAPTER_LANE_GAP
+    const room   = axisY - 6 - LANES_TOP
+    let laid = layout(2)
+    if (totalH(laid) > room) laid = layout(1)
+    while (laid.length > 1 && totalH(laid) > room) { laid = laid.slice(0, -1); hiddenLaneCount++ }
+
+    let y = axisY - 6 - totalH(laid)
+    laid.forEach(({ lane, markers, msRows, height }) => {
+      laneGeom.push({ id: lane.id, label: lane.label, color: lane.color, top: y, height })
+      const chTop = y + LANE_PAD + msRows * MS_ROW_H
+      lane.chapters.forEach(c => chaptersWithRows.push({ ...c, _y: chTop + c._row * (CHAPTER_ROW_H + CHAPTER_ROW_GAP) }))
+      markers.forEach(m => {
+        // The label gets the room before the next marker in its row.
+        const text = labelOf(m), fit = Math.floor((m._room - 18) / charW)
+        const shown = fit >= text.length ? text : fit >= 4 ? text.slice(0, fit - 1) + '…' : ''
+        laneMarkers.push({ ...m, _x: xOf(m), _y: y + LANE_PAD + (m._row + 0.5) * MS_ROW_H, _text: shown })
+      })
+      y += height + CHAPTER_LANE_GAP
+    })
+  } else {
+    let rows
+    if (chapterLanes) {
+      // Lanes stack top to bottom inside the band, with a gap between lanes.
+      let row0 = 0
+      rows = []
+      buildChapterLanes(chapters, categories).forEach((lane, i) => {
+        lane.chapters.forEach(c => rows.push({ ...c, _row: row0 + c._row, _lane: i }))
+        laneGeom.push({ id: lane.id, label: lane.label, color: lane.color, startRow: row0, index: i, height: rowsH(lane.rows) })
+        row0 += lane.rows
+      })
+    } else {
+      rows = assignChapterRows(chapters).map(c => ({ ...c, _lane: 0 }))
+    }
+    const numChapterRows = rows.length > 0 ? Math.max(...rows.map(c => c._row)) + 1 : 0
+    const numLaneGaps    = Math.max(0, laneGeom.length - 1)
+    chaptersBandH = numChapterRows > 0
+      ? CHAPTER_BAND_PAD + rowsH(numChapterRows) + numLaneGaps * CHAPTER_LANE_GAP + CHAPTER_BAND_PAD
+      : 0
+    // Milestones (above-axis) connect to msAxisY; the chapter band fills [msAxisY, axisY].
+    // Below-axis (future) milestones still connect to axisY directly.
+    msAxisY = axisY - chaptersBandH
+    const rowY = (row, lane) =>
+      msAxisY + CHAPTER_BAND_PAD + row * (CHAPTER_ROW_H + CHAPTER_ROW_GAP) + lane * CHAPTER_LANE_GAP
+    chaptersWithRows = rows.map(c => ({ ...c, _y: rowY(c._row, c._lane) }))
+    laneGeom = laneGeom.map(l => ({ ...l, top: rowY(l.startRow, l.index) }))
+  }
+  const lanesTopY = laneGeom.length ? laneGeom[0].top : axisY
+
+  // Lane labels sit at the left edge, which the past/future summary cards can
+  // cover. Elements inside a [data-timeline-overlay] container that overlap the
+  // band push the labels to their right. Re-measured on pan and zoom, since
+  // the cards' contents (and so their size) follow the visible range.
+  const [laneLabelX, setLaneLabelX] = useState(4)
+  const hasLanes = laneGeom.length > 0
+  useLayoutEffect(() => {
+    if (!hasLanes) return
+    const overlays = () => document.querySelectorAll('[data-timeline-overlay] > *')
+    const measure = () => {
+      if (!wrapRef.current) return
+      const box = wrapRef.current.getBoundingClientRect()
+      const bandTop = box.top + lanesTopY, bandBottom = box.top + axisY
+      let x = 4
+      for (const el of overlays()) {
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 || r.bottom <= bandTop || r.top >= bandBottom) continue
+        if (r.left - box.left > w / 3) continue // a card on the right-hand side
+        x = Math.max(x, Math.round(r.right - box.left + 6))
+      }
+      setLaneLabelX(prev => (prev === x ? prev : x))
+    }
+    measure()
+    // The cards can mount, or change size, after this render has committed.
+    const frame = requestAnimationFrame(measure)
+    const ro = new ResizeObserver(measure)
+    overlays().forEach(el => ro.observe(el))
+    return () => { cancelAnimationFrame(frame); ro.disconnect() }
+  }, [hasLanes, lanesTopY, axisY, w, panMs, zoom, viewMode])
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   // In compact mode: reserve 120px from the top for the today label, and
   // cluster milestones more aggressively to reduce card pile-up near today.
   const TOP_RESERVE        = compactLayout ? 120 : 16
@@ -292,8 +391,9 @@ const Timeline = forwardRef(function Timeline(
   }
 
   const singles       = clustering ? groups.filter(g => g.length === 1).map(g => g[0]) : milestones
-  const clusterGroups = clustering ? groups.filter(g => g.length > 1) : []
-  const withLanes     = assignLanes(singles, maxLane, msPerPx * CARD_W, compactLayout)
+  // In swimlanes, milestones are markers inside their lanes: no cards or clusters.
+  const clusterGroups = clustering && !swim ? groups.filter(g => g.length > 1) : []
+  const withLanes     = swim ? [] : assignLanes(singles, maxLane, msPerPx * CARD_W, compactLayout)
 
   // ── Pan ─────────────────────────────────────────────────────────────────────
   // startDrag reads panMsRef so it doesn't need panMs as a dep
@@ -444,14 +544,29 @@ const Timeline = forwardRef(function Timeline(
           stroke="rgba(var(--text-rgb), 0.18)" strokeWidth={1} />
 
         {/* ── Chapter ribbon band ──────────────────────────────────────────── */}
-        {chaptersBandH > 0 && (
+        {(chaptersBandH > 0 || swim) && (
           <g>
             {/* Subtle band background to give the band visual definition */}
-            <rect x={0} y={msAxisY} width={w} height={chaptersBandH}
-              fill="rgba(var(--text-rgb), 0.016)" />
+            {!swim && <rect x={0} y={msAxisY} width={w} height={chaptersBandH}
+              fill="rgba(var(--text-rgb), 0.016)" />}
             {/* Top separator: visual boundary between milestone cards and band */}
-            <line x1={0} y1={msAxisY} x2={w} y2={msAxisY}
-              stroke="rgba(var(--text-rgb), 0.08)" strokeWidth={1} />
+            {!swim && <line x1={0} y1={msAxisY} x2={w} y2={msAxisY}
+              stroke="rgba(var(--text-rgb), 0.08)" strokeWidth={1} />}
+
+            {/* Swimlanes: every other lane gets a faint fill */}
+            {swim && laneGeom.map((lane, i) => i % 2 === 0 && (
+              <rect key={`lane-bg-${lane.id}`} x={0} y={lane.top - 2} width={w} height={lane.height + 4}
+                fill="rgba(var(--text-rgb), 0.022)" />
+            ))}
+
+            {/* Category lanes: a faint rule between neighbouring lanes */}
+            {laneGeom.slice(1).map(lane => {
+              const y = lane.top - (swim ? CHAPTER_LANE_GAP : CHAPTER_ROW_GAP + CHAPTER_LANE_GAP) / 2
+              return (
+                <line key={`lane-sep-${lane.id}`} x1={0} y1={y} x2={w} y2={y}
+                  stroke="rgba(var(--text-rgb), 0.07)" strokeWidth={1} strokeDasharray="2 3" />
+              )
+            })}
 
             {/* Gradient defs for ongoing chapter fade-out past today */}
             <defs>
@@ -483,7 +598,7 @@ const Timeline = forwardRef(function Timeline(
               // Skip ongoing chapters whose start date is still in the future (nothing has happened yet)
               if (isOngoing && chapterStartX > todayX + 5) return null
 
-              const barY = msAxisY + CHAPTER_BAND_PAD + chapter._row * (CHAPTER_ROW_H + CHAPTER_ROW_GAP)
+              const barY = chapter._y
               const barH = CHAPTER_ROW_H
 
               // For ongoing: solid portion ends at todayX; fade portion starts there.
@@ -647,6 +762,31 @@ const Timeline = forwardRef(function Timeline(
             </g>
           )
         })()}
+
+        {/* ── Swimlane milestone markers: a diamond and a one-line label ───── */}
+        {laneMarkers.map(m => {
+          const x = m._x
+          if (x < -200 || x > w + 10) return null
+          const isPast = new Date(m.date) < today
+          const isHL   = !!highlightedIds?.has(m.id)
+          const r      = isHL ? 5.5 : 4
+          return (
+            <g key={m.id} onClick={() => onMilestoneClick(m)} style={{ cursor: 'pointer' }}
+              opacity={isPast ? 0.78 : 1}>
+              <title>{`${m.title} · ${formatDateDisplay(m.date, m.date_precision)}`}</title>
+              <rect x={x - r} y={m._y - r} width={2 * r} height={2 * r}
+                transform={`rotate(45 ${x} ${m._y})`}
+                fill={m.color} stroke="var(--bg-deep)" strokeWidth={1}
+                style={isHL ? { filter: `drop-shadow(0 0 5px ${m.color})` } : undefined} />
+              {m._text && (
+                <text x={x + 9} y={m._y + remPx * 0.5 * 0.36}
+                  fill={isHL ? 'var(--text)' : 'rgba(var(--text-rgb), 0.72)'}
+                  fontSize="0.5em" fontFamily="'Courier Prime', monospace"
+                >{m._text}</text>
+              )}
+            </g>
+          )
+        })}
 
         {/* ── Milestone cards ─────────────────────────────────────────────── */}
         {withLanes.map((m, i) => {
@@ -959,6 +1099,31 @@ const Timeline = forwardRef(function Timeline(
         {/* ── Edge fades ───────────────────────────────────────────────────── */}
         <rect x={0}    y={0} width={70}   height={h} fill="url(#tl-left)"  pointerEvents="none" />
         <rect x={w-70} y={0} width={70}   height={h} fill="url(#tl-right)" pointerEvents="none" />
+
+        {/* ── Category lane labels: pinned to the left edge, above the fade ── */}
+        {laneGeom.map(lane => {
+          const label  = lane.label ?? t('laneGeneral')
+          const top    = lane.top
+          const laneH  = lane.height
+          const charW  = remPx * 0.45 * 0.60
+          const pillW  = label.length * charW + 10
+          const color  = lane.color ?? 'rgba(var(--text-rgb), 0.6)'
+          return (
+            <g key={`lane-label-${lane.id}`} pointerEvents="none">
+              <rect x={laneLabelX} y={top + laneH / 2 - CHAPTER_ROW_H / 2} width={pillW} height={CHAPTER_ROW_H}
+                rx={CHAPTER_ROW_H / 2} fill="rgba(var(--bg-deep-rgb), 0.9)"
+                stroke={color} strokeOpacity={0.35} strokeWidth={0.5} />
+              <text x={laneLabelX + 5} y={top + laneH / 2 + remPx * 0.45 * 0.36}
+                fill={color} fontSize="0.45em" fontWeight="bold"
+                fontFamily="'Courier Prime', monospace">{label}</text>
+            </g>
+          )
+        })}
+        {hiddenLaneCount > 0 && (
+          <text x={laneLabelX + 2} y={lanesTopY - 10} pointerEvents="none"
+            fill="rgba(var(--text-rgb), 0.5)" fontSize="0.45em"
+            fontFamily="'Courier Prime', monospace">{t('lanesHidden', { count: hiddenLaneCount })}</text>
+        )}
       </svg>
 
       {photoTip && (

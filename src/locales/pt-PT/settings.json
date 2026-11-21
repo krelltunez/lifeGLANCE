@@ -9,6 +9,8 @@
   "theme_light": "Claro",
   "defaultZoom": "Zoom predefinido",
   "clustering": "agrupar automaticamente marcos próximos",
+  "chapterLanes": "uma faixa por categoria para os capítulos",
+  "swimlanes": "marcos também nas faixas",
   "soundEffects": "efeitos sonoros",
   "idleAutoStart": "iniciar o modo de observação automaticamente quando ocioso",
   "idleTimeout": "iniciar após",

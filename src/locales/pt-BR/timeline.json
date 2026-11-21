@@ -1,5 +1,7 @@
 {
   "today": "hoje",
+  "laneGeneral": "geral",
+  "lanesHidden": "faixas ocultas: {{count}} · filtre categorias para vê-las",
   "ongoing": "em andamento",
   "onThisDay": "naquele dia",
   "hiddenCount": "{{count}} ocultos",

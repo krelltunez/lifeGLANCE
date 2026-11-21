@@ -13,6 +13,8 @@
   "theme_light": "淺色模式",
   "defaultZoom": "預設縮放",
   "clustering": "合併鄰近里程碑",
+  "chapterLanes": "章節按卷宗分行顯示",
+  "swimlanes": "里程碑亦按卷宗分行",
   "soundEffects": "開啟音效",
   "idleAutoStart": "「漫遊模式」在閒置時啟用",
   "idleTimeout": "閒置",

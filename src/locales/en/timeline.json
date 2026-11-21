@@ -1,5 +1,7 @@
 {
   "today": "today",
+  "laneGeneral": "general",
+  "lanesHidden": "lanes not shown: {{count}} · filter categories to see them",
   "ongoing": "ongoing",
   "onThisDay": "on this day",
   "hiddenCount": "{{count}} hidden",

@@ -9,6 +9,8 @@
   "theme_light": "Clair",
   "defaultZoom": "Zoom par défaut",
   "clustering": "regrouper automatiquement les jalons proches",
+  "chapterLanes": "une ligne par catégorie pour les chapitres",
+  "swimlanes": "les jalons aussi dans les lignes",
   "soundEffects": "effets sonores",
   "idleAutoStart": "démarrer le mode contemplation automatiquement en cas d'inactivité",
   "idleTimeout": "démarrer après",

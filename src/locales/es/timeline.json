@@ -1,5 +1,7 @@
 {
   "today": "hoy",
+  "laneGeneral": "general",
+  "lanesHidden": "carriles ocultos: {{count}} · filtra categorías para verlos",
   "ongoing": "en curso",
   "onThisDay": "ese día",
   "hiddenCount": "{{count}} ocultos",
