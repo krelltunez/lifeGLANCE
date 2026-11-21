@@ -1,11 +1,12 @@
 import React, {
-  useRef, useState, useEffect, useCallback,
+  useRef, useState, useEffect, useLayoutEffect, useCallback,
   useImperativeHandle, forwardRef,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { dateToX, getTimeRangeForView, getTickMarks, assignLanes, getMsPerPx, computePinchZoom } from '../../utils/timeline'
 import { relativeLabel, formatDateDisplay, ageAtDate, formatDuration } from '../../utils/dates'
 import { dbGetMedia, dbGetPhoto } from '../../data/db'
+import { buildChapterLanes } from '../../utils/categoryLanes'
 import { isRealBlobHash, fetchThumbnailBytes, fetchFullResBytes } from '../../blobs/milestoneMedia.js'
 
 // Map text-size labels → root px value (must match TimelineView TEXT_SIZES)
@@ -63,7 +64,7 @@ function wrapTitle(text, maxChars) {
 }
 
 const Timeline = forwardRef(function Timeline(
-  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, highlightScale = 1.06, panMs, onPanMs, onPinch, viewMode = 'all', onClusterClick, clustering = true, birthday = '', deathDate = '', newlyAddedId = null, ultraCompact = false },
+  { milestones, chapters = [], zoom, textSize = 'normal', onMilestoneClick, onChapterClick, onChapterDoubleClick, customHalfMs = 0, highlightedIds, highlightScale = 1.06, panMs, onPanMs, onPinch, viewMode = 'all', onClusterClick, clustering = true, birthday = '', deathDate = '', newlyAddedId = null, ultraCompact = false, chapterLanes = false, categories = [] },
   ref
 ) {
   const { t, i18n } = useTranslation('timeline')
@@ -249,16 +250,64 @@ const Timeline = forwardRef(function Timeline(
   const CHAPTER_ROW_GAP  = 2                           // px gap between stacked rows
   const CHAPTER_BAND_PAD = 4                           // top + bottom padding inside band
 
-  const chaptersWithRows = assignChapterRows(chapters)
+  // Category lanes (issue #408): one fixed lane per category, each lane packed
+  // on its own. `_row` stays a band-wide row index; `_lane` adds the lane gaps.
+  const CHAPTER_LANE_GAP = 6                           // px between category lanes
+  let chaptersWithRows, chapterLaneBands = []
+  if (chapterLanes) {
+    let row0 = 0
+    chaptersWithRows = []
+    buildChapterLanes(chapters, categories).forEach((lane, i) => {
+      lane.chapters.forEach(c => chaptersWithRows.push({ ...c, _row: row0 + c._row, _lane: i }))
+      chapterLaneBands.push({ ...lane, startRow: row0, index: i })
+      row0 += lane.rows
+    })
+  } else {
+    chaptersWithRows = assignChapterRows(chapters).map(c => ({ ...c, _lane: 0 }))
+  }
   const numChapterRows   = chaptersWithRows.length > 0
     ? Math.max(...chaptersWithRows.map(c => c._row)) + 1 : 0
+  const numLaneGaps      = Math.max(0, chapterLaneBands.length - 1)
   const chaptersBandH    = numChapterRows > 0
-    ? CHAPTER_BAND_PAD + numChapterRows * CHAPTER_ROW_H + (numChapterRows - 1) * CHAPTER_ROW_GAP + CHAPTER_BAND_PAD
+    ? CHAPTER_BAND_PAD + numChapterRows * CHAPTER_ROW_H + (numChapterRows - 1) * CHAPTER_ROW_GAP
+      + numLaneGaps * CHAPTER_LANE_GAP + CHAPTER_BAND_PAD
     : 0
+  const chapterRowY = (row, lane) =>
+    CHAPTER_BAND_PAD + row * (CHAPTER_ROW_H + CHAPTER_ROW_GAP) + lane * CHAPTER_LANE_GAP
 
   // Milestones (above-axis) connect to msAxisY; the chapter band fills [msAxisY, axisY].
   // Below-axis (future) milestones still connect to axisY directly.
   const msAxisY = axisY - chaptersBandH
+
+  // Lane labels sit at the left edge, which the past/future summary cards can
+  // cover. Elements inside a [data-timeline-overlay] container that overlap the
+  // band push the labels to their right. Re-measured on pan and zoom, since
+  // the cards' contents (and so their size) follow the visible range.
+  const [laneLabelX, setLaneLabelX] = useState(4)
+  const hasLanes = chapterLaneBands.length > 0
+  useLayoutEffect(() => {
+    if (!hasLanes) return
+    const overlays = () => document.querySelectorAll('[data-timeline-overlay] > *')
+    const measure = () => {
+      if (!wrapRef.current) return
+      const box = wrapRef.current.getBoundingClientRect()
+      const bandTop = box.top + msAxisY, bandBottom = box.top + axisY
+      let x = 4
+      for (const el of overlays()) {
+        const r = el.getBoundingClientRect()
+        if (r.width === 0 || r.bottom <= bandTop || r.top >= bandBottom) continue
+        if (r.left - box.left > w / 3) continue // a card on the right-hand side
+        x = Math.max(x, Math.round(r.right - box.left + 6))
+      }
+      setLaneLabelX(prev => (prev === x ? prev : x))
+    }
+    measure()
+    // The cards can mount, or change size, after this render has committed.
+    const frame = requestAnimationFrame(measure)
+    const ro = new ResizeObserver(measure)
+    overlays().forEach(el => ro.observe(el))
+    return () => { cancelAnimationFrame(frame); ro.disconnect() }
+  }, [hasLanes, msAxisY, axisY, w, panMs, zoom, viewMode])
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -453,6 +502,15 @@ const Timeline = forwardRef(function Timeline(
             <line x1={0} y1={msAxisY} x2={w} y2={msAxisY}
               stroke="rgba(var(--text-rgb), 0.08)" strokeWidth={1} />
 
+            {/* Category lanes: a faint rule between neighbouring lanes */}
+            {chapterLaneBands.slice(1).map(lane => {
+              const y = msAxisY + chapterRowY(lane.startRow, lane.index) - (CHAPTER_ROW_GAP + CHAPTER_LANE_GAP) / 2
+              return (
+                <line key={`lane-sep-${lane.id}`} x1={0} y1={y} x2={w} y2={y}
+                  stroke="rgba(var(--text-rgb), 0.07)" strokeWidth={1} strokeDasharray="2 3" />
+              )
+            })}
+
             {/* Gradient defs for ongoing chapter fade-out past today */}
             <defs>
               {chaptersWithRows.filter(ch => !ch.end).map(ch => (
@@ -483,7 +541,7 @@ const Timeline = forwardRef(function Timeline(
               // Skip ongoing chapters whose start date is still in the future (nothing has happened yet)
               if (isOngoing && chapterStartX > todayX + 5) return null
 
-              const barY = msAxisY + CHAPTER_BAND_PAD + chapter._row * (CHAPTER_ROW_H + CHAPTER_ROW_GAP)
+              const barY = msAxisY + chapterRowY(chapter._row, chapter._lane)
               const barH = CHAPTER_ROW_H
 
               // For ongoing: solid portion ends at todayX; fade portion starts there.
@@ -959,6 +1017,26 @@ const Timeline = forwardRef(function Timeline(
         {/* ── Edge fades ───────────────────────────────────────────────────── */}
         <rect x={0}    y={0} width={70}   height={h} fill="url(#tl-left)"  pointerEvents="none" />
         <rect x={w-70} y={0} width={70}   height={h} fill="url(#tl-right)" pointerEvents="none" />
+
+        {/* ── Category lane labels: pinned to the left edge, above the fade ── */}
+        {chapterLaneBands.map(lane => {
+          const label  = lane.label ?? t('laneGeneral')
+          const top    = msAxisY + chapterRowY(lane.startRow, lane.index)
+          const laneH  = lane.rows * (CHAPTER_ROW_H + CHAPTER_ROW_GAP) - CHAPTER_ROW_GAP
+          const charW  = remPx * 0.45 * 0.60
+          const pillW  = label.length * charW + 10
+          const color  = lane.color ?? 'rgba(var(--text-rgb), 0.6)'
+          return (
+            <g key={`lane-label-${lane.id}`} pointerEvents="none">
+              <rect x={laneLabelX} y={top + laneH / 2 - CHAPTER_ROW_H / 2} width={pillW} height={CHAPTER_ROW_H}
+                rx={CHAPTER_ROW_H / 2} fill="rgba(var(--bg-deep-rgb), 0.9)"
+                stroke={color} strokeOpacity={0.35} strokeWidth={0.5} />
+              <text x={laneLabelX + 5} y={top + laneH / 2 + remPx * 0.45 * 0.36}
+                fill={color} fontSize="0.45em" fontWeight="bold"
+                fontFamily="'Courier Prime', monospace">{label}</text>
+            </g>
+          )
+        })}
       </svg>
 
       {photoTip && (

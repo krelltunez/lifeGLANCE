@@ -9,6 +9,7 @@
   "theme_light": "Hell",
   "defaultZoom": "Standard-Zoom",
   "clustering": "nahe beieinanderliegende Meilensteine automatisch gruppieren",
+  "chapterLanes": "eine Spur pro Kategorie für Kapitel",
   "soundEffects": "Soundeffekte",
   "idleAutoStart": "Beobachtungsmodus bei Inaktivität automatisch starten",
   "idleTimeout": "starten nach",

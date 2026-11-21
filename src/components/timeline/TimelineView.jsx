@@ -170,6 +170,9 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const [clustering,    setClustering]    = useState(
     () => localStorage.getItem('lifeglance-clustering') !== 'false'
   )
+  const [chapterLanes,  setChapterLanes]  = useState(
+    () => localStorage.getItem('lifeglance-chapter-lanes') === 'true'
+  )
   const [birthday,      setBirthday]      = useState(
     () => localStorage.getItem('lifeglance-birthday') || ''
   )
@@ -2280,6 +2283,8 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
             viewMode={viewMode}
             onClusterClick={handleClusterClick}
             clustering={clustering}
+            chapterLanes={chapterLanes}
+            categories={categories}
             birthday={lifeBirthday}
             deathDate={lifeDeath}
             newlyAddedId={newlyAddedId}
@@ -2616,6 +2621,10 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
           clustering={clustering}   onClusteringChange={v => {
             setClustering(v)
             localStorage.setItem('lifeglance-clustering', String(v))
+          }}
+          chapterLanes={chapterLanes} onChapterLanesChange={v => {
+            setChapterLanes(v)
+            localStorage.setItem('lifeglance-chapter-lanes', String(v))
           }}
           defaultZoom={defaultZoom} onDefaultZoomChange={v => setDefaultZoomState(setDefaultZoom(v))}
           zoomLabels={ZOOM_LABELS}

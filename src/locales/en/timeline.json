@@ -1,5 +1,6 @@
 {
   "today": "today",
+  "laneGeneral": "general",
   "ongoing": "ongoing",
   "onThisDay": "on this day",
   "hiddenCount": "{{count}} hidden",

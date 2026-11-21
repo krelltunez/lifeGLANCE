@@ -9,6 +9,7 @@
   "theme_light": "Chiaro",
   "defaultZoom": "Zoom predefinito",
   "clustering": "raggruppa automaticamente i traguardi vicini",
+  "chapterLanes": "una corsia per categoria per i capitoli",
   "soundEffects": "effetti sonori",
   "idleAutoStart": "avvia automaticamente la modalità osservazione quando inattivo",
   "idleTimeout": "avvia dopo",

@@ -22,6 +22,7 @@ export default function SettingsModal({
   textSize, onTextSizeChange,
   categories, onCategoriesChange,
   clustering, onClusteringChange,
+  chapterLanes, onChapterLanesChange,
   defaultZoom, onDefaultZoomChange, zoomLabels = {},
   idleAutoStart, onIdleAutoStartChange,
   idleTimeoutMs, onIdleTimeoutChange, idleTimeoutOptions = [],
@@ -192,6 +193,12 @@ export default function SettingsModal({
             <input type="checkbox" className="settings-toggle"
               checked={clustering}
               onChange={e => onClusteringChange(e.target.checked)} />
+          </label>
+          <label className="settings-toggle-row">
+            <span className="settings-toggle-label">{t('chapterLanes')}</span>
+            <input type="checkbox" className="settings-toggle"
+              checked={chapterLanes}
+              onChange={e => onChapterLanesChange(e.target.checked)} />
           </label>
           <label className="settings-toggle-row">
             <span className="settings-toggle-label">{t('soundEffects')}</span>

@@ -9,6 +9,7 @@
   "theme_light": "Light",
   "defaultZoom": "Default zoom",
   "clustering": "auto-cluster nearby milestones",
+  "chapterLanes": "one lane per category for chapters",
   "soundEffects": "sound effects",
   "idleAutoStart": "auto-start watch mode when idle",
   "idleTimeout": "start after",
