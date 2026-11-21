@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { BILLING_CODE_PENDING, BILLING_CODE_UNCONFIRMED } from '@glance-apps/billing'
 import { noticeFor } from '../components/billing/paywallNotice'
 import { resolve } from 'node:path'
@@ -249,6 +250,24 @@ describe('iOS billing: the 0.2.4 native contract', () => {
     expect(emitError.slice(pending)).toMatch(/emit\(status: "pending", code: Self\.codePending[^)]*\)\s*\n\s*return/)
   })
 
+  it("status reads see everything the delegate has seen: the cache, else the delegate's copy (EntitlementRead)", () => {
+    expect(fn(core, 'status')).toContain('let ent = currentCustomerInfo()?.entitlements[Self.entitlementId]')
+    expect(fn(core, 'status')).not.toContain('cachedCustomerInfo')
+    const current = fn(core, 'currentCustomerInfo')
+    expect(current).toContain('let cached = Purchases.shared.cachedCustomerInfo')
+    expect(current).toContain('let reported = lastReported')
+    // The rule itself, and its behavioural tests, are the package's.
+    expect(current).toContain('return EntitlementRead.newest(cached: cached, reported: reported)')
+    expect(core).toMatch(/^import EntitlementRead$/m)
+    // No date comparison: the two copies' requestDates come from different clocks.
+    expect(code(core)).not.toContain('requestDate')
+    // The delegate records every report, whatever it says, before its active-only guard.
+    const delegate = fn(core, 'purchases')
+    const record = delegate.indexOf('lastReported = customerInfo')
+    expect(record).toBeGreaterThan(-1)
+    expect(record).toBeLessThan(delegate.indexOf('guard let ent'))
+  })
+
   it("uses the package's pending codes", () => {
     expect(core).toContain(`static let codePending = ${BILLING_CODE_PENDING}`)
     expect(core).toContain(`static let codeUnconfirmed = ${BILLING_CODE_UNCONFIRMED}`)
@@ -427,5 +446,37 @@ describe('the paywall gate as rendered', () => {
     expect(html).toContain('>headline<')
     expect(html).not.toContain('trialHeadline')
     expect(html).not.toContain('trialSubline')
+  })
+})
+
+// EntitlementRead: the read rule, as a package (ios/App/Packages/EntitlementRead).
+describe('EntitlementRead', () => {
+  const PKG = 'ios/App/Packages/EntitlementRead'
+  const FILES = [
+    'Package.swift',
+    'Sources/EntitlementRead/EntitlementRead.swift',
+    'Tests/EntitlementReadTests/EntitlementReadTests.swift',
+  ]
+
+  // Three byte-identical copies: dayGLANCE, lastGLANCE and lifeGLANCE. Each
+  // repo holds its copy to this one fingerprint, the same value in all three,
+  // so a change to one copy fails here until the other two match. Change all
+  // three together, then the value in all three.
+  const FINGERPRINT = '2b8744180996179a24dfc2a46733acb97cdda7361c7fcc1e42202e05f019d93b'
+
+  it('is the shared copy, byte for byte', () => {
+    const hash = createHash('sha256')
+    for (const f of FILES) hash.update(readFileSync(resolve(root, PKG, f)))
+    expect(readdirSync(resolve(root, PKG, 'Sources/EntitlementRead'))).toEqual(['EntitlementRead.swift'])
+    expect(readdirSync(resolve(root, PKG, 'Tests/EntitlementReadTests'))).toEqual(['EntitlementReadTests.swift'])
+    expect(hash.digest('hex')).toBe(FINGERPRINT)
+  })
+
+  it('is linked into the App target, and CI runs its tests', () => {
+    const pbx = read('ios/App/App.xcodeproj/project.pbxproj')
+    expect(pbx).toMatch(/isa = XCLocalSwiftPackageReference;\s*relativePath = Packages\/EntitlementRead;/)
+    expect(pbx).toMatch(/isa = XCSwiftPackageProductDependency;\s*package = \w+ \/\* XCLocalSwiftPackageReference "Packages\/EntitlementRead" \*\/;\s*productName = EntitlementRead;/)
+    expect(pbx).toMatch(/EntitlementRead in Frameworks \*\/ = \{isa = PBXBuildFile; productRef = \w+ \/\* EntitlementRead \*\/; \};/)
+    expect(read('.github/workflows/ios.yml')).toContain(`run: swift test --package-path ${PKG}`)
   })
 })
