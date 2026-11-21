@@ -10,6 +10,7 @@
   "defaultZoom": "Zoom predeterminado",
   "clustering": "agrupar automáticamente los hitos cercanos",
   "chapterLanes": "un carril por categoría para los capítulos",
+  "swimlanes": "también los hitos en los carriles",
   "soundEffects": "efectos de sonido",
   "idleAutoStart": "iniciar el modo de observación automáticamente al estar inactivo",
   "idleTimeout": "iniciar después de",

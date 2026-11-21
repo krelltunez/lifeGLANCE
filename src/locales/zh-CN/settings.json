@@ -14,6 +14,7 @@
   "defaultZoom": "默认缩放",
   "clustering": "合并邻近里程碑",
   "chapterLanes": "章节按卷宗分行显示",
+  "swimlanes": "里程碑也按卷宗分行",
   "soundEffects": "开启音效",
   "idleAutoStart": "「漫游模式」在闲置时启用",
   "idleTimeout": "闲置",

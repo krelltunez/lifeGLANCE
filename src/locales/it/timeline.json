@@ -1,6 +1,7 @@
 {
   "today": "oggi",
   "laneGeneral": "generale",
+  "lanesHidden": "corsie non mostrate: {{count}} · filtra le categorie per vederle",
   "ongoing": "in corso",
   "onThisDay": "quel giorno",
   "hiddenCount": "{{count}} nascosti",

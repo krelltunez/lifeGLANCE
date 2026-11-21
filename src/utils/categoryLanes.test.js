@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildChapterLanes, packRows, GENERAL_LANE } from './categoryLanes.js'
+import { buildChapterLanes, buildSwimlanes, packMarkers, packRows, GENERAL_LANE } from './categoryLanes.js'
 
 const cats = [
   { id: 'career', label: 'career', color: '#4A90D9' },
@@ -69,5 +69,40 @@ describe('buildChapterLanes', () => {
 
   it('returns no lanes for no chapters', () => {
     expect(buildChapterLanes([], cats)).toEqual([])
+  })
+})
+
+describe('buildSwimlanes', () => {
+  const m = (id, category, date) => ({ id, category, date })
+
+  it('puts milestones in their category lane and keeps milestone-only lanes', () => {
+    const lanes = buildSwimlanes(
+      [ch('jobA', 'career', '2014-01-01', '2020-01-01')],
+      [m('japan', 'travel', '2011-04-01'), m('promo', 'career', '2017-01-01')],
+      [...cats, { id: 'travel', label: 'travel', color: '#C8A96E' }],
+    )
+    expect(lanes.map(l => [l.id, l.rows, l.milestones.map(x => x.id)])).toEqual([
+      ['career', 1, ['promo']],
+      ['travel', 0, ['japan']],
+    ])
+  })
+
+  it('sends milestones of a deleted category to the general lane', () => {
+    const lanes = buildSwimlanes([], [m('x', 'gone', '2020-01-01')], cats)
+    expect(lanes.map(l => l.id)).toEqual([GENERAL_LANE])
+  })
+})
+
+describe('packMarkers', () => {
+  const pts = xs => xs.map((x, i) => ({ id: i, x }))
+
+  it('moves a marker whose label would overlap to the next row', () => {
+    const out = packMarkers(pts([0, 50, 120]), p => p.x, () => 100, 2)
+    expect(out.map(p => [p.x, p._row, p._room])).toEqual([[0, 0, 120], [50, 1, Infinity], [120, 0, Infinity]])
+  })
+
+  it('squeezes an overflowing marker into the row that frees up soonest, shortening the label before it', () => {
+    const out = packMarkers(pts([0, 10, 20]), p => p.x, () => 100, 2)
+    expect(out.map(p => [p._row, p._room])).toEqual([[0, 20], [1, Infinity], [0, Infinity]])
   })
 })

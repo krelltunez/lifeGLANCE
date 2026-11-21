@@ -10,6 +10,7 @@
   "defaultZoom": "Standard-Zoom",
   "clustering": "nahe beieinanderliegende Meilensteine automatisch gruppieren",
   "chapterLanes": "eine Spur pro Kategorie für Kapitel",
+  "swimlanes": "Meilensteine auch in den Spuren",
   "soundEffects": "Soundeffekte",
   "idleAutoStart": "Beobachtungsmodus bei Inaktivität automatisch starten",
   "idleTimeout": "starten nach",

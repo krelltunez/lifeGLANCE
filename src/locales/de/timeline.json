@@ -1,6 +1,7 @@
 {
   "today": "heute",
   "laneGeneral": "allgemein",
+  "lanesHidden": "nicht angezeigte Spuren: {{count}} · Kategorien filtern, um sie zu sehen",
   "ongoing": "laufend",
   "onThisDay": "an diesem Tag",
   "hiddenCount": "{{count}} ausgeblendet",

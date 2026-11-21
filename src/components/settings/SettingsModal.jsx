@@ -23,6 +23,7 @@ export default function SettingsModal({
   categories, onCategoriesChange,
   clustering, onClusteringChange,
   chapterLanes, onChapterLanesChange,
+  swimlanes, onSwimlanesChange,
   defaultZoom, onDefaultZoomChange, zoomLabels = {},
   idleAutoStart, onIdleAutoStartChange,
   idleTimeoutMs, onIdleTimeoutChange, idleTimeoutOptions = [],
@@ -200,6 +201,14 @@ export default function SettingsModal({
               checked={chapterLanes}
               onChange={e => onChapterLanesChange(e.target.checked)} />
           </label>
+          {chapterLanes && (
+            <label className="settings-toggle-row">
+              <span className="settings-toggle-label">{t('swimlanes')}</span>
+              <input type="checkbox" className="settings-toggle"
+                checked={swimlanes}
+                onChange={e => onSwimlanesChange(e.target.checked)} />
+            </label>
+          )}
           <label className="settings-toggle-row">
             <span className="settings-toggle-label">{t('soundEffects')}</span>
             <input type="checkbox" className="settings-toggle"
