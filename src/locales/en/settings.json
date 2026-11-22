@@ -19,6 +19,8 @@
   "categoryInUse": "in use",
   "categoryCannotDelete": "cannot delete — category is in use",
   "categoryDelete": "delete category",
+  "categoryMoveUp": "move up",
+  "categoryMoveDown": "move down",
   "categoryNewPlaceholder": "new category name",
   "youLabel": "you",
   "birthday": "birthday",

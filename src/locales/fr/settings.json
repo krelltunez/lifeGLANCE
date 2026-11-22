@@ -19,6 +19,8 @@
   "categoryInUse": "utilisée",
   "categoryCannotDelete": "impossible de supprimer — catégorie utilisée",
   "categoryDelete": "supprimer la catégorie",
+  "categoryMoveUp": "monter",
+  "categoryMoveDown": "descendre",
   "categoryNewPlaceholder": "nom de la nouvelle catégorie",
   "youLabel": "vous",
   "birthday": "date de naissance",

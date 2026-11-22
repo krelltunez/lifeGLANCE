@@ -23,6 +23,8 @@
   "categoryInUse": "使用中",
   "categoryCannotDelete": "無法刪除! — 該卷宗使用中",
   "categoryDelete": "刪除該卷宗",
+  "categoryMoveUp": "上移",
+  "categoryMoveDown": "下移",
   "categoryNewPlaceholder": "新卷宗名稱",
   "youLabel": "個人檔案",
   "birthday": "生辰",

@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
 import { saveCategories, COLOR_PALETTE } from '../../utils/colors'
+import { moveItem } from '../../utils/categoryOrder'
 import { isMuted, setMuted } from '../../utils/audio'
 import { THEMES, getTheme, setTheme } from '../../utils/theme'
 import { ZOOM_LEVELS } from '../../utils/timeline'
@@ -83,6 +84,13 @@ export default function SettingsModal({
     saveCategories(updated)
     onCategoriesChange(updated)
     setNewLabel('')
+  }
+
+  function handleMove(index, delta) {
+    const updated = moveItem(categories, index, delta)
+    if (updated === categories) return
+    saveCategories(updated)
+    onCategoriesChange(updated)
   }
 
   function handleDelete(id) {
@@ -245,7 +253,7 @@ export default function SettingsModal({
           <div className="settings-label">{t('categoriesLabel')}</div>
 
           <div className="settings-cat-list">
-            {categories.map(cat => {
+            {categories.map((cat, index) => {
               const inUse = usedIds.has(cat.id)
               if (editingId === cat.id) {
                 return (
@@ -290,6 +298,20 @@ export default function SettingsModal({
                   <div className="settings-cat-dot" style={{ background: cat.color }} />
                   <span className="settings-cat-name">{cat.label}</span>
                   {inUse && <span className="settings-cat-inuse">{t('categoryInUse')}</span>}
+                  <button
+                    className="settings-cat-move"
+                    disabled={index === 0}
+                    title={t('categoryMoveUp')}
+                    aria-label={`${t('categoryMoveUp')}: ${cat.label}`}
+                    onClick={() => handleMove(index, -1)}
+                  >↑</button>
+                  <button
+                    className="settings-cat-move"
+                    disabled={index === categories.length - 1}
+                    title={t('categoryMoveDown')}
+                    aria-label={`${t('categoryMoveDown')}: ${cat.label}`}
+                    onClick={() => handleMove(index, 1)}
+                  >↓</button>
                   <button
                     className="settings-cat-edit"
                     title={tc('edit')}
