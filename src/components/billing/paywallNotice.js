@@ -21,8 +21,9 @@ export const ERROR_KEYS = {
  * Otherwise unconfirmed: the store completed it but the entitlement has not
  * appeared. Either way the app unlocks on its own when it does, from
  * RevenueCat's update, so the copy points at waiting, or at support, and
- * never at Restore, which would find nothing yet. English until the locale
- * pass adds the keys: defaultValue applies while a key is missing everywhere.
+ * never at Restore, which would find nothing yet. Both strings are English in
+ * every bundle until the locale pass translates them; UNTRANSLATED in
+ * src/locales.test.js tracks who is waiting.
  */
 export function noticeFor(billingEvent, t) {
   if (billingEvent.status === 'error') {
@@ -39,12 +40,8 @@ export function noticeFor(billingEvent, t) {
     return {
       kind: 'info',
       text: billingEvent.code === BILLING_CODE_PENDING
-        ? t('purchasePendingApproval', {
-            defaultValue: 'Your purchase is waiting for approval. lifeGLANCE will unlock on its own as soon as it is approved.',
-          })
-        : t('purchaseUnconfirmed', {
-            defaultValue: "Your purchase went through and is still being confirmed. lifeGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
-          }),
+        ? t('purchasePendingApproval')
+        : t('purchaseUnconfirmed'),
     }
   }
   return null

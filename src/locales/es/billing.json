@@ -27,6 +27,8 @@
   "restoreNone": "No hemos podido confirmar ninguna compra por ahora. Si ya has pagado, escribe a support@glance-apps.com y lo resolveremos.",
   "restoreDone": "Compras restauradas.",
   "restoreChecking": "Comprobando…",
+  "purchasePendingApproval": "Your purchase is waiting for approval. lifeGLANCE will unlock on its own as soon as it is approved.",
+  "purchaseUnconfirmed": "Your purchase went through and is still being confirmed. lifeGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
   "statusLabel": "estado",
   "statusLifetime": "Desbloqueo de por vida activo",
   "statusSubscription": "Suscripción anual activa",
