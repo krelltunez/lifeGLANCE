@@ -1810,6 +1810,20 @@ button, input, select, textarea {
 
 .settings-cat-edit-block { padding: 0.25rem 0; }
 
+/* Move a category up or down: sets the order of lanes and filter chips. */
+.settings-cat-move {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.15rem 0.25rem;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.settings-cat-move:hover:not(:disabled) { color: var(--amber); }
+.settings-cat-move:disabled { opacity: 0.2; cursor: default; }
+
 .settings-cat-add { display: flex; flex-direction: column; gap: 0.4rem; }
 
 .settings-cat-add-row {

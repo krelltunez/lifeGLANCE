@@ -19,6 +19,8 @@
   "categoryInUse": "in Verwendung",
   "categoryCannotDelete": "kann nicht gelöscht werden — Kategorie wird verwendet",
   "categoryDelete": "Kategorie löschen",
+  "categoryMoveUp": "nach oben",
+  "categoryMoveDown": "nach unten",
   "categoryNewPlaceholder": "Name der neuen Kategorie",
   "youLabel": "du",
   "birthday": "Geburtsdatum",

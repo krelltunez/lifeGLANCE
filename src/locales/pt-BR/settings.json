@@ -19,6 +19,8 @@
   "categoryInUse": "em uso",
   "categoryCannotDelete": "não é possível excluir — categoria em uso",
   "categoryDelete": "excluir categoria",
+  "categoryMoveUp": "mover para cima",
+  "categoryMoveDown": "mover para baixo",
   "categoryNewPlaceholder": "nome da nova categoria",
   "youLabel": "você",
   "birthday": "data de nascimento",
