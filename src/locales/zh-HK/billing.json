@@ -23,6 +23,8 @@
   "restoreNone": "暫時無法確認購買紀錄。如果你已經付款，請聯絡 support@glance-apps.com，我們會為你處理。",
   "restoreDone": "購買紀錄已恢復。",
   "restoreChecking": "正在檢查…",
+  "purchasePendingApproval": "Your purchase is waiting for approval. lifeGLANCE will unlock on its own as soon as it is approved.",
+  "purchaseUnconfirmed": "Your purchase went through and is still being confirmed. lifeGLANCE will unlock on its own as soon as it is. If it hasn't within a few minutes, email support@glance-apps.com.",
   "statusLabel": "狀態",
   "statusLifetime": "終身解鎖已啟用",
   "statusSubscription": "年度訂閱已啟用",

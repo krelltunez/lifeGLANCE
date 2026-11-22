@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { BILLING_CODE_PENDING, BILLING_CODE_UNCONFIRMED } from '@glance-apps/billing'
 import { noticeFor } from '../components/billing/paywallNotice'
+import enBilling from '../locales/en/billing.json'
 import { resolve } from 'node:path'
 
 // The iOS shell is not compiled in CI, so this holds BillingBridgePlugin.swift
@@ -277,15 +278,17 @@ describe('iOS billing: the 0.2.4 native contract', () => {
 // What the paywall says for each terminal event. The paywall applies this
 // from an effect, which a server render never runs, so it is tested directly.
 describe('the paywall notice for each billing outcome', () => {
-  const t = (key, opts) => (opts?.defaultValue ? `${key}|${opts.defaultValue}` : key)
+  const t = (key) => key
+  // The key plus en's text, for reading the copy the user sees.
+  const tEn = (key) => (typeof enBilling[key] === 'string' ? `${key}|${enBilling[key]}` : key)
   const ev = (status, code, message = '') => ({ status, code, message, productId: 'p' })
 
   it('says something for every pending outcome: approval awaited, or payment being confirmed', () => {
-    const deferred = noticeFor(ev('pending', BILLING_CODE_PENDING, 'deferred'), t)
+    const deferred = noticeFor(ev('pending', BILLING_CODE_PENDING, 'deferred'), tEn)
     expect(deferred.kind).toBe('info')
     expect(deferred.text).toContain('purchasePendingApproval|Your purchase is waiting for approval.')
 
-    const unconfirmed = noticeFor(ev('pending', BILLING_CODE_UNCONFIRMED, 'unconfirmed'), t)
+    const unconfirmed = noticeFor(ev('pending', BILLING_CODE_UNCONFIRMED, 'unconfirmed'), tEn)
     expect(unconfirmed.kind).toBe('info')
     expect(unconfirmed.text).toContain('purchaseUnconfirmed|Your purchase went through')
     // Unconfirmed points at waiting or support, never at Restore, which would

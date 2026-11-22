@@ -91,6 +91,42 @@ describe('locale bundles', () => {
     expect(value, `${lng} still carries the English string`).not.toBe(en)
   })
 
+  /**
+   * Keys that ship in English in some languages until a translation lands, and
+   * which languages are waiting. The parity checks below are satisfied by the
+   * English text, so without this list nothing in the repo would say these are
+   * untranslated. The point of the list is that it shrinks: each entry must
+   * name exactly the languages that still carry en's text, so translating one
+   * fails here until the language is dropped, and an empty entry is removed.
+   * pt-PT and zh-TW are generated, so they follow pt-BR and zh-HK. Same shape
+   * as dayGLANCE's and lastGLANCE's UNTRANSLATED.
+   */
+  describe('UNTRANSLATED: English on the way to a translation', () => {
+    const UNTRANSLATED = {
+      // The paywall's two pending outcomes (billing Phase 2) shipped in English
+      // first, so no installable version reaches one with nothing to show; the
+      // localization pass translates them.
+      'billing:purchasePendingApproval': ['de', 'es', 'fr', 'it', 'pt-BR', 'pt-PT', 'zh-CN', 'zh-HK', 'zh-TW'],
+      'billing:purchaseUnconfirmed': ['de', 'es', 'fr', 'it', 'pt-BR', 'pt-PT', 'zh-CN', 'zh-HK', 'zh-TW'],
+    }
+    const get = (lng, nsKey) => {
+      const [ns, key] = nsKey.split(':')
+      return key.split('.').reduce((o, k) => o?.[k], bundles[lng]?.[ns])
+    }
+
+    it.each(Object.keys(UNTRANSLATED))('%s names exactly the languages still in English', (key) => {
+      expect(get('en', key), `${key} is not in en; drop it from UNTRANSLATED`).toBeTypeOf('string')
+      const stillEnglish = TRANSLATED.filter((lng) => get(lng, key) === get('en', key)).sort()
+      expect(
+        stillEnglish,
+        `UNTRANSLATED['${key}'] must list exactly the languages that still carry en's text. ` +
+          'A language translated since is dropped from the list (and the key, once its list is empty); ' +
+          'a language listed that does not ship is a typo.'
+      ).toEqual([...UNTRANSLATED[key]].sort())
+      expect(UNTRANSLATED[key].length, `${key} is translated everywhere; drop it from UNTRANSLATED`).toBeGreaterThan(0)
+    })
+  })
+
   describe('coverage against en', () => {
     it.each(TRANSLATED)('%s covers every key in en', (lng) => {
       const keys = baseKeysOf(lng)
