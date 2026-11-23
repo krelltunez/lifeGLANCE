@@ -21,8 +21,14 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageChops
 
+# The macOS traffic lights, lifted from the GLANCE screenshot kit's real Mac
+# capture (v2.3 chrome-donors/mac-chrome_window-titlebar-traffic-lights.png,
+# crop x132-262 y90-123, at 2x) and keyed off its title-bar colour to alpha, so
+# they sit on lifeGLANCE's own strip rather than carrying dayGLANCE's bar.
+
 ROOT = Path(__file__).resolve().parent.parent
 FONTS = ROOT / "scripts" / "assets" / "fonts"
+TRAFFIC_LIGHTS = ROOT / "scripts" / "assets" / "mac-traffic-lights.png"
 
 # ---------------------------------------------------------------- tokens ---
 # Kit v2.1 DESIGN TOKENS, with lifeGLANCE violet in place of dayGLANCE orange.
@@ -128,22 +134,25 @@ def draw_caption(canvas, eyebrow, l1, l2, *, eb_y, eb_size, eb_track,
     return bottom - dy
 
 
-def draw_bullets(canvas, bullets, top, bottom, size=56, gap=130, cx=None):
+def draw_bullets(canvas, bullets, top, bottom, size=56, gap=130, cx=None, align="center"):
     """Kit widget-frame bullet pattern: Lora italic, text alternating warm white
     and brand colour, each dot the INVERSE of its line's text colour, dots
-    centred on the line's real ink box. The block auto-centres in [top, bottom]."""
+    centred on the line's real ink box. The block auto-centres in [top, bottom].
+    align="left" starts every line at one x, the block as a whole centred on cx."""
     d = ImageDraw.Draw(canvas)
     f = serif(size, it=True)
     block_h = gap * (len(bullets) - 1) + size
     y = top + (bottom - top - block_h) // 2
     if cx is None:
         cx = canvas.width // 2
+    dot_r, dot_gap = max(5, size // 11), size // 2
+    widest = max(d.textlength(t, font=f) for t in bullets) + dot_r * 2 + dot_gap
     for i, text in enumerate(bullets):
         fg = WARM_WHITE if i % 2 == 0 else VIOLET
         dot = VIOLET if i % 2 == 0 else WARM_WHITE
         tw = d.textlength(text, font=f)
         dot_r, dot_gap = max(5, size // 11), size // 2
-        x = cx - (tw + dot_r * 2 + dot_gap) / 2
+        x = cx - (widest if align == "left" else tw + dot_r * 2 + dot_gap) / 2
         ly = y + i * gap
         box = d.textbbox((x + dot_r * 2 + dot_gap, ly), text, font=f)
         dcy = (box[1] + box[3]) / 2          # real ink centre, not a font fraction
@@ -199,6 +208,11 @@ LAYOUTS = {
     "ipad":    dict(mode="band", w=2752, h=2064, band=480),
     "ptab7":   dict(mode="band", w=1920, h=1200, band=280),
     "ptab10":  dict(mode="band", w=2560, h=1600, band=370),
+    # Mac App Store, 2880 x 1800. The kit's Mac frame: a one-line caption over
+    # a floating window with rounded corners and a shadow. Unlike the other
+    # galleries this one does show chrome — the traffic lights — because the
+    # Mac app really has them, in a strip of its own above the app's layout.
+    "mac":     dict(mode="mac", w=2880, h=1800),
 }
 
 # Caption copy lives here once; a Play frame reuses the caption of the Apple
@@ -211,9 +225,13 @@ CAP = {
     "add":       ("ADD A MILESTONE", "Some memories have a date.", "Others have a year."),
     "longview":  ("THE LONG VIEW", "Years at a time,", "all in one window."),
     "incontext": ("IN CONTEXT", "One moment,", "and everything around it."),
+    "macwhole":  ("THE LONG VIEW", "Your whole life,", "in a single window."),
+    "lanes":     ("A LANE FOR EVERYTHING", "Every part of your life,", "in its own lane."),
 }
 BULLETS = ["Works fully offline.", "No account, no analytics.",
            "Your life stays on your device."]
+MAC_BULLETS = ["Works fully offline.", "No account, no analytics.",
+               "Your life stays on your Mac."]
 
 
 def shot(layout, out, pane, cap, bullets=None):
@@ -246,6 +264,12 @@ SHOTS = [
     shot("ptab7",  "play/tablet7/02-milestone-detail.png",  "play/tablet7/02a", "incontext"),
     shot("ptab10", "play/tablet10/01-timeline.png",         "play/tablet10/01a", "longview"),
     shot("ptab10", "play/tablet10/02-milestone-detail.png", "play/tablet10/02a", "incontext"),
+    # Mac App Store.
+    shot("mac", "apple/mac/01-timeline.png",       "mac/01a", "macwhole"),
+    shot("mac", "apple/mac/02-category-lanes.png", "mac/02a", "lanes"),
+    shot("mac", "apple/mac/03-chapters.png",       "mac/03a", "chapters"),
+    shot("mac", "apple/mac/04-milestone.png",      "mac/04a", "incontext"),
+    shot("mac", "apple/mac/05-add-milestone.png",  "mac/05a", "add", MAC_BULLETS),
 ]
 
 
@@ -303,6 +327,87 @@ def compose_band(sh, lay, pane):
     return canvas
 
 
+def rmask(size, r):
+    m = Image.new("L", size, 0)
+    ImageDraw.Draw(m).rounded_rectangle([0, 0, size[0] - 1, size[1] - 1], radius=r, fill=255)
+    return m
+
+
+def add_traffic_lights(pane, scale):
+    """Put the traffic lights in the pane's macOS title strip. The strip is
+    28 CSS px of page background (html.desktop-darwin, src/index.css); the
+    lights' geometry is the donor's, which is 2x, so it scales by scale / 2.
+    The position is the app's own (trafficLightPosition { x: 12, y: 8 } in
+    electron/main.js), measured off a real capture of the Mac app: red's
+    centre 19.5 pt in from the window edge and 14.5 pt down."""
+    lights = Image.open(TRAFFIC_LIGHTS).convert("RGBA")
+    k = scale / 2
+    if k != 1:
+        lights = lights.resize((round(lights.width * k), round(lights.height * k)), Image.LANCZOS)
+    # In the donor crop, red's centre is at (18, 16); on the 2x window it is
+    # at (39, 29).
+    x, y = round((39 - 18) * k), round((29 - 16) * k)
+    out = pane.convert("RGBA")
+    out.alpha_composite(lights, (x, y))
+    return out.convert("RGB")
+
+
+def compose_mac(sh, lay, pane, scale):
+    """The kit's Mac frame (build_frame_mac.py) in lifeGLANCE's colours: a
+    tracked eyebrow and ONE headline line, white then violet italic, over a
+    floating window. With bullets, the window moves right and the bullets
+    take the column to its left."""
+    W, H = lay["w"], lay["h"]
+    canvas = build_bg(W, H, glow_y=0.10).convert("RGBA")
+    d = ImageDraw.Draw(canvas)
+    cx = W // 2
+    tracked(d, cx, 145, sh["eyebrow"], sans(46), VIOLET, 14)
+
+    l1, l2 = sh["l1"] + " ", sh["l2"]
+    size, target = 150, W - 360
+    while True:
+        f1, f2 = serif(size), serif(size, it=True)
+        tw = d.textlength(l1, font=f1) + d.textlength(l2, font=f2)
+        if tw <= target or size <= 60:
+            break
+        size -= 2
+    x0 = cx - tw / 2
+    d.text((x0, 220), l1, font=f1, fill=WARM_WHITE)
+    d.text((x0 + d.textlength(l1, font=f1), 220), l2, font=f2, fill=VIOLET)
+
+    pane = add_traffic_lights(pane, scale)
+    top, bm = 430, 44
+    avail_h = H - top - bm
+    win_w = 1820 if sh["bullets"] else 2260
+    win_h = round(pane.height * win_w / pane.width)
+    if win_h > avail_h:
+        win_w, win_h = round(win_w * avail_h / win_h), avail_h
+    win = pane.resize((win_w, win_h), Image.LANCZOS).convert("RGBA")
+    r = round(win_w * 0.010)
+    win.putalpha(rmask(win.size, r))
+    ImageDraw.Draw(win).rounded_rectangle([0, 0, win_w - 1, win_h - 1], radius=r,
+                                          outline=(70, 74, 82, 140), width=2)
+
+    if sh["bullets"]:
+        px = W - 120 - win_w
+        py = top + (avail_h - win_h) // 2
+    else:
+        px, py = (W - win_w) // 2, top
+    shadow = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle(
+        [px + 34, py + 52, px + win_w + 34, py + win_h + 52], radius=44, fill=(0, 0, 0, 165))
+    canvas = Image.alpha_composite(canvas, shadow.filter(ImageFilter.GaussianBlur(60)))
+    canvas.paste(win, (px, py), win)
+    canvas = canvas.convert("RGB")
+
+    if sh["bullets"]:
+        size, gap = 50, 124
+        h = gap * (len(sh["bullets"]) - 1) + size
+        mid = py + win_h // 2
+        draw_bullets(canvas, sh["bullets"], mid - h, mid + h, size=size, gap=gap, cx=px // 2, align="left")
+    return canvas
+
+
 def main():
     pane_dir, out_dir = Path(sys.argv[1]), Path(sys.argv[2])
     # Mirrors ONLY in screenshots.mjs: rebuild just these shots and leave every
@@ -314,7 +419,13 @@ def main():
             continue
         lay = LAYOUTS[sh["layout"]]
         pane = Image.open(pane_dir / f"{sh['pane']}.png").convert("RGB")
-        canvas = (compose_side if lay["mode"] == "side" else compose_band)(sh, lay, pane)
+        if lay["mode"] == "mac":
+            # The capture scale says how many pixels the 28 CSS px title strip
+            # takes; screenshots.mjs writes it beside each pane.
+            meta = json.loads((pane_dir / f"{sh['pane']}.json").read_text())
+            canvas = compose_mac(sh, lay, pane, meta["scale"])
+        else:
+            canvas = (compose_side if lay["mode"] == "side" else compose_band)(sh, lay, pane)
         dest = out_dir / sh["out"]
         dest.parent.mkdir(parents=True, exist_ok=True)
         canvas.save(dest)
