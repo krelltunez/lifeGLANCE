@@ -735,10 +735,10 @@ const IPAD        = { width: 1529, height: 880, scale: 1.8 }  // → 2752 x 1584
 // iPad pane, and the window's aspect (1529:898) fills the space the kit's Mac
 // frame gives it. Captured at 2x and downsampled once, in the composer.
 const MAC       = { width: 1529, height: 898, scale: 2 }   // → 3058 x 1796
-// The detail dialog is a fixed CSS width, so like the phone dialogs it is
-// captured in a smaller viewport and magnified to the same output. The add
-// sheet is a longer form and needs more CSS height to fit uncut.
-const MAC_MODAL = { width: 1150, height: 675, scale: 3058 / 1150 }
+// The add sheet is a fixed CSS width, so like the phone dialogs it is
+// captured in a smaller viewport and magnified to the same output. It sits in
+// a narrower window beside the bullets, which keeps its traffic lights close
+// to the size of the other frames'.
 const MAC_SHEET = { width: 1400, height: 822, scale: 3058 / 1400 }
 
 const PANE_SET = [
@@ -767,7 +767,10 @@ const PANE_SET = [
   { id: 'mac/02a', vp: MAC, mac: true, scene: 'macLanes', chapters: 'lanesChapters', text: 'normal',
     prefs: { 'lifeglance-chapter-lanes': 'true', 'lifeglance-swimlanes': 'true' } },
   { id: 'mac/03a', vp: MAC, mac: true, scene: 'chapterDrill', seed: 'wide' },
-  { id: 'mac/04a', vp: MAC_MODAL, mac: true, scene: 'milestoneDetail' },
+  // Full-size window, like 01-03, rather than a magnified one: magnifying
+  // the window magnifies its traffic lights with it, and next to the other
+  // frames they read as wrong. The dialog is smaller in return.
+  { id: 'mac/04a', vp: MAC, mac: true, scene: 'milestoneDetail' },
   // Not Settings: the web build's Settings shows browser-only rows (persistent
   // storage, "this build is fully unlocked") that the App Store app does not
   // have. The add sheet is the same on every platform, as on iPhone shot 5.
