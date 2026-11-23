@@ -337,14 +337,16 @@ def add_traffic_lights(pane, scale):
     """Put the traffic lights in the pane's macOS title strip. The strip is
     28 CSS px of page background (html.desktop-darwin, src/index.css); the
     lights' geometry is the donor's, which is 2x, so it scales by scale / 2.
-    Red's centre sits 17 pt from the window edge, vertically centred."""
+    The position is the app's own (trafficLightPosition { x: 12, y: 8 } in
+    electron/main.js), measured off a real capture of the Mac app: red's
+    centre 19.5 pt in from the window edge and 14.5 pt down."""
     lights = Image.open(TRAFFIC_LIGHTS).convert("RGBA")
     k = scale / 2
     if k != 1:
         lights = lights.resize((round(lights.width * k), round(lights.height * k)), Image.LANCZOS)
     # In the donor crop, red's centre is at (18, 16); on the 2x window it is
-    # at (34, 28): 17 pt in, and the middle of the 28 pt strip.
-    x, y = round((34 - 18) * k), round((28 - 16) * k)
+    # at (39, 29).
+    x, y = round((39 - 18) * k), round((29 - 16) * k)
     out = pane.convert("RGBA")
     out.alpha_composite(lights, (x, y))
     return out.convert("RGB")

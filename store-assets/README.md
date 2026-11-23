@@ -63,7 +63,10 @@ the app in a floating window with rounded corners and a shadow.
   strip the desktop app has on macOS (`src/index.css`). The composer puts the
   traffic lights in that strip. They come from the kit's real Mac capture,
   keyed to alpha (`scripts/assets/mac-traffic-lights.png`), so they sit on
-  lifeGLANCE's own background rather than on dayGLANCE's title bar.
+  lifeGLANCE's own background rather than on dayGLANCE's title bar, at the
+  app's own `trafficLightPosition`. The capture fails if the strip is missing
+  (`#root` without its 28px padding), because without it the lights land on
+  the app's header and the frame no longer looks like the Mac app.
 - **Shot 2 is the category lanes** (5.2). The demo's chapters have no category,
   so the lanes shot gives the four eras theirs and adds three chapters from the
   same persona (`LANE_CHAPTERS` in `scripts/screenshots.mjs`). Both lane

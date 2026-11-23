@@ -32,7 +32,7 @@ import { tmpdir } from 'node:os'
 import http from 'node:http'
 import path from 'node:path'
 
-/* global indexedDB -- referenced only inside page.evaluate(), which runs in the browser */
+/* global indexedDB, MutationObserver, getComputedStyle -- referenced only inside page.evaluate() and init scripts, which run in the browser */
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(ROOT, 'dist')
@@ -899,8 +899,18 @@ async function main() {
       // The desktop app sets html.desktop-darwin on macOS (src/native/desktop.js),
       // which keeps a 28px strip of page background at the top for the traffic
       // lights. Set it before the app boots so the layout is the Mac app's.
+      //
+      // An init script can run before <html> exists, and documentElement is
+      // then null: the add throws, nothing says so, and the pane has no strip
+      // at all. Wait for the element instead.
       if (pane.mac) {
-        await ctx.addInitScript(() => document.documentElement.classList.add('desktop-darwin'))
+        await ctx.addInitScript(() => {
+          const mark = () => document.documentElement.classList.add('desktop-darwin')
+          if (document.documentElement) { mark(); return }
+          new MutationObserver((_, obs) => {
+            if (document.documentElement) { mark(); obs.disconnect() }
+          }).observe(document, { childList: true })
+        })
       }
       const page = await ctx.newPage()
       try {
@@ -908,6 +918,10 @@ async function main() {
         if (pane.seed) paneData.milestones = data[pane.seed]
         if (pane.chapters) paneData.chapters = data[pane.chapters]
         await seed(page, paneData, pane.text, pane.prefs)
+        if (pane.mac) {
+          const pad = await page.evaluate(() => getComputedStyle(document.getElementById('root')).paddingTop)
+          if (pad !== '28px') throw new Error(`macOS title strip missing (#root padding-top ${pad})`)
+        }
         await scenes[pane.scene](page)
         await page.screenshot({ path: file })
         await writeFile(file.replace(/\.png$/, '.json'), JSON.stringify({ scale: pane.vp.scale }))
