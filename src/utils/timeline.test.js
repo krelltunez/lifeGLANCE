@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyRecurFilter, assignLanes, computePinchZoom, PINCH_MIN_HALF_MS, PINCH_MAX_HALF_MS } from './timeline'
+import { applyRecurFilter, assignLanes, computePinchZoom, PINCH_MIN_HALF_MS, PINCH_MAX_HALF_MS, getMsPerPx, pickWheelAxis, wheelDeltaPx, wheelPanPx, wheelPanMs, WHEEL_GESTURE_GAP_MS, WHEEL_LINE_PX } from './timeline'
 
 // Helper to build a minimal milestone-like object
 function ms(id, dateStr, recurrence_id = null) {
@@ -231,5 +231,64 @@ describe('assignLanes lane separation', () => {
       expect(m.lane).toBeLessThanOrEqual(3)
       expect(m.above).toBe(true)
     }
+  })
+})
+
+describe('pickWheelAxis', () => {
+  const T = 1000
+  it('vertical scroll zooms', () => {
+    expect(pickWheelAxis({ deltaX: 0, deltaY: 40 }, null, T).axis).toBe('zoom')
+    expect(pickWheelAxis({ deltaX: 1, deltaY: -12 }, null, T).axis).toBe('zoom')
+  })
+  it('predominantly horizontal swipe pans', () => {
+    expect(pickWheelAxis({ deltaX: 30, deltaY: 4 }, null, T).axis).toBe('pan')
+    expect(pickWheelAxis({ deltaX: -8, deltaY: 0 }, null, T).axis).toBe('pan')
+  })
+  it('Shift + vertical wheel pans', () => {
+    expect(pickWheelAxis({ deltaX: 0, deltaY: 100, shiftKey: true }, null, T).axis).toBe('pan')
+  })
+  it('pinch (ctrlKey) always zooms, even with a sideways delta', () => {
+    expect(pickWheelAxis({ deltaX: 20, deltaY: -3, ctrlKey: true }, null, T).axis).toBe('zoom')
+    expect(pickWheelAxis({ deltaX: 5, deltaY: -1, ctrlKey: true }, { axis: 'pan', t: T - 10 }, T).axis).toBe('zoom')
+  })
+  it('keeps the gesture axis through cross-axis jitter within the gap', () => {
+    let g = pickWheelAxis({ deltaX: 20, deltaY: 2 }, null, T)
+    g = pickWheelAxis({ deltaX: 1, deltaY: 9 }, g, T + 16)
+    expect(g.axis).toBe('pan')
+    let z = pickWheelAxis({ deltaX: 0, deltaY: 30 }, null, T)
+    z = pickWheelAxis({ deltaX: 15, deltaY: 2 }, z, T + 16)
+    expect(z.axis).toBe('zoom')
+  })
+  it('re-decides after the stream pauses', () => {
+    const g = pickWheelAxis({ deltaX: 20, deltaY: 0 }, null, T)
+    expect(pickWheelAxis({ deltaX: 0, deltaY: 30 }, g, T + WHEEL_GESTURE_GAP_MS + 1).axis).toBe('zoom')
+  })
+  it('a zero-delta event does nothing new and keeps the gesture', () => {
+    expect(pickWheelAxis({ deltaX: 0, deltaY: 0 }, null, T).axis).toBeNull()
+    const g = { axis: 'pan', t: T }
+    expect(pickWheelAxis({ deltaX: 0, deltaY: 0 }, g, T + 50)).toEqual(g)
+  })
+})
+
+describe('wheel pan conversion', () => {
+  it('converts by deltaMode', () => {
+    expect(wheelDeltaPx(10, 0)).toBe(10)
+    expect(wheelDeltaPx(3, 1)).toBe(3 * WHEEL_LINE_PX)
+    expect(wheelDeltaPx(1, 2, 640)).toBe(640)
+  })
+  it('pans by deltaX; positive moves later in time', () => {
+    expect(wheelPanPx({ deltaX: 25, deltaY: 3 })).toBe(25)
+    expect(wheelPanPx({ deltaX: -25, deltaY: 0 })).toBe(-25)
+  })
+  it('ignores stray vertical deltas once panning', () => {
+    expect(wheelPanPx({ deltaX: 0, deltaY: 12 })).toBe(0)
+  })
+  it('uses deltaY for Shift+wheel the browser did not convert', () => {
+    expect(wheelPanPx({ deltaX: 0, deltaY: 3, shiftKey: true, deltaMode: 1 })).toBe(3 * WHEEL_LINE_PX)
+  })
+  it('converts to ms with the drag-pan msPerPx', () => {
+    const msPerPx = getMsPerPx('years', 1000)
+    expect(wheelPanMs({ deltaX: 50 }, msPerPx)).toBeCloseTo(50 * msPerPx)
+    expect(wheelPanMs({ deltaX: 2, deltaMode: 1 }, msPerPx)).toBeCloseTo(2 * WHEEL_LINE_PX * msPerPx)
   })
 })

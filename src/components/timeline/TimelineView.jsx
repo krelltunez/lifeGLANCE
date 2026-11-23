@@ -17,7 +17,7 @@ import HiddenMilestonesModal from './HiddenMilestonesModal'
 import IcsImportModal    from '../import/IcsImportModal'
 import MinimapBar        from '../minimap/MinimapBar'
 import TypewriterText    from '../ui/TypewriterText'
-import { ZOOM_LEVELS, applyRecurFilter } from '../../utils/timeline'
+import { ZOOM_LEVELS, applyRecurFilter, pickWheelAxis, wheelPanPx } from '../../utils/timeline'
 import { getDefaultZoom, setDefaultZoom } from '../../utils/defaultZoom'
 import { expandAnnualDates } from '../../utils/recurrence'
 import { loadCategories } from '../../utils/colors'
@@ -524,12 +524,22 @@ export default function TimelineView({ milestones, setMilestones, chapters, setC
   const handleZoomRef = useRef(handleZoom)
   useEffect(() => { handleZoomRef.current = handleZoom }, [handleZoom])
 
-  // Wheel zoom (non-passive so we can preventDefault)
+  // Wheel: vertical scroll / trackpad pinch steps the zoom; a horizontal swipe,
+  // tilt wheel or Shift+wheel pans continuously. The axis is picked per gesture
+  // (pickWheelAxis) so one swipe never does both. Non-passive so preventDefault
+  // also stops the browser's horizontal-swipe back/forward navigation.
   useEffect(() => {
     const el = zoomWrapRef.current
     if (!el) return
+    let gesture = null
     const onWheel = (e) => {
       e.preventDefault()
+      gesture = pickWheelAxis(e, gesture, performance.now())
+      if (gesture.axis === 'pan') {
+        timelineRef.current?.panByPx(wheelPanPx(e, el.clientWidth))
+        return
+      }
+      if (gesture.axis !== 'zoom' || e.deltaY === 0) return
       if (zoomLocked.current) return
       const idx     = ZOOM_LEVELS.indexOf(zoomRef.current)
       const nextIdx = e.deltaY < 0 ? idx + 1 : idx - 1
