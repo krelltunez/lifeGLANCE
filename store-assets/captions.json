@@ -94,5 +94,35 @@
     "eyebrow": "IN CONTEXT",
     "l1": "One moment,",
     "l2": "and everything around it."
+  },
+  {
+    "out": "apple/mac/01-timeline.png",
+    "eyebrow": "THE LONG VIEW",
+    "l1": "Your whole life,",
+    "l2": "in a single window."
+  },
+  {
+    "out": "apple/mac/02-category-lanes.png",
+    "eyebrow": "A LANE FOR EVERYTHING",
+    "l1": "Every part of your life,",
+    "l2": "in its own lane."
+  },
+  {
+    "out": "apple/mac/03-chapters.png",
+    "eyebrow": "CHAPTERS",
+    "l1": "The eras you lived,",
+    "l2": "drawn to scale."
+  },
+  {
+    "out": "apple/mac/04-milestone.png",
+    "eyebrow": "IN CONTEXT",
+    "l1": "One moment,",
+    "l2": "and everything around it."
+  },
+  {
+    "out": "apple/mac/05-add-milestone.png",
+    "eyebrow": "ADD A MILESTONE",
+    "l1": "Some memories have a date.",
+    "l2": "Others have a year."
   }
 ]

@@ -202,6 +202,15 @@ const WIDE_HORIZON = [
   { daysAhead: 8280, title: 'Turning fifty',             category: 'personal', date_precision: 'year'  },
 ]
 
+// Dates are the demo's own (before the run-time shift), so they line up with
+// the milestones they belong with: the dog arrives with "Family got a dog", the
+// apartment starts at "Moved to Astoria", the training runs to the marathon.
+const LANE_CHAPTERS = [
+  { title: 'Growing up with Biscuit', category: 'family', color: '#D9A441', start: '2007-04-01T00:00:00.000Z', end: '2019-09-01T00:00:00.000Z' },
+  { title: 'Life in Astoria',         category: 'home',   color: '#4FB3A9', start: '2023-02-01T00:00:00.000Z', end: null },
+  { title: 'Marathon training',       category: 'health', color: '#E2675B', start: '2024-01-15T00:00:00.000Z', end: '2027-11-07T00:00:00.000Z' },
+]
+
 function horizonEntries(spec, now, offset = 0) {
   const base = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
   return spec.map((h, i) => ({
@@ -319,12 +328,30 @@ function redate(demo, now = new Date()) {
     nudged.push(`${m.title} (${off > 0 ? '-' : '+'}${Math.abs(off)}d)`)
   }
 
+  // The Mac lanes shot. The demo's chapters carry no category, so with "one
+  // lane per category" on they would all fall into the general lane and the
+  // frame would show one lane. Give the four eras their categories, and add
+  // three more from the same persona's threads (the apartment, the dog, the
+  // running) so several lanes hold a ribbon. Marketing data, like the horizon
+  // entries: legible rather than complete.
+  const laneOf = { 'School years': 'education', 'Rutgers': 'education',
+                   'The Brex years': 'career', 'Figma era': 'career' }
+  const lanesChapters = [
+    ...chapters.map(c => ({ ...c, category: laneOf[c.title] ?? null })),
+    ...LANE_CHAPTERS.map((c, i) => ({
+      id: `c100000${i}-0000-4000-8000-00000000000${i}`,
+      title: c.title, category: c.category, color: c.color, description: '',
+      start: move(c.start), end: c.end ? move(c.end) : null,
+      defaultMemberVisibility: 'shown', parentChapterId: null, milestoneIds: [],
+    })),
+  ]
+
   const birthdayMs = Date.parse(demo.milestones.find(m => /was born/i.test(m.title))?.date ?? '1998-11-03')
   const birthday = new Date(birthdayMs + shift * DAY).toISOString().slice(0, 10)
   const shaped = thinAndExtend(milestones, now)
   const wide = wideSeed(milestones, now)
   const future = futureSeed(milestones, now)
-  return { milestones: shaped, wide, future, chapters, birthday, shift, nudged,
+  return { milestones: shaped, wide, future, chapters, lanesChapters, birthday, shift, nudged,
            counts: `${milestones.length} seeded -> ${shaped.length} standard, ${wide.length} wide` }
 }
 
@@ -503,6 +530,20 @@ const scenes = {
   milestoneDetail: async (page) => {
     await focusMilestone(page, 'College graduation', { keepDetail: true })
   },
+  // Mac scenes. The lanes shot shows the 5.2 feature itself: one lane per
+  // category, milestones in their lanes too. Both settings are written by the
+  // pane's prefs before the reload, as a user would set them.
+  macLanes: async (page) => {
+    const half  = Number(process.env.MAC_LANES_HALF  ?? 12)
+    const shift = Number(process.env.MAC_LANES_SHIFT ?? -7.1)
+    await setZoom(page, 'custom')
+    const input = page.locator('.custom-zoom-input').first()
+    await input.waitFor({ timeout: 4000 })
+    await input.fill(String(half))
+    await page.waitForTimeout(700)
+    if (shift) await panYears(page, shift, half * 2)
+    await page.waitForTimeout(800)
+  },
 }
 
 /* ----------------------------------------------------------------- measure ---
@@ -567,7 +608,7 @@ async function measurePane(page) {
   })
 
   const all = await page.evaluate(() => new Promise((res, rej) => {
-    const rq = indexedDB.open('lifeglance', 6)
+    const rq = indexedDB.open('lifeglance')
     rq.onerror = () => rej(rq.error)
     rq.onsuccess = () => {
       const g = rq.result.transaction('milestones', 'readonly')
@@ -687,6 +728,19 @@ const TAB7        = { width: 1800, height: 861, scale: 1920 / 1800 } // → 1920
 const TAB10       = { width: 1800, height: 864, scale: 2560 / 1800 } // → 2560 x 1229, under a 370px band
 const IPAD        = { width: 1529, height: 880, scale: 1.8 }  // → 2752 x 1584, under the 480px caption band
 
+// Mac App Store, 2880 x 1800. The window is composed onto the canvas by
+// compose-apple-frames.py, so the pane is just the window's content. 898 CSS
+// px tall: the 28px macOS title strip (html.desktop-darwin, src/index.css)
+// leaves 870 for the app, under the 900px compactLayout threshold like the
+// iPad pane, and the window's aspect (1529:898) fills the space the kit's Mac
+// frame gives it. Captured at 2x and downsampled once, in the composer.
+const MAC       = { width: 1529, height: 898, scale: 2 }   // → 3058 x 1796
+// The detail dialog is a fixed CSS width, so like the phone dialogs it is
+// captured in a smaller viewport and magnified to the same output. The add
+// sheet is a longer form and needs more CSS height to fit uncut.
+const MAC_MODAL = { width: 1150, height: 675, scale: 3058 / 1150 }
+const MAC_SHEET = { width: 1400, height: 822, scale: 3058 / 1400 }
+
 const PANE_SET = [
   // Apple iPhone — one landscape pane per shot.
   { id: 'iphone/01a', vp: PHONE_APPLE, scene: 'wholeLife',    seed: 'wide' },
@@ -707,12 +761,23 @@ const PANE_SET = [
   { id: 'play/tablet7/02a', vp: TAB7, scene: 'milestoneDetail' },
   { id: 'play/tablet10/01a', vp: TAB10, scene: 'tabletTimeline' },
   { id: 'play/tablet10/02a', vp: TAB10, scene: 'milestoneDetail' },
+  // Mac App Store. mac: true gives the page the macOS title strip, as the
+  // desktop app does; the composer puts the traffic lights in it.
+  { id: 'mac/01a', vp: MAC, mac: true, scene: 'tabletTimeline' },
+  { id: 'mac/02a', vp: MAC, mac: true, scene: 'macLanes', chapters: 'lanesChapters', text: 'normal',
+    prefs: { 'lifeglance-chapter-lanes': 'true', 'lifeglance-swimlanes': 'true' } },
+  { id: 'mac/03a', vp: MAC, mac: true, scene: 'chapterDrill', seed: 'wide' },
+  { id: 'mac/04a', vp: MAC_MODAL, mac: true, scene: 'milestoneDetail' },
+  // Not Settings: the web build's Settings shows browser-only rows (persistent
+  // storage, "this build is fully unlocked") that the App Store app does not
+  // have. The add sheet is the same on every platform, as on iPhone shot 5.
+  { id: 'mac/05a', vp: MAC_SHEET, mac: true, scene: 'addMilestone', seed: 'wide' },
 ]
 
 // Seed the demo backup straight into IndexedDB (mirroring restoreMilestones in
 // src/data/milestones.js) so the app boots into a populated timeline — no
 // onboarding, no UI restore. DB name/version/stores mirror src/data/db.js.
-async function seed(page, data, textSize = 'small') {
+async function seed(page, data, textSize = 'small', prefs = {}) {
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(900) // let initDB() create the 'lifeglance' DB + stores
   // A chapter's milestoneIds still list everything it had in the full seed, so
@@ -722,7 +787,7 @@ async function seed(page, data, textSize = 'small') {
   const chapters = data.chapters.map(c => ({
     ...c, milestoneIds: (c.milestoneIds ?? []).filter(id => present.has(id)),
   }))
-  await page.evaluate(async ({ milestones, chapters, birthday, textSize }) => {
+  await page.evaluate(async ({ milestones, chapters, birthday, textSize, prefs }) => {
     const clean = milestones.map(({ photo_uri: _drop, ...m }) => ({
       mainTimelineVisibility: 'inherit',
       dayglance_linked: false, dayglance_task_id: null,
@@ -730,7 +795,7 @@ async function seed(page, data, textSize = 'small') {
       ...m, media_type: null, has_photo: false,
     }))
     await new Promise((resolve, reject) => {
-      const req = indexedDB.open('lifeglance', 6)
+      const req = indexedDB.open('lifeglance')
       req.onerror = () => reject(req.error)
       req.onsuccess = () => {
         const db = req.result
@@ -757,7 +822,8 @@ async function seed(page, data, textSize = 'small') {
     // the ones that remain. It is the cheapest lever on card pile-up.
     localStorage.setItem('lifeglance-clustering', 'false')
     localStorage.setItem('lifeglance-text-size', textSize)
-  }, { milestones: data.milestones, chapters, birthday: data.birthday, textSize })
+    for (const [k, v] of Object.entries(prefs)) localStorage.setItem(k, v)
+  }, { milestones: data.milestones, chapters, birthday: data.birthday, textSize, prefs })
 
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.locator('.add-milestone-btn').first().waitFor({ timeout: 15000 })
@@ -830,11 +896,21 @@ async function main() {
         serviceWorkers: 'block', // avoid the PWA SW caching a stale shell
         colorScheme: 'dark',
       })
+      // The desktop app sets html.desktop-darwin on macOS (src/native/desktop.js),
+      // which keeps a 28px strip of page background at the top for the traffic
+      // lights. Set it before the app boots so the layout is the Mac app's.
+      if (pane.mac) {
+        await ctx.addInitScript(() => document.documentElement.classList.add('desktop-darwin'))
+      }
       const page = await ctx.newPage()
       try {
-        await seed(page, pane.seed ? { ...data, milestones: data[pane.seed] } : data, pane.text)
+        const paneData = { ...data }
+        if (pane.seed) paneData.milestones = data[pane.seed]
+        if (pane.chapters) paneData.chapters = data[pane.chapters]
+        await seed(page, paneData, pane.text, pane.prefs)
         await scenes[pane.scene](page)
         await page.screenshot({ path: file })
+        await writeFile(file.replace(/\.png$/, '.json'), JSON.stringify({ scale: pane.vp.scale }))
         // Only the bare-timeline scenes are measurable: the others have a sheet
         // or dialog over the timeline, whose own rects and hidden cards make the
         // in-span/drawn reconciliation meaningless.
