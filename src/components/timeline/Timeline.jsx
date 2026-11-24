@@ -172,10 +172,23 @@ const Timeline = forwardRef(function Timeline(
   }, [onPanMs])
 
   // Expose imperative methods to parent
+  // Latest ms-per-pixel, for panByPx (measured below, after the size is known).
+  const msPerPxRef = useRef(0)
+
+  // Expose imperative methods to parent
   useImperativeHandle(ref, () => ({
     resetPan: () => smoothPanTo(0),
     panToMs:  (targetMs) => smoothPanTo(targetMs - Date.now()),
-  }), [smoothPanTo])
+    // Immediate relative pan by a pixel distance (trackpad swipe / horizontal
+    // wheel), converted with the same msPerPx as drag-panning. Positive = later.
+    panByPx:  (px) => {
+      if (!px || !msPerPxRef.current) return
+      if (animRef.current) cancelAnimationFrame(animRef.current)
+      const val = panMsRef.current + px * msPerPxRef.current
+      panMsRef.current = val
+      onPanMs(val)
+    },
+  }), [smoothPanTo, onPanMs])
 
   // Audio playback — stop and revoke object URL on unmount
   useEffect(() => {
@@ -253,6 +266,7 @@ const Timeline = forwardRef(function Timeline(
   const ticks    = getTickMarks(zoom, startMs, endMs, w, i18n.language)
   const todayX   = dateToX(today.getTime(), startMs, endMs, w)
   const msPerPx  = getMsPerPx(zoom, w, customHalfMs)
+  msPerPxRef.current = msPerPx
   const daysPerPx = msPerPx / 86400000
 
   // ── Chapter band: sits between milestones and the time axis ─────────────

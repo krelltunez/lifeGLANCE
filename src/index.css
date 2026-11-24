@@ -660,6 +660,8 @@ button, input, select, textarea {
 .timeline-zoom-wrap {
   flex: 1;
   min-height: 0;
+  /* Horizontal swipes pan the timeline; never hand them to back/forward nav. */
+  overscroll-behavior-x: none;
   display: flex;
   flex-direction: column;
   transition: transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94);

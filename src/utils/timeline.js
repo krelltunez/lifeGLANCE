@@ -69,6 +69,57 @@ export function computePinchZoom({
   return { halfMs: half, panMs }
 }
 
+// ── Wheel / trackpad gestures ─────────────────────────────────────────────────
+// A wheel event either pans (horizontal two-finger swipe, tilt wheel, Shift+wheel)
+// or steps the zoom (vertical scroll, and trackpad pinch, which Chromium reports
+// as a wheel event with ctrlKey). A trackpad swipe carries small cross-axis
+// deltas, so the axis chosen by a gesture's first event is kept until the
+// stream pauses for WHEEL_GESTURE_GAP_MS: one swipe never both pans and zooms.
+export const WHEEL_GESTURE_GAP_MS = 200
+export const WHEEL_LINE_PX = 16   // DOM_DELTA_LINE → px (Firefox's mouse-wheel mode)
+
+// Convert a wheel delta to CSS pixels per its deltaMode (0 px, 1 line, 2 page).
+export function wheelDeltaPx(delta, deltaMode = 0, pagePx = 800) {
+  if (deltaMode === 1) return delta * WHEEL_LINE_PX
+  if (deltaMode === 2) return delta * pagePx
+  return delta
+}
+
+// The horizontal component a wheel event asks to pan by (in the event's own
+// units): deltaX when it dominates, or the vertical delta when Shift is held on
+// a plain wheel that the browser didn't already convert to deltaX.
+function horizontalDelta({ deltaX = 0, deltaY = 0, shiftKey = false }) {
+  if (Math.abs(deltaX) > Math.abs(deltaY)) return deltaX
+  if (shiftKey && deltaY !== 0) return deltaY
+  return 0
+}
+
+// Decide what a wheel event does. `prev` is the gesture state returned for the
+// previous event ({ axis, t }) or null. Returns { axis, t } where axis is
+// 'pan', 'zoom' or null (nothing to do); pass it back in as `prev` next time.
+export function pickWheelAxis(e, prev, now, gapMs = WHEEL_GESTURE_GAP_MS) {
+  const { deltaX = 0, deltaY = 0, ctrlKey = false } = e
+  if (ctrlKey) return { axis: deltaY !== 0 ? 'zoom' : null, t: now }  // pinch
+  if (deltaX === 0 && deltaY === 0) return { axis: prev?.axis ?? null, t: prev?.t ?? now }
+  if (prev?.axis && now - prev.t < gapMs) return { axis: prev.axis, t: now }
+  return { axis: horizontalDelta(e) !== 0 ? 'pan' : 'zoom', t: now }
+}
+
+// Pixels to pan for a wheel event already classified as 'pan'. Positive = view
+// moves later in time (content slides left), matching scrollLeft += deltaX. In
+// a pan-locked gesture only the horizontal delta counts, so stray vertical
+// deltas don't jump the view.
+export function wheelPanPx(e, pagePx) {
+  const { deltaX = 0, deltaY = 0, shiftKey = false, deltaMode = 0 } = e
+  const d = deltaX !== 0 ? deltaX : (shiftKey ? deltaY : 0)
+  return wheelDeltaPx(d, deltaMode, pagePx)
+}
+
+// The same pan as a pan-offset change in ms, using the drag-pan conversion.
+export function wheelPanMs(e, msPerPx, pagePx) {
+  return wheelPanPx(e, pagePx) * msPerPx
+}
+
 // Pick the best tick-mark visual style for a given span
 function autoStyle(startMs, endMs) {
   const spanYears = (endMs - startMs) / (365.25 * 24 * 3600 * 1000)
